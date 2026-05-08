@@ -4,7 +4,7 @@
  */
 window.APP_CONFIG = {
   // GCPコンソール → APIとサービス → 認証情報 で発行したOAuthクライアントID
-  clientId: 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com',
+  clientId: '508005503832-vum8q15vc95msuf1lbjnlfcl2as6nmhd.apps.googleusercontent.com',
 
   // ライセンス検証・サーバー時刻APIのベースURL
   // ローカル開発時: 'http://localhost:3000'
