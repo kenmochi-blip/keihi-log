@@ -14,11 +14,11 @@ const Router = (() => {
 
   let _current = null;
 
-  function init() {
+  function init(initialView = 'submit') {
     document.querySelectorAll('.nav-item-btn').forEach(btn => {
       btn.addEventListener('click', () => navigate(btn.dataset.view));
     });
-    navigate('submit');
+    navigate(initialView);
   }
 
   async function navigate(viewName) {

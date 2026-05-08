@@ -21,24 +21,20 @@ const App = (() => {
     // ライセンス確認
     const licKey = localStorage.getItem('keihi_license_key');
     if (!licKey) {
-      // ライセンス未設定の場合は設定画面を表示
-      _setupUI();
-      Router.navigate('settings');
+      _setupUI('settings');
       showToast('ライセンスキーを設定してください', 'warning');
       return;
     }
     const lic = await License.verify(licKey);
     if (!lic.valid) {
-      _setupUI();
-      Router.navigate('settings');
+      _setupUI('settings');
       showToast(`ライセンスが無効です（${lic.reason}）。設定画面で確認してください。`, 'danger');
       return;
     }
 
     // スプレッドシート未設定の場合は設定画面
     if (!localStorage.getItem('keihi_sheet_id')) {
-      _setupUI();
-      Router.navigate('settings');
+      _setupUI('settings');
       showToast('スプレッドシートURLを設定してください', 'warning');
       return;
     }
@@ -52,11 +48,10 @@ const App = (() => {
       _masterCache = { members: [], categories: [], paySources: [], admins: [] };
     }
 
-    _setupUI();
-    Router.init();
+    _setupUI('submit');
   }
 
-  function _setupUI() {
+  function _setupUI(initialView = 'submit') {
     // ナビゲーションにユーザーEmail表示
     const nav = document.getElementById('navUserEmail');
     if (nav) nav.textContent = Auth.getUserEmail();
@@ -67,6 +62,9 @@ const App = (() => {
     // 管理者タブ表示
     const adminBtn = document.getElementById('navAdminBtn');
     if (adminBtn && _isAdmin) adminBtn.classList.remove('d-none');
+
+    // ボトムナビのボタンにイベントリスナーを登録（常に実行）
+    Router.init(initialView);
 
     // 確認モーダル初期化
     const modalEl = document.getElementById('confirmModal');
