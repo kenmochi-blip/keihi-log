@@ -3,6 +3,7 @@
  * GCPコンソールで発行したOAuth 2.0クライアントIDを設定してください
  */
 window.APP_CONFIG = {
+  // GCPコンソール → APIとサービス → 認証情報 で発行したOAuthクライアントID
   clientId: 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com',
 
   // ライセンス検証・サーバー時刻APIのベースURL
