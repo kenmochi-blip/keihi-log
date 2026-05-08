@@ -71,7 +71,7 @@ const Auth = (() => {
       _pendingResolves.push({ resolve, reject });
       if (_pendingResolves.length === 1) {
         // 初回リクエストのみポップアップを開く
-        _tokenClient.requestAccessToken({ prompt: _accessToken ? '' : 'consent' });
+        _tokenClient.requestAccessToken({ prompt: '' });
       }
     });
   }
