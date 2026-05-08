@@ -133,6 +133,23 @@ function initLogin() {
     { theme: 'outline', size: 'large', locale: 'ja', width: 280 }
   );
 
+  // GSIボタンが描画されなかった場合（ドメイン未登録等）はフォールバックボタンを表示
+  setTimeout(() => {
+    const btn = document.getElementById('googleSignInBtn');
+    if (!btn || !btn.querySelector('iframe, div[role]')) {
+      document.getElementById('fallbackSignInBtn')?.classList.remove('d-none');
+    }
+  }, 1500);
+
+  document.getElementById('fallbackSignInBtn')?.addEventListener('click', () => {
+    Auth.getToken().then(() => {
+      window.location.href = 'app.html';
+    }).catch(err => {
+      document.getElementById('loginError').textContent = 'ログインに失敗しました: ' + err.message;
+      document.getElementById('loginError').classList.remove('d-none');
+    });
+  });
+
   google.accounts.id.prompt();
 }
 

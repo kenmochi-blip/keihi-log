@@ -21,6 +21,9 @@
       <div id="loginArea">
         <p class="text-muted small mb-3">Googleアカウントでログインして開始してください</p>
         <div id="googleSignInBtn" class="d-flex justify-content-center mb-3"></div>
+        <button id="fallbackSignInBtn" class="btn btn-outline-primary w-100 mb-3 d-none">
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" class="me-2">Googleでログイン
+        </button>
         <div id="loginError" class="alert alert-danger small d-none"></div>
       </div>
 
@@ -34,6 +37,7 @@
     </div>
   </div>
 
+  <script src="js/config.js"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="https://apis.google.com/js/api.js" async defer></script>
   <script src="js/auth.js"></script>
