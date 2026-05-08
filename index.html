@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>経費ログ</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-light d-flex align-items-center justify-content-center min-vh-100">
+
+  <div class="card shadow-sm" style="max-width:400px;width:100%;margin:1rem;">
+    <div class="card-body text-center p-4">
+      <div class="mb-3">
+        <i class="bi bi-receipt-cutoff text-primary" style="font-size:3rem;"></i>
+      </div>
+      <h1 class="h4 fw-bold mb-1">経費ログ</h1>
+      <p class="text-muted small mb-4">AI領収書解析・経費申請システム</p>
+
+      <div id="loginArea">
+        <p class="text-muted small mb-3">Googleアカウントでログインして開始してください</p>
+        <div id="googleSignInBtn" class="d-flex justify-content-center mb-3"></div>
+        <div id="loginError" class="alert alert-danger small d-none"></div>
+      </div>
+
+      <div id="loadingArea" class="d-none">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="text-muted small mt-2 mb-0">認証中...</p>
+      </div>
+    </div>
+    <div class="card-footer text-center text-muted" style="font-size:0.7rem;">
+      © 2025 経費ログ — ライセンス制
+    </div>
+  </div>
+
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://apis.google.com/js/api.js" async defer></script>
+  <script src="js/auth.js"></script>
+  <script src="js/license.js"></script>
+  <script>
+    // GIS + gapi の読み込み完了後に初期化
+    let gapiReady = false, gisReady = false;
+    function checkReady() {
+      if (gapiReady && gisReady) initLogin();
+    }
+    window.gapiLoaded = function() { gapiReady = true; checkReady(); };
+    window.gisLoaded  = function() { gisReady  = true; checkReady(); };
+
+    document.querySelector('[src*="api.js"]').onload = () => {
+      gapi.load('client', () => {
+        gapi.client.init({
+          discoveryDocs: [
+            'https://sheets.googleapis.com/$discovery/rest?version=v4',
+            'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'
+          ]
+        }).then(() => { gapiReady = true; checkReady(); });
+      });
+    };
+    document.querySelector('[src*="gsi/client"]').onload = () => { gisReady = true; checkReady(); };
+  </script>
+</body>
+</html>

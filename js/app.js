@@ -1,0 +1,172 @@
+/**
+ * アプリケーション本体
+ * 認証確認・マスターデータキャッシュ・UIユーティリティ
+ */
+const App = (() => {
+
+  let _masterCache  = null;
+  let _isAdmin      = false;
+  let _confirmModal = null;
+  let _confirmResolve = null;
+
+  async function init() {
+    // 認証トークン確認（未認証ならログイン画面へ）
+    try {
+      await Auth.getToken();
+    } catch (_) {
+      window.location.href = 'index.html';
+      return;
+    }
+
+    // ライセンス確認
+    const licKey = localStorage.getItem('keihi_license_key');
+    if (!licKey) {
+      // ライセンス未設定の場合は設定画面を表示
+      _setupUI();
+      Router.navigate('settings');
+      showToast('ライセンスキーを設定してください', 'warning');
+      return;
+    }
+    const lic = await License.verify(licKey);
+    if (!lic.valid) {
+      _setupUI();
+      Router.navigate('settings');
+      showToast(`ライセンスが無効です（${lic.reason}）。設定画面で確認してください。`, 'danger');
+      return;
+    }
+
+    // スプレッドシート未設定の場合は設定画面
+    if (!localStorage.getItem('keihi_sheet_id')) {
+      _setupUI();
+      Router.navigate('settings');
+      showToast('スプレッドシートURLを設定してください', 'warning');
+      return;
+    }
+
+    // マスターデータ読み込みと管理者判定
+    try {
+      _masterCache = await Sheets.readMaster();
+      const email  = Auth.getUserEmail().toLowerCase();
+      _isAdmin = _masterCache.admins.includes(email);
+    } catch (_) {
+      _masterCache = { members: [], categories: [], paySources: [], admins: [] };
+    }
+
+    _setupUI();
+    Router.init();
+  }
+
+  function _setupUI() {
+    // ナビゲーションにユーザーEmail表示
+    const nav = document.getElementById('navUserEmail');
+    if (nav) nav.textContent = Auth.getUserEmail();
+
+    // ログアウトボタン
+    document.getElementById('btnLogout')?.addEventListener('click', () => Auth.signOut());
+
+    // 管理者タブ表示
+    const adminBtn = document.getElementById('navAdminBtn');
+    if (adminBtn && _isAdmin) adminBtn.classList.remove('d-none');
+
+    // 確認モーダル初期化
+    const modalEl = document.getElementById('confirmModal');
+    if (modalEl) {
+      _confirmModal = new bootstrap.Modal(modalEl);
+      document.getElementById('confirmOk')?.addEventListener('click', () => {
+        _confirmModal.hide();
+        if (_confirmResolve) { _confirmResolve(true); _confirmResolve = null; }
+      });
+      document.getElementById('confirmCancel')?.addEventListener('click', () => {
+        if (_confirmResolve) { _confirmResolve(false); _confirmResolve = null; }
+      });
+      modalEl.addEventListener('hidden.bs.modal', () => {
+        if (_confirmResolve) { _confirmResolve(false); _confirmResolve = null; }
+      });
+    }
+  }
+
+  /** 確認ダイアログを表示してOK/キャンセルをPromiseで返す */
+  function confirm(message) {
+    return new Promise(resolve => {
+      _confirmResolve = resolve;
+      const body = document.getElementById('confirmModalBody');
+      if (body) body.textContent = message;
+      _confirmModal?.show();
+    });
+  }
+
+  /** マスターデータを返す（キャッシュがあればキャッシュ優先） */
+  async function getMaster() {
+    if (_masterCache) return _masterCache;
+    _masterCache = await Sheets.readMaster();
+    const email = Auth.getUserEmail().toLowerCase();
+    _isAdmin = _masterCache.admins.includes(email);
+    return _masterCache;
+  }
+
+  function clearMasterCache() { _masterCache = null; }
+  function isAdmin() { return _isAdmin; }
+
+  /** ローディングオーバーレイを表示 */
+  function showLoading(msg = '処理中...') {
+    const el = document.getElementById('loadingOverlay');
+    const msgEl = document.getElementById('loadingMsg');
+    if (msgEl) msgEl.textContent = msg;
+    el?.classList.remove('d-none');
+  }
+
+  /** ローディングオーバーレイを非表示 */
+  function hideLoading() {
+    document.getElementById('loadingOverlay')?.classList.add('d-none');
+  }
+
+  /**
+   * トースト通知を表示
+   * @param {string} message
+   * @param {'success'|'danger'|'warning'|'info'} type
+   */
+  function showToast(message, type = 'info') {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+
+    const colorMap = { success: 'bg-success', danger: 'bg-danger', warning: 'bg-warning text-dark', info: 'bg-info' };
+    const div = document.createElement('div');
+    div.className = `toast-item alert ${colorMap[type] || 'bg-info'} text-white shadow py-2 px-3`;
+    div.style.cssText = 'animation: fadeIn 0.2s ease;';
+    div.textContent = message;
+    container.appendChild(div);
+    setTimeout(() => { div.style.opacity = '0'; div.style.transition = 'opacity 0.3s'; setTimeout(() => div.remove(), 300); }, 3000);
+  }
+
+  return {
+    init,
+    confirm,
+    getMaster,
+    clearMasterCache,
+    isAdmin,
+    showLoading,
+    hideLoading,
+    showToast,
+  };
+})();
+
+// アプリ起動
+document.addEventListener('DOMContentLoaded', () => {
+  // gapiとGISが読み込まれた後に初期化
+  // app.html では gapi.js がすでに読み込まれているため直接呼び出す
+  const waitForLibs = setInterval(() => {
+    if (typeof gapi !== 'undefined' && typeof google !== 'undefined') {
+      clearInterval(waitForLibs);
+      gapi.load('client', async () => {
+        await gapi.client.init({
+          discoveryDocs: [
+            'https://sheets.googleapis.com/$discovery/rest?version=v4',
+            'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'
+          ]
+        });
+        Auth.init();
+        App.init();
+      });
+    }
+  }, 100);
+});

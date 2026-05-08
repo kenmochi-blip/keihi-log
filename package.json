@@ -1,0 +1,11 @@
+{
+  "name": "keihi-log",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI領収書解析・経費申請Webアプリ",
+  "dependencies": {
+    "@vercel/kv": "^1.0.1",
+    "googleapis": "^140.0.0",
+    "stripe": "^14.21.0"
+  }
+}

@@ -1,0 +1,284 @@
+/**
+ * 一覧表ビュー
+ * 経費一覧シートのデータをWebページで表示する（新規機能）
+ * 管理者：全メンバー分表示・承認操作可
+ * 一般：自分の分のみ表示
+ */
+const ListView = (() => {
+
+  let _expenses = [];
+  let _master   = null;
+  let _isAdmin  = false;
+  let _showAll  = false;
+
+  function render() {
+    return `
+<div class="pt-3">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="fw-bold mb-0"><i class="bi bi-list-ul me-2 text-primary"></i>一覧表</h5>
+    <div class="d-flex gap-2">
+      <button class="btn btn-outline-secondary btn-sm no-print" id="btnExportCsv">
+        <i class="bi bi-download me-1"></i>CSV
+      </button>
+      <button class="btn btn-outline-secondary btn-sm no-print" id="btnRefreshList">
+        <i class="bi bi-arrow-clockwise"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- フィルターパネル -->
+  <div class="card mb-3 no-print">
+    <div class="card-body py-2">
+      <div class="row g-2">
+        <div class="col-6">
+          <input type="date" class="form-control form-control-sm" id="filterDateFrom" placeholder="開始日">
+        </div>
+        <div class="col-6">
+          <input type="date" class="form-control form-control-sm" id="filterDateTo" placeholder="終了日">
+        </div>
+        <div class="col-6">
+          <select class="form-select form-select-sm" id="filterType">
+            <option value="">タイプ（全て）</option>
+            <option>領収書</option><option>領収書なし</option>
+            <option>交通費</option><option>自家用車</option>
+          </select>
+        </div>
+        <div class="col-6">
+          <select class="form-select form-select-sm" id="filterStatus">
+            <option value="">承認状態（全て）</option>
+            <option value="confirmed">承認済</option>
+            <option value="pending">未確認</option>
+          </select>
+        </div>
+        <div class="col-12">
+          <div class="input-group input-group-sm">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control" id="filterKeyword" placeholder="支払先・備考・勘定科目で検索">
+          </div>
+        </div>
+        <div class="col-6" id="filterMemberWrap" style="display:none;">
+          <select class="form-select form-select-sm" id="filterMember">
+            <option value="">申請者（全員）</option>
+          </select>
+        </div>
+        <div class="col-6 d-flex align-items-center gap-2" id="adminToggleWrap" style="display:none;">
+          <div class="form-check form-switch mb-0">
+            <input class="form-check-input" type="checkbox" id="chkShowAll">
+            <label class="form-check-label small" for="chkShowAll">全員分表示</label>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 合計表示 -->
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <span class="text-muted small" id="lblCount">読み込み中...</span>
+    <span class="fw-bold" id="lblFilterTotal"></span>
+  </div>
+
+  <!-- テーブル -->
+  <div class="table-responsive">
+    <table class="table table-sm table-hover list-table">
+      <thead class="table-light">
+        <tr>
+          <th>日付</th>
+          <th>支払先</th>
+          <th class="text-end">金額</th>
+          <th>科目</th>
+          <th>状態</th>
+          <th class="no-print">操作</th>
+        </tr>
+      </thead>
+      <tbody id="listTableBody">
+        <tr><td colspan="6" class="text-center text-muted py-3">読み込み中...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- スプレッドシートリンク（管理者のみ） -->
+  <div id="sheetLinkArea" class="mt-3 d-none no-print">
+    <a id="sheetDirectLink" href="#" target="_blank" class="btn btn-outline-secondary btn-sm w-100">
+      <i class="bi bi-table me-1"></i>スプレッドシートで開く（会計ソフト連携・詳細編集）
+    </a>
+  </div>
+</div>`;
+  }
+
+  async function bindEvents(el) {
+    try {
+      _master  = await App.getMaster();
+      _isAdmin = App.isAdmin();
+      _expenses = await Sheets.readExpenses();
+    } catch (err) {
+      el.querySelector('#listTableBody').innerHTML =
+        `<tr><td colspan="6" class="text-danger text-center">${err.message}</td></tr>`;
+      return;
+    }
+
+    // 管理者用UI
+    if (_isAdmin) {
+      el.querySelector('#adminToggleWrap').style.display = '';
+      el.querySelector('#filterMemberWrap').style.display = '';
+      const sel = el.querySelector('#filterMember');
+      _master.members.forEach(m => {
+        sel.innerHTML += `<option value="${m.email}">${m.name}</option>`;
+      });
+      // スプレッドシートリンク
+      const ssId = localStorage.getItem('keihi_sheet_id');
+      if (ssId) {
+        el.querySelector('#sheetLinkArea').classList.remove('d-none');
+        el.querySelector('#sheetDirectLink').href = `https://docs.google.com/spreadsheets/d/${ssId}`;
+      }
+    }
+
+    // フィルタリング
+    ['filterDateFrom','filterDateTo','filterType','filterStatus','filterKeyword','filterMember'].forEach(id => {
+      el.querySelector(`#${id}`)?.addEventListener('input', () => _renderTable(el));
+    });
+    el.querySelector('#chkShowAll')?.addEventListener('change', e => {
+      _showAll = e.target.checked;
+      el.querySelector('#filterMemberWrap').style.display = _showAll ? '' : 'none';
+      _renderTable(el);
+    });
+
+    el.querySelector('#btnRefreshList')?.addEventListener('click', async () => {
+      try {
+        _expenses = await Sheets.readExpenses();
+        _renderTable(el);
+        App.showToast('更新しました', 'success');
+      } catch (err) {
+        App.showToast(err.message, 'danger');
+      }
+    });
+
+    el.querySelector('#btnExportCsv')?.addEventListener('click', () => _exportCsv(el));
+
+    _renderTable(el);
+  }
+
+  function _getFiltered(el) {
+    const from    = el.querySelector('#filterDateFrom')?.value || '';
+    const to      = el.querySelector('#filterDateTo')?.value   || '';
+    const type    = el.querySelector('#filterType')?.value     || '';
+    const status  = el.querySelector('#filterStatus')?.value   || '';
+    const keyword = (el.querySelector('#filterKeyword')?.value || '').toLowerCase();
+    const member  = el.querySelector('#filterMember')?.value   || '';
+    const email   = Auth.getUserEmail();
+
+    return _expenses.filter(e => {
+      if (!e.id) return false;
+      // 表示対象
+      if (!_isAdmin || !_showAll) {
+        if (e.email !== email) return false;
+      } else if (member && e.email !== member) return false;
+
+      if (from && e.date < from) return false;
+      if (to   && e.date > to)   return false;
+      if (type && e.type !== type) return false;
+      if (status === 'confirmed' && !e.confirmed)  return false;
+      if (status === 'pending'   &&  e.confirmed)  return false;
+      if (keyword && ![e.place, e.note, e.category].join(' ').toLowerCase().includes(keyword)) return false;
+      return true;
+    }).sort((a, b) => b.date.localeCompare(a.date));
+  }
+
+  function _renderTable(el) {
+    const filtered = _getFiltered(el);
+    const total = filtered.reduce((s, e) => s + e.amount, 0);
+    el.querySelector('#lblCount').textContent = `${filtered.length}件`;
+    el.querySelector('#lblFilterTotal').textContent = filtered.length > 0
+      ? `合計 ¥${total.toLocaleString()}` : '';
+
+    const tbody = el.querySelector('#listTableBody');
+    if (filtered.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3">該当する申請がありません</td></tr>';
+      return;
+    }
+    const email = Auth.getUserEmail();
+    tbody.innerHTML = filtered.map(e => {
+      const statusBadge = e.confirmed
+        ? `<span class="badge badge-confirmed" style="font-size:0.65rem;">承認済</span>`
+        : `<span class="badge badge-pending" style="font-size:0.65rem;">未確認</span>`;
+
+      const canEdit = !e.confirmed && e.email === email;
+      const imageBtn = e.imageLinks
+        ? `<a href="${e.imageLinks.split(',')[0].trim()}" target="_blank" class="btn btn-outline-primary btn-sm py-0">
+            <i class="bi bi-image"></i></a>` : '';
+
+      const approveBtn = _isAdmin && !e.confirmed
+        ? `<button class="btn btn-outline-success btn-sm py-0 btn-approve" data-id="${e.id}">
+            <i class="bi bi-check"></i></button>` : '';
+
+      const editBtn = canEdit
+        ? `<button class="btn btn-outline-secondary btn-sm py-0 btn-edit-list" data-id="${e.id}">
+            <i class="bi bi-pencil"></i></button>` : '';
+
+      return `<tr>
+        <td class="small">${e.date}</td>
+        <td class="small">
+          <div>${_escape(e.place)}</div>
+          <div class="text-muted" style="font-size:0.7rem;">${_escape(e.name)} ${e.type !== '領収書' ? '· ' + e.type : ''}</div>
+        </td>
+        <td class="text-end list-amount small">¥${e.amount.toLocaleString()}</td>
+        <td class="small">${_escape(e.category)}</td>
+        <td>${statusBadge}</td>
+        <td class="no-print">
+          <div class="d-flex gap-1">${imageBtn}${approveBtn}${editBtn}</div>
+        </td>
+      </tr>`;
+    }).join('');
+
+    // 承認ボタンのイベント
+    tbody.querySelectorAll('.btn-approve').forEach(btn => {
+      btn.addEventListener('click', () => _approveExpense(btn.dataset.id, el));
+    });
+  }
+
+  async function _approveExpense(id, el) {
+    const ok = await App.confirm('この申請を承認しますか？');
+    if (!ok) return;
+    App.showLoading('承認中...');
+    try {
+      const rowNum = await Sheets.findRowById(id);
+      if (rowNum < 0) throw new Error('行が見つかりません');
+      await Sheets.update(`経費一覧!J${rowNum}`, [[true]]);
+      const e = _expenses.find(x => x.id === id);
+      if (e) e.confirmed = true;
+      _renderTable(el);
+      App.showToast('承認しました', 'success');
+    } catch (err) {
+      App.showToast('承認エラー: ' + err.message, 'danger');
+    } finally {
+      App.hideLoading();
+    }
+  }
+
+  function _exportCsv(el) {
+    const filtered = _getFiltered(el);
+    const header = ['申請日時','申請者名','タイプ','日付','支払先','金額','勘定科目','備考','証票URL','承認状態','インボイス番号','申請者Email','ID'];
+    const rows = filtered.map(e => [
+      e.appliedAt, e.name, e.type, e.date, e.place, e.amount,
+      e.category, e.note, e.imageLinks.split(',')[0]?.trim() || '',
+      e.confirmed ? '承認済' : '未確認', e.invoice, e.email, e.id
+    ]);
+    const csv = [header, ...rows].map(r =>
+      r.map(v => `"${String(v || '').replace(/"/g, '""')}"`).join(',')
+    ).join('\n');
+
+    const bom = '﻿'; // Excel用BOM
+    const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = `経費一覧_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function _escape(s) {
+    return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  return { render, bindEvents };
+})();
