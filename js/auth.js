@@ -111,7 +111,6 @@ const Auth = (() => {
  * ログイン画面の初期化（index.html から呼ばれる）
  */
 function initLogin() {
-  // 環境変数はconfig.jsで設定
   if (!window.APP_CONFIG?.clientId) {
     document.getElementById('loginError').textContent =
       'CLIENT_IDが設定されていません。config.jsを確認してください。';
@@ -121,53 +120,14 @@ function initLogin() {
 
   Auth.init();
 
-  // Google One-Tap / Sign In With Google ボタン
-  google.accounts.id.initialize({
-    client_id: window.APP_CONFIG.clientId,
-    callback: _onCredentialResponse,
-    auto_select: true,
-  });
-
-  google.accounts.id.renderButton(
-    document.getElementById('googleSignInBtn'),
-    { theme: 'outline', size: 'large', locale: 'ja', width: 280 }
-  );
-
-  // GSIボタンが描画されなかった場合（ドメイン未登録等）はフォールバックボタンを表示
-  setTimeout(() => {
-    const btn = document.getElementById('googleSignInBtn');
-    if (!btn || !btn.querySelector('iframe, div[role]')) {
-      document.getElementById('fallbackSignInBtn')?.classList.remove('d-none');
-    }
-  }, 1500);
-
-  document.getElementById('fallbackSignInBtn')?.addEventListener('click', () => {
+  // ボタンクリックから直接OAuthポップアップを開く（ブラウザのポップアップブロック回避）
+  document.getElementById('signInBtn').addEventListener('click', () => {
+    document.getElementById('loginError').classList.add('d-none');
     Auth.getToken().then(() => {
       window.location.href = 'app.html';
     }).catch(err => {
       document.getElementById('loginError').textContent = 'ログインに失敗しました: ' + err.message;
       document.getElementById('loginError').classList.remove('d-none');
     });
-  });
-
-  google.accounts.id.prompt();
-}
-
-function _onCredentialResponse(response) {
-  document.getElementById('loadingArea').classList.remove('d-none');
-  document.getElementById('loginArea').classList.add('d-none');
-
-  // JWT decode (検証はサーバーサイドでやるが、ここでは画面遷移のため簡易デコード)
-  const payload = JSON.parse(atob(response.credential.split('.')[1]));
-  const email = payload.email;
-
-  // トークンを取得してアプリ画面へ
-  Auth.getToken().then(() => {
-    window.location.href = 'app.html';
-  }).catch(err => {
-    document.getElementById('loadingArea').classList.add('d-none');
-    document.getElementById('loginArea').classList.remove('d-none');
-    document.getElementById('loginError').textContent = 'ログインに失敗しました: ' + err.message;
-    document.getElementById('loginError').classList.remove('d-none');
   });
 }
