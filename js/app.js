@@ -18,6 +18,16 @@ const App = (() => {
       return;
     }
 
+    // Driveから設定を読み込んでlocalStorageに反映（端末間同期）
+    try {
+      const saved = await Drive.loadSettings();
+      if (saved) {
+        if (saved.licenseKey) localStorage.setItem('keihi_license_key', saved.licenseKey);
+        if (saved.sheetId)    localStorage.setItem('keihi_sheet_id',    saved.sheetId);
+        if (saved.folderId)   localStorage.setItem('keihi_folder_id',   saved.folderId);
+      }
+    } catch (_) { /* Drive読み込み失敗は無視してlocalStorageで続行 */ }
+
     // ライセンス確認
     const licKey = localStorage.getItem('keihi_license_key');
     if (!licKey) {

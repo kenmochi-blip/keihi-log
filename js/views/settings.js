@@ -98,6 +98,7 @@ const SettingsView = (() => {
         localStorage.setItem('keihi_license_key', key);
         msg.innerHTML = `<span class="text-success"><i class="bi bi-check-circle me-1"></i>有効（${result.company || ''}）${result.expiresAt ? ' 期限: ' + result.expiresAt.split('T')[0] : ''}</span>`;
         App.showToast('ライセンスを確認しました', 'success');
+        _syncSettingsToDrive();
       } else {
         msg.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle me-1"></i>無効なライセンスキーです（${result.reason || ''}）</span>`;
       }
@@ -116,6 +117,7 @@ const SettingsView = (() => {
       localStorage.setItem('keihi_sheet_id', id);
       msg.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>保存しました</span>';
       App.showToast('スプレッドシートIDを保存しました', 'success');
+      _syncSettingsToDrive();
     });
 
     // スプレッドシート新規作成
@@ -180,6 +182,15 @@ const SettingsView = (() => {
 
   function _escape(s) {
     return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function _syncSettingsToDrive() {
+    const settings = {
+      licenseKey: localStorage.getItem('keihi_license_key') || '',
+      sheetId:    localStorage.getItem('keihi_sheet_id')    || '',
+      folderId:   localStorage.getItem('keihi_folder_id')   || '',
+    };
+    Drive.saveSettings(settings).catch(() => {});
   }
 
   return { render, bindEvents };

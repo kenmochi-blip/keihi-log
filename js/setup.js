@@ -48,9 +48,14 @@ const Setup = (() => {
     // 4. フォルダIDを設定シートに保存
     await Sheets.update('設定!B4', [[folderId]], ssId);
 
-    // 5. localStorageに保存
+    // 5. localStorageとDriveに保存（端末間同期）
     localStorage.setItem('keihi_sheet_id', ssId);
     localStorage.setItem('keihi_folder_id', folderId);
+    Drive.saveSettings({
+      licenseKey: localStorage.getItem('keihi_license_key') || '',
+      sheetId:    ssId,
+      folderId,
+    }).catch(() => {});
 
     return ssId;
   }
@@ -93,12 +98,22 @@ const Setup = (() => {
           ['バージョン', '2.0.0'],
         ]
       },
-      // マスタ表ヘッダーと初期管理者登録
+      // マスタ表ヘッダー・初期管理者・デフォルト勘定科目・支払元
       {
-        range: 'マスタ表!A1:G2',
+        range: 'マスタ表!A1:G13',
         values: [
-          ['氏名', 'メールアドレス', '所属', '会社払い支払元', '勘定科目', '権限', '備考'],
-          [userName, userEmail, '', '', '', 'admin', '初期管理者'],
+          ['氏名', 'メールアドレス', '所属', '会社払い支払元',         '勘定科目',   '権限',  '備考'],
+          [userName, userEmail, '',   '法人カード',                    '消耗品費',   'admin', '初期管理者'],
+          ['', '', '',                '小口現金',                      '旅費交通費', '',      ''],
+          ['', '', '',                '○○銀行(管理タブで変更可)',      '会議費',     '',      ''],
+          ['', '', '',                '▲▲銀行(管理タブで変更可)',      '交際費',     '',      ''],
+          ['', '', '', '', '通信費',     '', ''],
+          ['', '', '', '', '新聞図書費', '', ''],
+          ['', '', '', '', '水道光熱費', '', ''],
+          ['', '', '', '', '賃借料',     '', ''],
+          ['', '', '', '', '租税公課',   '', ''],
+          ['', '', '', '', '支払手数料', '', ''],
+          ['', '', '', '', '雑費',       '', ''],
         ]
       },
     ];
