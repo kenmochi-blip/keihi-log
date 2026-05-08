@@ -27,21 +27,6 @@ const SubmitView = (() => {
     <button class="btn btn-link btn-sm text-muted p-0 ms-2" id="btnCancelEdit">キャンセル</button>
   </div>
 
-  <!-- 会社払いトグル -->
-  <div class="card mb-3 border-0 shadow-sm">
-    <div class="card-body py-2">
-      <div class="form-check form-switch d-flex align-items-center gap-2 mb-0">
-        <input class="form-check-input" type="checkbox" id="chkCorpPay" style="width:2.5rem;height:1.3rem;">
-        <label class="form-check-label fw-semibold" for="chkCorpPay">会社払い（立替精算なし）</label>
-      </div>
-      <div id="corpPayDetails" class="d-none mt-2">
-        <select class="form-select form-select-sm" id="selPaySource">
-          <option value="">支払元を選択</option>
-        </select>
-      </div>
-    </div>
-  </div>
-
   <!-- タイプ選択 2×2グリッド -->
   <div class="type-grid mb-3">
     <button class="type-card active" data-type="領収書">
@@ -58,10 +43,24 @@ const SubmitView = (() => {
     </button>
   </div>
 
-  <!-- 領収書：アップロード→AI→フォーム表示フロー -->
+  <!-- 会社払いトグル -->
+  <div class="card mb-3 border-0 shadow-sm">
+    <div class="card-body py-2">
+      <div class="form-check form-switch d-flex align-items-center gap-2 mb-0">
+        <input class="form-check-input" type="checkbox" id="chkCorpPay" style="width:2.5rem;height:1.3rem;">
+        <label class="form-check-label fw-semibold" for="chkCorpPay">会社払い（立替精算なし）</label>
+      </div>
+      <div id="corpPayDetails" class="d-none mt-2">
+        <select class="form-select form-select-sm" id="selPaySource">
+          <option value="">支払元を選択</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- 領収書：カメラ/ファイル → プレビュー → AI → フォーム -->
   <div id="panel-領収書">
     <input type="file" class="d-none" id="fileInput-領収書" accept="image/*,.pdf" multiple>
-    <div id="previewArea-領収書" class="d-flex flex-wrap gap-2 mb-2"></div>
     <div class="upload-grid mb-3">
       <button class="upload-card" id="btnCamera-領収書">
         <i class="bi bi-camera-fill"></i>カメラ
@@ -70,6 +69,7 @@ const SubmitView = (() => {
         <i class="bi bi-folder-fill"></i>ファイル
       </button>
     </div>
+    <div id="previewArea-領収書" class="d-flex flex-wrap gap-2 mb-3"></div>
     <button class="btn btn-primary w-100 mb-2" id="btnAnalyze">
       <i class="bi bi-stars me-2"></i>AIで読み取る
     </button>
@@ -86,9 +86,6 @@ const SubmitView = (() => {
       ${_noteField()}
     </div>
   </div>
-
-  <!-- 領収書なし -->
-  <div id="panel-領収書なし" class="d-none">
     ${_dateField()}
     ${_placeField('支払先・目的')}
     ${_amountSection()}
