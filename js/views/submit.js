@@ -28,11 +28,11 @@ const SubmitView = (() => {
   </div>
 
   <!-- 会社払いトグル -->
-  <div class="card mb-3">
+  <div class="card mb-3 border-0 shadow-sm">
     <div class="card-body py-2">
       <div class="form-check form-switch d-flex align-items-center gap-2 mb-0">
-        <input class="form-check-input" type="checkbox" id="chkCorpPay" style="width:2.5rem;">
-        <label class="form-check-label small" for="chkCorpPay">会社払い（立替精算なし）</label>
+        <input class="form-check-input" type="checkbox" id="chkCorpPay" style="width:2.5rem;height:1.3rem;">
+        <label class="form-check-label fw-semibold" for="chkCorpPay">会社払い（立替精算なし）</label>
       </div>
       <div id="corpPayDetails" class="d-none mt-2">
         <select class="form-select form-select-sm" id="selPaySource">
@@ -42,163 +42,168 @@ const SubmitView = (() => {
     </div>
   </div>
 
-  <!-- タイプ選択タブ -->
-  <div class="d-flex gap-2 overflow-auto pb-2 mb-3 no-print">
-    ${TYPES.map(t => `
-      <button class="btn type-tab-btn ${t === '領収書' ? 'btn-primary' : 'btn-outline-secondary'} flex-shrink-0"
-        data-type="${t}">${t === '領収書' ? '📷 領収書' : t === '領収書なし' ? '📝 ' + t : t === '交通費' ? '🚃 ' + t : '🚗 ' + t}</button>
-    `).join('')}
-  </div>
-
-  <!-- フォーム本体 -->
-  <div class="card mb-3">
-    <div class="card-body">
-
-      <!-- 領収書タイプ -->
-      <div id="form-領収書">
-        <div class="mb-3">
-          <label class="form-label small fw-semibold">証票ファイル</label>
-          <div class="d-flex gap-2 mb-2" id="previewArea-領収書"></div>
-          <input type="file" class="d-none" id="fileInput-領収書" accept="image/*,.pdf" multiple capture="environment">
-          <div class="d-flex gap-2">
-            <button class="btn btn-outline-secondary btn-sm" id="btnCamera-領収書">
-              <i class="bi bi-camera me-1"></i>撮影
-            </button>
-            <button class="btn btn-outline-secondary btn-sm" id="btnFile-領収書">
-              <i class="bi bi-folder2-open me-1"></i>ファイル選択
-            </button>
-            <button class="btn btn-outline-primary btn-sm" id="btnAnalyze">
-              <i class="bi bi-stars me-1"></i>AI解析
-            </button>
-          </div>
-        </div>
-        ${_dateField()}
-        ${_placeField('支払先（店名・会社名）')}
-        ${_invoiceField()}
-        ${_amountSection()}
-        ${_noteField()}
-      </div>
-
-      <!-- 領収書なしタイプ -->
-      <div id="form-領収書なし" class="d-none">
-        ${_dateField()}
-        ${_placeField('支払先・目的')}
-        ${_amountSection()}
-        <div class="mb-2">
-          <label class="form-label small fw-semibold">理由・詳細 <span class="text-danger">*</span></label>
-          <textarea class="form-control form-control-sm" id="txtReason" rows="3"
-            placeholder="領収書がない理由を具体的に記入してください"></textarea>
-        </div>
-        <div class="mb-2">
-          <label class="form-label small fw-semibold">参考資料（任意）</label>
-          <div class="d-flex gap-2 mb-2" id="previewArea-領収書なし"></div>
-          <input type="file" class="d-none" id="fileInput-領収書なし" accept="image/*" multiple>
-          <button class="btn btn-outline-secondary btn-sm" id="btnFile-領収書なし">
-            <i class="bi bi-folder2-open me-1"></i>ファイル選択
-          </button>
-        </div>
-      </div>
-
-      <!-- 交通費タイプ -->
-      <div id="form-交通費" class="d-none">
-        ${_dateField()}
-        <div class="row g-2 mb-2">
-          <div class="col-6">
-            <label class="form-label small fw-semibold">出発駅</label>
-            <input type="text" class="form-control form-control-sm" id="txtFrom" placeholder="例：渋谷">
-          </div>
-          <div class="col-6">
-            <label class="form-label small fw-semibold">到着駅</label>
-            <input type="text" class="form-control form-control-sm" id="txtTo" placeholder="例：新宿">
-          </div>
-        </div>
-        <button class="btn btn-outline-secondary btn-sm mb-2 w-100" id="btnYahooTransit">
-          <i class="bi bi-train-front me-1"></i>Yahoo乗換で検索
-        </button>
-        <div class="row g-2 mb-2">
-          <div class="col-6">
-            <label class="form-label small fw-semibold">片道運賃（円）</label>
-            <input type="number" class="form-control form-control-sm" id="numTransitFare" min="0" step="1">
-          </div>
-          <div class="col-6 d-flex align-items-end">
-            <div class="form-check mb-1">
-              <input class="form-check-input" type="checkbox" id="chkRoundTrip">
-              <label class="form-check-label small" for="chkRoundTrip">往復</label>
-            </div>
-          </div>
-        </div>
-        <div class="mb-2 d-flex align-items-center gap-2">
-          <span class="small">合計：</span>
-          <span class="fw-bold" id="lblTransitTotal">0円</span>
-        </div>
-        <div class="mb-2">
-          <label class="form-label small fw-semibold">勘定科目</label>
-          <select class="form-select form-select-sm" id="selCatTransit"></select>
-        </div>
-        ${_noteField()}
-        <div class="mb-2">
-          <label class="form-label small fw-semibold">領収書（任意）</label>
-          <div class="d-flex gap-2 mb-2" id="previewArea-交通費"></div>
-          <input type="file" class="d-none" id="fileInput-交通費" accept="image/*,.pdf" multiple>
-          <button class="btn btn-outline-secondary btn-sm" id="btnFile-交通費">
-            <i class="bi bi-folder2-open me-1"></i>ファイル選択
-          </button>
-        </div>
-      </div>
-
-      <!-- 自家用車タイプ -->
-      <div id="form-自家用車" class="d-none">
-        ${_dateField()}
-        <div class="mb-2">
-          <label class="form-label small fw-semibold">案件・経路名</label>
-          <input type="text" class="form-control form-control-sm" id="txtCarRoute" placeholder="例：〇〇社訪問 東京→横浜">
-        </div>
-        <div class="row g-2 mb-2">
-          <div class="col-6">
-            <label class="form-label small fw-semibold">距離（km）</label>
-            <input type="number" class="form-control form-control-sm" id="numCarKm" min="0" step="0.1">
-          </div>
-          <div class="col-6">
-            <label class="form-label small fw-semibold">レート（円/km）</label>
-            <input type="number" class="form-control form-control-sm" id="numCarRate" min="1" step="1"
-              value="${localStorage.getItem(CAR_RATE_KEY) || 20}">
-          </div>
-        </div>
-        <div class="mb-2 d-flex align-items-center gap-2">
-          <span class="small">合計：</span>
-          <span class="fw-bold" id="lblCarTotal">0円</span>
-        </div>
-        <div class="mb-2">
-          <label class="form-label small fw-semibold">勘定科目</label>
-          <select class="form-select form-select-sm" id="selCatCar"></select>
-        </div>
-        ${_noteField()}
-        <div class="mb-2">
-          <label class="form-label small fw-semibold">地図・参考資料（任意）</label>
-          <div class="d-flex gap-2 mb-2" id="previewArea-自家用車"></div>
-          <input type="file" class="d-none" id="fileInput-自家用車" accept="image/*" multiple>
-          <button class="btn btn-outline-secondary btn-sm" id="btnFile-自家用車">
-            <i class="bi bi-folder2-open me-1"></i>ファイル選択
-          </button>
-        </div>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- 提出ボタン -->
-  <div class="d-grid gap-2 no-print">
-    <button class="btn btn-primary" id="btnSubmit">
-      <i class="bi bi-send me-1"></i>申請する
+  <!-- タイプ選択 2×2グリッド -->
+  <div class="type-grid mb-3">
+    <button class="type-card active" data-type="領収書">
+      <i class="bi bi-camera-fill"></i>領収書
+    </button>
+    <button class="type-card" data-type="領収書なし">
+      <i class="bi bi-pencil-square"></i>領収書なし
+    </button>
+    <button class="type-card" data-type="交通費">
+      <i class="bi bi-train-front-fill"></i>交通費
+    </button>
+    <button class="type-card" data-type="自家用車">
+      <i class="bi bi-car-front-fill"></i>自家用車
     </button>
   </div>
 
-  <!-- 直近申請履歴 -->
-  <div class="mt-4">
+  <!-- 領収書：アップロード→AI→フォーム表示フロー -->
+  <div id="panel-領収書">
+    <input type="file" class="d-none" id="fileInput-領収書" accept="image/*,.pdf" multiple>
+    <div id="previewArea-領収書" class="d-flex flex-wrap gap-2 mb-2"></div>
+    <div class="upload-grid mb-3">
+      <button class="upload-card" id="btnCamera-領収書">
+        <i class="bi bi-camera-fill"></i>カメラ
+      </button>
+      <button class="upload-card" id="btnFile-領収書">
+        <i class="bi bi-folder-fill"></i>ファイル
+      </button>
+    </div>
+    <button class="btn btn-primary w-100 mb-2" id="btnAnalyze">
+      <i class="bi bi-stars me-2"></i>AIで読み取る
+    </button>
+    <div class="text-center mb-3">
+      <button class="btn btn-link btn-sm text-decoration-none text-muted" id="btnManualInput">
+        手動で入力する
+      </button>
+    </div>
+    <div id="receiptFields" class="d-none">
+      ${_dateField()}
+      ${_placeField('支払先（店名・会社名）')}
+      ${_invoiceField()}
+      ${_amountSection()}
+      ${_noteField()}
+    </div>
+  </div>
+
+  <!-- 領収書なし -->
+  <div id="panel-領収書なし" class="d-none">
+    ${_dateField()}
+    ${_placeField('支払先・目的')}
+    ${_amountSection()}
+    <div class="mb-2">
+      <label class="form-label small fw-semibold">理由・詳細 <span class="text-danger">*</span></label>
+      <textarea class="form-control form-control-sm" id="txtReason" rows="3"
+        placeholder="領収書がない理由を具体的に記入してください"></textarea>
+    </div>
+    <div class="mb-2">
+      <label class="form-label small fw-semibold">参考資料（任意）</label>
+      <div class="d-flex flex-wrap gap-2 mb-2" id="previewArea-領収書なし"></div>
+      <input type="file" class="d-none" id="fileInput-領収書なし" accept="image/*" multiple>
+      <button class="btn btn-outline-secondary btn-sm" id="btnFile-領収書なし">
+        <i class="bi bi-folder2-open me-1"></i>ファイル選択
+      </button>
+    </div>
+  </div>
+
+  <!-- 交通費 -->
+  <div id="panel-交通費" class="d-none">
+    ${_dateField()}
+    <div class="row g-2 mb-2">
+      <div class="col-6">
+        <label class="form-label small fw-semibold">出発駅</label>
+        <input type="text" class="form-control form-control-sm" id="txtFrom" placeholder="例：渋谷">
+      </div>
+      <div class="col-6">
+        <label class="form-label small fw-semibold">到着駅</label>
+        <input type="text" class="form-control form-control-sm" id="txtTo" placeholder="例：新宿">
+      </div>
+    </div>
+    <button class="btn btn-outline-secondary btn-sm mb-3 w-100" id="btnYahooTransit">
+      <i class="bi bi-train-front me-1"></i>Yahoo乗換で検索
+    </button>
+    <div class="row g-2 mb-2">
+      <div class="col-6">
+        <label class="form-label small fw-semibold">片道運賃（円）</label>
+        <input type="number" class="form-control form-control-sm" id="numTransitFare" min="0" step="1">
+      </div>
+      <div class="col-6 d-flex align-items-end pb-1">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="chkRoundTrip">
+          <label class="form-check-label small" for="chkRoundTrip">往復</label>
+        </div>
+      </div>
+    </div>
+    <div class="d-flex align-items-center gap-2 mb-2 px-1">
+      <span class="small text-muted">合計</span>
+      <span class="fw-bold fs-5" id="lblTransitTotal">¥0</span>
+    </div>
+    <div class="mb-2">
+      <label class="form-label small fw-semibold">勘定科目</label>
+      <select class="form-select form-select-sm" id="selCatTransit"></select>
+    </div>
+    ${_noteField()}
+    <div class="mb-2">
+      <label class="form-label small fw-semibold">領収書（任意）</label>
+      <div class="d-flex flex-wrap gap-2 mb-2" id="previewArea-交通費"></div>
+      <input type="file" class="d-none" id="fileInput-交通費" accept="image/*,.pdf" multiple>
+      <button class="btn btn-outline-secondary btn-sm" id="btnFile-交通費">
+        <i class="bi bi-folder2-open me-1"></i>ファイル選択
+      </button>
+    </div>
+  </div>
+
+  <!-- 自家用車 -->
+  <div id="panel-自家用車" class="d-none">
+    ${_dateField()}
+    <div class="mb-2">
+      <label class="form-label small fw-semibold">案件・経路名</label>
+      <input type="text" class="form-control form-control-sm" id="txtCarRoute" placeholder="例：〇〇社訪問 東京→横浜">
+    </div>
+    <div class="row g-2 mb-2">
+      <div class="col-6">
+        <label class="form-label small fw-semibold">距離（km）</label>
+        <input type="number" class="form-control form-control-sm" id="numCarKm" min="0" step="0.1">
+      </div>
+      <div class="col-6">
+        <label class="form-label small fw-semibold">レート（円/km）</label>
+        <input type="number" class="form-control form-control-sm" id="numCarRate" min="1" step="1"
+          value="${localStorage.getItem(CAR_RATE_KEY) || 20}">
+      </div>
+    </div>
+    <div class="d-flex align-items-center gap-2 mb-2 px-1">
+      <span class="small text-muted">合計</span>
+      <span class="fw-bold fs-5" id="lblCarTotal">¥0</span>
+    </div>
+    <div class="mb-2">
+      <label class="form-label small fw-semibold">勘定科目</label>
+      <select class="form-select form-select-sm" id="selCatCar"></select>
+    </div>
+    ${_noteField()}
+    <div class="mb-2">
+      <label class="form-label small fw-semibold">地図・参考資料（任意）</label>
+      <div class="d-flex flex-wrap gap-2 mb-2" id="previewArea-自家用車"></div>
+      <input type="file" class="d-none" id="fileInput-自家用車" accept="image/*" multiple>
+      <button class="btn btn-outline-secondary btn-sm" id="btnFile-自家用車">
+        <i class="bi bi-folder2-open me-1"></i>ファイル選択
+      </button>
+    </div>
+  </div>
+
+  <!-- 申請ボタン -->
+  <div class="d-grid mt-3 mb-4 no-print">
+    <button class="btn btn-primary btn-lg rounded-3" id="btnSubmit">
+      <i class="bi bi-send me-2"></i>申請する
+    </button>
+  </div>
+
+  <!-- 直近履歴 -->
+  <div class="mt-2 mb-4">
     <div class="d-flex justify-content-between align-items-center mb-2">
-      <h6 class="fw-bold mb-0"><i class="bi bi-clock-history me-1 text-secondary"></i>直近の申請</h6>
-      <button class="btn btn-link btn-sm text-decoration-none" id="btnRefreshHistory">
-        <i class="bi bi-arrow-clockwise"></i>
+      <h6 class="fw-bold mb-0">直近の履歴</h6>
+      <button class="btn btn-link btn-sm text-decoration-none text-secondary p-0" id="btnRefreshHistory">
+        <i class="bi bi-arrow-clockwise me-1"></i>更新
       </button>
     </div>
     <div id="historyList"><div class="text-muted small text-center py-3">読み込み中...</div></div>
@@ -293,12 +298,14 @@ const SubmitView = (() => {
         _currentType = btn.dataset.type;
         _selectedFiles = [];
         el.querySelectorAll('[data-type]').forEach(b => {
-          b.classList.toggle('btn-primary', b.dataset.type === _currentType);
-          b.classList.toggle('btn-outline-secondary', b.dataset.type !== _currentType);
+          b.classList.toggle('active', b.dataset.type === _currentType);
         });
         TYPES.forEach(t => {
-          el.querySelector(`#form-${t}`)?.classList.toggle('d-none', t !== _currentType);
+          el.querySelector(`#panel-${t}`)?.classList.toggle('d-none', t !== _currentType);
         });
+        // 領収書以外はフォームをそのまま表示
+        if (_currentType !== '領収書') return;
+        el.querySelector('#receiptFields')?.classList.add('d-none');
       });
     });
   }
@@ -340,6 +347,7 @@ const SubmitView = (() => {
 
     // AI解析ボタン
     el.querySelector('#btnAnalyze')?.addEventListener('click', () => _runAiAnalysis(el));
+    el.querySelector('#btnManualInput')?.addEventListener('click', () => _showReceiptFields(el));
   }
 
   function _addPreviewItem(el, type, base64, mimeType, idx) {
@@ -447,18 +455,18 @@ const SubmitView = (() => {
     if (files.length === 0) return App.showToast('ファイルを選択してから解析してください', 'warning');
     const btn = el.querySelector('#btnAnalyze');
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>解析中...';
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>解析中...';
     try {
       const result = await Gemini.analyzeReceipt(files, _cats);
-      if (result.date)  el.querySelector('#inputDate').value  = result.date;
-      if (result.shop)  el.querySelector('#inputPlace').value = result.shop;
+      _showReceiptFields(el);
+      if (result.date)    el.querySelector('#inputDate').value    = result.date;
+      if (result.shop)    el.querySelector('#inputPlace').value   = result.shop;
       if (result.invoice) el.querySelector('#inputInvoice').value = result.invoice;
       if (result.total_amount) el.querySelector('#inputAmount').value = result.total_amount;
       if (result.category) {
         const sel = el.querySelector('#selCategory');
         [...sel.options].forEach(o => o.selected = o.value === result.category);
       }
-      // 外貨処理
       if (result.fx_currency && result.fx_amount) {
         App.showToast(`外貨検出: ${result.fx_currency} ${result.fx_amount}。為替レートを確認して金額を入力してください。`, 'warning');
       }
@@ -467,8 +475,12 @@ const SubmitView = (() => {
       App.showToast('AI解析エラー: ' + err.message, 'danger');
     } finally {
       btn.disabled = false;
-      btn.innerHTML = '<i class="bi bi-stars me-1"></i>AI解析';
+      btn.innerHTML = '<i class="bi bi-stars me-2"></i>AIで読み取る';
     }
+  }
+
+  function _showReceiptFields(el) {
+    el.querySelector('#receiptFields')?.classList.remove('d-none');
   }
 
   function _bindSubmit(el) {
@@ -666,42 +678,37 @@ const SubmitView = (() => {
   }
 
   function _renderHistoryCard(e) {
-    const statusBadge = e.confirmed
-      ? `<span class="badge badge-confirmed">承認済</span>`
-      : e.aiAudit?.startsWith('⛔')
-      ? `<span class="badge badge-duplicate">要確認</span>`
-      : `<span class="badge badge-pending">未確認</span>`;
+    const statusClass = e.confirmed ? 'badge-confirmed'
+      : e.aiAudit?.startsWith('⛔') ? 'badge-duplicate' : 'badge-pending';
+    const statusText = e.confirmed ? '承認済' : e.aiAudit?.startsWith('⛔') ? '要確認' : '未確認';
 
-    const btns = e.confirmed ? '' : `
-      <button class="btn btn-outline-secondary btn-sm btn-edit-history" data-id="${e.id}"><i class="bi bi-pencil"></i></button>
-      <button class="btn btn-outline-danger btn-sm btn-del-history" data-id="${e.id}"><i class="bi bi-trash"></i></button>`;
-
-    const imageLink = e.imageLinks
-      ? `<a href="${e.imageLinks.split(',')[0].trim()}" target="_blank" class="btn btn-outline-primary btn-sm">
-          <i class="bi bi-image me-1"></i>証票</a>`
+    const imageBtn = e.imageLinks
+      ? `<a href="${e.imageLinks.split(',')[0].trim()}" target="_blank" class="btn btn-sm btn-outline-primary">
+           <i class="bi bi-image me-1"></i>証票
+         </a>`
       : '';
+    const editBtn = e.confirmed ? '' :
+      `<button class="btn btn-sm btn-outline-secondary btn-edit-history" data-id="${e.id}">
+         <i class="bi bi-pencil"></i>
+       </button>`;
+    const delBtn = e.confirmed ? '' :
+      `<button class="btn btn-sm btn-outline-danger btn-del-history" data-id="${e.id}">
+         <i class="bi bi-trash"></i>
+       </button>`;
 
     return `
-    <div class="card mb-2 expense-card ${e.confirmed ? 'confirmed' : ''}">
-      <div class="card-body py-2 px-3">
-        <div class="d-flex justify-content-between align-items-start mb-1">
-          <div>
-            <span class="fw-semibold small">${_escape(e.place)}</span>
-            <span class="text-muted small ms-2">${e.date}</span>
-          </div>
-          ${statusBadge}
-        </div>
-        <div class="d-flex justify-content-between align-items-center">
-          <div class="small">
-            <span class="list-amount">¥${e.amount.toLocaleString()}</span>
-            <span class="text-muted ms-2">${_escape(e.category)}</span>
-            <span class="badge bg-light text-dark ms-1" style="font-size:0.65rem;">${e.type}</span>
-          </div>
-          <div class="d-flex gap-1">
-            ${imageLink}
-            ${btns}
-          </div>
-        </div>
+    <div class="history-card">
+      <div class="d-flex justify-content-between align-items-start">
+        <span class="h-place">${_escape(e.place)}</span>
+        <span class="h-amount">¥${e.amount.toLocaleString()}</span>
+      </div>
+      <div class="d-flex justify-content-between align-items-center mt-1">
+        <span class="h-meta">${e.date} / ${_escape(e.category)} (${e.type})</span>
+        <span class="badge ${statusClass} rounded-pill px-2">${statusText}</span>
+      </div>
+      <div class="d-flex gap-2 mt-2 align-items-center">
+        ${imageBtn}
+        <div class="ms-auto d-flex gap-1">${editBtn}${delBtn}</div>
       </div>
     </div>`;
   }
@@ -718,16 +725,17 @@ const SubmitView = (() => {
     if (typeBtn) typeBtn.click();
 
     setTimeout(() => {
-      el.querySelector('#inputDate').value  = e.date;
-      el.querySelector('#inputPlace').value = e.place;
+      if (e.type === '領収書') _showReceiptFields(el);
+      el.querySelector('#inputDate') && (el.querySelector('#inputDate').value  = e.date);
+      el.querySelector('#inputPlace') && (el.querySelector('#inputPlace').value = e.place);
       if (el.querySelector('#inputInvoice')) el.querySelector('#inputInvoice').value = e.invoice || '';
-      el.querySelector('#inputNote').value  = e.note || '';
+      el.querySelector('#inputNote') && (el.querySelector('#inputNote').value  = e.note || '');
       const sel = el.querySelector('#selCategory');
       if (sel) [...sel.options].forEach(o => o.selected = o.value === e.category);
-      el.querySelector('#inputAmount').value = e.amount;
+      el.querySelector('#inputAmount') && (el.querySelector('#inputAmount').value = e.amount);
       el.querySelector('#editBanner')?.classList.remove('d-none');
       const btn = el.querySelector('#btnSubmit');
-      if (btn) { btn.textContent = '上書き保存'; btn.className = 'btn btn-warning'; }
+      if (btn) { btn.textContent = '上書き保存'; btn.className = 'btn btn-warning btn-lg rounded-3'; }
       el.scrollIntoView({ behavior: 'smooth' });
     }, 100);
   }
@@ -774,17 +782,16 @@ const SubmitView = (() => {
     _editId = null;
     el.querySelector('#editBanner')?.classList.add('d-none');
     const btn = el.querySelector('#btnSubmit');
-    if (btn) { btn.innerHTML = '<i class="bi bi-send me-1"></i>申請する'; btn.className = 'btn btn-primary'; }
-    ['領収書', '領収書なし', '交通費', '自家用車'].forEach(t => {
-      el.querySelector(`#previewArea-${t}`)?.replaceChildren();
-    });
-    el.querySelector('#inputPlace').value  = '';
-    el.querySelector('#inputAmount').value = '';
-    el.querySelector('#inputNote').value   = '';
-    el.querySelector('#chkCorpPay').checked = false;
+    if (btn) { btn.innerHTML = '<i class="bi bi-send me-2"></i>申請する'; btn.className = 'btn btn-primary btn-lg rounded-3'; }
+    TYPES.forEach(t => el.querySelector(`#previewArea-${t}`)?.replaceChildren());
+    el.querySelector('#receiptFields')?.classList.add('d-none');
+    el.querySelector('#inputPlace') && (el.querySelector('#inputPlace').value  = '');
+    el.querySelector('#inputAmount') && (el.querySelector('#inputAmount').value = '');
+    el.querySelector('#inputNote') && (el.querySelector('#inputNote').value   = '');
+    el.querySelector('#chkCorpPay') && (el.querySelector('#chkCorpPay').checked = false);
     el.querySelector('#corpPayDetails')?.classList.add('d-none');
-    el.querySelector('#inputDate').value = new Date().toISOString().split('T')[0];
-    if (el.querySelector('#inputInvoice')) el.querySelector('#inputInvoice').value = '';
+    el.querySelector('#inputDate') && (el.querySelector('#inputDate').value = new Date().toISOString().split('T')[0]);
+    el.querySelector('#inputInvoice') && (el.querySelector('#inputInvoice').value = '');
   }
 
   function _escape(s) {
