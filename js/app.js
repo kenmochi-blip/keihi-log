@@ -54,9 +54,25 @@ const App = (() => {
       _masterCache = await Sheets.readMaster();
       const email  = Auth.getUserEmail().toLowerCase();
       _isAdmin = _masterCache.admins.includes(email);
+
+      // メンバー制限：登録メンバーが1人以上いる場合、未登録ユーザーはアクセス不可
+      if (_masterCache.members.length > 0 && !_masterCache.members.some(m => m.email.toLowerCase() === email)) {
+        _setupUI('settings');
+        showToast('このアプリへのアクセス権がありません。管理者に連絡してください。', 'danger');
+        return;
+      }
     } catch (_) {
       _masterCache = { members: [], categories: [], paySources: [], admins: [] };
     }
+
+    // 会社名をナビタイトルに反映
+    try {
+      const companyName = await Sheets.readSetting('B2');
+      if (companyName) {
+        const titleEl = document.getElementById('navAppTitle');
+        if (titleEl) titleEl.textContent = companyName;
+      }
+    } catch (_) {}
 
     _setupUI('submit');
   }
@@ -68,10 +84,6 @@ const App = (() => {
 
     // ログアウトボタン
     document.getElementById('btnLogout')?.addEventListener('click', () => Auth.signOut());
-
-    // 管理者タブ表示
-    const adminBtn = document.getElementById('navAdminBtn');
-    if (adminBtn && _isAdmin) adminBtn.classList.remove('d-none');
 
     // ボトムナビのボタンにイベントリスナーを登録（常に実行）
     Router.init(initialView);

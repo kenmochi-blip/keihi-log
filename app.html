@@ -14,7 +14,7 @@
   <!-- ナビゲーション -->
   <nav class="navbar navbar-dark bg-primary sticky-top">
     <div class="container-fluid" style="max-width:480px;margin:0 auto;">
-      <span class="navbar-brand fw-bold small"><i class="bi bi-receipt-cutoff me-1"></i>経費ログ</span>
+      <span class="navbar-brand fw-bold small"><i class="bi bi-receipt-cutoff me-1"></i><span id="navAppTitle">経費ログ</span></span>
       <div class="d-flex align-items-center gap-2">
         <span id="navUserEmail" class="text-white-50" style="font-size:0.7rem;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
         <button class="btn btn-sm btn-outline-light" id="btnLogout" title="ログアウト">
@@ -47,10 +47,6 @@
       <button class="btn btn-link text-decoration-none nav-item-btn" data-view="settings">
         <i class="bi bi-gear-fill d-block" style="font-size:1.4rem;"></i>
         <span style="font-size:0.65rem;">設定</span>
-      </button>
-      <button class="btn btn-link text-decoration-none nav-item-btn d-none" id="navAdminBtn" data-view="admin">
-        <i class="bi bi-shield-fill d-block" style="font-size:1.4rem;"></i>
-        <span style="font-size:0.65rem;">管理</span>
       </button>
     </div>
   </nav>
