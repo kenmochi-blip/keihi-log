@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <base target="_top">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+  <style>
+    body { padding: 15px; max-width: 480px; margin: 0 auto; background-color: #f0f2f5; font-family: sans-serif; }
+    .card { border-radius: 16px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.07); margin-bottom: 15px; }
+    .type-btn {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      width: 100%; aspect-ratio: 1 / 0.58;
+      border-radius: 16px; border: 2px solid #e0e0e0;
+      background: white; color: #333; font-weight: bold; font-size: 15px;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .type-btn i { font-size: 2rem; margin-bottom: 6px; color: #0d6efd; }
+    .type-btn.active { background-color: #0d6efd; color: white; border-color: #0d6efd; }
+    .type-btn.active i { color: white; }
+    .nav-sheet-btn { border-radius: 10px; font-weight: bold; font-size: 14px; flex: 1; }
+    .preview-thumb { width: 70px; height: 70px; border-radius: 8px; object-fit: cover; border: 1px solid #ddd; }
+    #overlay-loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.85); z-index: 9999; display: none; align-items: center; justify-content: center; flex-direction: column; }
+    .edit-mode-bar { background: #ffc107; padding: 6px; text-align: center; font-weight: bold; display: none; border-radius: 10px 10px 0 0; margin-bottom: 0; }
+    .section-card { display: none; }
+    .section-card.show { display: block; }
+    .split-row { background: #f8f9fa; border-radius: 8px; padding: 8px; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+
+  <div id="overlay-loading">
+    <div class="spinner-border text-primary"></div>
+    <div class="mt-2 fw-bold">処理中...</div>
+  </div>
+
+  <div class="container mt-2">
+    <h5 class="text-center fw-bold mb-2"><?= appTitle ?></h5>
+
+    <div class="d-flex gap-2 mb-3">
+      <a href="<?= listUrl ?>" target="_blank" class="btn btn-outline-success nav-sheet-btn"><i class="bi bi-list-ul me-1"></i>一覧表</a>
+      <a href="<?= summaryUrl ?>" target="_blank" class="btn btn-outline-primary nav-sheet-btn"><i class="bi bi-bar-chart me-1"></i>集計表</a>
+      <a href="#" target="_blank" class="btn btn-outline-secondary nav-sheet-btn" id="btn-manual"><i class="bi bi-book me-1"></i>マニュアル</a>
+    </div>
+
+    <div class="card p-3 mb-3">
+      <div class="d-flex align-items-center mb-3">
+        <i class="bi bi-person-circle fs-2 text-primary me-3"></i>
+        <div>
+          <div class="small text-muted fw-bold">ログイン中のアカウント</div>
+          <div class="fw-bold text-break"><?= userEmail ?></div>
+        </div>
+      </div>
+      <div class="form-check form-switch">
+        <input class="form-check-input" type="checkbox" id="isCorpPayment" onchange="toggleCorp()">
+        <label class="form-check-label fw-bold" for="isCorpPayment">会社払い（立替精算なし）</label>
+      </div>
+      <div id="corpArea" style="display:none;" class="mt-2">
+        <select id="paySource" class="form-select"></select>
+      </div>
+    </div>
+
+    <div class="row g-2 mb-3">
+      <div class="col-6">
+        <button class="type-btn active" id="btn-r" onclick="switchType('領収書')">
+          <i class="bi bi-camera"></i>領収書
+        </button>
+      </div>
+      <div class="col-6">
+        <button class="type-btn" id="btn-nr" onclick="switchType('領収書なし')">
+          <i class="bi bi-pencil-square"></i>領収書なし
+        </button>
+      </div>
+      <div class="col-6">
+        <button class="type-btn" id="btn-t" onclick="switchType('交通費')">
+          <i class="bi bi-train-front"></i>交通費
+        </button>
+      </div>
+      <div class="col-6">
+        <button class="type-btn" id="btn-c" onclick="switchType('自家用車')">
+          <i class="bi bi-car-front"></i>自家用車
+        </button>
+      </div>
+    </div>
+
+    <!-- 領収書 -->
+    <div id="sec-receipt" class="section-card show">
+      <div class="edit-mode-bar" id="edit-bar-receipt">✏️ 修正モード</div>
+      <div class="card p-3">
+        <div class="d-flex gap-2 mb-2">
+          <button class="btn btn-outline-primary w-50 py-3" onclick="document.getElementById('r-cam').click()"><i class="bi bi-camera"></i> カメラ</button>
+          <input type="file" id="r-cam" accept="image/*" capture="environment" style="display:none" onchange="handleFile(this,'r-pre',true)">
+          <button class="btn btn-outline-secondary w-50 py-3" onclick="document.getElementById('r-file').click()"><i class="bi bi-folder"></i> ファイル</button>
+          <input type="file" id="r-file" accept="image/*,application/pdf" style="display:none" onchange="handleFile(this,'r-pre',true)">
+        </div>
+        <div id="r-pre" class="text-center mb-2"></div>
+        <button id="btn-anl" class="btn btn-primary w-100 mb-3" disabled onclick="runAI()"><i class="bi bi-stars"></i> AIで解析</button>
+        <div id="f-r" style="display:none;">
+          <label class="form-label fw-bold small">日付</label>
+          <input type="date" id="r-date" class="form-control mb-3" max="2099-12-31">
+          <label class="form-label fw-bold small">店名</label>
+          <input type="text" id="r-shop" class="form-control mb-3" placeholder="店名">
+          <label class="form-label fw-bold small">インボイス番号（任意）</label>
+          <input type="text" id="r-inv" class="form-control mb-3" placeholder="T+13桁">
+          <div class="form-check form-switch mb-2">
+            <input class="form-check-input" type="checkbox" id="r-split-toggle" onchange="toggleSplitMode('r')">
+            <label class="form-check-label fw-bold small" for="r-split-toggle">複数科目に分ける（内訳）</label>
+          </div>
+          <div id="r-single-input">
+            <div class="row g-2 mb-3">
+              <div class="col-7">
+                <label class="form-label fw-bold small">金額</label>
+                <input type="text" id="r-amt" class="form-control" placeholder="0" inputmode="numeric" oninput="formatAmount(this)">
+              </div>
+              <div class="col-5">
+                <label class="form-label fw-bold small">科目</label>
+                <select id="r-cat" class="form-select"></select>
+              </div>
+            </div>
+          </div>
+          <div id="r-split-input" style="display:none;">
+            <div id="r-split-rows"></div>
+            <button type="button" class="btn btn-sm btn-outline-secondary w-100 mb-2" onclick="addSplitRow('r')"><i class="bi bi-plus-circle me-1"></i>行を追加</button>
+            <div class="text-end small fw-bold mb-3">合計: ¥<span id="r-split-total">0</span></div>
+          </div>
+          <label class="form-label fw-bold small">備考</label>
+          <textarea id="r-note" class="form-control mb-3" placeholder="備考" rows="2"></textarea>
+          <button class="btn btn-success w-100 py-3 fw-bold sub-btn" onclick="submit('領収書')">申請する</button>
+          <button class="btn btn-secondary w-100 mt-2 can-btn" style="display:none;" onclick="cancelEdit()">キャンセル</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 領収書なし -->
+    <div id="sec-no_receipt" class="section-card">
+      <div class="edit-mode-bar" id="edit-bar-no_receipt">✏️ 修正モード</div>
+      <div class="card p-3">
+        <label class="form-label fw-bold small">日付</label>
+        <input type="date" id="nr-date" class="form-control mb-3" max="2099-12-31">
+        <label class="form-label fw-bold small">支払先 <span class="text-danger">*</span></label>
+        <input type="text" id="nr-shop" class="form-control mb-3" placeholder="支払先">
+        <div class="form-check form-switch mb-2">
+          <input class="form-check-input" type="checkbox" id="nr-split-toggle" onchange="toggleSplitMode('nr')">
+          <label class="form-check-label fw-bold small" for="nr-split-toggle">複数科目に分ける（内訳）</label>
+        </div>
+        <div id="nr-single-input">
+          <div class="row g-2 mb-3">
+            <div class="col-7">
+              <label class="form-label fw-bold small">金額</label>
+              <input type="text" id="nr-amt" class="form-control" placeholder="金額" inputmode="numeric" oninput="formatAmount(this)">
+            </div>
+            <div class="col-5">
+              <label class="form-label fw-bold small">科目</label>
+              <select id="nr-cat" class="form-select"></select>
+            </div>
+          </div>
+        </div>
+        <div id="nr-split-input" style="display:none;">
+          <div id="nr-split-rows"></div>
+          <button type="button" class="btn btn-sm btn-outline-secondary w-100 mb-2" onclick="addSplitRow('nr')"><i class="bi bi-plus-circle me-1"></i>行を追加</button>
+          <div class="text-end small fw-bold mb-3">合計: ¥<span id="nr-split-total">0</span></div>
+        </div>
+        <label class="form-label fw-bold small">詳細・理由 <span class="text-danger">*</span></label>
+        <textarea id="nr-note" class="form-control mb-3" placeholder="詳細・理由を入力" rows="3"></textarea>
+        <div class="d-flex gap-2 mb-2">
+          <button class="btn btn-outline-primary w-50 py-2" onclick="document.getElementById('nr-cam').click()"><i class="bi bi-camera"></i> カメラ</button>
+          <input type="file" id="nr-cam" accept="image/*" capture="environment" style="display:none" onchange="handleFile(this,'nr-pre',false)">
+          <button class="btn btn-outline-secondary w-50 py-2" onclick="document.getElementById('nr-file').click()"><i class="bi bi-folder"></i> ファイル</button>
+          <input type="file" id="nr-file" accept="image/*" style="display:none" onchange="handleFile(this,'nr-pre',false)">
+        </div>
+        <div id="nr-pre" class="text-center mb-2"></div>
+        <button class="btn btn-success w-100 py-3 fw-bold sub-btn" onclick="submit('領収書なし')">申請する</button>
+        <button class="btn btn-secondary w-100 mt-2 can-btn" style="display:none;" onclick="cancelEdit()">キャンセル</button>
+      </div>
+    </div>
+
+    <!-- 交通費 -->
+    <div id="sec-train" class="section-card">
+      <div class="edit-mode-bar" id="edit-bar-train">✏️ 修正モード</div>
+      <div class="card p-3">
+        <label class="form-label fw-bold small">利用日</label>
+        <input type="date" id="t-date" class="form-control mb-3" max="2099-12-31">
+        <div class="input-group mb-2">
+          <input type="text" id="t-from" class="form-control" placeholder="出発">
+          <span class="input-group-text">↔</span>
+          <input type="text" id="t-to" class="form-control" placeholder="到着">
+        </div>
+        <button class="btn btn-outline-secondary w-100 mb-3" onclick="openTransit()"><i class="bi bi-search me-1"></i>乗換案内で調べる</button>
+        <label class="form-label fw-bold small">片道運賃</label>
+        <input type="text" id="t-price" class="form-control mb-3" placeholder="0" inputmode="numeric" oninput="formatAmount(this)">
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" id="t-round">
+          <label class="form-check-label fw-bold" for="t-round">往復</label>
+        </div>
+        <label class="form-label fw-bold small">備考</label>
+        <textarea id="t-note" class="form-control mb-3" placeholder="備考" rows="2"></textarea>
+        <div class="d-flex gap-2 mb-2">
+          <button class="btn btn-outline-primary w-50 py-2" onclick="document.getElementById('t-cam').click()"><i class="bi bi-camera"></i> カメラ</button>
+          <input type="file" id="t-cam" accept="image/*" capture="environment" style="display:none" onchange="handleFile(this,'t-pre',false)">
+          <button class="btn btn-outline-secondary w-50 py-2" onclick="document.getElementById('t-file').click()"><i class="bi bi-folder"></i> ファイル</button>
+          <input type="file" id="t-file" accept="image/*" style="display:none" onchange="handleFile(this,'t-pre',false)">
+        </div>
+        <div id="t-pre" class="text-center mb-2"></div>
+        <button class="btn btn-success w-100 py-3 fw-bold sub-btn" onclick="submit('交通費')">申請する</button>
+        <button class="btn btn-secondary w-100 mt-2 can-btn" style="display:none;" onclick="cancelEdit()">キャンセル</button>
+      </div>
+    </div>
+
+    <!-- 自家用車 -->
+    <div id="sec-car" class="section-card">
+      <div class="edit-mode-bar" id="edit-bar-car">✏️ 修正モード</div>
+      <div class="card p-3">
+        <label class="form-label fw-bold small">日付</label>
+        <input type="date" id="c-date" class="form-control mb-3" max="2099-12-31">
+        <label class="form-label fw-bold small">案件や経路</label>
+        <input type="text" id="c-proj" class="form-control mb-3" placeholder="案件や経路">
+        <label class="form-label fw-bold small">走行距離(km)</label>
+        <input type="number" id="c-km" class="form-control mb-3" placeholder="0" oninput="calcCar()">
+        <label class="form-label fw-bold small">単価(円/km)</label>
+        <input type="number" id="c-price" class="form-control mb-3" placeholder="20" oninput="calcCar()">
+        <div class="rounded-3 p-3 mb-3 text-center" style="background:#e8f4fd;">
+          <div class="small text-muted fw-bold mb-1">申請額</div>
+          <div class="fw-bold" style="font-size:1.8rem; color:#0d6efd;">¥<span id="c-tot">0</span></div>
+        </div>
+        <label class="form-label fw-bold small">備考</label>
+        <textarea id="c-note" class="form-control mb-3" placeholder="備考" rows="2"></textarea>
+        <div class="d-flex gap-2 mb-2">
+          <button class="btn btn-outline-primary w-50 py-2" onclick="document.getElementById('c-cam').click()"><i class="bi bi-camera"></i> カメラ</button>
+          <input type="file" id="c-cam" accept="image/*" capture="environment" style="display:none" onchange="handleFile(this,'c-pre',false)">
+          <button class="btn btn-outline-secondary w-50 py-2" onclick="document.getElementById('c-file').click()"><i class="bi bi-folder"></i> ファイル</button>
+          <input type="file" id="c-file" accept="image/*" style="display:none" onchange="handleFile(this,'c-pre',false)">
+        </div>
+        <div id="c-pre" class="text-center mb-2"></div>
+        <button class="btn btn-success w-100 py-3 fw-bold sub-btn" onclick="submit('自家用車')">申請する</button>
+        <button class="btn btn-secondary w-100 mt-2 can-btn" style="display:none;" onclick="cancelEdit()">キャンセル</button>
+      </div>
+    </div>
+
+    <div class="card p-3 mt-1">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h6 class="fw-bold m-0"><i class="bi bi-clock-history me-1"></i>最近の履歴</h6>
+        <button class="btn btn-sm btn-light border" onclick="loadHistory()">更新</button>
+      </div>
+      <div id="h-list" class="list-group list-group-flush"></div>
+    </div>
+  </div>
+
+  <!-- 確認モーダル -->
+  <div class="modal fade" id="confirmModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+      <div class="modal-content rounded-4 border-0 shadow">
+        <div class="modal-body text-center p-4">
+          <p id="confirmMsg" class="fw-bold mb-4" style="white-space:pre-line;font-size:1.05rem;"></p>
+          <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary w-50 py-2 rounded-3" id="confirmCancelBtn">キャンセル</button>
+            <button class="btn btn-primary w-50 py-2 rounded-3" id="confirmOkBtn">OK</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- トースト通知 -->
+  <div class="position-fixed top-0 start-50 translate-middle-x pt-3" style="z-index:11000;width:90%;max-width:400px;">
+    <div id="appToast" class="toast w-100 align-items-center text-white border-0 bg-success" role="alert">
+      <div class="d-flex">
+        <div class="toast-body fw-bold fs-6" id="toastMsg"></div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    var ssId = "<?= ssId ?>";
+    var CATS = ["消耗品費","旅費交通費","会議費","交際費","通信費","新聞図書費","水道光熱費","賃借料","租税公課","支払手数料","雑費"];
+    var selectedFiles = [], existingUrls = [], existingHash = "", editId = null;
+    var currentType = '領収書';
+    var isProcessing = false;
+    var pendingData = null;
+    var historyCache = {};
+
+    var TYPE_TO_SEC = { '領収書':'receipt', '領収書なし':'no_receipt', '交通費':'train', '自家用車':'car' };
+    var TYPE_TO_BTN = { '領収書':'btn-r', '領収書なし':'btn-nr', '交通費':'btn-t', '自家用車':'btn-c' };
+    var TYPE_TO_PRE = { '領収書':'r-pre', '領収書なし':'nr-pre', '交通費':'t-pre', '自家用車':'c-pre' };
+    var TYPE_TO_BAR = { '領収書':'edit-bar-receipt', '領収書なし':'edit-bar-no_receipt', '交通費':'edit-bar-train', '自家用車':'edit-bar-car' };
+    var ENG_TO_JPN  = { receipt:'領収書', no_receipt:'領収書なし', train:'交通費', car:'自家用車' };
+
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return "";
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+
+    var _confirmModal, _toast;
+
+    function showConfirm(msg, onOk, onCancel) {
+      document.getElementById('confirmMsg').innerText = msg;
+      if (!_confirmModal) _confirmModal = new bootstrap.Modal(document.getElementById('confirmModal'));
+      document.getElementById('confirmOkBtn').onclick = function() { _confirmModal.hide(); if (onOk) onOk(); };
+      document.getElementById('confirmCancelBtn').onclick = function() { _confirmModal.hide(); if (onCancel) onCancel(); };
+      _confirmModal.show();
+    }
+
+    function showToast(msg, type) {
+      var el = document.getElementById('appToast');
+      el.className = 'toast w-100 align-items-center text-white border-0 bg-' + (type || 'success');
+      document.getElementById('toastMsg').innerText = msg;
+      if (!_toast) _toast = new bootstrap.Toast(el, { delay: 3000 });
+      _toast.show();
+    }
+
+    function showLoading() { document.getElementById('overlay-loading').style.display = 'flex'; }
+    function hideLoading() { document.getElementById('overlay-loading').style.display = 'none'; }
+    function onError(err) { hideLoading(); showToast(err.message || String(err), 'danger'); }
+
+    function formatAmount(el) {
+      var raw = el.value.replace(/[^0-9]/g, '');
+      el.dataset.raw = raw;
+      el.value = raw ? Number(raw).toLocaleString('ja-JP') : '';
+    }
+
+    function getRawAmount(id) {
+      var el = document.getElementById(id);
+      return el ? (el.dataset.raw || el.value.replace(/[^0-9]/g, '') || '0') : '0';
+    }
+
+    function switchType(type) {
+      Object.keys(TYPE_TO_SEC).forEach(function(t) {
+        document.getElementById('sec-' + TYPE_TO_SEC[t]).classList.remove('show');
+        document.getElementById(TYPE_TO_BTN[t]).classList.remove('active');
+      });
+      if (TYPE_TO_SEC[type]) {
+        document.getElementById('sec-' + TYPE_TO_SEC[type]).classList.add('show');
+        document.getElementById(TYPE_TO_BTN[type]).classList.add('active');
+      }
+      currentType = type;
+      resetFiles();
+    }
+
+    window.onload = function() {
+      var today = new Date().toISOString().split('T')[0];
+      ['r-date','nr-date','t-date','c-date'].forEach(function(id) {
+        var el = document.getElementById(id); if (el) el.value = today;
+      });
+      updateCats(CATS);
+      var sp = parseFloat(localStorage.getItem('car_price'));
+      if (document.getElementById('c-price')) {
+        document.getElementById('c-price').value = (isNaN(sp) || sp <= 0) ? 20 : sp;
+        calcCar();
+      }
+      google.script.run
+        .withSuccessHandler(function(res) {
+          var sel = document.getElementById('paySource');
+          if (res.paySources) res.paySources.forEach(function(s) { sel.add(new Option(s, s)); });
+          if (res.categories && res.categories.length > 0) updateCats(res.categories);
+        })
+        .withFailureHandler(onError)
+        .getAppData(ssId);
+      loadHistory();
+    };
+
+    function updateCats(arr) {
+      CATS = arr;
+      ['r-cat','nr-cat'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) { el.innerHTML = ""; arr.forEach(function(c) { el.add(new Option(c, c)); }); }
+      });
+    }
+
+    function toggleCorp() {
+      document.getElementById('corpArea').style.display = document.getElementById('isCorpPayment').checked ? 'block' : 'none';
+    }
+
+    function calcCar() {
+      var k = parseFloat(document.getElementById('c-km').value) || 0;
+      var p = parseFloat(document.getElementById('c-price').value) || 0;
+      document.getElementById('c-tot').innerText = Math.floor(k * p).toLocaleString();
+      localStorage.setItem('car_price', p);
+    }
+
+    function handleFile(el, preId, canAnl) {
+      if (!el.files[0]) return;
+      var file = el.files[0];
+      isProcessing = true; showLoading();
+      var reader = new FileReader();
+      if (file.type === 'application/pdf') {
+        reader.onload = function(e) {
+          selectedFiles.push({ base64: e.target.result.split(',')[1], mimeType: 'application/pdf' });
+          renderPreviews(preId);
+          if (canAnl) document.getElementById('btn-anl').disabled = false;
+          el.value = '';
+          isProcessing = false; hideLoading();
+        };
+        reader.onerror = function() { el.value = ''; isProcessing = false; hideLoading(); showToast('PDFの読み込みに失敗しました', 'warning'); };
+        reader.readAsDataURL(file);
+      } else {
+        reader.onload = function(e) {
+          var img = new Image();
+          img.onload = function() {
+            var cv = document.createElement('canvas'), max = 1000, w = img.width, h = img.height;
+            if (w > h) { if (w > max) { h *= max/w; w = max; } } else { if (h > max) { w *= max/h; h = max; } }
+            cv.width = w; cv.height = h; cv.getContext('2d').drawImage(img, 0, 0, w, h);
+            selectedFiles.push({ base64: cv.toDataURL('image/jpeg', 0.8).split(',')[1], mimeType: 'image/jpeg' });
+            renderPreviews(preId);
+            if (canAnl) document.getElementById('btn-anl').disabled = false;
+            el.value = '';
+            isProcessing = false; hideLoading();
+          };
+          img.onerror = function() { el.value = ''; isProcessing = false; hideLoading(); showToast('画像の読み込みに失敗しました', 'warning'); };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function renderPreviews(preId) {
+      var html = "";
+      existingUrls.forEach(function(u, i) {
+        var m = u.match(/\/d\/([a-zA-Z0-9_-]+)/);
+        var thumbSrc = m ? escapeHtml('https://drive.google.com/thumbnail?id=' + m[1] + '&sz=w200') : escapeHtml(u);
+        html += '<div class="d-inline-block position-relative m-1"><img src="' + thumbSrc + '" class="preview-thumb"><button class="btn btn-sm btn-danger position-absolute top-0 end-0 p-0 px-1" onclick="removeExist(' + i + ',\'' + preId + '\')">×</button></div>';
+      });
+      selectedFiles.forEach(function(f, i) {
+        var thumb = f.mimeType === 'application/pdf'
+          ? '<div class="preview-thumb d-flex align-items-center justify-content-center bg-light border rounded-2"><i class="bi bi-file-earmark-pdf fs-2 text-danger"></i></div>'
+          : '<img src="data:image/jpeg;base64,' + f.base64 + '" class="preview-thumb">';
+        html += '<div class="d-inline-block position-relative m-1">' + thumb + '<button class="btn btn-sm btn-secondary position-absolute top-0 end-0 p-0 px-1" onclick="removeNew(' + i + ',\'' + preId + '\')">×</button></div>';
+      });
+      document.getElementById(preId).innerHTML = html;
+    }
+
+    function removeExist(i, preId) { existingUrls.splice(i, 1); renderPreviews(preId); }
+    function removeNew(i, preId) { selectedFiles.splice(i, 1); renderPreviews(preId); }
+
+    function runAI() {
+      showLoading();
+      google.script.run
+        .withSuccessHandler(function(res) {
+          hideLoading();
+          document.getElementById('f-r').style.display = 'block';
+          document.getElementById('r-date').value = res.date ? res.date.replace(/\//g, '-') : '';
+          document.getElementById('r-shop').value = res.shop || '';
+          document.getElementById('r-inv').value = res.invoice || '';
+          if (res.items && res.items.length > 1) {
+            document.getElementById('r-split-toggle').checked = true;
+            toggleSplitMode('r');
+            document.getElementById('r-split-rows').innerHTML = '';
+            res.items.forEach(function(item) {
+              addSplitRow('r');
+              var rows = document.querySelectorAll('#r-split-rows .split-row');
+              var last = rows[rows.length - 1];
+              var raw = String(Math.round(item.amount || 0));
+              var amtEl = last.querySelector('.split-amt');
+              amtEl.dataset.raw = raw;
+              amtEl.value = raw ? Number(raw).toLocaleString('ja-JP') : '';
+              if (item.category) last.querySelector('.split-cat').value = item.category;
+            });
+            updateSplitTotal('r');
+          } else {
+            document.getElementById('r-split-toggle').checked = false;
+            toggleSplitMode('r');
+            if (res.category) document.getElementById('r-cat').value = res.category;
+            if (res.fx_currency && res.fx_amount) {
+              var fxDate = res.date ? res.date.replace(/\//g, '-') : new Date().toISOString().split('T')[0];
+              showLoading();
+              google.script.run
+                .withSuccessHandler(function(rateData) {
+                  hideLoading();
+                  var jpyAmt = Math.round(res.fx_amount * rateData.rate);
+                  var amtEl = document.getElementById('r-amt');
+                  amtEl.dataset.raw = String(jpyAmt);
+                  amtEl.value = jpyAmt.toLocaleString('ja-JP');
+                  var fxNote = '[外貨] ' + res.fx_currency + ' '
+                    + res.fx_amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                    + ' × TTSレート ¥' + rateData.rate.toFixed(2) + ' = ¥' + jpyAmt.toLocaleString('ja-JP')
+                    + '（' + rateData.date + '・Frankfurter参考値）';
+                  var noteEl = document.getElementById('r-note');
+                  noteEl.value = fxNote + (noteEl.value.trim() ? '\n' + noteEl.value.trim() : '');
+                })
+                .withFailureHandler(function(err) {
+                  hideLoading();
+                  showToast('TTMレート取得失敗: ' + (err.message || err) + '（金額は手動入力してください）', 'warning');
+                })
+                .getExchangeRate(fxDate, res.fx_currency, ssId);
+            } else {
+              var amtEl = document.getElementById('r-amt');
+              var raw = res.total_amount ? String(Math.round(res.total_amount)) : '';
+              amtEl.dataset.raw = raw;
+              amtEl.value = raw ? Number(raw).toLocaleString('ja-JP') : '';
+            }
+          }
+        })
+        .withFailureHandler(onError)
+        .analyzeReceipt(selectedFiles, ssId, CATS);
+    }
+
+    function submit(type) {
+      if (isProcessing) { showToast('画像処理中です', 'warning'); return; }
+
+      var data = {
+        type: type, editId: editId, files: selectedFiles,
+        existingUrls: existingUrls, existingHashes: existingHash,
+        isCorpPayment: document.getElementById('isCorpPayment').checked,
+        paySource: document.getElementById('paySource').value
+      };
+
+      if (type === '領収書') {
+        data.date = document.getElementById('r-date').value;
+        data.place = document.getElementById('r-shop').value;
+        data.note = document.getElementById('r-note').value;
+        data.invoice = document.getElementById('r-inv').value;
+        if (document.getElementById('r-split-toggle').checked) {
+          data.lines = getSplitLines('r');
+          if (!data.lines.length) { showToast('内訳を入力してください', 'warning'); return; }
+          data.amount = data.lines.reduce(function(s, l) { return s + l.amount; }, 0);
+          data.category = data.lines[0].category;
+        } else {
+          data.amount = getRawAmount('r-amt');
+          data.category = document.getElementById('r-cat').value;
+        }
+      } else if (type === '領収書なし') {
+        data.date = document.getElementById('nr-date').value;
+        data.place = document.getElementById('nr-shop').value;
+        data.note = document.getElementById('nr-note').value;
+        if (!data.place.trim()) { showToast('支払先を入力してください', 'warning'); return; }
+        if (!data.note.trim()) { showToast('詳細・理由を入力してください', 'warning'); return; }
+        if (document.getElementById('nr-split-toggle').checked) {
+          data.lines = getSplitLines('nr');
+          if (!data.lines.length) { showToast('内訳を入力してください', 'warning'); return; }
+          data.amount = data.lines.reduce(function(s, l) { return s + l.amount; }, 0);
+          data.category = data.lines[0].category;
+        } else {
+          data.amount = getRawAmount('nr-amt');
+          data.category = document.getElementById('nr-cat').value;
+        }
+      } else if (type === '交通費') {
+        data.date = document.getElementById('t-date').value;
+        data.place = document.getElementById('t-from').value + ' ↔ ' + document.getElementById('t-to').value;
+        var a = Number(getRawAmount('t-price'));
+        if (document.getElementById('t-round').checked) a *= 2;
+        data.amount = a;
+        data.category = "旅費交通費";
+        data.note = document.getElementById('t-note').value;
+      } else if (type === '自家用車') {
+        data.date = document.getElementById('c-date').value;
+        data.place = document.getElementById('c-proj').value;
+        data.amount = Math.floor(Number(document.getElementById('c-km').value) * Number(document.getElementById('c-price').value));
+        data.category = "旅費交通費";
+        var extraNote = document.getElementById('c-note').value.trim();
+        data.note = "距離:" + document.getElementById('c-km').value + "km" + (extraNote ? '\n' + extraNote : '');
+      }
+
+      pendingData = data;
+      var dateWarning = '';
+      var inputDate = new Date(data.date);
+      var cutoff = new Date(); cutoff.setMonth(cutoff.getMonth() - 2);
+      if (inputDate < cutoff) dateWarning = '⚠️ 2ヶ月以上前の日付です。\n';
+      showConfirm(dateWarning + (editId ? "上書き保存しますか？" : "申請しますか？"), function() {
+        executeSubmit(false);
+      });
+    }
+
+    function executeSubmit(force) {
+      showLoading();
+      pendingData.forceSave = force;
+      google.script.run
+        .withSuccessHandler(function(res) {
+          hideLoading();
+          if (res.requiresConfirm) {
+            showConfirm(res.alerts.join('\n') + '\n\n強制登録しますか？', function() { executeSubmit(true); });
+            return;
+          }
+          showToast(res.message);
+          cancelEdit();
+          loadHistory();
+        })
+        .withFailureHandler(onError)
+        .saveExpense(pendingData, navigator.userAgent, ssId);
+    }
+
+    function loadHistory() {
+      document.getElementById('h-list').innerHTML = '<div class="text-muted small p-2">読込中...</div>';
+      google.script.run
+        .withSuccessHandler(function(records) {
+          historyCache = {};
+          var html = "";
+          records.forEach(function(r) {
+            historyCache[r.id] = r;
+            var typeName = ENG_TO_JPN[r.type] || r.type;
+            var badge = r.status === "承認" ? "bg-primary" : "bg-secondary";
+            var corp = r.payment ? '<span class="badge bg-info text-dark ms-1">会社払</span>' : '';
+            var rBtns = "";
+            if (r.imageUrls) r.imageUrls.forEach(function(u) {
+              rBtns += '<a href="' + escapeHtml(u) + '" target="_blank" class="btn btn-sm btn-outline-info me-1"><i class="bi bi-image"></i> 証票</a>';
+            });
+            var acts = r.status === "未確認"
+              ? '<button class="btn btn-sm btn-outline-secondary me-1" onclick="editItem(\'' + escapeHtml(r.id) + '\')">編集</button><button class="btn btn-sm btn-outline-danger" onclick="delItem(\'' + escapeHtml(r.id) + '\')">削除</button>'
+              : '<small class="text-muted">ロック中</small>';
+            html += '<div class="list-group-item py-3">'
+              + '<div class="d-flex justify-content-between fw-bold"><span>' + escapeHtml(r.place) + '</span><span>¥' + Number(r.amount).toLocaleString() + '</span></div>'
+              + '<div class="small text-muted mb-2">' + escapeHtml(r.date) + ' / ' + escapeHtml(typeName) + ' / ' + escapeHtml(r.category) + ' <span class="badge ' + badge + '">' + escapeHtml(r.status) + '</span>' + corp + '</div>'
+              + '<div class="text-end d-flex justify-content-end align-items-center flex-wrap gap-1">' + rBtns + '<div>' + acts + '</div></div>'
+              + '</div>';
+          });
+          document.getElementById('h-list').innerHTML = html || '<div class="text-muted small p-2">履歴なし</div>';
+        })
+        .withFailureHandler(onError)
+        .getMyHistory(ssId);
+    }
+
+    function editItem(id) {
+      var d = historyCache[id];
+      if (!d) return;
+      editId = d.id;
+      existingUrls = [...(d.imageUrls || [])];
+      existingHash = d.imgHash;
+      selectedFiles = [];
+
+      document.querySelectorAll('.edit-mode-bar').forEach(function(el) { el.style.display = 'none'; });
+      document.querySelectorAll('.sub-btn').forEach(function(el) { el.innerText = "上書き保存"; el.classList.replace('btn-success', 'btn-warning'); });
+      document.querySelectorAll('.can-btn').forEach(function(el) { el.style.display = 'block'; });
+
+      var t = ENG_TO_JPN[d.type] || d.type || '領収書';
+      switchType(t);
+      var bar = document.getElementById(TYPE_TO_BAR[t]);
+      if (bar) bar.style.display = 'block';
+      var pId = TYPE_TO_PRE[t];
+
+      function setAmt(elId, val) {
+        var el = document.getElementById(elId); if (!el) return;
+        var raw = String(Math.round(val) || '').replace(/[^0-9]/g, '');
+        el.dataset.raw = raw;
+        el.value = raw ? Number(raw).toLocaleString('ja-JP') : '';
+      }
+
+      if (t === '領収書') {
+        document.getElementById('f-r').style.display = 'block';
+        document.getElementById('r-date').value = d.date;
+        document.getElementById('r-shop').value = d.place;
+        setAmt('r-amt', d.amount);
+        document.getElementById('r-cat').value = d.category;
+        document.getElementById('r-note').value = (d.note || '').replace('【会社払い】', '');
+        document.getElementById('r-inv').value = d.invoice || '';
+      } else if (t === '領収書なし') {
+        document.getElementById('nr-date').value = d.date;
+        document.getElementById('nr-shop').value = d.place;
+        setAmt('nr-amt', d.amount);
+        document.getElementById('nr-cat').value = d.category;
+        document.getElementById('nr-note').value = (d.note || '').replace('【会社払い】', '');
+      } else if (t === '交通費') {
+        document.getElementById('t-date').value = d.date;
+        var p = d.place.split('↔');
+        if (p.length === 2) { document.getElementById('t-from').value = p[0].trim(); document.getElementById('t-to').value = p[1].trim(); }
+        setAmt('t-price', d.amount);
+        document.getElementById('t-note').value = (d.note || '').replace('【会社払い】', '');
+      } else if (t === '自家用車') {
+        document.getElementById('c-date').value = d.date;
+        document.getElementById('c-proj').value = d.place;
+        var m = (d.note || '').match(/距離:([0-9.]+)km/);
+        document.getElementById('c-km').value = m ? m[1] : 0;
+        calcCar();
+      }
+      renderPreviews(pId);
+      window.scrollTo(0, 0);
+    }
+
+    function delItem(id) {
+      showConfirm("削除しますか？\nこの操作は元に戻せません。", function() {
+        showLoading();
+        google.script.run
+          .withSuccessHandler(function(res) { hideLoading(); showToast(res); loadHistory(); })
+          .withFailureHandler(onError)
+          .deleteExpense(id, navigator.userAgent, ssId);
+      });
+    }
+
+    function openTransit() {
+      var from = encodeURIComponent(document.getElementById('t-from').value || '');
+      var to = encodeURIComponent(document.getElementById('t-to').value || '');
+      window.open('https://transit.yahoo.co.jp/search/result?from=' + from + '&to=' + to, '_blank');
+    }
+
+    function toggleSplitMode(prefix) {
+      var isSplit = document.getElementById(prefix + '-split-toggle').checked;
+      document.getElementById(prefix + '-single-input').style.display = isSplit ? 'none' : '';
+      document.getElementById(prefix + '-split-input').style.display = isSplit ? '' : 'none';
+      if (isSplit && document.getElementById(prefix + '-split-rows').children.length === 0) {
+        addSplitRow(prefix); addSplitRow(prefix);
+      }
+    }
+
+    function addSplitRow(prefix) {
+      var container = document.getElementById(prefix + '-split-rows');
+      var canDelete = container.children.length > 0;
+      var catOpts = CATS.map(function(c) { return '<option value="' + escapeHtml(c) + '">' + escapeHtml(c) + '</option>'; }).join('');
+      var div = document.createElement('div');
+      div.className = 'split-row';
+      div.innerHTML = '<div class="d-flex gap-2 align-items-end">'
+        + '<div class="flex-grow-1"><label class="form-label fw-bold small mb-1">金額</label>'
+        + '<input type="text" class="form-control form-control-sm split-amt" placeholder="0" inputmode="numeric"'
+        + ' oninput="formatSplitAmt(this,\'' + prefix + '\')">'
+        + '</div><div style="width:38%"><label class="form-label fw-bold small mb-1">科目</label>'
+        + '<select class="form-select form-select-sm split-cat">' + catOpts + '</select></div>'
+        + (canDelete ? '<button type="button" class="btn btn-sm btn-outline-danger" style="margin-bottom:1px" onclick="this.closest(\'.split-row\').remove();updateSplitTotal(\'' + prefix + '\')"><i class="bi bi-x"></i></button>' : '<div style="width:31px"></div>')
+        + '</div>';
+      container.appendChild(div);
+    }
+
+    function formatSplitAmt(el, prefix) {
+      var raw = el.value.replace(/[^0-9]/g, '');
+      el.dataset.raw = raw;
+      el.value = raw ? Number(raw).toLocaleString('ja-JP') : '';
+      updateSplitTotal(prefix);
+    }
+
+    function updateSplitTotal(prefix) {
+      var total = 0;
+      document.querySelectorAll('#' + prefix + '-split-rows .split-amt').forEach(function(el) {
+        total += Number(el.dataset.raw || 0);
+      });
+      document.getElementById(prefix + '-split-total').innerText = total.toLocaleString('ja-JP');
+    }
+
+    function getSplitLines(prefix) {
+      var lines = [];
+      document.querySelectorAll('#' + prefix + '-split-rows .split-row').forEach(function(row) {
+        var amtEl = row.querySelector('.split-amt');
+        var amt = Number(amtEl ? amtEl.dataset.raw || 0 : 0);
+        var cat = row.querySelector('.split-cat').value;
+        if (amt > 0) lines.push({ amount: amt, category: cat });
+      });
+      return lines;
+    }
+
+    function resetFiles() {
+      selectedFiles = []; existingUrls = []; existingHash = "";
+      ['r-pre','nr-pre','t-pre','c-pre'].forEach(function(id) {
+        var el = document.getElementById(id); if (el) el.innerHTML = "";
+      });
+      ['r-cam','r-file','nr-cam','nr-file','t-cam','t-file','c-cam','c-file'].forEach(function(id) {
+        var el = document.getElementById(id); if (el) el.value = '';
+      });
+      if (document.getElementById('btn-anl')) document.getElementById('btn-anl').disabled = true;
+    }
+
+    function cancelEdit() {
+      editId = null;
+      resetFiles();
+      document.querySelectorAll('.edit-mode-bar').forEach(function(el) { el.style.display = 'none'; });
+      document.querySelectorAll('.sub-btn').forEach(function(el) { el.innerText = "申請する"; el.classList.replace('btn-warning', 'btn-success'); });
+      document.querySelectorAll('.can-btn').forEach(function(el) { el.style.display = 'none'; });
+      resetFormFields();
+      switchType('領収書');
+    }
+
+    function resetFormFields() {
+      var today = new Date().toISOString().split('T')[0];
+      ['r-date','nr-date','t-date','c-date'].forEach(function(id) { var el = document.getElementById(id); if(el) el.value = today; });
+      ['r-shop','r-inv','nr-shop','t-from','t-to','c-proj'].forEach(function(id) { var el = document.getElementById(id); if(el) el.value = ''; });
+      ['r-note','nr-note','t-note','c-note'].forEach(function(id) { var el = document.getElementById(id); if(el) el.value = ''; });
+      ['r-amt','nr-amt','t-price'].forEach(function(id) { var el = document.getElementById(id); if(el) { el.value = ''; el.dataset.raw = ''; } });
+      document.getElementById('f-r').style.display = 'none';
+      document.getElementById('btn-anl').disabled = true;
+      document.getElementById('t-round').checked = false;
+      document.getElementById('c-km').value = '';
+      calcCar();
+      ['r', 'nr'].forEach(function(p) {
+        document.getElementById(p + '-split-toggle').checked = false;
+        document.getElementById(p + '-split-rows').innerHTML = '';
+        document.getElementById(p + '-single-input').style.display = '';
+        document.getElementById(p + '-split-input').style.display = 'none';
+      });
+    }
+  </script>
+</body>
+</html>
