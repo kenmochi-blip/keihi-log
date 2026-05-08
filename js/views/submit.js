@@ -86,6 +86,9 @@ const SubmitView = (() => {
       ${_noteField()}
     </div>
   </div>
+
+  <!-- 領収書なし -->
+  <div id="panel-領収書なし" class="d-none">
     ${_dateField()}
     ${_placeField('支払先・目的')}
     ${_amountSection()}
