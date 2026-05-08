@@ -5,7 +5,7 @@
  */
 const Gemini = (() => {
 
-  const MODEL   = 'gemini-2.5-flash-preview-04-17';
+  const MODEL   = 'gemini-2.5-flash';
   const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
 
   // 設定シートから読んだAPIキーをメモリにキャッシュ
