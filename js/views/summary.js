@@ -59,7 +59,17 @@ const SummaryView = (() => {
     </div>
   </div>
 
-  <!-- ① メンバー別 -->
+  <!-- ① 勘定科目別 -->
+  <div class="card mb-3">
+    <div class="card-body">
+      <h6 class="fw-bold mb-2 pivot-title"><i class="bi bi-tags-fill me-1 text-success"></i><span id="titleCat">勘定科目一覧</span></h6>
+      <div class="table-responsive" id="wrapCat">
+        <div class="text-muted small text-center py-3">読み込み中...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ② メンバー別 -->
   <div class="card mb-3">
     <div class="card-body">
       <h6 class="fw-bold mb-2 pivot-title"><i class="bi bi-people-fill me-1"></i><span id="titleMember">メンバー別</span></h6>
@@ -69,21 +79,11 @@ const SummaryView = (() => {
     </div>
   </div>
 
-  <!-- ② 未精算一覧 -->
+  <!-- ③ 未精算一覧 -->
   <div class="card mb-3">
     <div class="card-body">
       <h6 class="fw-bold mb-2 pivot-title"><i class="bi bi-exclamation-triangle-fill me-1 text-warning"></i><span id="titleUnpaid">未精算一覧</span></h6>
       <div class="table-responsive" id="wrapUnpaid">
-        <div class="text-muted small text-center py-3">読み込み中...</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ③ 勘定科目別 -->
-  <div class="card mb-3">
-    <div class="card-body">
-      <h6 class="fw-bold mb-2 pivot-title"><i class="bi bi-tags-fill me-1 text-success"></i><span id="titleCat">勘定科目一覧</span></h6>
-      <div class="table-responsive" id="wrapCat">
         <div class="text-muted small text-center py-3">読み込み中...</div>
       </div>
     </div>

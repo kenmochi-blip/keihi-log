@@ -94,6 +94,18 @@ const SettingsView = (() => {
   </div>
 
   ${isAdmin ? `
+  <!-- スプレッドシート書式修正（管理者のみ） -->
+  <div class="card mb-3">
+    <div class="card-body">
+      <div class="settings-section-title">スプレッドシート書式修正</div>
+      <p class="text-muted small mb-2">ヘッダー行のセンタリング・フィルター設定・データ行の書式リセットを行います。</p>
+      <button class="btn btn-outline-secondary btn-sm w-100" id="btnRepairFormat">
+        <i class="bi bi-magic me-1"></i>経費一覧の書式を修正する
+      </button>
+      <div id="repairFormatMsg" class="form-text mt-1"></div>
+    </div>
+  </div>
+
   <!-- Gemini APIキー（管理者のみ） -->
   <div class="card mb-3">
     <div class="card-body">
@@ -234,6 +246,24 @@ const SettingsView = (() => {
     });
 
     if (!App.isAdmin()) return;
+
+    // 書式修正
+    el.querySelector('#btnRepairFormat')?.addEventListener('click', async () => {
+      const btn = el.querySelector('#btnRepairFormat');
+      const msg = el.querySelector('#repairFormatMsg');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>修正中...';
+      msg.textContent = '';
+      try {
+        await _repairSheetFormatting();
+        msg.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>書式を修正しました</span>';
+      } catch (err) {
+        msg.innerHTML = `<span class="text-danger">${_escape(err.message)}</span>`;
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-magic me-1"></i>経費一覧の書式を修正する';
+      }
+    });
 
     // Gemini APIキー読み込みと保存
     try {
@@ -474,6 +504,69 @@ const SettingsView = (() => {
 
   function _escape(s) {
     return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  async function _repairSheetFormatting() {
+    const ssId = localStorage.getItem('keihi_sheet_id');
+    if (!ssId) throw new Error('スプレッドシートが設定されていません');
+
+    // シートIDを取得
+    const resp = await Auth.authFetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${ssId}?fields=sheets.properties`
+    );
+    if (!resp.ok) throw new Error(`メタデータ取得エラー: ${resp.status}`);
+    const meta = await resp.json();
+    const sheetIdMap = {};
+    meta.sheets?.forEach(s => { sheetIdMap[s.properties.title] = s.properties.sheetId; });
+
+    const expId = sheetIdMap['経費一覧'];
+    if (expId === undefined) throw new Error('経費一覧シートが見つかりません');
+
+    await Sheets.batchUpdate([
+      // ヘッダー行: 濃紺・白太字・センタリング
+      {
+        repeatCell: {
+          range: { sheetId: expId, startRowIndex: 0, endRowIndex: 1 },
+          cell: {
+            userEnteredFormat: {
+              backgroundColor: { red: 0.27, green: 0.51, blue: 0.71 },
+              textFormat: { bold: true, foregroundColor: { red: 1, green: 1, blue: 1 } },
+              horizontalAlignment: 'CENTER',
+            }
+          },
+          fields: 'userEnteredFormat(backgroundColor,textFormat,horizontalAlignment)'
+        }
+      },
+      // データ行: 白背景・標準テキスト（書式引き継ぎをリセット）
+      {
+        repeatCell: {
+          range: { sheetId: expId, startRowIndex: 1, endRowIndex: 5000 },
+          cell: {
+            userEnteredFormat: {
+              backgroundColor: { red: 1, green: 1, blue: 1 },
+              textFormat: { bold: false, foregroundColor: { red: 0, green: 0, blue: 0 } },
+              horizontalAlignment: 'LEFT',
+            }
+          },
+          fields: 'userEnteredFormat(backgroundColor,textFormat,horizontalAlignment)'
+        }
+      },
+      // フィルター設定
+      {
+        setBasicFilter: {
+          filter: {
+            range: { sheetId: expId, startRowIndex: 0, startColumnIndex: 0, endColumnIndex: 18 }
+          }
+        }
+      },
+      // ヘッダー行を固定
+      {
+        updateSheetProperties: {
+          properties: { sheetId: expId, gridProperties: { frozenRowCount: 1 } },
+          fields: 'gridProperties.frozenRowCount'
+        }
+      },
+    ], ssId);
   }
 
   function _syncSettingsToDrive() {

@@ -138,22 +138,65 @@ const Setup = (() => {
 
   async function _formatHeaders(ssId, sheetIds) {
     const headerSheets = ['経費一覧', '設定', 'マスタ表', '修正履歴', '削除一覧'];
-    const requests = headerSheets
-      .filter(name => sheetIds[name] !== undefined)
-      .map(name => ({
+    const requests = [];
+
+    // 各シート：ヘッダー行を濃紺・白太字・センタリング
+    headerSheets.filter(n => sheetIds[n] !== undefined).forEach(name => {
+      requests.push({
         repeatCell: {
           range: { sheetId: sheetIds[name], startRowIndex: 0, endRowIndex: 1 },
           cell: {
             userEnteredFormat: {
               backgroundColor: { red: 0.27, green: 0.51, blue: 0.71 },
-              textFormat: { bold: true, foregroundColor: { red: 1, green: 1, blue: 1 } }
+              textFormat: { bold: true, foregroundColor: { red: 1, green: 1, blue: 1 } },
+              horizontalAlignment: 'CENTER',
             }
           },
-          fields: 'userEnteredFormat(backgroundColor,textFormat)'
+          fields: 'userEnteredFormat(backgroundColor,textFormat,horizontalAlignment)'
         }
-      }));
+      });
+    });
 
-    // 経費一覧の列幅を設定
+    // 経費一覧：データ行（2行目以降）を白背景・標準テキストにリセット
+    // → appendで行挿入するとヘッダーの書式が引き継がれるのを防ぐ
+    requests.push({
+      repeatCell: {
+        range: { sheetId: sheetIds['経費一覧'], startRowIndex: 1, endRowIndex: 5000 },
+        cell: {
+          userEnteredFormat: {
+            backgroundColor: { red: 1, green: 1, blue: 1 },
+            textFormat: { bold: false, foregroundColor: { red: 0, green: 0, blue: 0 } },
+            horizontalAlignment: 'LEFT',
+          }
+        },
+        fields: 'userEnteredFormat(backgroundColor,textFormat,horizontalAlignment)'
+      }
+    });
+
+    // 経費一覧：フィルターを設定（A1:R1）
+    requests.push({
+      setBasicFilter: {
+        filter: {
+          range: {
+            sheetId: sheetIds['経費一覧'],
+            startRowIndex: 0, startColumnIndex: 0, endColumnIndex: 18
+          }
+        }
+      }
+    });
+
+    // 経費一覧：ヘッダー行を固定
+    requests.push({
+      updateSheetProperties: {
+        properties: {
+          sheetId: sheetIds['経費一覧'],
+          gridProperties: { frozenRowCount: 1 }
+        },
+        fields: 'gridProperties.frozenRowCount'
+      }
+    });
+
+    // 経費一覧：列幅設定
     requests.push({
       updateDimensionProperties: {
         range: { sheetId: sheetIds['経費一覧'], dimension: 'COLUMNS', startIndex: 0, endIndex: 18 },
