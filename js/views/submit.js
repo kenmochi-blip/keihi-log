@@ -458,20 +458,72 @@ const SubmitView = (() => {
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>解析中...';
     try {
       const result = await Gemini.analyzeReceipt(files, _cats);
+      console.log('[AI解析結果]', result);
+
       _showReceiptFields(el);
-      if (result.date)    el.querySelector('#inputDate').value    = result.date;
-      if (result.shop)    el.querySelector('#inputPlace').value   = result.shop;
-      if (result.invoice) el.querySelector('#inputInvoice').value = result.invoice;
-      if (result.total_amount) el.querySelector('#inputAmount').value = result.total_amount;
-      if (result.category) {
-        const sel = el.querySelector('#selCategory');
-        [...sel.options].forEach(o => o.selected = o.value === result.category);
+
+      let filled = 0;
+      if (result.date) {
+        el.querySelector('#inputDate').value = result.date;
+        filled++;
       }
+      if (result.shop) {
+        el.querySelector('#inputPlace').value = result.shop;
+        filled++;
+      }
+      if (result.invoice) {
+        el.querySelector('#inputInvoice').value = result.invoice;
+        filled++;
+      }
+
+      // 金額・勘定科目：明細分割 vs 単一
+      if (result.items && result.items.length > 0) {
+        // 明細分割モードに切り替え
+        const isSplit = !el.querySelector('#splitLines')?.classList.contains('d-none');
+        if (!isSplit) el.querySelector('#btnToggleSplit')?.click();
+        const container = el.querySelector('#splitLines');
+        if (container) {
+          container.innerHTML = '';
+          el.querySelector('#btnAddSplitRow')?.remove();
+          result.items.forEach(item => {
+            _addSplitRow(el);
+            const rows = container.querySelectorAll('.split-row');
+            const lastRow = rows[rows.length - 1];
+            if (lastRow) {
+              const amtInput = lastRow.querySelector('.split-amount');
+              const catSel   = lastRow.querySelector('.split-cat');
+              if (amtInput) amtInput.value = item.amount || '';
+              if (catSel && item.category) {
+                [...catSel.options].forEach(o => o.selected = o.value === item.category);
+              }
+            }
+          });
+          _calcSplitTotal(el);
+        }
+        filled++;
+      } else {
+        if (result.total_amount) {
+          el.querySelector('#inputAmount').value = result.total_amount;
+          filled++;
+        }
+        if (result.category) {
+          const sel = el.querySelector('#selCategory');
+          if (sel) [...sel.options].forEach(o => o.selected = o.value === result.category);
+          filled++;
+        }
+      }
+
       if (result.fx_currency && result.fx_amount) {
         App.showToast(`外貨検出: ${result.fx_currency} ${result.fx_amount}。為替レートを確認して金額を入力してください。`, 'warning');
       }
-      App.showToast('AI解析完了。内容を確認してください', 'success');
+
+      if (filled === 0) {
+        App.showToast('読み取れませんでした。内容を手動で入力してください', 'warning');
+      } else {
+        App.showToast('AI解析完了。内容を確認してください', 'success');
+      }
     } catch (err) {
+      console.error('[AI解析エラー]', err);
       App.showToast('AI解析エラー: ' + err.message, 'danger');
     } finally {
       btn.disabled = false;
