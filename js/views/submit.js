@@ -499,6 +499,50 @@ const SubmitView = (() => {
     el.querySelector('#numCarRate')?.addEventListener('input', calc);
   }
 
+  /** 為替レート取得（複数APIを順に試す） */
+  async function _fetchExchangeRate(from, to) {
+    const f = from.toLowerCase();
+    const t = to.toLowerCase();
+
+    // 1. CDN-backed currency API（CORS確実、無料）
+    try {
+      const resp = await fetch(
+        `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/${f}.json`
+      );
+      if (resp.ok) {
+        const data = await resp.json();
+        const rate = data[f]?.[t];
+        if (rate) return rate;
+      }
+    } catch (_) {}
+
+    // 2. Frankfurter dev（旧 .app から移行済み）
+    try {
+      const resp = await fetch(
+        `https://api.frankfurter.dev/v1/latest?base=${from.toUpperCase()}&symbols=${to.toUpperCase()}`
+      );
+      if (resp.ok) {
+        const data = await resp.json();
+        const rate = data.rates?.[to.toUpperCase()];
+        if (rate) return rate;
+      }
+    } catch (_) {}
+
+    // 3. ExchangeRate-API 無料枠
+    try {
+      const resp = await fetch(
+        `https://open.er-api.com/v6/latest/${from.toUpperCase()}`
+      );
+      if (resp.ok) {
+        const data = await resp.json();
+        const rate = data.rates?.[to.toUpperCase()];
+        if (rate) return rate;
+      }
+    } catch (_) {}
+
+    return null;
+  }
+
   async function _runAiAnalysis(el) {
     const files = _selectedFiles.filter(Boolean);
     if (files.length === 0) return App.showToast('ファイルを選択してから解析してください', 'warning');
@@ -559,27 +603,19 @@ const SubmitView = (() => {
         const singleCat    = singleItem?.category ?? result.category;
 
         if (result.fx_currency && result.fx_amount) {
-          // 外貨：Frankfurter APIで換算
-          try {
-            const rateResp = await fetch(
-              `https://api.frankfurter.app/latest?from=${encodeURIComponent(result.fx_currency)}&to=JPY`
+          // 外貨：複数APIを順に試して換算
+          const rate = await _fetchExchangeRate(result.fx_currency, 'JPY');
+          if (rate) {
+            const jpy = Math.ceil(Number(result.fx_amount) * rate);
+            const amtInput = el.querySelector('#inputAmount');
+            if (amtInput) amtInput.value = jpy.toLocaleString('ja-JP');
+            App.showToast(
+              `外貨換算: ${result.fx_currency} ${Number(result.fx_amount).toLocaleString()} × ${rate.toFixed(2)} = ¥${jpy.toLocaleString()}（確認してください）`,
+              'warning'
             );
-            const rateData = await rateResp.json();
-            const rate = rateData.rates?.JPY;
-            if (rate) {
-              const jpy = Math.ceil(result.fx_amount * rate);
-              const amtInput = el.querySelector('#inputAmount');
-              if (amtInput) amtInput.value = jpy.toLocaleString('ja-JP');
-              App.showToast(
-                `外貨換算: ${result.fx_currency} ${Number(result.fx_amount).toLocaleString()} × ${rate.toFixed(2)} = ¥${jpy.toLocaleString()}（確認してください）`,
-                'warning'
-              );
-              filled++;
-            } else {
-              App.showToast(`外貨検出（${result.fx_currency} ${result.fx_amount}）。為替レートが取得できませんでした。手動で入力してください`, 'warning');
-            }
-          } catch (_) {
-            App.showToast(`外貨検出（${result.fx_currency} ${result.fx_amount}）。換算に失敗しました。手動で入力してください`, 'warning');
+            filled++;
+          } else {
+            App.showToast(`外貨検出（${result.fx_currency} ${result.fx_amount}）。為替レートが取得できませんでした。手動で入力してください`, 'warning');
           }
         } else if (totalAmount != null && totalAmount !== '') {
           const amtInput = el.querySelector('#inputAmount');
