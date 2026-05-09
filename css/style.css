@@ -140,6 +140,35 @@ body { font-size: 0.9rem; }
 }
 .summary-card { border-radius: 12px; }
 
+/* ピボットテーブル */
+.pivot-table {
+  white-space: nowrap;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+.pivot-table thead tr th {
+  background: #3a5f82;
+  color: #fff;
+  font-weight: 600;
+  padding: 6px 10px;
+  border: none;
+}
+.pivot-table tbody td {
+  padding: 5px 10px;
+  border-bottom: 1px solid #f0f0f0;
+  vertical-align: middle;
+}
+.pivot-table tbody tr:hover td { background: #f5f8ff; }
+.pivot-table .pivot-cell:hover { text-decoration: underline; color: #0a58ca; }
+.pivot-table tfoot td {
+  background: #dde8f0;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-top: 2px solid #3a5f82;
+  border-bottom: none;
+}
+.pivot-title { font-size: 0.95rem; }
+
 /* ローディングオーバーレイ */
 #loadingOverlay { display: flex !important; }
 #loadingOverlay.d-none { display: none !important; }

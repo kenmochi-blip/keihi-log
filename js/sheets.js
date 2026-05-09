@@ -191,11 +191,27 @@ const Sheets = (() => {
     };
   }
 
+  /** 複数範囲を一括上書きする（名前同期などに使用）*/
+  async function batchUpdateValues(data, ssId) {
+    ssId = ssId || _ssId();
+    const resp = await Auth.authFetch(
+      `${BASE}/${ssId}/values:batchUpdate`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ valueInputOption: 'USER_ENTERED', data })
+      }
+    );
+    if (!resp.ok) throw new Error(`Sheets batchUpdateValues error: ${resp.status}`);
+    return resp.json();
+  }
+
   return {
     read,
     append,
     update,
     batchUpdate,
+    batchUpdateValues,
     deleteRow,
     readExpenses,
     expenseToRow,

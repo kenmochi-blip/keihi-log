@@ -1,19 +1,16 @@
 /**
  * 集計表ビュー
- * 勘定科目別・タイプ別・メンバー×勘定科目クロス集計の3種ピボットテーブル
- * PC/タブレット（≥768px）では全幅レイアウト
+ * デフォルト直近12ヶ月・3種ピボットテーブル（メンバー別/未精算/勘定科目別）
+ * セルクリックでドリルダウン表示
  */
 const SummaryView = (() => {
 
   let _expenses = [];
-  let _charts   = {};
 
   function render() {
-    const now = new Date();
-    const ym  = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const { fromYM, toYM } = _defaultRange();
     return `
 <div class="pt-3">
-  <!-- ヘッダー -->
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h5 class="fw-bold mb-0"><i class="bi bi-bar-chart-fill me-2 text-primary"></i>集計表</h5>
     <div class="d-flex gap-2 no-print">
@@ -29,14 +26,22 @@ const SummaryView = (() => {
   <!-- フィルター -->
   <div class="card mb-3 no-print">
     <div class="card-body py-2">
-      <div class="row g-2 align-items-center">
-        <div class="col-6">
-          <label class="form-label small mb-1 fw-semibold">対象月</label>
-          <input type="month" class="form-control form-control-sm" id="inputMonth" value="${ym}">
+      <div class="d-flex flex-wrap gap-2 align-items-center">
+        <div class="btn-group btn-group-sm" id="presetBtns">
+          <button class="btn btn-outline-secondary" data-months="3">3ヶ月</button>
+          <button class="btn btn-outline-secondary" data-months="6">6ヶ月</button>
+          <button class="btn btn-outline-primary active" data-months="12">12ヶ月</button>
+          <button class="btn btn-outline-secondary" data-months="0">カスタム</button>
         </div>
-        <div class="col-6" id="scopeWrap">
-          <label class="form-label small mb-1 fw-semibold">対象</label>
-          <select class="form-select form-select-sm" id="selScope">
+        <div id="customRange" class="d-none d-flex align-items-center gap-1">
+          <input type="month" class="form-control form-control-sm" id="inputFrom"
+            value="${fromYM}" style="width:140px;">
+          <span class="text-muted small">〜</span>
+          <input type="month" class="form-control form-control-sm" id="inputTo"
+            value="${toYM}" style="width:140px;">
+        </div>
+        <div id="scopeWrap" class="ms-auto d-none">
+          <select class="form-select form-select-sm" id="selScope" style="width:auto;">
             <option value="me">自分のみ</option>
             <option value="all">全員</option>
           </select>
@@ -45,99 +50,103 @@ const SummaryView = (() => {
     </div>
   </div>
 
-  <!-- 合計 -->
+  <!-- 合計バナー -->
   <div class="card summary-card mb-3 text-center">
     <div class="card-body py-3">
-      <div class="text-muted small mb-1">合計申請額</div>
+      <div class="text-muted small mb-1" id="lblPeriodLabel">集計中...</div>
       <div class="summary-total" id="lblTotal">¥0</div>
       <div class="text-muted small mt-1" id="lblTotalSub"></div>
     </div>
   </div>
 
-  <!-- ピボットテーブル 1・2（PC: 2カラム） -->
-  <div class="summary-grid-2 mb-3">
-
-    <!-- 1: 勘定科目別 -->
-    <div class="card h-100">
-      <div class="card-body">
-        <h6 class="fw-bold mb-2"><i class="bi bi-tag-fill me-1 text-primary"></i>勘定科目別</h6>
-        <div class="summary-chart-wrap mb-2">
-          <canvas id="chartCategory"></canvas>
-        </div>
-        <div class="table-responsive">
-          <table class="table table-sm list-table mb-0" id="tableCat">
-            <thead><tr>
-              <th>勘定科目</th>
-              <th class="text-end">件数</th>
-              <th class="text-end">金額</th>
-              <th class="text-end no-print-col">割合</th>
-            </tr></thead>
-            <tbody id="tbodyCat"></tbody>
-            <tfoot id="tfootCat"></tfoot>
-          </table>
-        </div>
+  <!-- ① メンバー別 -->
+  <div class="card mb-3">
+    <div class="card-body">
+      <h6 class="fw-bold mb-2 pivot-title"><i class="bi bi-people-fill me-1"></i><span id="titleMember">メンバー別</span></h6>
+      <div class="table-responsive" id="wrapMember">
+        <div class="text-muted small text-center py-3">読み込み中...</div>
       </div>
     </div>
-
-    <!-- 2: タイプ別 -->
-    <div class="card h-100">
-      <div class="card-body">
-        <h6 class="fw-bold mb-2"><i class="bi bi-grid-fill me-1 text-success"></i>タイプ別</h6>
-        <div class="summary-chart-wrap mb-2">
-          <canvas id="chartType"></canvas>
-        </div>
-        <div class="table-responsive">
-          <table class="table table-sm list-table mb-0">
-            <thead><tr>
-              <th>タイプ</th>
-              <th class="text-end">件数</th>
-              <th class="text-end">金額</th>
-              <th class="text-end no-print-col">割合</th>
-            </tr></thead>
-            <tbody id="tbodyType"></tbody>
-            <tfoot id="tfootType"></tfoot>
-          </table>
-        </div>
-      </div>
-    </div>
-
   </div>
 
-  <!-- 3: メンバー×勘定科目クロス集計（管理者・全員選択時のみ） -->
-  <div class="card mb-3" id="crossCard" style="display:none;">
+  <!-- ② 未精算一覧 -->
+  <div class="card mb-3">
     <div class="card-body">
-      <h6 class="fw-bold mb-2"><i class="bi bi-table me-1 text-warning"></i>メンバー別×勘定科目クロス集計</h6>
-      <div class="table-responsive">
-        <table class="table table-sm list-table cross-table mb-0" id="tableCross"></table>
+      <h6 class="fw-bold mb-2 pivot-title"><i class="bi bi-exclamation-triangle-fill me-1 text-warning"></i><span id="titleUnpaid">未精算一覧</span></h6>
+      <div class="table-responsive" id="wrapUnpaid">
+        <div class="text-muted small text-center py-3">読み込み中...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ③ 勘定科目別 -->
+  <div class="card mb-3">
+    <div class="card-body">
+      <h6 class="fw-bold mb-2 pivot-title"><i class="bi bi-tags-fill me-1 text-success"></i><span id="titleCat">勘定科目一覧</span></h6>
+      <div class="table-responsive" id="wrapCat">
+        <div class="text-muted small text-center py-3">読み込み中...</div>
       </div>
     </div>
   </div>
 
   <!-- 電帳法バッジ -->
-  <div class="text-center mt-3 mb-2">
+  <div class="text-center mt-2 mb-3">
     <span class="badge-denchou">電帳法対応：承認済データは改ざん防止記録あり</span>
   </div>
 </div>`;
   }
 
   async function bindEvents(el) {
-    // PC/タブレットでは幅を広げる
     const appMain = document.getElementById('appMain');
     if (appMain) appMain.style.maxWidth = '';
 
     const isAdmin = App.isAdmin();
-    if (!isAdmin) el.querySelector('#scopeWrap').style.display = 'none';
+    if (isAdmin) el.querySelector('#scopeWrap').classList.remove('d-none');
 
+    App.showLoading('読み込み中...');
     try {
       _expenses = await Sheets.readExpenses();
     } catch (err) {
-      el.querySelector('#lblTotal').textContent = 'エラー';
       App.showToast(err.message, 'danger');
       return;
+    } finally {
+      App.hideLoading();
     }
 
-    const update = () => _renderSummary(el, isAdmin);
-    el.querySelector('#inputMonth')?.addEventListener('input', update);
+    const update = () => _renderAll(el, isAdmin);
+
+    // プリセットボタン
+    el.querySelectorAll('#presetBtns [data-months]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        el.querySelectorAll('#presetBtns [data-months]').forEach(b =>
+          b.className = b === btn
+            ? b.className.replace('btn-outline-secondary', 'btn-outline-primary') + (b.classList.contains('active') ? '' : ' active')
+            : b.className.replace('btn-outline-primary', 'btn-outline-secondary').replace(' active', '')
+        );
+        // クリーンなアクティブ切替
+        el.querySelectorAll('#presetBtns [data-months]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        el.querySelectorAll('#presetBtns [data-months]').forEach(b => {
+          b.classList.remove('btn-outline-primary', 'btn-outline-secondary');
+          b.classList.add(b === btn ? 'btn-outline-primary' : 'btn-outline-secondary');
+        });
+
+        const months = Number(btn.dataset.months);
+        const customRange = el.querySelector('#customRange');
+        if (months === 0) {
+          customRange.classList.remove('d-none');
+        } else {
+          customRange.classList.add('d-none');
+          const { fromYM, toYM } = _rangeForMonths(months);
+          el.querySelector('#inputFrom').value = fromYM;
+          el.querySelector('#inputTo').value   = toYM;
+        }
+        update();
+      });
+    });
+
+    el.querySelector('#inputFrom')?.addEventListener('change', update);
+    el.querySelector('#inputTo')?.addEventListener('change', update);
     el.querySelector('#selScope')?.addEventListener('change', update);
     el.querySelector('#btnRefreshSummary')?.addEventListener('click', async () => {
       App.showLoading('更新中...');
@@ -148,206 +157,228 @@ const SummaryView = (() => {
     update();
   }
 
-  function _renderSummary(el, isAdmin) {
-    const ym    = el.querySelector('#inputMonth')?.value || '';
-    const scope = isAdmin ? (el.querySelector('#selScope')?.value || 'me') : 'me';
-    const email = Auth.getUserEmail();
+  // ─── 期間ヘルパー ──────────────────────────────────────────
+  function _defaultRange() { return _rangeForMonths(12); }
+
+  function _rangeForMonths(n) {
+    const now  = new Date();
+    const toYM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const from = new Date(now.getFullYear(), now.getMonth() - (n - 1), 1);
+    const fromYM = `${from.getFullYear()}-${String(from.getMonth() + 1).padStart(2, '0')}`;
+    return { fromYM, toYM };
+  }
+
+  function _getMonths(fromYM, toYM) {
+    const months = [];
+    let [fy, fm] = fromYM.split('-').map(Number);
+    const [ty, tm] = toYM.split('-').map(Number);
+    while (fy < ty || (fy === ty && fm <= tm)) {
+      months.push(`${fy}-${String(fm).padStart(2, '0')}`);
+      fm++;
+      if (fm > 12) { fm = 1; fy++; }
+    }
+    return months;
+  }
+
+  function _currentRange(el) {
+    const fromYM = el.querySelector('#inputFrom')?.value || _defaultRange().fromYM;
+    const toYM   = el.querySelector('#inputTo')?.value   || _defaultRange().toYM;
+    return { fromYM, toYM, months: _getMonths(fromYM, toYM) };
+  }
+
+  // ─── メイン描画 ────────────────────────────────────────────
+  function _renderAll(el, isAdmin) {
+    const { fromYM, toYM, months } = _currentRange(el);
+    const scope  = isAdmin ? (el.querySelector('#selScope')?.value || 'me') : 'me';
+    const email  = Auth.getUserEmail();
 
     const filtered = _expenses.filter(e => {
       if (!e.id || !e.date) return false;
-      if (ym && !e.date.startsWith(ym)) return false;
+      const ym = e.date.substring(0, 7);
+      if (ym < fromYM || ym > toYM) return false;
       if (scope === 'me' && e.email !== email) return false;
       return true;
     });
+    const unpaid = filtered.filter(e => !e.confirmed);
 
     const total = filtered.reduce((s, e) => s + e.amount, 0);
-    el.querySelector('#lblTotal').textContent = `¥${total.toLocaleString()}`;
-    el.querySelector('#lblTotalSub').textContent = `${filtered.length}件 / ${ym || '全期間'}`;
+    el.querySelector('#lblTotal').textContent  = `¥${total.toLocaleString()}`;
+    el.querySelector('#lblTotalSub').textContent = `${filtered.length}件`;
+    el.querySelector('#lblPeriodLabel').textContent = `${_fmtYM(fromYM)} 〜 ${_fmtYM(toYM)}`;
 
-    _renderCategoryPivot(el, filtered, total);
-    _renderTypePivot(el, filtered, total);
+    const periodLabel = `直近${months.length}ヶ月間`;
+    el.querySelector('#titleMember').textContent = `メンバー別${periodLabel}`;
+    el.querySelector('#titleUnpaid').textContent = `未精算一覧（${periodLabel}）`;
+    el.querySelector('#titleCat').textContent    = `勘定科目一覧（${periodLabel}）`;
 
-    const showCross = isAdmin && scope === 'all';
-    const crossCard = el.querySelector('#crossCard');
-    if (crossCard) crossCard.style.display = showCross ? '' : 'none';
-    if (showCross) _renderCrossTable(el, filtered);
+    _renderPivotTable(el.querySelector('#wrapMember'), filtered, months, _memberKey, '申請者');
+    _renderPivotTable(el.querySelector('#wrapUnpaid'), unpaid,   months, _memberKey, '申請者');
+    _renderPivotTable(el.querySelector('#wrapCat'),    filtered, months, _categoryKey, '勘定科目');
   }
 
-  // ── ピボット1: 勘定科目別 ──────────────────────────────
-  function _renderCategoryPivot(el, filtered, grandTotal) {
-    const byCat = {};
-    const countByCat = {};
-    filtered.forEach(e => {
-      const cats = (e.category || '').split('/');
-      cats.forEach(c => {
-        const key = c.trim() || '（未分類）';
-        byCat[key]      = (byCat[key]      || 0) + e.amount / cats.length;
-        countByCat[key] = (countByCat[key] || 0) + 1;
+  // ─── キー関数 ──────────────────────────────────────────────
+  function _memberKey(e) {
+    return [{ key: e.name || e.email || '（不明）', amount: e.amount }];
+  }
+  function _categoryKey(e) {
+    const parts = (e.category || '（未分類）').split('/').map(s => s.trim()).filter(Boolean);
+    if (!parts.length) parts.push('（未分類）');
+    return parts.map(k => ({ key: k, amount: e.amount / parts.length }));
+  }
+
+  // ─── ピボットテーブル描画 ──────────────────────────────────
+  function _renderPivotTable(container, records, months, keyFn, rowLabel) {
+    if (!container) return;
+
+    // 集計
+    const matrix        = {}; // {rowKey: {ym: amount}}
+    const drillRecords  = {}; // {rowKey: {ym: [expense]}}
+    const rowTotals     = {};
+    const colTotals     = {};
+    let grandTotal = 0;
+
+    records.forEach(e => {
+      const ym = e.date.substring(0, 7);
+      if (!months.includes(ym)) return;
+      keyFn(e).forEach(({ key, amount }) => {
+        if (!matrix[key])       { matrix[key] = {}; drillRecords[key] = {}; }
+        if (!drillRecords[key][ym]) drillRecords[key][ym] = [];
+        matrix[key][ym]      = (matrix[key][ym]      || 0) + amount;
+        rowTotals[key]        = (rowTotals[key]        || 0) + amount;
+        colTotals[ym]         = (colTotals[ym]         || 0) + amount;
+        grandTotal            += amount;
+        if (!drillRecords[key][ym].includes(e)) drillRecords[key][ym].push(e);
       });
     });
 
-    const labels = Object.keys(byCat).sort((a, b) => byCat[b] - byCat[a]);
-    const data   = labels.map(k => Math.round(byCat[k]));
+    const rowKeys = Object.keys(rowTotals).sort((a, b) => rowTotals[b] - rowTotals[a]);
 
-    if (_charts.category) _charts.category.destroy();
-    const ctx = el.querySelector('#chartCategory')?.getContext('2d');
-    if (ctx && labels.length > 0) {
-      _charts.category = new Chart(ctx, {
-        type: 'bar',
-        data: { labels, datasets: [{ data, backgroundColor: _palette(labels.length), borderRadius: 4 }] },
-        options: {
-          plugins: { legend: { display: false } },
-          scales: { y: { ticks: { callback: v => `¥${v.toLocaleString()}` } } },
-          responsive: true, maintainAspectRatio: true,
-        }
-      });
-    }
-
-    const tbody = el.querySelector('#tbodyCat');
-    const tfoot = el.querySelector('#tfootCat');
-    if (tbody) {
-      tbody.innerHTML = labels.map(k => `<tr>
-        <td>${_escape(k)}</td>
-        <td class="text-end">${countByCat[k]}</td>
-        <td class="text-end list-amount">¥${Math.round(byCat[k]).toLocaleString()}</td>
-        <td class="text-end text-muted no-print-col">${grandTotal > 0 ? Math.round(byCat[k] / grandTotal * 100) : 0}%</td>
-      </tr>`).join('');
-    }
-    if (tfoot) {
-      tfoot.innerHTML = `<tr class="table-light fw-bold">
-        <td>合計</td>
-        <td class="text-end">${filtered.length}</td>
-        <td class="text-end">¥${grandTotal.toLocaleString()}</td>
-        <td class="text-end no-print-col">100%</td>
-      </tr>`;
-    }
-  }
-
-  // ── ピボット2: タイプ別 ──────────────────────────────
-  function _renderTypePivot(el, filtered, grandTotal) {
-    const byType = {};
-    const countByType = {};
-    filtered.forEach(e => {
-      const t = e.type || '（未設定）';
-      byType[t]      = (byType[t]      || 0) + e.amount;
-      countByType[t] = (countByType[t] || 0) + 1;
-    });
-
-    const labels = Object.keys(byType).sort((a, b) => byType[b] - byType[a]);
-    const data   = labels.map(k => byType[k]);
-
-    if (_charts.type) _charts.type.destroy();
-    const ctx = el.querySelector('#chartType')?.getContext('2d');
-    if (ctx && labels.length > 0) {
-      _charts.type = new Chart(ctx, {
-        type: 'pie',
-        data: { labels, datasets: [{ data, backgroundColor: _palette(labels.length) }] },
-        options: {
-          plugins: {
-            legend: { position: 'bottom', labels: { font: { size: 11 } } },
-            tooltip: { callbacks: { label: c => `¥${c.parsed.toLocaleString()}` } }
-          },
-          responsive: true, maintainAspectRatio: true,
-        }
-      });
-    }
-
-    const tbody = el.querySelector('#tbodyType');
-    const tfoot = el.querySelector('#tfootType');
-    if (tbody) {
-      tbody.innerHTML = labels.map(k => `<tr>
-        <td>${_escape(k)}</td>
-        <td class="text-end">${countByType[k]}</td>
-        <td class="text-end list-amount">¥${byType[k].toLocaleString()}</td>
-        <td class="text-end text-muted no-print-col">${grandTotal > 0 ? Math.round(byType[k] / grandTotal * 100) : 0}%</td>
-      </tr>`).join('');
-    }
-    if (tfoot) {
-      tfoot.innerHTML = `<tr class="table-light fw-bold">
-        <td>合計</td>
-        <td class="text-end">${filtered.length}</td>
-        <td class="text-end">¥${grandTotal.toLocaleString()}</td>
-        <td class="text-end no-print-col">100%</td>
-      </tr>`;
-    }
-  }
-
-  // ── ピボット3: メンバー×勘定科目クロス集計 ──────────────
-  function _renderCrossTable(el, filtered) {
-    const table = el.querySelector('#tableCross');
-    if (!table) return;
-
-    // データ集計
-    const members = [...new Set(filtered.map(e => e.name || e.email))].sort();
-    const cats    = [...new Set(filtered.flatMap(e =>
-      (e.category || '').split('/').map(c => c.trim()).filter(Boolean)
-    ))].sort();
-
-    if (members.length === 0 || cats.length === 0) {
-      table.innerHTML = '<tr><td class="text-muted small">データなし</td></tr>';
+    if (rowKeys.length === 0) {
+      container.innerHTML = '<div class="text-muted small text-center py-3">データなし</div>';
       return;
     }
 
-    // member → category → amount
-    const matrix = {};
-    const memberTotal = {};
-    const catTotal    = {};
-    filtered.forEach(e => {
-      const m = e.name || e.email;
-      const cs = (e.category || '').split('/');
-      cs.forEach(c => {
-        const key = c.trim() || '（未分類）';
-        if (!matrix[m]) matrix[m] = {};
-        matrix[m][key] = (matrix[m][key] || 0) + e.amount / cs.length;
-        memberTotal[m] = (memberTotal[m] || 0) + e.amount / cs.length;
-        catTotal[key]  = (catTotal[key]  || 0) + e.amount / cs.length;
-      });
-    });
-    const grandTotal = Object.values(memberTotal).reduce((s, v) => s + v, 0);
+    // ヘッダー
+    const thMonths = months.map(ym =>
+      `<th class="text-end" style="min-width:72px;">${_fmtYM(ym)}</th>`
+    ).join('');
 
-    // HTMLビルド
-    const thCats = cats.map(c => `<th class="text-end" style="min-width:80px;">${_escape(c)}</th>`).join('');
-    const rows = members.map(m => {
-      const cells = cats.map(c => {
-        const v = matrix[m]?.[c] || 0;
-        return `<td class="text-end">${v ? '¥' + Math.round(v).toLocaleString() : '-'}</td>`;
+    // データ行
+    let drillIdx = 0;
+    const drillMap = []; // [{key, ym}]
+
+    const bodyRows = rowKeys.map(key => {
+      const cells = months.map(ym => {
+        const v = matrix[key]?.[ym] || 0;
+        if (v === 0) return '<td class="text-end text-muted" style="font-size:0.78rem;">-</td>';
+        const idx = drillIdx++;
+        drillMap.push({ key, ym });
+        return `<td class="text-end pivot-cell" data-di="${idx}"
+          style="cursor:pointer;">${Math.round(v).toLocaleString()}</td>`;
       }).join('');
       return `<tr>
-        <td class="fw-semibold" style="white-space:nowrap;">${_escape(m)}</td>
+        <td style="white-space:nowrap;min-width:100px;">${_escape(key)}</td>
         ${cells}
-        <td class="text-end fw-bold list-amount">¥${Math.round(memberTotal[m] || 0).toLocaleString()}</td>
+        <td class="text-end fw-bold">${Math.round(rowTotals[key]).toLocaleString()}</td>
       </tr>`;
     }).join('');
-    const footCells = cats.map(c => `<td class="text-end fw-bold">¥${Math.round(catTotal[c] || 0).toLocaleString()}</td>`).join('');
 
-    table.innerHTML = `
-      <thead class="table-light">
-        <tr>
-          <th style="min-width:100px;">氏名</th>
-          ${thCats}
-          <th class="text-end">合計</th>
-        </tr>
-      </thead>
-      <tbody>${rows}</tbody>
-      <tfoot class="table-light fw-bold">
-        <tr>
-          <td>合計</td>
+    // フッター（合計行）
+    const footCells = months.map(ym =>
+      `<td class="text-end fw-bold">${Math.round(colTotals[ym] || 0).toLocaleString()}</td>`
+    ).join('');
+
+    container.innerHTML = `
+      <table class="table table-sm pivot-table mb-0">
+        <thead><tr>
+          <th style="min-width:100px;">${_escape(rowLabel)}</th>
+          ${thMonths}
+          <th class="text-end" style="min-width:72px;">総計</th>
+        </tr></thead>
+        <tbody>${bodyRows}</tbody>
+        <tfoot><tr>
+          <td class="fw-bold">総計</td>
           ${footCells}
-          <td class="text-end">¥${Math.round(grandTotal).toLocaleString()}</td>
-        </tr>
-      </tfoot>`;
+          <td class="text-end fw-bold">${Math.round(grandTotal).toLocaleString()}</td>
+        </tr></tfoot>
+      </table>`;
+
+    // ドリルダウン：セルクリック
+    container.querySelectorAll('.pivot-cell[data-di]').forEach(td => {
+      const { key, ym } = drillMap[Number(td.dataset.di)];
+      td.addEventListener('click', () =>
+        _showDrill(`${key} — ${_fmtYM(ym)}`, drillRecords[key]?.[ym] || [])
+      );
+    });
   }
 
-  const PALETTE = [
-    '#4e79a7','#f28e2b','#e15759','#76b7b2','#59a14f',
-    '#edc948','#b07aa1','#ff9da7','#9c755f','#bab0ac'
-  ];
-  function _palette(n) {
-    return Array.from({ length: n }, (_, i) => PALETTE[i % PALETTE.length]);
+  // ─── ドリルダウンモーダル ──────────────────────────────────
+  function _showDrill(title, expenses) {
+    const total = expenses.reduce((s, e) => s + e.amount, 0);
+    const rows = expenses
+      .slice().sort((a, b) => a.date.localeCompare(b.date))
+      .map(e => `<tr>
+        <td style="white-space:nowrap;">${e.date}</td>
+        <td>${_escape(e.place)}</td>
+        <td class="text-end">¥${e.amount.toLocaleString()}</td>
+        <td class="text-muted">${_escape(e.name)}</td>
+        <td class="text-muted" style="font-size:0.75rem;">${_escape(e.category)}</td>
+        <td>
+          ${e.confirmed
+            ? '<span class="badge badge-confirmed rounded-pill px-2">承認済</span>'
+            : '<span class="badge badge-pending rounded-pill px-2">未確認</span>'}
+        </td>
+      </tr>`).join('');
+
+    const div = document.createElement('div');
+    div.innerHTML = `
+      <div class="modal fade" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+          <div class="modal-content">
+            <div class="modal-header py-2">
+              <h6 class="modal-title">${_escape(title)}</h6>
+              <button class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+              <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                  <thead class="table-light">
+                    <tr><th>日付</th><th>支払先</th><th class="text-end">金額</th><th>申請者</th><th>科目</th><th>状態</th></tr>
+                  </thead>
+                  <tbody>${rows}</tbody>
+                  <tfoot class="table-light">
+                    <tr>
+                      <td colspan="2" class="fw-bold">合計 ${expenses.length}件</td>
+                      <td class="text-end fw-bold">¥${total.toLocaleString()}</td>
+                      <td colspan="3"></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+            <div class="modal-footer py-2">
+              <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">閉じる</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(div);
+    const modal = new bootstrap.Modal(div.querySelector('.modal'));
+    modal.show();
+    div.querySelector('.modal').addEventListener('hidden.bs.modal', () => div.remove());
+  }
+
+  // ─── ユーティリティ ───────────────────────────────────────
+  function _fmtYM(ym) {
+    if (!ym) return '';
+    const [y, m] = ym.split('-');
+    return `${y}-${m}月`;
   }
 
   function _escape(s) {
-    return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    return String(s || '').replace(/[&<>"']/g, c =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])
+    );
   }
 
   return { render, bindEvents };

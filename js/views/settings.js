@@ -404,11 +404,47 @@ const SettingsView = (() => {
     }
     await Sheets.update(`マスタ表!A2:G${rows.length + 1}`, rows);
     App.showToast('保存しました', 'success');
+
+    // メンバー名が登録されている場合、既存申請データの表示名を一括更新
+    const syncCount = await _syncMemberNamesToExpenses(_master.members);
+    if (syncCount > 0) {
+      App.showToast(`${syncCount}件の申請データの表示名を更新しました`, 'info');
+    }
+
     App.clearMasterCache();
     _master = await App.getMaster();
     _renderMembers(el);
     _renderSimpleList(el, 'categoryList', _master.categories, 'category');
     _renderSimpleList(el, 'paySourceList', _master.paySources, 'paySource');
+  }
+
+  async function _syncMemberNamesToExpenses(members) {
+    const ssId = localStorage.getItem('keihi_sheet_id');
+    if (!ssId || !members.length) return 0;
+    try {
+      const allRows = await Sheets.read('経費一覧!A2:R');
+      if (!allRows.length) return 0;
+
+      const emailToName = {};
+      members.forEach(m => {
+        if (m.email && m.name) emailToName[m.email.toLowerCase()] = m.name;
+      });
+
+      const updates = [];
+      allRows.forEach((row, i) => {
+        const email = (row[15] || '').toLowerCase(); // P列: 申請者Email
+        const currentName = row[1] || '';            // B列: 申請者名
+        const newName = emailToName[email];
+        if (newName && newName !== currentName) {
+          updates.push({ range: `経費一覧!B${i + 2}`, values: [[newName]] });
+        }
+      });
+
+      if (updates.length > 0) await Sheets.batchUpdateValues(updates);
+      return updates.length;
+    } catch (_) {
+      return 0;
+    }
   }
 
   function _updateLicenseStatus(el, result) {
