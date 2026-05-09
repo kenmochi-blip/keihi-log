@@ -279,17 +279,25 @@ const SubmitView = (() => {
     _loadHistory(el);
   }
 
-  function _populateSelects(el) {
-    const opts = _cats.map(c => `<option value="${c}">${c}</option>`).join('');
-    ['selCategory', 'selCatTransit', 'selCatCar'].forEach(id => {
-      const s = el.querySelector(`#${id}`);
-      if (s) s.innerHTML = opts || '<option value="">（勘定科目なし）</option>';
-    });
-    const ps = el.querySelector('#selPaySource');
-    if (ps) {
-      ps.innerHTML = '<option value="">支払元を選択</option>' +
-        _paySources.map(p => `<option value="${p}">${p}</option>`).join('');
+  /** アクティブなパネルのルート要素を返す（複数パネルでIDが重複するため必須） */
+  function _activePanel(el) {
+    if (_currentType === '領収書') {
+      return el.querySelector('#receiptFields') || el;
     }
+    // 属性セレクタを使うと日本語IDもエスケープ不要
+    return el.querySelector(`[id="panel-${_currentType}"]`) || el;
+  }
+
+  function _populateSelects(el) {
+    const opts     = _cats.map(c => `<option value="${c}">${c}</option>`).join('');
+    const fallback = '<option value="">（勘定科目なし）</option>';
+    // querySelectorAll で全パネルのセレクトを一括設定（重複IDへの対策）
+    el.querySelectorAll('#selCategory, #selCatTransit, #selCatCar').forEach(s => {
+      s.innerHTML = opts || fallback;
+    });
+    const psHtml = '<option value="">支払元を選択</option>' +
+      _paySources.map(p => `<option value="${p}">${p}</option>`).join('');
+    el.querySelectorAll('#selPaySource').forEach(s => { s.innerHTML = psHtml; });
   }
 
   function _bindTypeButtons(el) {
@@ -371,20 +379,31 @@ const SubmitView = (() => {
   }
 
   function _bindSplitToggle(el) {
-    el.querySelector('#btnToggleSplit')?.addEventListener('click', () => {
-      const single = el.querySelector('#singleLine');
-      const split  = el.querySelector('#splitLines');
-      const total  = el.querySelector('#splitTotal');
-      const isSplit = !split.classList.contains('d-none');
-      single.classList.toggle('d-none', !isSplit);
-      split.classList.toggle('d-none', isSplit);
-      total.classList.toggle('d-none', isSplit);
-      if (!isSplit && split.children.length === 0) _addSplitRow(el);
+    // querySelectorAll で全パネルのトグルボタンにバインド
+    el.querySelectorAll('#btnToggleSplit').forEach(btn => {
+      btn.addEventListener('click', () => {
+        // クリックされたボタンの親パネルを特定
+        const pnl    = btn.closest('#receiptFields') || btn.closest('[id^="panel-"]') || el;
+        const single = pnl.querySelector('#singleLine');
+        const split  = pnl.querySelector('#splitLines');
+        const total  = pnl.querySelector('#splitTotal');
+        if (!single || !split || !total) return;
+        const isSplit = !split.classList.contains('d-none');
+        single.classList.toggle('d-none', !isSplit);
+        split.classList.toggle('d-none', isSplit);
+        total.classList.toggle('d-none', isSplit);
+        if (!isSplit && split.children.length === 0) _addSplitRowTo(split, pnl);
+      });
     });
   }
 
   function _addSplitRow(el) {
-    const container = el.querySelector('#splitLines');
+    const pnl = _activePanel(el);
+    _addSplitRowTo(pnl.querySelector('#splitLines'), pnl);
+  }
+
+  function _addSplitRowTo(container, pnl) {
+    if (!container) return;
     const row = document.createElement('div');
     row.className = 'split-row py-2 row g-2 align-items-center';
     row.innerHTML = `
@@ -395,25 +414,32 @@ const SubmitView = (() => {
       <div class="col-2 text-end">
         <button class="btn btn-outline-danger btn-sm btn-del-row"><i class="bi bi-x"></i></button>
       </div>`;
-    row.querySelector('.btn-del-row').addEventListener('click', () => { row.remove(); _calcSplitTotal(el); });
-    row.querySelector('.split-amount').addEventListener('input', () => _calcSplitTotal(el));
+    row.querySelector('.btn-del-row').addEventListener('click', () => {
+      row.remove();
+      _calcSplitTotalIn(pnl);
+    });
+    row.querySelector('.split-amount').addEventListener('input', () => _calcSplitTotalIn(pnl));
     container.appendChild(row);
 
-    const addBtn = el.querySelector('#btnAddSplitRow');
-    if (!addBtn) {
+    if (!pnl.querySelector('#btnAddSplitRow')) {
       const btn = document.createElement('button');
       btn.id = 'btnAddSplitRow';
       btn.className = 'btn btn-outline-secondary btn-sm mt-1 w-100';
       btn.innerHTML = '<i class="bi bi-plus me-1"></i>行を追加';
-      btn.addEventListener('click', () => _addSplitRow(el));
+      btn.addEventListener('click', () => _addSplitRowTo(container, pnl));
       container.after(btn);
     }
   }
 
   function _calcSplitTotal(el) {
-    const total = Array.from(el.querySelectorAll('.split-amount'))
+    _calcSplitTotalIn(_activePanel(el));
+  }
+
+  function _calcSplitTotalIn(pnl) {
+    const total = Array.from(pnl.querySelectorAll('.split-amount'))
       .reduce((s, i) => s + (Number(i.value) || 0), 0);
-    el.querySelector('#lblSplitTotal').textContent = total.toLocaleString();
+    const lbl = pnl.querySelector('#lblSplitTotal');
+    if (lbl) lbl.textContent = total.toLocaleString();
   }
 
   function _bindCorpPay(el) {
@@ -638,11 +664,23 @@ const SubmitView = (() => {
   }
 
   function _collectFormData(el) {
-    const date  = el.querySelector('#inputDate')?.value;
-    const place = el.querySelector('#inputPlace')?.value?.trim();
+    const pnl  = _activePanel(el);
+    const date = pnl.querySelector('#inputDate')?.value;
+
+    // place は交通費・自家用車では専用フィールドから生成
+    let place = '';
+    if (_currentType === '交通費') {
+      const from = el.querySelector('#txtFrom')?.value.trim();
+      const to   = el.querySelector('#txtTo')?.value.trim();
+      place = [from, to].filter(Boolean).join(' → ');
+    } else if (_currentType === '自家用車') {
+      place = el.querySelector('#txtCarRoute')?.value.trim() || '';
+    } else {
+      place = pnl.querySelector('#inputPlace')?.value?.trim() || '';
+    }
 
     if (!date)  { App.showToast('日付を入力してください', 'danger'); return null; }
-    if (!place) { App.showToast('支払先を入力してください', 'danger'); return null; }
+    if (!place) { App.showToast('支払先・経路を入力してください', 'danger'); return null; }
 
     let amount = 0, category = '', note = '';
 
@@ -651,36 +689,36 @@ const SubmitView = (() => {
       const round = el.querySelector('#chkRoundTrip')?.checked ? 2 : 1;
       amount   = fare * round;
       category = el.querySelector('#selCatTransit')?.value || '';
-      note     = el.querySelector('#inputNote')?.value?.trim() || '';
+      note     = pnl.querySelector('#inputNote')?.value?.trim() || '';
       if (amount === 0) { App.showToast('運賃を入力してください', 'danger'); return null; }
     } else if (_currentType === '自家用車') {
       const km   = Number(el.querySelector('#numCarKm')?.value)  || 0;
       const rate = Number(el.querySelector('#numCarRate')?.value) || 20;
       amount   = Math.ceil(km * rate);
       category = el.querySelector('#selCatCar')?.value || '';
-      note     = el.querySelector('#inputNote')?.value?.trim() || '';
+      note     = pnl.querySelector('#inputNote')?.value?.trim() || '';
       if (amount === 0) { App.showToast('距離を入力してください', 'danger'); return null; }
     } else {
-      const isSplit = !el.querySelector('#splitLines')?.classList.contains('d-none');
+      const isSplit = !pnl.querySelector('#splitLines')?.classList.contains('d-none');
       if (isSplit) {
-        const rows = el.querySelectorAll('.split-row');
+        const rows = pnl.querySelectorAll('.split-row');
         amount   = Array.from(rows).reduce((s, r) => s + (Number(r.querySelector('.split-amount')?.value) || 0), 0);
         category = Array.from(rows).map(r => r.querySelector('.split-cat')?.value).join('/');
       } else {
-        amount   = Number(el.querySelector('#inputAmount')?.value) || 0;
-        category = el.querySelector('#selCategory')?.value || '';
+        amount   = Number(pnl.querySelector('#inputAmount')?.value) || 0;
+        category = pnl.querySelector('#selCategory')?.value || '';
       }
-      note = el.querySelector('#inputNote')?.value?.trim() || '';
+      note = pnl.querySelector('#inputNote')?.value?.trim() || '';
       if (amount === 0) { App.showToast('金額を入力してください', 'danger'); return null; }
     }
 
-    const corpPay  = el.querySelector('#chkCorpPay')?.checked || false;
+    const corpPay   = el.querySelector('#chkCorpPay')?.checked || false;
     const paySource = el.querySelector('#selPaySource')?.value || '';
     if (corpPay && !paySource) { App.showToast('会社払いの支払元を選択してください', 'danger'); return null; }
 
     return {
       date, place, amount, category, note,
-      invoice:   el.querySelector('#inputInvoice')?.value?.trim() || '',
+      invoice:   pnl.querySelector('#inputInvoice')?.value?.trim() || '',
       corpPay, paySource,
     };
   }
@@ -772,19 +810,46 @@ const SubmitView = (() => {
     _existingUrls = e.imageLinks ? e.imageLinks.split(',').map(s => s.trim()).filter(Boolean) : [];
     _existingHash = e.imageHash || '';
 
-    // フォームに値を復元
+    // タイプ切り替え（_currentType も更新される）
     const typeBtn = el.querySelector(`[data-type="${e.type}"]`);
     if (typeBtn) typeBtn.click();
 
     setTimeout(() => {
       if (e.type === '領収書') _showReceiptFields(el);
-      el.querySelector('#inputDate') && (el.querySelector('#inputDate').value  = e.date);
-      el.querySelector('#inputPlace') && (el.querySelector('#inputPlace').value = e.place);
-      if (el.querySelector('#inputInvoice')) el.querySelector('#inputInvoice').value = e.invoice || '';
-      el.querySelector('#inputNote') && (el.querySelector('#inputNote').value  = e.note || '');
-      const sel = el.querySelector('#selCategory');
-      if (sel) [...sel.options].forEach(o => o.selected = o.value === e.category);
-      el.querySelector('#inputAmount') && (el.querySelector('#inputAmount').value = e.amount);
+      const pnl = _activePanel(el);
+
+      // 共通フィールド（パネルにスコープ）
+      const dateInput = pnl.querySelector('#inputDate');
+      if (dateInput) dateInput.value = e.date;
+      const noteInput = pnl.querySelector('#inputNote');
+      if (noteInput) noteInput.value = e.note || '';
+
+      // タイプ別フィールド
+      if (e.type === '領収書' || e.type === '領収書なし') {
+        const placeInput = pnl.querySelector('#inputPlace');
+        if (placeInput) placeInput.value = e.place || '';
+        const invInput = pnl.querySelector('#inputInvoice');
+        if (invInput) invInput.value = e.invoice || '';
+        const amtInput = pnl.querySelector('#inputAmount');
+        if (amtInput) amtInput.value = e.amount;
+        const sel = pnl.querySelector('#selCategory');
+        if (sel) [...sel.options].forEach(o => o.selected = o.value === e.category);
+      } else if (e.type === '交通費') {
+        // place は "from → to" 形式なので分割を試みる
+        const parts = (e.place || '').split(' → ');
+        const fromInput = el.querySelector('#txtFrom');
+        const toInput   = el.querySelector('#txtTo');
+        if (fromInput) fromInput.value = parts[0] || e.place;
+        if (toInput)   toInput.value   = parts[1] || '';
+        const selT = el.querySelector('#selCatTransit');
+        if (selT) [...selT.options].forEach(o => o.selected = o.value === e.category);
+      } else if (e.type === '自家用車') {
+        const routeInput = el.querySelector('#txtCarRoute');
+        if (routeInput) routeInput.value = e.place || '';
+        const selC = el.querySelector('#selCatCar');
+        if (selC) [...selC.options].forEach(o => o.selected = o.value === e.category);
+      }
+
       el.querySelector('#editBanner')?.classList.remove('d-none');
       const btn = el.querySelector('#btnSubmit');
       if (btn) { btn.textContent = '上書き保存'; btn.className = 'btn btn-warning btn-lg rounded-3'; }
@@ -837,13 +902,22 @@ const SubmitView = (() => {
     if (btn) { btn.innerHTML = '<i class="bi bi-send me-2"></i>申請する'; btn.className = 'btn btn-primary btn-lg rounded-3'; }
     TYPES.forEach(t => el.querySelector(`#previewArea-${t}`)?.replaceChildren());
     el.querySelector('#receiptFields')?.classList.add('d-none');
-    el.querySelector('#inputPlace') && (el.querySelector('#inputPlace').value  = '');
-    el.querySelector('#inputAmount') && (el.querySelector('#inputAmount').value = '');
-    el.querySelector('#inputNote') && (el.querySelector('#inputNote').value   = '');
+    // 重複IDは querySelectorAll で全パネル一括リセット
+    const today = new Date().toISOString().split('T')[0];
+    el.querySelectorAll('#inputDate').forEach(i => { i.value = today; });
+    el.querySelectorAll('#inputPlace').forEach(i => { i.value = ''; });
+    el.querySelectorAll('#inputAmount').forEach(i => { i.value = ''; });
+    el.querySelectorAll('#inputNote').forEach(i => { i.value = ''; });
+    el.querySelectorAll('#inputInvoice').forEach(i => { i.value = ''; });
     el.querySelector('#chkCorpPay') && (el.querySelector('#chkCorpPay').checked = false);
     el.querySelector('#corpPayDetails')?.classList.add('d-none');
-    el.querySelector('#inputDate') && (el.querySelector('#inputDate').value = new Date().toISOString().split('T')[0]);
-    el.querySelector('#inputInvoice') && (el.querySelector('#inputInvoice').value = '');
+    // 交通費・自家用車の専用フィールドもクリア
+    el.querySelector('#txtFrom')     && (el.querySelector('#txtFrom').value = '');
+    el.querySelector('#txtTo')       && (el.querySelector('#txtTo').value = '');
+    el.querySelector('#txtCarRoute') && (el.querySelector('#txtCarRoute').value = '');
+    el.querySelector('#numTransitFare') && (el.querySelector('#numTransitFare').value = '');
+    el.querySelector('#numCarKm')       && (el.querySelector('#numCarKm').value = '');
+    el.querySelector('#txtReason')      && (el.querySelector('#txtReason').value = '');
   }
 
   function _escape(s) {
