@@ -706,8 +706,10 @@ const SubmitView = (() => {
       const expenses = await Sheets.readExpenses();
       const dup = _checkDuplicate(expenses, data, hashes);
       if (dup) {
+        App.hideLoading(); // ダイアログ表示前にオーバーレイを隠す
         const ok = await App.confirm(`⚠️ ${dup}\nこのまま申請しますか？`);
-        if (!ok) { App.hideLoading(); return; }
+        if (!ok) return;
+        App.showLoading('申請中...'); // 続行する場合は再表示
       }
 
       // 4. AI監査フラグ設定
