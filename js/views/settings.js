@@ -12,6 +12,8 @@ const SettingsView = (() => {
     const licKey = localStorage.getItem('keihi_license_key') || '';
     const email  = Auth.getUserEmail();
     const isAdmin = App.isAdmin();
+    // シート未設定の新規ユーザーにも作成ボタンを表示（鶏と卵問題の回避）
+    const showSetup = isAdmin || !ssId;
 
     return `
 <div class="pt-3">
@@ -66,7 +68,7 @@ const SettingsView = (() => {
     </div>
   </div>
 
-  ${isAdmin ? _renderAdminSections(ssId) : ''}
+  ${showSetup ? _renderAdminSections(ssId, isAdmin) : ''}
 
   <!-- バージョン情報 -->
   <div class="text-center text-muted mt-4 mb-2" style="font-size:0.7rem;">
@@ -75,9 +77,9 @@ const SettingsView = (() => {
 </div>`;
   }
 
-  function _renderAdminSections(ssId) {
+  function _renderAdminSections(ssId, isAdmin) {
     return `
-  <!-- 初回セットアップ（管理者のみ） -->
+  <!-- 初回セットアップ -->
   <div class="card mb-3">
     <div class="card-body">
       <div class="settings-section-title">スプレッドシート新規作成</div>
@@ -91,6 +93,7 @@ const SettingsView = (() => {
     </div>
   </div>
 
+  ${isAdmin ? `
   <!-- Gemini APIキー（管理者のみ） -->
   <div class="card mb-3">
     <div class="card-body">
@@ -141,7 +144,7 @@ const SettingsView = (() => {
         <div class="text-muted small text-center py-2">読み込み中...</div>
       </div>
     </div>
-  </div>`;
+  </div>` : ''}`;
   }
 
   async function bindEvents(el) {
@@ -170,21 +173,38 @@ const SettingsView = (() => {
     _updateLicenseStatus(el, _getCachedLicenseResult());
 
     // シートURL保存
-    el.querySelector('#btnSaveSheetUrl')?.addEventListener('click', () => {
+    el.querySelector('#btnSaveSheetUrl')?.addEventListener('click', async () => {
       const raw = el.querySelector('#inputSheetUrl').value.trim();
       const id  = _extractSheetId(raw);
       const msg = el.querySelector('#sheetMsg');
       if (!id) { msg.innerHTML = '<span class="text-danger">URLまたはIDを正しく入力してください</span>'; return; }
+      const btn = el.querySelector('#btnSaveSheetUrl');
+      btn.disabled = true; btn.textContent = '確認中...';
+      try {
+        // アクセス確認（読み取りテスト）
+        await Sheets.read('A1', id);
+      } catch (err) {
+        const status = (err.message || '').match(/\d{3}/)?.[0];
+        if (status === '403') {
+          msg.innerHTML = '<span class="text-danger"><i class="bi bi-x-circle me-1"></i>このスプレッドシートへのアクセス権がありません。共有設定を確認してください。</span>';
+          btn.disabled = false; btn.textContent = '保存';
+          return;
+        } else if (status === '404') {
+          msg.innerHTML = '<span class="text-danger"><i class="bi bi-x-circle me-1"></i>スプレッドシートが見つかりません。URLを確認してください。</span>';
+          btn.disabled = false; btn.textContent = '保存';
+          return;
+        }
+        // その他のエラーは無視して保存続行
+      } finally {
+        btn.disabled = false; btn.textContent = '保存';
+      }
       localStorage.setItem('keihi_sheet_id', id);
-      msg.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>保存しました</span>';
+      msg.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>保存しました。ページを再読み込みして反映してください。</span>';
       App.showToast('スプレッドシートIDを保存しました', 'success');
       _syncSettingsToDrive();
     });
 
-    if (!App.isAdmin()) return;
-
-    // 管理者のみ以降を初期化
-    // スプレッドシート新規作成
+    // スプレッドシート新規作成（シート未設定ユーザーにも開放）
     el.querySelector('#btnCreateSheet')?.addEventListener('click', async () => {
       const existing = localStorage.getItem('keihi_sheet_id');
       if (existing) {
@@ -212,6 +232,8 @@ const SettingsView = (() => {
         btn.innerHTML = '<i class="bi bi-plus-circle me-1"></i>スプレッドシートを新規作成';
       }
     });
+
+    if (!App.isAdmin()) return;
 
     // Gemini APIキー読み込みと保存
     try {
