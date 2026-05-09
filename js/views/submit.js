@@ -126,7 +126,7 @@ const SubmitView = (() => {
     <div class="row g-2 mb-2">
       <div class="col-6">
         <label class="form-label small fw-semibold">片道運賃（円）</label>
-        <input type="number" class="form-control form-control-sm" id="numTransitFare" min="0" step="1">
+        <input type="text" inputmode="numeric" class="form-control form-control-sm amount-input" id="numTransitFare" placeholder="0">
       </div>
       <div class="col-6 d-flex align-items-end pb-1">
         <div class="form-check">
@@ -247,7 +247,7 @@ const SubmitView = (() => {
       </div>
       <div id="singleLine" class="row g-2">
         <div class="col-5">
-          <input type="number" class="form-control form-control-sm" id="inputAmount" min="0" placeholder="金額（円）">
+          <input type="text" inputmode="numeric" class="form-control form-control-sm amount-input" id="inputAmount" placeholder="金額（円）">
         </div>
         <div class="col-7">
           <select class="form-select form-select-sm" id="selCategory"></select>
@@ -267,6 +267,7 @@ const SubmitView = (() => {
     } catch (_) {}
 
     _populateSelects(el);
+    _bindAmountInputs(el);
     _bindTypeButtons(el);
     _bindFileInputs(el);
     _bindSplitToggle(el);
@@ -291,13 +292,29 @@ const SubmitView = (() => {
   function _populateSelects(el) {
     const opts     = _cats.map(c => `<option value="${c}">${c}</option>`).join('');
     const fallback = '<option value="">（勘定科目なし）</option>';
-    // querySelectorAll で全パネルのセレクトを一括設定（重複IDへの対策）
     el.querySelectorAll('#selCategory, #selCatTransit, #selCatCar').forEach(s => {
       s.innerHTML = opts || fallback;
+    });
+    // 交通費・自家用車のデフォルトを旅費交通費に
+    el.querySelectorAll('#selCatTransit, #selCatCar').forEach(sel => {
+      const opt = [...sel.options].find(o => o.value === '旅費交通費');
+      if (opt) opt.selected = true;
     });
     const psHtml = '<option value="">支払元を選択</option>' +
       _paySources.map(p => `<option value="${p}">${p}</option>`).join('');
     el.querySelectorAll('#selPaySource').forEach(s => { s.innerHTML = psHtml; });
+  }
+
+  /** 金額入力欄を自動カンマ整形する */
+  function _bindAmountInputs(el) {
+    const fmt = inp => {
+      const raw = inp.value.replace(/[^\d]/g, '');
+      inp.value = raw ? Number(raw).toLocaleString('ja-JP') : '';
+    };
+    // 既存の入力欄にバインド（動的に追加される split-amount は _addSplitRowTo 内でバインド）
+    el.querySelectorAll('.amount-input').forEach(inp => {
+      inp.addEventListener('input', () => fmt(inp));
+    });
   }
 
   function _bindTypeButtons(el) {
@@ -407,7 +424,7 @@ const SubmitView = (() => {
     const row = document.createElement('div');
     row.className = 'split-row py-2 row g-2 align-items-center';
     row.innerHTML = `
-      <div class="col-4"><input type="number" class="form-control form-control-sm split-amount" min="0" placeholder="金額"></div>
+      <div class="col-4"><input type="text" inputmode="numeric" class="form-control form-control-sm split-amount amount-input" placeholder="金額"></div>
       <div class="col-6"><select class="form-select form-select-sm split-cat">
         ${_cats.map(c => `<option value="${c}">${c}</option>`).join('')}
       </select></div>
@@ -418,7 +435,12 @@ const SubmitView = (() => {
       row.remove();
       _calcSplitTotalIn(pnl);
     });
-    row.querySelector('.split-amount').addEventListener('input', () => _calcSplitTotalIn(pnl));
+    const amtInp = row.querySelector('.split-amount');
+    const fmtAmt = () => {
+      const raw = amtInp.value.replace(/[^\d]/g, '');
+      amtInp.value = raw ? Number(raw).toLocaleString('ja-JP') : '';
+    };
+    amtInp.addEventListener('input', () => { fmtAmt(); _calcSplitTotalIn(pnl); });
     container.appendChild(row);
 
     if (!pnl.querySelector('#btnAddSplitRow')) {
@@ -437,7 +459,7 @@ const SubmitView = (() => {
 
   function _calcSplitTotalIn(pnl) {
     const total = Array.from(pnl.querySelectorAll('.split-amount'))
-      .reduce((s, i) => s + (Number(i.value) || 0), 0);
+      .reduce((s, i) => s + (Number(i.value.replace(/[^\d]/g, '')) || 0), 0);
     const lbl = pnl.querySelector('#lblSplitTotal');
     if (lbl) lbl.textContent = total.toLocaleString();
   }
@@ -450,7 +472,8 @@ const SubmitView = (() => {
 
   function _bindTransitCalc(el) {
     const calc = () => {
-      const fare = Number(el.querySelector('#numTransitFare')?.value) || 0;
+      const raw  = (el.querySelector('#numTransitFare')?.value || '').replace(/[^\d]/g, '');
+      const fare = Number(raw) || 0;
       const round = el.querySelector('#chkRoundTrip')?.checked ? 2 : 1;
       el.querySelector('#lblTransitTotal').textContent = (fare * round).toLocaleString() + '円';
     };
@@ -685,7 +708,8 @@ const SubmitView = (() => {
     let amount = 0, category = '', note = '';
 
     if (_currentType === '交通費') {
-      const fare  = Number(el.querySelector('#numTransitFare')?.value) || 0;
+      const raw   = (el.querySelector('#numTransitFare')?.value || '').replace(/[^\d]/g, '');
+      const fare  = Number(raw) || 0;
       const round = el.querySelector('#chkRoundTrip')?.checked ? 2 : 1;
       amount   = fare * round;
       category = el.querySelector('#selCatTransit')?.value || '';
@@ -702,10 +726,14 @@ const SubmitView = (() => {
       const isSplit = !pnl.querySelector('#splitLines')?.classList.contains('d-none');
       if (isSplit) {
         const rows = pnl.querySelectorAll('.split-row');
-        amount   = Array.from(rows).reduce((s, r) => s + (Number(r.querySelector('.split-amount')?.value) || 0), 0);
+        amount   = Array.from(rows).reduce((s, r) => {
+          const raw = (r.querySelector('.split-amount')?.value || '').replace(/[^\d]/g, '');
+          return s + (Number(raw) || 0);
+        }, 0);
         category = Array.from(rows).map(r => r.querySelector('.split-cat')?.value).join('/');
       } else {
-        amount   = Number(pnl.querySelector('#inputAmount')?.value) || 0;
+        const rawAmt = (pnl.querySelector('#inputAmount')?.value || '').replace(/[^\d]/g, '');
+        amount   = Number(rawAmt) || 0;
         category = pnl.querySelector('#selCategory')?.value || '';
       }
       note = pnl.querySelector('#inputNote')?.value?.trim() || '';

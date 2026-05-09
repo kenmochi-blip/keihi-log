@@ -130,7 +130,16 @@ body { font-size: 0.9rem; }
 /* 一覧テーブル */
 .list-table th { font-size: 0.75rem; white-space: nowrap; }
 .list-table td { font-size: 0.8rem; vertical-align: middle; }
-.list-amount { font-weight: 600; }
+.list-amount { font-weight: 600; white-space: nowrap; }
+.list-date  { white-space: nowrap; }
+.list-cat   { white-space: nowrap; }
+.list-note-cell { font-size: 0.75rem; max-width: 200px; }
+
+/* PC：セルをゆったり */
+@media (min-width: 768px) {
+  .list-table th, .list-table td { font-size: 0.875rem; padding: 0.6rem 0.8rem; }
+  .list-note-cell { max-width: 300px; }
+}
 
 /* 集計 */
 .summary-total {

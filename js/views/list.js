@@ -28,40 +28,41 @@ const ListView = (() => {
 
   <!-- フィルターパネル -->
   <div class="card mb-3 no-print">
-    <div class="card-body py-2">
+    <div class="card-body py-2 px-3">
+      <!-- PC：1行4列、スマホ：2列 -->
       <div class="row g-2">
-        <div class="col-6">
+        <div class="col-6 col-md-3">
           <input type="date" class="form-control form-control-sm" id="filterDateFrom" placeholder="開始日">
         </div>
-        <div class="col-6">
+        <div class="col-6 col-md-3">
           <input type="date" class="form-control form-control-sm" id="filterDateTo" placeholder="終了日">
         </div>
-        <div class="col-6">
+        <div class="col-6 col-md-3">
           <select class="form-select form-select-sm" id="filterType">
             <option value="">タイプ（全て）</option>
             <option>領収書</option><option>領収書なし</option>
             <option>交通費</option><option>自家用車</option>
           </select>
         </div>
-        <div class="col-6">
+        <div class="col-6 col-md-3">
           <select class="form-select form-select-sm" id="filterStatus">
             <option value="">承認状態（全て）</option>
             <option value="confirmed">承認済</option>
             <option value="pending">未確認</option>
           </select>
         </div>
-        <div class="col-12">
+        <div class="col-12 col-md-6">
           <div class="input-group input-group-sm">
             <span class="input-group-text"><i class="bi bi-search"></i></span>
             <input type="text" class="form-control" id="filterKeyword" placeholder="支払先・備考・勘定科目で検索">
           </div>
         </div>
-        <div class="col-6" id="filterMemberWrap" style="display:none;">
+        <div class="col-6 col-md-3" id="filterMemberWrap" style="display:none;">
           <select class="form-select form-select-sm" id="filterMember">
             <option value="">申請者（全員）</option>
           </select>
         </div>
-        <div class="col-6 d-flex align-items-center gap-2" id="adminToggleWrap" style="display:none;">
+        <div class="col-6 col-md-3 d-flex align-items-center gap-2" id="adminToggleWrap" style="display:none;">
           <div class="form-check form-switch mb-0">
             <input class="form-check-input" type="checkbox" id="chkShowAll">
             <label class="form-check-label small" for="chkShowAll">全員分表示</label>
@@ -79,19 +80,21 @@ const ListView = (() => {
 
   <!-- テーブル -->
   <div class="table-responsive">
-    <table class="table table-sm table-hover list-table">
+    <table class="table table-hover list-table">
       <thead class="table-light">
         <tr>
           <th>日付</th>
           <th>支払先</th>
+          <th class="d-none d-md-table-cell">タイプ</th>
           <th class="text-end">金額</th>
           <th>科目</th>
+          <th class="d-none d-md-table-cell">備考</th>
           <th>状態</th>
           <th class="no-print">操作</th>
         </tr>
       </thead>
       <tbody id="listTableBody">
-        <tr><td colspan="6" class="text-center text-muted py-3">読み込み中...</td></tr>
+        <tr><td colspan="8" class="text-center text-muted py-3">読み込み中...</td></tr>
       </tbody>
     </table>
   </div>
@@ -106,13 +109,17 @@ const ListView = (() => {
   }
 
   async function bindEvents(el) {
+    // PC では幅制限を解除してゆったり表示
+    const main = document.getElementById('appMain');
+    if (main) main.style.maxWidth = '';
+
     try {
       _master  = await App.getMaster();
       _isAdmin = App.isAdmin();
       _expenses = await Sheets.readExpenses();
     } catch (err) {
       el.querySelector('#listTableBody').innerHTML =
-        `<tr><td colspan="6" class="text-danger text-center">${err.message}</td></tr>`;
+        `<tr><td colspan="8" class="text-danger text-center">${err.message}</td></tr>`;
       return;
     }
 
@@ -192,7 +199,7 @@ const ListView = (() => {
 
     const tbody = el.querySelector('#listTableBody');
     if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3">該当する申請がありません</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">該当する申請がありません</td></tr>';
       return;
     }
     const email = Auth.getUserEmail();
@@ -214,14 +221,18 @@ const ListView = (() => {
         ? `<button class="btn btn-outline-secondary btn-sm py-0 btn-edit-list" data-id="${e.id}">
             <i class="bi bi-pencil"></i></button>` : '';
 
+      const applicantSub = `<div class="text-muted" style="font-size:0.7rem;">${_escape(e.name)}</div>`;
+
       return `<tr>
-        <td class="small">${e.date}</td>
-        <td class="small">
+        <td class="list-date">${e.date}</td>
+        <td class="list-place">
           <div>${_escape(e.place)}</div>
-          <div class="text-muted" style="font-size:0.7rem;">${_escape(e.name)} ${e.type !== '領収書' ? '· ' + e.type : ''}</div>
+          ${applicantSub}
         </td>
-        <td class="text-end list-amount small">¥${e.amount.toLocaleString()}</td>
-        <td class="small">${_escape(e.category)}</td>
+        <td class="d-none d-md-table-cell list-type-cell">${_escape(e.type)}</td>
+        <td class="text-end list-amount">¥${e.amount.toLocaleString()}</td>
+        <td class="list-cat">${_escape(e.category)}</td>
+        <td class="d-none d-md-table-cell list-note-cell text-muted">${_escape(e.note || '')}</td>
         <td>${statusBadge}</td>
         <td class="no-print">
           <div class="d-flex gap-1">${imageBtn}${approveBtn}${editBtn}</div>
