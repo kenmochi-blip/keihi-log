@@ -609,6 +609,10 @@ const SubmitView = (() => {
             const jpy = Math.ceil(Number(result.fx_amount) * rate);
             const amtInput = el.querySelector('#inputAmount');
             if (amtInput) amtInput.value = jpy.toLocaleString('ja-JP');
+            // 備考欄に換算内訳を自動入力
+            const noteInput = el.querySelector('#inputNote');
+            if (noteInput) noteInput.value =
+              `${result.fx_currency} ${Number(result.fx_amount).toLocaleString()} × ${rate.toFixed(2)} = ¥${jpy.toLocaleString()}`;
             App.showToast(
               `外貨換算: ${result.fx_currency} ${Number(result.fx_amount).toLocaleString()} × ${rate.toFixed(2)} = ¥${jpy.toLocaleString()}（確認してください）`,
               'warning'
