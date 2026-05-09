@@ -525,9 +525,11 @@ const SubmitView = (() => {
         filled++;
       }
 
-      // 金額・勘定科目：明細分割 / 外貨 / 単一
-      if (result.items && result.items.length > 0) {
-        // 明細分割モードに切り替え
+      // 金額・勘定科目：items が複数なら分割、それ以外は単一行に統合
+      const hasMultiItems = result.items && result.items.length > 1;
+
+      if (hasMultiItems) {
+        // 2件以上の明細 → 分割モード
         const isSplit = !el.querySelector('#splitLines')?.classList.contains('d-none');
         if (!isSplit) el.querySelector('#btnToggleSplit')?.click();
         const container = el.querySelector('#splitLines');
@@ -550,46 +552,50 @@ const SubmitView = (() => {
           _calcSplitTotal(el);
         }
         filled++;
-      } else if (result.fx_currency && result.fx_amount) {
-        // 外貨：Frankfurter APIで換算レートを取得して自動入力
-        try {
-          const rateResp = await fetch(
-            `https://api.frankfurter.app/latest?from=${encodeURIComponent(result.fx_currency)}&to=JPY`
-          );
-          const rateData = await rateResp.json();
-          const rate = rateData.rates?.JPY;
-          if (rate) {
-            const jpy = Math.ceil(result.fx_amount * rate);
-            const amtInput = el.querySelector('#inputAmount');
-            if (amtInput) amtInput.value = jpy.toLocaleString('ja-JP');
-            App.showToast(
-              `外貨換算: ${result.fx_currency} ${Number(result.fx_amount).toLocaleString()} × ${rate.toFixed(2)} = ¥${jpy.toLocaleString()}（確認してください）`,
-              'warning'
-            );
-          } else {
-            App.showToast(`外貨検出（${result.fx_currency} ${result.fx_amount}）。為替レートが取得できませんでした。金額を手動で入力してください`, 'warning');
-          }
-        } catch (_) {
-          App.showToast(`外貨検出（${result.fx_currency} ${result.fx_amount}）。換算に失敗しました。金額を手動で入力してください`, 'warning');
-        }
-        if (result.category) {
-          const sel = el.querySelector('#selCategory');
-          if (sel) [...sel.options].forEach(o => o.selected = o.value === result.category);
-          filled++;
-        }
-        filled++;
       } else {
-        if (result.total_amount) {
+        // 1件 or items なし → 単一行モード（items[0] を優先して拾う）
+        const singleItem   = result.items?.[0];
+        const totalAmount  = singleItem?.amount  ?? result.total_amount;
+        const singleCat    = singleItem?.category ?? result.category;
+
+        if (result.fx_currency && result.fx_amount) {
+          // 外貨：Frankfurter APIで換算
+          try {
+            const rateResp = await fetch(
+              `https://api.frankfurter.app/latest?from=${encodeURIComponent(result.fx_currency)}&to=JPY`
+            );
+            const rateData = await rateResp.json();
+            const rate = rateData.rates?.JPY;
+            if (rate) {
+              const jpy = Math.ceil(result.fx_amount * rate);
+              const amtInput = el.querySelector('#inputAmount');
+              if (amtInput) amtInput.value = jpy.toLocaleString('ja-JP');
+              App.showToast(
+                `外貨換算: ${result.fx_currency} ${Number(result.fx_amount).toLocaleString()} × ${rate.toFixed(2)} = ¥${jpy.toLocaleString()}（確認してください）`,
+                'warning'
+              );
+              filled++;
+            } else {
+              App.showToast(`外貨検出（${result.fx_currency} ${result.fx_amount}）。為替レートが取得できませんでした。手動で入力してください`, 'warning');
+            }
+          } catch (_) {
+            App.showToast(`外貨検出（${result.fx_currency} ${result.fx_amount}）。換算に失敗しました。手動で入力してください`, 'warning');
+          }
+        } else if (totalAmount != null && totalAmount !== '') {
           const amtInput = el.querySelector('#inputAmount');
-          if (amtInput) amtInput.value = Number(result.total_amount).toLocaleString('ja-JP');
+          if (amtInput) amtInput.value = Number(totalAmount).toLocaleString('ja-JP');
           filled++;
         }
-        if (result.category) {
+
+        if (singleCat) {
           const sel = el.querySelector('#selCategory');
-          if (sel) [...sel.options].forEach(o => o.selected = o.value === result.category);
+          if (sel) [...sel.options].forEach(o => o.selected = o.value === singleCat);
           filled++;
         }
       }
+
+      // 解析完了後、フォームを画面内にスクロール
+      el.querySelector('#receiptFields')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
       if (filled === 0) {
         App.showToast('読み取れませんでした。内容を手動で入力してください', 'warning');
