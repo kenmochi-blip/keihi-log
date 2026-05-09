@@ -194,3 +194,35 @@ body { font-size: 0.9rem; }
 @media (max-width: 480px) {
   .container-fluid { padding-left: 0.75rem; padding-right: 0.75rem; }
 }
+
+/* 集計ビュー */
+.summary-chart-wrap {
+  max-height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.summary-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+.cross-table th, .cross-table td {
+  font-size: 0.78rem;
+  padding: 0.35rem 0.5rem;
+}
+
+/* PC/タブレット：集計ビュー全幅レイアウト */
+@media (min-width: 768px) {
+  /* appMainの幅制限はrouter.jsとsummary.jsのbindEventsでJSから制御 */
+  .summary-grid-2 {
+    grid-template-columns: 1fr 1fr;
+  }
+  .summary-chart-wrap {
+    max-height: 260px;
+  }
+}
+
+@media print {
+  .no-print-col { display: none; }
+}

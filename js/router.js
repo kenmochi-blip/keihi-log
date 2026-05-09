@@ -31,6 +31,7 @@ const Router = (() => {
     });
 
     const main = document.getElementById('appMain');
+    main.style.maxWidth = '480px'; // 集計ビューが広げた場合にリセット
     main.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div></div>';
 
     const view = VIEWS[viewName];

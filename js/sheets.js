@@ -92,25 +92,40 @@ const Sheets = (() => {
   /** 行配列 → 経費オブジェクト */
   function _rowToExpense(row) {
     return {
-      appliedAt:   row[0]  || '',   // A: 申請日時（サーバー時刻）
-      name:        row[1]  || '',   // B: 申請者名
-      type:        row[2]  || '',   // C: タイプ
-      date:        row[3]  || '',   // D: 日付
-      place:       row[4]  || '',   // E: 支払先
-      amount:      Number(row[5]) || 0, // F: 金額
-      category:    row[6]  || '',   // G: 勘定科目
-      note:        row[7]  || '',   // H: 備考
-      imageLinks:  row[8]  || '',   // I: 証票リンク（カンマ区切りURL）
-      confirmed:   row[9]  === true || row[9] === 'TRUE', // J: 確認
-      aiAudit:     row[10] || '',   // K: AI監査
-      payment:     row[11] || '',   // L: 精算日/会社払い
-      invoice:     row[12] || '',   // M: インボイス番号
-      aiAmount:    Number(row[13]) || 0, // N: AI解析額
-      imageHash:   row[14] || '',   // O: 画像ハッシュ（SHA-256）
-      email:       row[15] || '',   // P: 申請者Email
-      id:          row[16] || '',   // Q: UUID
-      device:      row[17] || '',   // R: デバイス情報
+      appliedAt:   row[0]  || '',
+      name:        row[1]  || '',
+      type:        row[2]  || '',
+      date:        _parseSheetDate(row[3]),
+      place:       row[4]  || '',
+      amount:      Number(row[5]) || 0,
+      category:    row[6]  || '',
+      note:        row[7]  || '',
+      imageLinks:  row[8]  || '',
+      confirmed:   row[9]  === true || row[9] === 'TRUE',
+      aiAudit:     row[10] || '',
+      payment:     row[11] || '',
+      invoice:     row[12] || '',
+      aiAmount:    Number(row[13]) || 0,
+      imageHash:   row[14] || '',
+      email:       row[15] || '',
+      id:          row[16] || '',
+      device:      row[17] || '',
     };
+  }
+
+  /** Google Sheetsのシリアル日付値またはISO文字列をYYYY-MM-DDに変換 */
+  function _parseSheetDate(val) {
+    if (!val) return '';
+    if (typeof val === 'string') return val;
+    if (typeof val === 'number') {
+      // Sheetsシリアル値: 1900-01-01 = 1, Unixエポック = 25569
+      const d = new Date(Math.round((val - 25569) * 86400000));
+      const y = d.getUTCFullYear();
+      const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(d.getUTCDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+    return String(val);
   }
 
   /** 経費オブジェクト → 行配列（18列）*/
