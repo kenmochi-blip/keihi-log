@@ -214,14 +214,35 @@ const ListView = (() => {
     requestAnimationFrame(() => _initResizableColumns(el.querySelector('.list-table')));
   }
 
+  const _COL_WIDTHS_KEY = 'keihi_list_col_widths';
+
   function _initResizableColumns(table) {
     if (!table) return;
     const ths = [...table.querySelectorAll('thead tr th')];
+    const saved = JSON.parse(localStorage.getItem(_COL_WIDTHS_KEY) || 'null');
 
-    // 全列幅を現在の描画値で固定し、table-layout:fixedへ切り替え
-    // （table.style.widthは設定しないので列を広げるとテーブルが右に伸びる）
-    ths.forEach(th => { th.style.width = th.offsetWidth + 'px'; });
+    // colgroup > col で幅を管理（th直接指定より確実）
+    const colgroup = document.createElement('colgroup');
+    const cols = ths.map((th, i) => {
+      const col = document.createElement('col');
+      // 保存値があれば復元、なければ描画幅をそのまま使用
+      const w = (saved && saved.length === ths.length) ? saved[i] : th.offsetWidth;
+      col.style.width = w + 'px';
+      colgroup.appendChild(col);
+      return col;
+    });
+    table.prepend(colgroup);
     table.style.tableLayout = 'fixed';
+    // テーブル幅 = 全列幅の合計に固定（これがないと他列が連動して動く）
+    const syncTableWidth = () => {
+      table.style.width = cols.reduce((s, c) => s + parseInt(c.style.width), 0) + 'px';
+    };
+    syncTableWidth();
+
+    const saveWidths = () => {
+      localStorage.setItem(_COL_WIDTHS_KEY,
+        JSON.stringify(cols.map(c => parseInt(c.style.width))));
+    };
 
     ths.forEach((th, i) => {
       if (i === ths.length - 1) return; // 操作列はスキップ
@@ -234,13 +255,16 @@ const ListView = (() => {
       resizer.addEventListener('mousedown', e => {
         e.preventDefault();
         startX = e.pageX;
-        startW = th.offsetWidth;
+        startW = parseInt(cols[i].style.width);
         resizer.classList.add('dragging');
         const onMove = e2 => {
-          th.style.width = Math.max(40, startW + e2.pageX - startX) + 'px';
+          const newW = Math.max(40, startW + e2.pageX - startX);
+          cols[i].style.width = newW + 'px';
+          syncTableWidth(); // ドラッグした列だけ変わり他列は不変
         };
         const onUp = () => {
           resizer.classList.remove('dragging');
+          saveWidths();
           document.removeEventListener('mousemove', onMove);
           document.removeEventListener('mouseup', onUp);
         };
