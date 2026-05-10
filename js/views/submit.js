@@ -17,7 +17,7 @@ const SubmitView = (() => {
 
   const TYPES = ['領収書', '領収書なし', '交通費', '自家用車'];
   const CAR_RATE_KEY = 'keihi_car_rate';
-  let _transitMode = '電車'; // 電車 / バス / 高速
+  let _transitMode = '電車・バス'; // 電車・バス / 高速
 
   function render() {
     return `
@@ -115,11 +115,8 @@ const SubmitView = (() => {
     ${_dateField()}
     <!-- サブタイプ選択 -->
     <div class="btn-group btn-group-sm w-100 mb-2" id="transitModeGroup">
-      <button class="btn btn-secondary" data-mode="電車">
-        <i class="bi bi-train-front-fill me-1"></i>電車
-      </button>
-      <button class="btn btn-outline-secondary" data-mode="バス">
-        <i class="bi bi-bus-front-fill me-1"></i>バス
+      <button class="btn btn-secondary" data-mode="電車・バス">
+        <i class="bi bi-train-front-fill me-1"></i>電車・バス
       </button>
       <button class="btn btn-outline-secondary" data-mode="高速">
         <i class="bi bi-car-front-fill me-1"></i>高速
@@ -127,17 +124,17 @@ const SubmitView = (() => {
     </div>
     <div class="row g-2 mb-2">
       <div class="col-6">
-        <label class="form-label small fw-semibold" id="lblTransitFrom">出発駅</label>
+        <label class="form-label small fw-semibold" id="lblTransitFrom">出発駅・バス停</label>
         <input type="text" class="form-control form-control-sm" id="txtFrom" placeholder="例：渋谷">
       </div>
       <div class="col-6">
-        <label class="form-label small fw-semibold" id="lblTransitTo">到着駅</label>
+        <label class="form-label small fw-semibold" id="lblTransitTo">到着駅・バス停</label>
         <input type="text" class="form-control form-control-sm" id="txtTo" placeholder="例：新宿">
       </div>
     </div>
     <!-- 電車・バス用 -->
     <button class="btn btn-outline-secondary btn-sm w-100" id="btnYahooTransit">
-      <i class="bi bi-search me-1"></i>経路・運賃を検索
+      <i class="bi bi-search me-1"></i>最安値を検索
     </button>
     <!-- 高速用 -->
     <a href="https://www.driveplaza.com/dp/SearchTop" target="_blank"
@@ -501,9 +498,8 @@ const SubmitView = (() => {
 
   // サブタイプごとのラベル・プレースホルダー設定
   const _TRANSIT_MODE_CONFIG = {
-    '電車': { fromLabel: '出発駅',      toLabel: '到着駅',      fromPh: '例：渋谷',               toPh: '例：新宿' },
-    'バス': { fromLabel: '出発バス停',  toLabel: '到着バス停',  fromPh: '例：渋谷バスターミナル',  toPh: '例：横浜駅前' },
-    '高速': { fromLabel: '入口IC',      toLabel: '出口IC',      fromPh: '例：東名川崎IC',         toPh: '例：東名横浜IC' },
+    '電車・バス': { fromLabel: '出発駅・バス停', toLabel: '到着駅・バス停', fromPh: '例：渋谷', toPh: '例：新宿' },
+    '高速':       { fromLabel: '入口IC',         toLabel: '出口IC',         fromPh: '例：東名川崎IC', toPh: '例：東名横浜IC' },
   };
 
   function _bindTransitCalc(el) {
@@ -551,7 +547,7 @@ const SubmitView = (() => {
 
       try {
         const apiBase = window.APP_CONFIG?.apiBase || '';
-        const mode = _transitMode === 'バス' ? 'bus' : 'train';
+        const mode = 'train'; // 電車・バス統合モード（Yahoo乗換が最安値を自動選択）
         const resp = await fetch(
           `${apiBase}/api/transit?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&mode=${mode}`
         );
@@ -575,7 +571,7 @@ const SubmitView = (() => {
           const routeText = data.lines?.length ? data.lines.join(' → ') : `${from} → ${to}`;
           const timeText  = data.minutes ? `（約${data.minutes}分）` : '';
           el.querySelector('#transitResultRoute').textContent = `${routeText}${timeText}`;
-          const fareLabel = _transitMode === 'バス' ? '片道運賃' : '最安値（IC）';
+          const fareLabel = '最安値（IC）';
           el.querySelector('#transitResultFare').textContent =
             `${fareLabel}: ¥${data.fare.toLocaleString()} ／片道`;
           const link = el.querySelector('#transitResultLink');
@@ -588,7 +584,7 @@ const SubmitView = (() => {
         App.showToast('検索エラー: ' + err.message, 'danger');
       } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-search me-1"></i>経路・運賃を検索';
+        btn.innerHTML = '<i class="bi bi-search me-1"></i>最安値を検索';
       }
     });
   }
@@ -1130,13 +1126,13 @@ const SubmitView = (() => {
     // 交通費・自家用車の専用フィールドもクリア
     el.querySelector('#txtFrom')     && (el.querySelector('#txtFrom').value = '');
     el.querySelector('#txtTo')       && (el.querySelector('#txtTo').value = '');
-    // 交通費サブタイプを電車にリセット
-    _transitMode = '電車';
+    // 交通費サブタイプを電車・バスにリセット
+    _transitMode = '電車・バス';
     el.querySelectorAll('#transitModeGroup [data-mode]').forEach(b => {
-      b.classList.toggle('btn-secondary', b.dataset.mode === '電車');
-      b.classList.toggle('btn-outline-secondary', b.dataset.mode !== '電車');
+      b.classList.toggle('btn-secondary', b.dataset.mode === '電車・バス');
+      b.classList.toggle('btn-outline-secondary', b.dataset.mode !== '電車・バス');
     });
-    const cfg0 = _TRANSIT_MODE_CONFIG['電車'];
+    const cfg0 = _TRANSIT_MODE_CONFIG['電車・バス'];
     el.querySelector('#lblTransitFrom') && (el.querySelector('#lblTransitFrom').textContent = cfg0.fromLabel);
     el.querySelector('#lblTransitTo')   && (el.querySelector('#lblTransitTo').textContent   = cfg0.toLabel);
     el.querySelector('#txtFrom')?.setAttribute('placeholder', cfg0.fromPh);
