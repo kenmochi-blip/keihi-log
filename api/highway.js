@@ -8,36 +8,44 @@ export default async function handler(req, res) {
   const { from, to } = req.query;
   if (!from || !to) return res.status(400).json({ error: 'from と to が必要です' });
 
+  // IC名の揺れを吸収: 末尾にIC/インター/インターチェンジがなければ「IC」を付与して候補を生成
+  const _variants = (name) => {
+    if (/IC$|インター(チェンジ)?$/.test(name)) return [name];
+    return [name + 'IC', name + 'インターチェンジ', name];
+  };
+  const fromList = _variants(from);
+  const toList   = _variants(to);
+
   const resultUrl =
     `https://map.yahoo.co.jp/route/car?` +
-    `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
+    `from=${encodeURIComponent(fromList[0])}&to=${encodeURIComponent(toList[0])}`;
 
-  const printUrl =
-    `https://transit.yahoo.co.jp/search/car?` +
-    `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&type=1&ws=3`;
-
-  try {
-    const resp = await fetch(printUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept-Language': 'ja,en-US;q=0.9',
-        'Accept': 'text/html,application/xhtml+xml',
-      },
-      signal: AbortSignal.timeout(8000),
-    });
-
-    if (!resp.ok) {
-      return res.json({ toll: null, km: null, resultUrl });
+  // 組み合わせを順に試してtollが取れた時点で返す
+  let toll = null, km = null;
+  outer: for (const f of fromList) {
+    for (const t of toList) {
+      const printUrl =
+        `https://transit.yahoo.co.jp/search/car?` +
+        `from=${encodeURIComponent(f)}&to=${encodeURIComponent(t)}&type=1&ws=3`;
+      try {
+        const resp = await fetch(printUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept-Language': 'ja,en-US;q=0.9',
+            'Accept': 'text/html,application/xhtml+xml',
+          },
+          signal: AbortSignal.timeout(8000),
+        });
+        if (!resp.ok) continue;
+        const parsed = _parse(await resp.text());
+        if (parsed.toll) { toll = parsed.toll; km = parsed.km; break outer; }
+        if (!km && parsed.km) km = parsed.km;
+      } catch { /* 次の候補へ */ }
     }
-
-    const html = await resp.text();
-    const { toll, km } = _parse(html);
-
-    res.setHeader('Cache-Control', 'no-store');
-    res.json({ toll, km, resultUrl });
-  } catch (err) {
-    res.json({ toll: null, km: null, resultUrl });
   }
+
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({ toll, km, resultUrl });
 }
 
 function _parse(html) {
