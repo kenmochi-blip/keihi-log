@@ -532,12 +532,55 @@ const SubmitView = (() => {
       });
     });
 
-    el.querySelector('#btnNexco')?.addEventListener('click', () => {
+    el.querySelector('#btnNexco')?.addEventListener('click', async () => {
       const from = el.querySelector('#txtFrom')?.value.trim();
       const to   = el.querySelector('#txtTo')?.value.trim();
-      const base = 'https://map.yahoo.co.jp/route/car';
-      const params = new URLSearchParams({ ...(from && { from }), ...(to && { to }) });
-      window.open(`${base}?${params}`, '_blank');
+      if (!from || !to) return App.showToast('入口ICと出口ICを入力してください', 'warning');
+
+      const btn = el.querySelector('#btnNexco');
+      const resultDiv = el.querySelector('#transitResult');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>検索中...';
+      resultDiv?.classList.add('d-none');
+
+      try {
+        const apiBase = window.APP_CONFIG?.apiBase || '';
+        const resp = await fetch(
+          `${apiBase}/api/highway?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
+        );
+        const data = await resp.json();
+
+        if (data.toll) {
+          const fareInput = el.querySelector('#numTransitFare');
+          if (fareInput) fareInput.value = data.toll.toLocaleString('ja-JP');
+          calcTotal();
+
+          if (resultDiv) {
+            const kmText = data.km ? `（${data.km}km）` : '';
+            el.querySelector('#transitResultRoute').textContent = `${from} → ${to}${kmText}`;
+            el.querySelector('#transitResultFare').textContent = `高速料金（ETC）: ¥${data.toll.toLocaleString()} ／片道`;
+            const link = el.querySelector('#transitResultLink');
+            if (link) {
+              link.href = data.resultUrl;
+              link.innerHTML = '<i class="bi bi-box-arrow-up-right me-1"></i>Yahoo地図で経路・料金を確認する';
+            }
+            resultDiv.classList.remove('d-none');
+          }
+          App.showToast(`高速料金 ¥${data.toll.toLocaleString()} を入力しました`, 'success');
+        } else {
+          App.showToast('料金を自動取得できませんでした。Yahoo地図を開きます', 'warning');
+          window.open(data.resultUrl, '_blank');
+        }
+      } catch (err) {
+        App.showToast('検索エラー: ' + err.message, 'danger');
+        window.open(
+          `https://map.yahoo.co.jp/route/car?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+          '_blank'
+        );
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-car-front-fill me-1"></i>Yahoo地図で経路・料金を確認';
+      }
     });
 
     el.querySelector('#btnYahooTransit')?.addEventListener('click', async () => {

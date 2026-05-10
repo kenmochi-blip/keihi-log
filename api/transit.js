@@ -17,7 +17,9 @@ export default async function handler(req, res) {
   const y  = jst.getUTCFullYear();
   const mo = jst.getUTCMonth() + 1;
   const d  = jst.getUTCDate();
-  const timeParams = `&y=${y}&m=${mo}&d=${d}&hh=12&m2=0`;
+  const hh = jst.getUTCHours();
+  const mn = jst.getUTCMinutes();
+  const timeParams = `&y=${y}&m=${mo}&d=${d}&hh=${hh}&m2=${mn}`;
 
   const printUrl =
     `https://transit.yahoo.co.jp/search/print?` +
