@@ -26,15 +26,16 @@ export default async function handler(req, res) {
   const rh = jstNow.getUTCHours();
   const rn = jstNow.getUTCMinutes();
 
+  // type=3（料金安い順）で最安値ルートを取得
   const printUrl =
     `https://transit.yahoo.co.jp/search/print?` +
     `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}` +
-    `&type=1&expkind=1&userpass=1&ws=3${ticketParam}&y=${ty}&m=${tm}&d=${td}&hh=9&m2=0`;
+    `&type=3&expkind=1&userpass=1&ws=3${ticketParam}&y=${ty}&m=${tm}&d=${td}&hh=9&m2=0`;
 
   const resultUrl =
     `https://transit.yahoo.co.jp/search/result?` +
     `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}` +
-    `&type=1&expkind=1&userpass=1${ticketParam}&y=${ry}&m=${rm}&d=${rd}&hh=${rh}&m2=${rn}`;
+    `&type=3&expkind=1&userpass=1${ticketParam}&y=${ry}&m=${rm}&d=${rd}&hh=${rh}&m2=${rn}`;
 
   try {
     const resp = await fetch(printUrl, {
@@ -77,8 +78,7 @@ function _parse(html) {
     .replace(/&yen;/g, '¥')
     .replace(/\s+/g, ' ');
 
-  // --- IC運賃の抽出（最初にマッチした合計IC運賃を採用）---
-  // type=1（時間が早い順）でリクエストするため先頭ルートが最速＝主要昼間便
+  // --- IC運賃の抽出（type=3：料金安い順の先頭ルートが最安値）---
   const icFareMatch = text.match(/IC\s*[：:]?\s*([\d,]+)\s*円/);
   const icFareVal = icFareMatch ? parseInt(icFareMatch[1].replace(/,/g, ''), 10) : 0;
   let fare = (icFareVal >= 100 && icFareVal < 100000) ? icFareVal : null;
