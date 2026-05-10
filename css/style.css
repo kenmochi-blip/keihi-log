@@ -141,6 +141,21 @@ body { font-size: 0.9rem; }
   .list-note-cell { max-width: 400px; }
 }
 
+/* 列リサイズハンドル */
+.col-resizer {
+  position: absolute;
+  right: -3px;
+  top: 0;
+  width: 7px;
+  height: 100%;
+  cursor: col-resize;
+  user-select: none;
+  z-index: 1;
+  border-radius: 3px;
+}
+.col-resizer:hover,
+.col-resizer:active { background: rgba(0,0,0,0.15); }
+
 /* 集計 */
 .summary-total {
   font-size: 1.8rem;

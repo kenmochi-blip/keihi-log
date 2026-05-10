@@ -211,6 +211,41 @@ const ListView = (() => {
     el.querySelector('#btnExportCsv')?.addEventListener('click', () => _exportCsv(el));
 
     _renderTable(el);
+    requestAnimationFrame(() => _initResizableColumns(el.querySelector('.list-table')));
+  }
+
+  function _initResizableColumns(table) {
+    if (!table) return;
+    const ths = [...table.querySelectorAll('thead tr th')];
+    ths.forEach((th, i) => {
+      if (i === ths.length - 1) return; // 操作列はスキップ
+      const resizer = document.createElement('div');
+      resizer.className = 'col-resizer';
+      th.style.position = 'relative';
+      th.appendChild(resizer);
+
+      let startX, startW;
+      resizer.addEventListener('mousedown', e => {
+        e.preventDefault();
+        startX = e.pageX;
+        startW = th.offsetWidth;
+        // 初回ドラッグ時にtable-layout:fixedへ切り替え
+        if (table.style.tableLayout !== 'fixed') {
+          ths.forEach(t => { t.style.width = t.offsetWidth + 'px'; });
+          table.style.tableLayout = 'fixed';
+          table.style.width = table.offsetWidth + 'px';
+        }
+        const onMove = e2 => {
+          th.style.width = Math.max(40, startW + e2.pageX - startX) + 'px';
+        };
+        const onUp = () => {
+          document.removeEventListener('mousemove', onMove);
+          document.removeEventListener('mouseup', onUp);
+        };
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+      });
+    });
   }
 
   function _getFiltered(el) {
@@ -294,6 +329,14 @@ const ListView = (() => {
     // 承認ボタンのイベント
     tbody.querySelectorAll('.btn-approve').forEach(btn => {
       btn.addEventListener('click', () => _approveExpense(btn.dataset.id, el));
+    });
+
+    // 編集ボタン：申請タブへ遷移して編集モードを起動
+    tbody.querySelectorAll('.btn-edit-list').forEach(btn => {
+      btn.addEventListener('click', () => {
+        SubmitView.queueEdit(btn.dataset.id, _expenses);
+        Router.navigate('submit');
+      });
     });
   }
 

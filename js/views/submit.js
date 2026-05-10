@@ -13,6 +13,7 @@ const SubmitView = (() => {
   let _currentType   = '領収書';
   let _cats          = [];
   let _paySources    = [];
+  let _pendingEdit   = null; // 一覧表からの編集キュー {id, expenses}
 
   const TYPES = ['領収書', '領収書なし', '交通費', '自家用車'];
   const CAR_RATE_KEY = 'keihi_car_rate';
@@ -286,6 +287,13 @@ const SubmitView = (() => {
     el.querySelector('#btnRefreshHistory')?.addEventListener('click', () => _loadHistory(el));
     el.querySelector('#btnCancelEdit')?.addEventListener('click', () => _cancelEdit(el));
     _loadHistory(el);
+
+    // 一覧表の鉛筆ボタンからのジャンプ処理
+    if (_pendingEdit) {
+      const { id, expenses } = _pendingEdit;
+      _pendingEdit = null;
+      _startEdit(el, id, expenses);
+    }
   }
 
   /** アクティブなパネルのルート要素を返す（複数パネルでIDが重複するため必須） */
@@ -871,6 +879,16 @@ const SubmitView = (() => {
       if (amount === 0) { App.showToast('金額を入力してください', 'danger'); return null; }
     }
 
+    // 勘定科目は必須
+    if (!category) { App.showToast('勘定科目を選択してください', 'danger'); return null; }
+
+    // 領収書なしは理由が必須、かつnoteに合算
+    if (_currentType === '領収書なし') {
+      const reason = pnl.querySelector('#txtReason')?.value?.trim();
+      if (!reason) { App.showToast('理由・詳細を入力してください', 'danger'); return null; }
+      note = [reason, note].filter(Boolean).join('\n');
+    }
+
     const corpPay   = el.querySelector('#chkCorpPay')?.checked || false;
     const paySource = el.querySelector('#selPaySource')?.value || '';
     if (corpPay && !paySource) { App.showToast('会社払いの支払元を選択してください', 'danger'); return null; }
@@ -1083,5 +1101,7 @@ const SubmitView = (() => {
     return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
-  return { render, bindEvents };
+  function queueEdit(id, expenses) { _pendingEdit = { id, expenses }; }
+
+  return { render, bindEvents, queueEdit };
 })();
