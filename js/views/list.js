@@ -104,24 +104,9 @@ const ListView = (() => {
     </table>
   </div>
 
-  <!-- スマホテーブル（md未満） -->
-  <div class="d-md-none table-responsive">
-    <table class="table table-sm table-hover list-table list-table-sp">
-      <thead class="table-light">
-        <tr>
-          <th>日付</th>
-          <th>支払先</th>
-          <th class="text-end">金額</th>
-          <th>科目</th>
-          <th class="no-print">操作</th>
-          <th>備考</th>
-          <th>状態</th>
-        </tr>
-      </thead>
-      <tbody id="listTbodySp">
-        <tr><td colspan="7" class="text-center text-muted py-3">読み込み中...</td></tr>
-      </tbody>
-    </table>
+  <!-- スマホカードリスト（md未満） -->
+  <div class="d-md-none" id="listCardsSp">
+    <div class="text-center text-muted py-3">読み込み中...</div>
   </div>
 
   <!-- スプレッドシートリンク（管理者のみ） -->
@@ -155,7 +140,7 @@ const ListView = (() => {
       _expenses = await Sheets.readExpenses();
     } catch (err) {
       el.querySelector('#listTbodyPc').innerHTML = `<tr><td colspan="8" class="text-danger text-center">${err.message}</td></tr>`;
-      el.querySelector('#listTbodySp').innerHTML = `<tr><td colspan="7" class="text-danger text-center">${err.message}</td></tr>`;
+      el.querySelector('#listCardsSp').innerHTML = `<div class="text-danger text-center py-3">${err.message}</div>`;
       return;
     }
 
@@ -318,17 +303,17 @@ const ListView = (() => {
     el.querySelector('#lblFilterTotal').textContent = filtered.length > 0
       ? `合計 ¥${total.toLocaleString()}` : '';
 
-    const tbodyPc = el.querySelector('#listTbodyPc');
-    const tbodySp = el.querySelector('#listTbodySp');
+    const tbodyPc  = el.querySelector('#listTbodyPc');
+    const cardsSp  = el.querySelector('#listCardsSp');
 
     if (filtered.length === 0) {
       tbodyPc.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">該当する申請がありません</td></tr>';
-      tbodySp.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">該当する申請がありません</td></tr>';
+      cardsSp.innerHTML = '<div class="text-center text-muted py-3">該当する申請がありません</div>';
       return;
     }
 
     const email = Auth.getUserEmail();
-    const rowsPc = [], rowsSp = [];
+    const rowsPc = [], cardHtmls = [];
 
     filtered.forEach(e => {
       const statusBadge = e.confirmed
@@ -336,11 +321,11 @@ const ListView = (() => {
         : `<span class="badge badge-pending" style="font-size:0.65rem;">未確認</span>`;
       const canEdit = !e.confirmed && e.email === email;
       const imageBtn = e.imageLinks
-        ? `<a href="${e.imageLinks.split(',')[0].trim()}" target="_blank" class="btn btn-outline-primary btn-sm py-0"><i class="bi bi-image"></i></a>` : '';
+        ? `<a href="${e.imageLinks.split(',')[0].trim()}" target="_blank" class="btn btn-outline-primary btn-sm py-0 px-1"><i class="bi bi-image"></i></a>` : '';
       const approveBtn = _isAdmin && !e.confirmed
-        ? `<button class="btn btn-outline-success btn-sm py-0 btn-approve" data-id="${e.id}"><i class="bi bi-check"></i></button>` : '';
+        ? `<button class="btn btn-outline-success btn-sm py-0 px-1 btn-approve" data-id="${e.id}"><i class="bi bi-check"></i></button>` : '';
       const editBtn = canEdit
-        ? `<button class="btn btn-outline-secondary btn-sm py-0 btn-edit-list" data-id="${e.id}"><i class="bi bi-pencil"></i></button>` : '';
+        ? `<button class="btn btn-outline-secondary btn-sm py-0 px-1 btn-edit-list" data-id="${e.id}"><i class="bi bi-pencil"></i></button>` : '';
       const ops = `<div class="d-flex gap-1">${imageBtn}${approveBtn}${editBtn}</div>`;
 
       // PC行（8列）
@@ -358,30 +343,39 @@ const ListView = (() => {
         <td class="no-print">${ops}</td>
       </tr>`);
 
-      // SP行（7列）：日付M/D、支払先+申請者、金額、科目、操作、備考、状態
-      rowsSp.push(`<tr>
-        <td style="white-space:nowrap;font-size:0.75rem;">${_fmtDateShort(e.date)}</td>
-        <td>
-          <div style="font-size:0.78rem;">${_escape(e.place)}</div>
-          <div class="text-muted" style="font-size:0.68rem;">${_escape(e.name)}</div>
-        </td>
-        <td class="text-end" style="white-space:nowrap;font-size:0.78rem;font-weight:600;">¥${e.amount.toLocaleString()}</td>
-        <td style="font-size:0.72rem;white-space:nowrap;">${_escape(e.category)}</td>
-        <td class="no-print">${ops}</td>
-        <td class="text-muted" style="font-size:0.72rem;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${_escape(e.note || '')}</td>
-        <td>${statusBadge}</td>
-      </tr>`);
+      // SPカード
+      cardHtmls.push(`
+        <div class="list-sp-card" data-id="${e.id}">
+          <div class="d-flex justify-content-between align-items-start gap-2">
+            <div class="flex-grow-1" style="min-width:0;">
+              <div class="d-flex align-items-baseline gap-1">
+                <span class="list-sp-date">${_fmtDateShort(e.date)}</span>
+                <span class="list-sp-place">${_escape(e.place)}</span>
+              </div>
+              <div class="list-sp-name">${_escape(e.name)}</div>
+            </div>
+            <div class="list-sp-amount flex-shrink-0">¥${e.amount.toLocaleString()}</div>
+          </div>
+          <div class="d-flex justify-content-between align-items-center mt-1 gap-2">
+            <div class="d-flex align-items-center gap-1 flex-wrap" style="min-width:0;">
+              ${statusBadge}
+              <span class="list-sp-cat">${_escape(e.category)}</span>
+              ${e.note ? `<span class="list-sp-note">${_escape(e.note)}</span>` : ''}
+            </div>
+            <div class="no-print flex-shrink-0">${ops}</div>
+          </div>
+        </div>`);
     });
 
     tbodyPc.innerHTML = rowsPc.join('');
-    tbodySp.innerHTML = rowsSp.join('');
+    cardsSp.innerHTML = cardHtmls.join('');
 
-    // イベントを両テーブルにバインド
-    [tbodyPc, tbodySp].forEach(tbody => {
-      tbody.querySelectorAll('.btn-approve').forEach(btn => {
+    // イベントをPC・SPの両方にバインド
+    [tbodyPc, cardsSp].forEach(container => {
+      container.querySelectorAll('.btn-approve').forEach(btn => {
         btn.addEventListener('click', () => _approveExpense(btn.dataset.id, el));
       });
-      tbody.querySelectorAll('.btn-edit-list').forEach(btn => {
+      container.querySelectorAll('.btn-edit-list').forEach(btn => {
         btn.addEventListener('click', () => {
           SubmitView.queueEdit(btn.dataset.id, _expenses);
           Router.navigate('submit');

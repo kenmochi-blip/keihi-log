@@ -61,6 +61,7 @@ const SubmitView = (() => {
 
   <!-- 領収書：カメラ/ファイル → プレビュー → AI → フォーム -->
   <div id="panel-領収書">
+    <input type="file" class="d-none" id="camInput-領収書" accept="image/*" capture="environment">
     <input type="file" class="d-none" id="fileInput-領収書" accept="image/*,.pdf" multiple>
     <div class="upload-grid mb-3">
       <button class="upload-card" id="btnCamera-領収書">
@@ -352,41 +353,34 @@ const SubmitView = (() => {
   }
 
   function _bindFileInputs(el) {
+    const handleFiles = async (el, type, e) => {
+      for (const file of e.target.files) {
+        const base64 = await Drive.fileToBase64(file);
+        if (file.size > 10 * 1024 * 1024) { App.showToast(`${file.name} は10MBを超えています`, 'warning'); continue; }
+        _selectedFiles.push({ base64, mimeType: file.type, name: file.name });
+        _addPreviewItem(el, type, base64, file.type, _selectedFiles.length - 1);
+      }
+      e.target.value = '';
+    };
+
     TYPES.forEach(type => {
       const fileInput = el.querySelector(`#fileInput-${type}`);
       if (!fileInput) return;
 
-      // カメラボタン（領収書のみ）
-      const camBtn = el.querySelector(`#btnCamera-${type}`);
-      if (camBtn) {
-        camBtn.addEventListener('click', () => {
-          fileInput.setAttribute('capture', 'environment');
-          fileInput.click();
-        });
+      // カメラボタン：専用input（capture="environment"）を使いシステム選択ダイアログを回避
+      const camInput = el.querySelector(`#camInput-${type}`);
+      const camBtn   = el.querySelector(`#btnCamera-${type}`);
+      if (camBtn && camInput) {
+        camBtn.addEventListener('click', () => camInput.click());
+        camInput.addEventListener('change', e => handleFiles(el, type, e));
       }
 
-      // ファイル選択ボタン
+      // ファイルボタン：通常のファイル選択
       const fileBtn = el.querySelector(`#btnFile-${type}`);
-      if (fileBtn) {
-        fileBtn.addEventListener('click', () => {
-          fileInput.removeAttribute('capture');
-          fileInput.click();
-        });
-      }
-
-      fileInput.addEventListener('change', async e => {
-        for (const file of e.target.files) {
-          const base64 = await Drive.fileToBase64(file);
-          const sizeOk = file.size <= 10 * 1024 * 1024; // 10MB上限
-          if (!sizeOk) { App.showToast(`${file.name} は10MBを超えています`, 'warning'); continue; }
-          _selectedFiles.push({ base64, mimeType: file.type, name: file.name });
-          _addPreviewItem(el, type, base64, file.type, _selectedFiles.length - 1);
-        }
-        fileInput.value = '';
-      });
+      if (fileBtn) fileBtn.addEventListener('click', () => fileInput.click());
+      fileInput.addEventListener('change', e => handleFiles(el, type, e));
     });
 
-    // AI解析ボタン
     el.querySelector('#btnAnalyze')?.addEventListener('click', () => _runAiAnalysis(el));
     el.querySelector('#btnManualInput')?.addEventListener('click', () => _showReceiptFields(el));
   }

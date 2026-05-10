@@ -298,6 +298,21 @@ body { font-size: 0.9rem; }
   padding: 0.35rem 0.5rem;
 }
 
+/* スマホ一覧カード */
+.list-sp-card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+.list-sp-date  { font-size: 0.72rem; color: #6c757d; white-space: nowrap; }
+.list-sp-place { font-size: 0.88rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.list-sp-name  { font-size: 0.7rem; color: #6c757d; }
+.list-sp-amount { font-size: 0.9rem; font-weight: 700; color: #0d6efd; white-space: nowrap; }
+.list-sp-cat   { font-size: 0.72rem; color: #6c757d; }
+.list-sp-note  { font-size: 0.7rem; color: #adb5bd; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px; display: inline-block; vertical-align: middle; }
+
 /* PC/タブレット：集計ビュー全幅レイアウト */
 @media (min-width: 768px) {
   /* appMainの幅制限はrouter.jsとsummary.jsのbindEventsでJSから制御 */
