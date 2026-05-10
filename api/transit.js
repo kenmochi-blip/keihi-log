@@ -72,30 +72,33 @@ function _parse(html) {
     .replace(/&yen;/g, '¥')
     .replace(/\s+/g, ' ');
 
-  // --- IC運賃の抽出 ---
-  // Yahoo乗換の印刷ページは "IC 230円" や "IC　230円" のような形式
-  let fare = null;
-  const farePatterns = [
-    /IC\s*[：:]?\s*([\d,]+)\s*円/,       // "IC 230円" / "IC: 230円"
-    /合計\s*IC\s*([\d,]+)\s*円/,         // "合計 IC 230円"
-    /IC優先\s*([\d,]+)\s*円/,            // "IC優先 230円"
-    /運賃[\s\S]{0,30}?([\d,]+)\s*円/,   // "運賃 ... 230円"
-    /料金[\s\S]{0,30}?([\d,]+)\s*円/,   // "料金 ... 230円"
-  ];
-  for (const p of farePatterns) {
-    const m = text.match(p);
-    if (m) {
-      fare = parseInt(m[1].replace(/,/g, ''), 10);
-      if (fare > 0 && fare < 100000) break; // 妥当な範囲にある場合のみ採用
-      fare = null;
+  // --- IC運賃の抽出（全ルートから最安値を選択）---
+  // 複数ルートが印刷ページに並ぶ場合、最初のIC運賃が最安値とは限らないため全件取得してmin
+  const icFares = [...text.matchAll(/IC\s*[：:]?\s*([\d,]+)\s*円/g)]
+    .map(m => parseInt(m[1].replace(/,/g, ''), 10))
+    .filter(v => v >= 100 && v < 100000);
+  let fare = icFares.length > 0 ? Math.min(...icFares) : null;
+
+  if (!fare) {
+    // IC表記なし → 合計・運賃・料金パターンを順に試す
+    for (const p of [
+      /合計\s*IC\s*([\d,]+)\s*円/,
+      /IC優先\s*([\d,]+)\s*円/,
+      /運賃[\s\S]{0,30}?([\d,]+)\s*円/,
+      /料金[\s\S]{0,30}?([\d,]+)\s*円/,
+    ]) {
+      const m = text.match(p);
+      if (m) {
+        const v = parseInt(m[1].replace(/,/g, ''), 10);
+        if (v >= 100 && v < 100000) { fare = v; break; }
+      }
     }
   }
-  // 最終フォールバック：最初に出てくる円表記（ただし1件目が時刻などでないか検証）
+  // 最終フォールバック：妥当な範囲の最初の円表記
   if (!fare) {
-    const all = [...text.matchAll(/([\d,]+)\s*円/g)];
-    for (const m of all) {
+    for (const m of text.matchAll(/([\d,]+)\s*円/g)) {
       const v = parseInt(m[1].replace(/,/g, ''), 10);
-      if (v >= 100 && v <= 50000) { fare = v; break; } // 100円〜50,000円を妥当な運賃と判断
+      if (v >= 100 && v <= 50000) { fare = v; break; }
     }
   }
 
