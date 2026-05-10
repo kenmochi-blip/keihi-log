@@ -5,20 +5,21 @@
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).end();
 
-  const { from, to } = req.query;
+  const { from, to, mode } = req.query;
   if (!from || !to) return res.status(400).json({ error: 'from と to が必要です' });
 
-  // 最安値ルート（type=2）、IC優先（expkind=1）、片道（userpass=1）
+  // バスモードは IC 優先なし、電車はIC優先
+  const ticketParam = mode === 'bus' ? '' : '&ticket=ic';
+
   const printUrl =
     `https://transit.yahoo.co.jp/search/print?` +
     `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}` +
-    `&type=2&expkind=1&userpass=1&ws=3&ticket=ic`;
+    `&type=2&expkind=1&userpass=1&ws=3${ticketParam}`;
 
-  // ユーザーが結果画面を開くためのURL（通常の検索結果ページ）
   const resultUrl =
     `https://transit.yahoo.co.jp/search/result?` +
     `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}` +
-    `&type=2&expkind=1&userpass=1&ticket=ic`;
+    `&type=2&expkind=1&userpass=1${ticketParam}`;
 
   try {
     const resp = await fetch(printUrl, {
