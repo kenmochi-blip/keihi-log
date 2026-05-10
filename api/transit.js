@@ -73,7 +73,6 @@ export default async function handler(req, res) {
 }
 
 function _parse(html) {
-  // スクリプト・スタイルを除去してテキスト化
   const text = html
     .replace(/<script[\s\S]*?<\/script>/gi, '')
     .replace(/<style[\s\S]*?<\/style>/gi, '')
@@ -89,7 +88,7 @@ function _parse(html) {
 
   if (!fare) {
     for (const p of [
-      /合計\s*IC\s*([\d,]+)\s*ןןIC优先\s*([\d,]+)\s*円/,
+      /合計\s*IC\s*([\d,]+)\s*円/,
       /IC優先\s*([\d,]+)\s*円/,
       /運賃[\s\S]{0,30}?([\d,]+)\s*円/,
       /料金[\s\S]{0,30}?([\d,]+)\s*円/,
