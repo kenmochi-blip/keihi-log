@@ -17,7 +17,7 @@ const SubmitView = (() => {
 
   const TYPES = ['領収書', '領収書なし', '交通費', '自家用車'];
   const CAR_RATE_KEY = 'keihi_car_rate';
-  let _transitMode = '電車'; // 電車 / バス / 高速
+  let _transitMode = '電車・バス'; // 電車・バス / 高速
 
   function render() {
     return `
@@ -115,11 +115,8 @@ const SubmitView = (() => {
     ${_dateField()}
     <!-- サブタイプ選択 -->
     <div class="btn-group btn-group-sm w-100 mb-2" id="transitModeGroup">
-      <button class="btn btn-secondary" data-mode="電車">
-        <i class="bi bi-train-front-fill me-1"></i>電車
-      </button>
-      <button class="btn btn-outline-secondary" data-mode="バス">
-        <i class="bi bi-bus-front-fill me-1"></i>バス
+      <button class="btn btn-secondary" data-mode="電車・バス">
+        <i class="bi bi-train-front-fill me-1"></i>電車・バス
       </button>
       <button class="btn btn-outline-secondary" data-mode="高速">
         <i class="bi bi-car-front-fill me-1"></i>高速
@@ -127,17 +124,17 @@ const SubmitView = (() => {
     </div>
     <div class="row g-2 mb-2">
       <div class="col-6">
-        <label class="form-label small fw-semibold" id="lblTransitFrom">出発駅</label>
+        <label class="form-label small fw-semibold" id="lblTransitFrom">出発駅・バス停</label>
         <input type="text" class="form-control form-control-sm" id="txtFrom" placeholder="例：渋谷">
       </div>
       <div class="col-6">
-        <label class="form-label small fw-semibold" id="lblTransitTo">到着駅</label>
+        <label class="form-label small fw-semibold" id="lblTransitTo">到着駅・バス停</label>
         <input type="text" class="form-control form-control-sm" id="txtTo" placeholder="例：新宿">
       </div>
     </div>
     <!-- 電車・バス用 -->
     <button class="btn btn-outline-secondary btn-sm w-100" id="btnYahooTransit">
-      <i class="bi bi-search me-1"></i>経路・運賃を検索
+      <i class="bi bi-search me-1"></i>最安値を検索
     </button>
     <!-- 高速用 -->
     <a href="https://www.driveplaza.com/dp/SearchTop" target="_blank"
@@ -321,7 +318,6 @@ const SubmitView = (() => {
     if (_currentType === '領収書') {
       return el.querySelector('#receiptFields') || el;
     }
-    // 属性セレクタを使うと日本語IDもエスケープ不要
     return el.querySelector(`[id="panel-${_currentType}"]`) || el;
   }
 
@@ -331,7 +327,6 @@ const SubmitView = (() => {
     el.querySelectorAll('#selCategory, #selCatTransit, #selCatCar').forEach(s => {
       s.innerHTML = opts || fallback;
     });
-    // 交通費・自家用車のデフォルトを旅費交通費に
     el.querySelectorAll('#selCatTransit, #selCatCar').forEach(sel => {
       const opt = [...sel.options].find(o => o.value === '旅費交通費');
       if (opt) opt.selected = true;
@@ -341,13 +336,11 @@ const SubmitView = (() => {
     el.querySelectorAll('#selPaySource').forEach(s => { s.innerHTML = psHtml; });
   }
 
-  /** 金額入力欄を自動カンマ整形する */
   function _bindAmountInputs(el) {
     const fmt = inp => {
       const raw = inp.value.replace(/[^\d]/g, '');
       inp.value = raw ? Number(raw).toLocaleString('ja-JP') : '';
     };
-    // 既存の入力欄にバインド（動的に追加される split-amount は _addSplitRowTo 内でバインド）
     el.querySelectorAll('.amount-input').forEach(inp => {
       inp.addEventListener('input', () => fmt(inp));
     });
@@ -364,7 +357,6 @@ const SubmitView = (() => {
         TYPES.forEach(t => {
           el.querySelector(`#panel-${t}`)?.classList.toggle('d-none', t !== _currentType);
         });
-        // 領収書以外はフォームをそのまま表示
         if (_currentType !== '領収書') return;
         el.querySelector('#receiptFields')?.classList.add('d-none');
       });
@@ -386,7 +378,6 @@ const SubmitView = (() => {
       const fileInput = el.querySelector(`#fileInput-${type}`);
       if (!fileInput) return;
 
-      // カメラボタン：専用input（capture="environment"）を使いシステム選択ダイアログを回避
       const camInput = el.querySelector(`#camInput-${type}`);
       const camBtn   = el.querySelector(`#btnCamera-${type}`);
       if (camBtn && camInput) {
@@ -394,7 +385,6 @@ const SubmitView = (() => {
         camInput.addEventListener('change', e => handleFiles(el, type, e));
       }
 
-      // ファイルボタン：通常のファイル選択
       const fileBtn = el.querySelector(`#btnFile-${type}`);
       if (fileBtn) fileBtn.addEventListener('click', () => fileInput.click());
       fileInput.addEventListener('change', e => handleFiles(el, type, e));
@@ -425,10 +415,8 @@ const SubmitView = (() => {
   }
 
   function _bindSplitToggle(el) {
-    // querySelectorAll で全パネルのトグルボタンにバインド
     el.querySelectorAll('#btnToggleSplit').forEach(btn => {
       btn.addEventListener('click', () => {
-        // クリックされたボタンの親パネルを特定
         const pnl    = btn.closest('#receiptFields') || btn.closest('[id^="panel-"]') || el;
         const single = pnl.querySelector('#singleLine');
         const split  = pnl.querySelector('#splitLines');
@@ -501,9 +489,8 @@ const SubmitView = (() => {
 
   // サブタイプごとのラベル・プレースホルダー設定
   const _TRANSIT_MODE_CONFIG = {
-    '電車': { fromLabel: '出発駅',      toLabel: '到着駅',      fromPh: '例：渋谷',               toPh: '例：新宿' },
-    'バス': { fromLabel: '出発バス停',  toLabel: '到着バス停',  fromPh: '例：渋谷バスターミナル',  toPh: '例：横浜駅前' },
-    '高速': { fromLabel: '入口IC',      toLabel: '出口IC',      fromPh: '例：東名川崎IC',         toPh: '例：東名横浜IC' },
+    '電車・バス': { fromLabel: '出発駅・バス停', toLabel: '到着駅・バス停', fromPh: '例：渋谷', toPh: '例：新宿' },
+    '高速':       { fromLabel: '入口IC',         toLabel: '出口IC',         fromPh: '例：東名川崎IC', toPh: '例：東名横浜IC' },
   };
 
   function _bindTransitCalc(el) {
@@ -529,7 +516,6 @@ const SubmitView = (() => {
         el.querySelector('#lblTransitTo').textContent   = cfg.toLabel;
         el.querySelector('#txtFrom').placeholder = cfg.fromPh;
         el.querySelector('#txtTo').placeholder   = cfg.toPh;
-        // 高速：NEXCO リンクを表示、電車/バス：Yahoo 乗換を表示
         const isHighway = _transitMode === '高速';
         el.querySelector('#btnYahooTransit').classList.toggle('d-none', isHighway);
         el.querySelector('#btnNexco').classList.toggle('d-none', !isHighway);
@@ -540,28 +526,25 @@ const SubmitView = (() => {
     el.querySelector('#btnYahooTransit')?.addEventListener('click', async () => {
       const from = el.querySelector('#txtFrom')?.value.trim();
       const to   = el.querySelector('#txtTo')?.value.trim();
-      const modeLabel = _TRANSIT_MODE_CONFIG[_transitMode]?.fromLabel || '出発地';
-      if (!from || !to) return App.showToast(`${modeLabel}と到着地を入力してください`, 'warning');
+      if (!from || !to) return App.showToast('出発地と到着地を入力してください', 'warning');
 
       const btn = el.querySelector('#btnYahooTransit');
-      const resultDiv  = el.querySelector('#transitResult');
+      const resultDiv = el.querySelector('#transitResult');
       btn.disabled = true;
       btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>検索中...';
       resultDiv?.classList.add('d-none');
 
       try {
         const apiBase = window.APP_CONFIG?.apiBase || '';
-        const mode = _transitMode === 'バス' ? 'bus' : 'train';
         const resp = await fetch(
-          `${apiBase}/api/transit?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&mode=${mode}`
+          `${apiBase}/api/transit?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
         );
         const data = await resp.json();
 
         if (!resp.ok || !data.fare) {
           App.showToast(data.error || '運賃を取得できませんでした', 'warning');
-          const ticket = mode === 'bus' ? '' : '&ticket=ic';
           window.open(
-            `https://transit.yahoo.co.jp/search/result?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&type=2&expkind=1&userpass=1${ticket}`,
+            `https://transit.yahoo.co.jp/search/result?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&type=2&expkind=1&userpass=1&ticket=ic`,
             '_blank'
           );
           return;
@@ -575,9 +558,8 @@ const SubmitView = (() => {
           const routeText = data.lines?.length ? data.lines.join(' → ') : `${from} → ${to}`;
           const timeText  = data.minutes ? `（約${data.minutes}分）` : '';
           el.querySelector('#transitResultRoute').textContent = `${routeText}${timeText}`;
-          const fareLabel = _transitMode === 'バス' ? '片道運賃' : '最安値（IC）';
           el.querySelector('#transitResultFare').textContent =
-            `${fareLabel}: ¥${data.fare.toLocaleString()} ／片道`;
+            `最安値（IC）: ¥${data.fare.toLocaleString()} ／片道`;
           const link = el.querySelector('#transitResultLink');
           if (link) link.href = data.resultUrl;
           resultDiv.classList.remove('d-none');
@@ -588,7 +570,7 @@ const SubmitView = (() => {
         App.showToast('検索エラー: ' + err.message, 'danger');
       } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-search me-1"></i>経路・運賃を検索';
+        btn.innerHTML = '<i class="bi bi-search me-1"></i>最安値を検索';
       }
     });
   }
@@ -604,12 +586,10 @@ const SubmitView = (() => {
     el.querySelector('#numCarRate')?.addEventListener('input', calc);
   }
 
-  /** 為替レート取得（複数APIを順に試す） */
   async function _fetchExchangeRate(from, to) {
     const f = from.toLowerCase();
     const t = to.toLowerCase();
 
-    // 1. CDN-backed currency API（CORS確実、無料）
     try {
       const resp = await fetch(
         `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/${f}.json`
@@ -621,7 +601,6 @@ const SubmitView = (() => {
       }
     } catch (_) {}
 
-    // 2. Frankfurter dev（旧 .app から移行済み）
     try {
       const resp = await fetch(
         `https://api.frankfurter.dev/v1/latest?base=${from.toUpperCase()}&symbols=${to.toUpperCase()}`
@@ -633,7 +612,6 @@ const SubmitView = (() => {
       }
     } catch (_) {}
 
-    // 3. ExchangeRate-API 無料枠
     try {
       const resp = await fetch(
         `https://open.er-api.com/v6/latest/${from.toUpperCase()}`
@@ -661,24 +639,13 @@ const SubmitView = (() => {
       _showReceiptFields(el);
 
       let filled = 0;
-      if (result.date) {
-        el.querySelector('#inputDate').value = result.date;
-        filled++;
-      }
-      if (result.shop) {
-        el.querySelector('#inputPlace').value = result.shop;
-        filled++;
-      }
-      if (result.invoice) {
-        el.querySelector('#inputInvoice').value = result.invoice;
-        filled++;
-      }
+      if (result.date) { el.querySelector('#inputDate').value = result.date; filled++; }
+      if (result.shop) { el.querySelector('#inputPlace').value = result.shop; filled++; }
+      if (result.invoice) { el.querySelector('#inputInvoice').value = result.invoice; filled++; }
 
-      // 金額・勘定科目：items が複数なら分割、それ以外は単一行に統合
       const hasMultiItems = result.items && result.items.length > 1;
 
       if (hasMultiItems) {
-        // 2件以上の明細 → 分割モード
         const isSplit = !el.querySelector('#splitLines')?.classList.contains('d-none');
         if (!isSplit) el.querySelector('#btnToggleSplit')?.click();
         const container = el.querySelector('#splitLines');
@@ -702,19 +669,16 @@ const SubmitView = (() => {
         }
         filled++;
       } else {
-        // 1件 or items なし → 単一行モード（items[0] を優先して拾う）
-        const singleItem   = result.items?.[0];
-        const totalAmount  = singleItem?.amount  ?? result.total_amount;
-        const singleCat    = singleItem?.category ?? result.category;
+        const singleItem  = result.items?.[0];
+        const totalAmount = singleItem?.amount  ?? result.total_amount;
+        const singleCat   = singleItem?.category ?? result.category;
 
         if (result.fx_currency && result.fx_amount) {
-          // 外貨：複数APIを順に試して換算
           const rate = await _fetchExchangeRate(result.fx_currency, 'JPY');
           if (rate) {
             const jpy = Math.ceil(Number(result.fx_amount) * rate);
             const amtInput = el.querySelector('#inputAmount');
             if (amtInput) amtInput.value = jpy.toLocaleString('ja-JP');
-            // 備考欄に換算内訳を自動入力
             const noteInput = el.querySelector('#inputNote');
             if (noteInput) noteInput.value =
               `${result.fx_currency} ${Number(result.fx_amount).toLocaleString()} × ${rate.toFixed(2)} = ¥${jpy.toLocaleString()}`;
@@ -739,7 +703,6 @@ const SubmitView = (() => {
         }
       }
 
-      // 解析完了後、フォームを画面内にスクロール
       el.querySelector('#receiptFields')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
       if (filled === 0) {
@@ -766,9 +729,8 @@ const SubmitView = (() => {
 
   async function _handleSubmit(el) {
     const data = _collectFormData(el);
-    if (!data) return; // バリデーション失敗
+    if (!data) return;
 
-    // 2ヶ月以上前の日付チェック（電帳法対応）
     const dateVal = new Date(data.date);
     const twoMonthsAgo = new Date();
     twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
@@ -781,11 +743,9 @@ const SubmitView = (() => {
 
     App.showLoading('申請中...');
     try {
-      // 1. サーバー時刻取得（電帳法対応）
       const timeResp = await fetch(`${window.APP_CONFIG?.apiBase || ''}/api/time`);
       const { jst: appliedAt } = await timeResp.json();
 
-      // 2. ファイルアップロード + SHA-256ハッシュ計算
       const activeFiles = _selectedFiles.filter(Boolean);
       const uploadedUrls = [..._existingUrls];
       const hashes = _existingHash ? [_existingHash] : [];
@@ -807,20 +767,17 @@ const SubmitView = (() => {
         if (warn) App.showToast(warn, 'warning');
       }
 
-      // 3. 重複チェック
       const expenses = await Sheets.readExpenses();
       const dup = _checkDuplicate(expenses, data, hashes);
       if (dup) {
-        App.hideLoading(); // ダイアログ表示前にオーバーレイを隠す
+        App.hideLoading();
         const ok = await App.confirm(`⚠️ ${dup}\nこのまま申請しますか？`);
         if (!ok) return;
-        App.showLoading('申請中...'); // 続行する場合は再表示
+        App.showLoading('申請中...');
       }
 
-      // 4. AI監査フラグ設定
       const aiAudit = dup ? `⛔ ${dup}` : '✅ OK';
 
-      // 5. 行データ組み立て
       const row = Sheets.expenseToRow({
         appliedAt,
         name:       userName,
@@ -842,7 +799,6 @@ const SubmitView = (() => {
         device:     navigator.userAgent,
       });
 
-      // 6. 編集の場合は修正履歴に旧データを保存してから更新
       if (_editId) {
         const rowNum = await Sheets.findRowById(_editId);
         if (rowNum > 0) {
@@ -868,7 +824,6 @@ const SubmitView = (() => {
     const pnl  = _activePanel(el);
     const date = pnl.querySelector('#inputDate')?.value;
 
-    // place は交通費・自家用車では専用フィールドから生成
     let place = '';
     if (_currentType === '交通費') {
       const from = el.querySelector('#txtFrom')?.value.trim();
@@ -918,10 +873,8 @@ const SubmitView = (() => {
       if (amount === 0) { App.showToast('金額を入力してください', 'danger'); return null; }
     }
 
-    // 勘定科目は必須
     if (!category) { App.showToast('勘定科目を選択してください', 'danger'); return null; }
 
-    // 領収書なしは理由が必須、かつnoteに合算
     if (_currentType === '領収書なし') {
       const reason = pnl.querySelector('#txtReason')?.value?.trim();
       if (!reason) { App.showToast('理由・詳細を入力してください', 'danger'); return null; }
@@ -941,14 +894,11 @@ const SubmitView = (() => {
 
   function _checkDuplicate(expenses, data, newHashes) {
     const userEmail = Auth.getUserEmail();
-    // 同一申請者の既存レコードと照合
     for (const e of expenses) {
-      if (e.id === _editId) continue; // 自分自身は除く
-      // 日付・支払先・金額の完全一致
+      if (e.id === _editId) continue;
       if (e.date === data.date && e.place === data.place && e.amount === data.amount && e.email === userEmail) {
         return '同じ日付・支払先・金額の申請が既に存在します';
       }
-      // 画像ハッシュの重複
       if (newHashes.length > 0 && e.imageHash) {
         const existingHashes = e.imageHash.split(',');
         if (newHashes.some(h => existingHashes.includes(h))) {
@@ -1026,7 +976,6 @@ const SubmitView = (() => {
     _existingUrls = e.imageLinks ? e.imageLinks.split(',').map(s => s.trim()).filter(Boolean) : [];
     _existingHash = e.imageHash || '';
 
-    // タイプ切り替え（_currentType も更新される）
     const typeBtn = el.querySelector(`[data-type="${e.type}"]`);
     if (typeBtn) typeBtn.click();
 
@@ -1034,13 +983,11 @@ const SubmitView = (() => {
       if (e.type === '領収書') _showReceiptFields(el);
       const pnl = _activePanel(el);
 
-      // 共通フィールド（パネルにスコープ）
       const dateInput = pnl.querySelector('#inputDate');
       if (dateInput) dateInput.value = e.date;
       const noteInput = pnl.querySelector('#inputNote');
       if (noteInput) noteInput.value = e.note || '';
 
-      // タイプ別フィールド
       if (e.type === '領収書' || e.type === '領収書なし') {
         const placeInput = pnl.querySelector('#inputPlace');
         if (placeInput) placeInput.value = e.place || '';
@@ -1051,7 +998,6 @@ const SubmitView = (() => {
         const sel = pnl.querySelector('#selCategory');
         if (sel) [...sel.options].forEach(o => o.selected = o.value === e.category);
       } else if (e.type === '交通費') {
-        // place は "from → to" 形式なので分割を試みる
         const parts = (e.place || '').split(' → ');
         const fromInput = el.querySelector('#txtFrom');
         const toInput   = el.querySelector('#txtTo');
@@ -1085,13 +1031,9 @@ const SubmitView = (() => {
       const rowNum = await Sheets.findRowById(id);
       if (rowNum < 0) throw new Error('行が見つかりません');
 
-      // 削除一覧に移動
       const timeResp = await fetch(`${window.APP_CONFIG?.apiBase || ''}/api/time`);
       const { jst: deletedAt } = await timeResp.json();
       await Sheets.append('削除一覧', [deletedAt, Auth.getUserEmail(), ...Sheets.expenseToRow(e)]);
-
-      // 元の行を削除（sheetIdが必要なのでbatchUpdateを使う）
-      // 簡略化：行の内容を空白で上書きしてフィルタリングする方式
       await Sheets.update(`経費一覧!A${rowNum}:R${rowNum}`, [new Array(18).fill('')]);
 
       App.showToast('削除しました', 'success');
@@ -1118,7 +1060,6 @@ const SubmitView = (() => {
     if (btn) { btn.innerHTML = '<i class="bi bi-send me-2"></i>申請する'; btn.className = 'btn btn-primary btn-lg rounded-3'; }
     TYPES.forEach(t => el.querySelector(`#previewArea-${t}`)?.replaceChildren());
     el.querySelector('#receiptFields')?.classList.add('d-none');
-    // 重複IDは querySelectorAll で全パネル一括リセット
     const today = new Date().toISOString().split('T')[0];
     el.querySelectorAll('#inputDate').forEach(i => { i.value = today; });
     el.querySelectorAll('#inputPlace').forEach(i => { i.value = ''; });
@@ -1127,16 +1068,15 @@ const SubmitView = (() => {
     el.querySelectorAll('#inputInvoice').forEach(i => { i.value = ''; });
     el.querySelector('#chkCorpPay') && (el.querySelector('#chkCorpPay').checked = false);
     el.querySelector('#corpPayDetails')?.classList.add('d-none');
-    // 交通費・自家用車の専用フィールドもクリア
     el.querySelector('#txtFrom')     && (el.querySelector('#txtFrom').value = '');
     el.querySelector('#txtTo')       && (el.querySelector('#txtTo').value = '');
-    // 交通費サブタイプを電車にリセット
-    _transitMode = '電車';
+    // 交通費サブタイプを電車・バスにリセット
+    _transitMode = '電車・バス';
     el.querySelectorAll('#transitModeGroup [data-mode]').forEach(b => {
-      b.classList.toggle('btn-secondary', b.dataset.mode === '電車');
-      b.classList.toggle('btn-outline-secondary', b.dataset.mode !== '電車');
+      b.classList.toggle('btn-secondary', b.dataset.mode === '電車・バス');
+      b.classList.toggle('btn-outline-secondary', b.dataset.mode !== '電車・バス');
     });
-    const cfg0 = _TRANSIT_MODE_CONFIG['電車'];
+    const cfg0 = _TRANSIT_MODE_CONFIG['電車・バス'];
     el.querySelector('#lblTransitFrom') && (el.querySelector('#lblTransitFrom').textContent = cfg0.fromLabel);
     el.querySelector('#lblTransitTo')   && (el.querySelector('#lblTransitTo').textContent   = cfg0.toLabel);
     el.querySelector('#txtFrom')?.setAttribute('placeholder', cfg0.fromPh);
