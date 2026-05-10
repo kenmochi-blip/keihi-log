@@ -237,6 +237,7 @@ const SubmitView = (() => {
 </div>`;
   }
 
+  // ヘルパーHTML生成関数
   function _dateField() {
     const today = new Date().toISOString().split('T')[0];
     return `<div class="mb-2">
@@ -283,6 +284,7 @@ const SubmitView = (() => {
   }
 
   async function bindEvents(el) {
+    // マスタデータ読み込み
     try {
       const master = await App.getMaster();
       _cats       = master.categories;
@@ -302,6 +304,7 @@ const SubmitView = (() => {
     el.querySelector('#btnCancelEdit')?.addEventListener('click', () => _cancelEdit(el));
     _loadHistory(el);
 
+    // 一覧表の鉛筆ボタンからのジャンプ処理
     if (_pendingEdit) {
       const { id, expenses } = _pendingEdit;
       _pendingEdit = null;
@@ -309,8 +312,12 @@ const SubmitView = (() => {
     }
   }
 
+  /** アクティブなパネルのルート要素を返す（複数パネルでIDが重複するため必須） */
   function _activePanel(el) {
-    if (_currentType === '領収書') return el.querySelector('#receiptFields') || el;
+    if (_currentType === '領収書') {
+      return el.querySelector('#receiptFields') || el;
+    }
+    // 属性セレクタを使うと日本語IDもエスケープ不要
     return el.querySelector(`[id="panel-${_currentType}"]`) || el;
   }
 
@@ -320,6 +327,7 @@ const SubmitView = (() => {
     el.querySelectorAll('#selCategory, #selCatTransit, #selCatCar').forEach(s => {
       s.innerHTML = opts || fallback;
     });
+    // 交通費・自家用車のデフォルトを旅費交通費に
     el.querySelectorAll('#selCatTransit, #selCatCar').forEach(sel => {
       const opt = [...sel.options].find(o => o.value === '旅費交通費');
       if (opt) opt.selected = true;
@@ -329,11 +337,13 @@ const SubmitView = (() => {
     el.querySelectorAll('#selPaySource').forEach(s => { s.innerHTML = psHtml; });
   }
 
+  /** 金額入力欄を自動カンマ整形する */
   function _bindAmountInputs(el) {
     const fmt = inp => {
       const raw = inp.value.replace(/[^\d]/g, '');
       inp.value = raw ? Number(raw).toLocaleString('ja-JP') : '';
     };
+    // 既存の入力欄にバインド（動的に追加される split-amount は _addSplitRowTo 内でバインド）
     el.querySelectorAll('.amount-input').forEach(inp => {
       inp.addEventListener('input', () => fmt(inp));
     });
@@ -350,6 +360,7 @@ const SubmitView = (() => {
         TYPES.forEach(t => {
           el.querySelector(`#panel-${t}`)?.classList.toggle('d-none', t !== _currentType);
         });
+        // 領収書以外はフォームをそのまま表示
         if (_currentType !== '領収書') return;
         el.querySelector('#receiptFields')?.classList.add('d-none');
       });
@@ -370,12 +381,16 @@ const SubmitView = (() => {
     TYPES.forEach(type => {
       const fileInput = el.querySelector(`#fileInput-${type}`);
       if (!fileInput) return;
+
+      // カメラボタン：専用input（capture="environment"）を使いシステム選択ダイアログを回避
       const camInput = el.querySelector(`#camInput-${type}`);
       const camBtn   = el.querySelector(`#btnCamera-${type}`);
       if (camBtn && camInput) {
         camBtn.addEventListener('click', () => camInput.click());
         camInput.addEventListener('change', e => handleFiles(el, type, e));
       }
+
+      // ファイルボタン：通常のファイル選択
       const fileBtn = el.querySelector(`#btnFile-${type}`);
       if (fileBtn) fileBtn.addEventListener('click', () => fileInput.click());
       fileInput.addEventListener('change', e => handleFiles(el, type, e));
@@ -406,8 +421,10 @@ const SubmitView = (() => {
   }
 
   function _bindSplitToggle(el) {
+    // querySelectorAll で全パネルのトグルボタンにバインド
     el.querySelectorAll('#btnToggleSplit').forEach(btn => {
       btn.addEventListener('click', () => {
+        // クリックされたボタンの親パネルを特定
         const pnl    = btn.closest('#receiptFields') || btn.closest('[id^="panel-"]') || el;
         const single = pnl.querySelector('#singleLine');
         const split  = pnl.querySelector('#splitLines');
@@ -450,6 +467,7 @@ const SubmitView = (() => {
     };
     amtInp.addEventListener('input', () => { fmtAmt(); _calcSplitTotalIn(pnl); });
     container.appendChild(row);
+
     if (!pnl.querySelector('#btnAddSplitRow')) {
       const btn = document.createElement('button');
       btn.id = 'btnAddSplitRow';
@@ -460,7 +478,9 @@ const SubmitView = (() => {
     }
   }
 
-  function _calcSplitTotal(el) { _calcSplitTotalIn(_activePanel(el)); }
+  function _calcSplitTotal(el) {
+    _calcSplitTotalIn(_activePanel(el));
+  }
 
   function _calcSplitTotalIn(pnl) {
     const total = Array.from(pnl.querySelectorAll('.split-amount'))
@@ -475,6 +495,7 @@ const SubmitView = (() => {
     });
   }
 
+  // サブタイプごとのラベル・プレースホルダー設定
   const _TRANSIT_MODE_CONFIG = {
     '電車・バス': { fromLabel: '出発駅・バス停', toLabel: '到着駅・バス停', fromPh: '例：渋谷', toPh: '例：新宿' },
     '高速':       { fromLabel: '入口IC',         toLabel: '出口IC',         fromPh: '例：東名川崎IC', toPh: '例：東名横浜IC' },
@@ -490,6 +511,7 @@ const SubmitView = (() => {
     el.querySelector('#numTransitFare')?.addEventListener('input', calcTotal);
     el.querySelector('#chkRoundTrip')?.addEventListener('change', calcTotal);
 
+    // サブタイプ切り替え
     el.querySelectorAll('#transitModeGroup [data-mode]').forEach(btn => {
       btn.addEventListener('click', () => {
         _transitMode = btn.dataset.mode;
@@ -502,6 +524,7 @@ const SubmitView = (() => {
         el.querySelector('#lblTransitTo').textContent   = cfg.toLabel;
         el.querySelector('#txtFrom').placeholder = cfg.fromPh;
         el.querySelector('#txtTo').placeholder   = cfg.toPh;
+        // 高速：NEXCO リンクを表示、電車/バス：Yahoo 乗換を表示
         const isHighway = _transitMode === '高速';
         el.querySelector('#btnYahooTransit').classList.toggle('d-none', isHighway);
         el.querySelector('#btnNexco').classList.toggle('d-none', !isHighway);
@@ -509,20 +532,12 @@ const SubmitView = (() => {
       });
     });
 
-    // 高速：Yahoo地図カーナビにIC名を引き継いで開く
-    el.querySelector('#btnNexco')?.addEventListener('click', () => {
+    el.querySelector('#btnNexco')?.addEventListener('click', async () => {
       const from = el.querySelector('#txtFrom')?.value.trim();
       const to   = el.querySelector('#txtTo')?.value.trim();
-      const params = new URLSearchParams({ ...(from && { from }), ...(to && { to }) });
-      window.open(`https://map.yahoo.co.jp/route/car?${params}`, '_blank');
-    });
+      if (!from || !to) return App.showToast('入口ICと出口ICを入力してください', 'warning');
 
-    el.querySelector('#btnYahooTransit')?.addEventListener('click', async () => {
-      const from = el.querySelector('#txtFrom')?.value.trim();
-      const to   = el.querySelector('#txtTo')?.value.trim();
-      if (!from || !to) return App.showToast('出発地と到着地を入力してください', 'warning');
-
-      const btn = el.querySelector('#btnYahooTransit');
+      const btn = el.querySelector('#btnNexco');
       const resultDiv = el.querySelector('#transitResult');
       btn.disabled = true;
       btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>検索中...';
@@ -531,14 +546,68 @@ const SubmitView = (() => {
       try {
         const apiBase = window.APP_CONFIG?.apiBase || '';
         const resp = await fetch(
-          `${apiBase}/api/transit?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
+          `${apiBase}/api/highway?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
+        );
+        const data = await resp.json();
+
+        if (data.toll) {
+          const fareInput = el.querySelector('#numTransitFare');
+          if (fareInput) fareInput.value = data.toll.toLocaleString('ja-JP');
+          calcTotal();
+
+          if (resultDiv) {
+            const kmText = data.km ? `（${data.km}km）` : '';
+            el.querySelector('#transitResultRoute').textContent = `${from} → ${to}${kmText}`;
+            el.querySelector('#transitResultFare').textContent = `高速料金（ETC）: ¥${data.toll.toLocaleString()} ／片道`;
+            const link = el.querySelector('#transitResultLink');
+            if (link) {
+              link.href = data.resultUrl;
+              link.innerHTML = '<i class="bi bi-box-arrow-up-right me-1"></i>Yahoo地図で経路・料金を確認する';
+            }
+            resultDiv.classList.remove('d-none');
+          }
+          App.showToast(`高速料金 ¥${data.toll.toLocaleString()} を入力しました`, 'success');
+        } else {
+          App.showToast('料金を自動取得できませんでした。Yahoo地図を開きます', 'warning');
+          window.open(data.resultUrl, '_blank');
+        }
+      } catch (err) {
+        App.showToast('検索エラー: ' + err.message, 'danger');
+        window.open(
+          `https://map.yahoo.co.jp/route/car?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+          '_blank'
+        );
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-car-front-fill me-1"></i>Yahoo地図で経路・料金を確認';
+      }
+    });
+
+    el.querySelector('#btnYahooTransit')?.addEventListener('click', async () => {
+      const from = el.querySelector('#txtFrom')?.value.trim();
+      const to   = el.querySelector('#txtTo')?.value.trim();
+      const modeLabel = _TRANSIT_MODE_CONFIG[_transitMode]?.fromLabel || '出発地';
+      if (!from || !to) return App.showToast(`${modeLabel}と到着地を入力してください`, 'warning');
+
+      const btn = el.querySelector('#btnYahooTransit');
+      const resultDiv  = el.querySelector('#transitResult');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>検索中...';
+      resultDiv?.classList.add('d-none');
+
+      try {
+        const apiBase = window.APP_CONFIG?.apiBase || '';
+        const mode = 'train'; // 電車・バス統合モード（Yahoo乗換が最安値を自動選択）
+        const resp = await fetch(
+          `${apiBase}/api/transit?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&mode=${mode}`
         );
         const data = await resp.json();
 
         if (!resp.ok || !data.fare) {
           App.showToast(data.error || '運賃を取得できませんでした', 'warning');
+          const ticket = mode === 'bus' ? '' : '&ticket=ic';
           window.open(
-            `https://transit.yahoo.co.jp/search/result?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&type=2&expkind=1&userpass=1&ticket=ic`,
+            `https://transit.yahoo.co.jp/search/result?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&type=2&expkind=1&userpass=1${ticket}`,
             '_blank'
           );
           return;
@@ -552,8 +621,9 @@ const SubmitView = (() => {
           const routeText = data.lines?.length ? data.lines.join(' → ') : `${from} → ${to}`;
           const timeText  = data.minutes ? `（約${data.minutes}分）` : '';
           el.querySelector('#transitResultRoute').textContent = `${routeText}${timeText}`;
+          const fareLabel = '最安値（IC）';
           el.querySelector('#transitResultFare').textContent =
-            `最安値（IC）: ¥${data.fare.toLocaleString()} ／片道`;
+            `${fareLabel}: ¥${data.fare.toLocaleString()} ／片道`;
           const link = el.querySelector('#transitResultLink');
           if (link) link.href = data.resultUrl;
           resultDiv.classList.remove('d-none');
@@ -580,20 +650,47 @@ const SubmitView = (() => {
     el.querySelector('#numCarRate')?.addEventListener('input', calc);
   }
 
+  /** 為替レート取得（複数APIを順に試す） */
   async function _fetchExchangeRate(from, to) {
-    const f = from.toLowerCase(), t = to.toLowerCase();
+    const f = from.toLowerCase();
+    const t = to.toLowerCase();
+
+    // 1. CDN-backed currency API（CORS確実、無料）
     try {
-      const resp = await fetch(`https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/${f}.json`);
-      if (resp.ok) { const data = await resp.json(); const rate = data[f]?.[t]; if (rate) return rate; }
+      const resp = await fetch(
+        `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/${f}.json`
+      );
+      if (resp.ok) {
+        const data = await resp.json();
+        const rate = data[f]?.[t];
+        if (rate) return rate;
+      }
     } catch (_) {}
+
+    // 2. Frankfurter dev（旧 .app から移行済み）
     try {
-      const resp = await fetch(`https://api.frankfurter.dev/v1/latest?base=${from.toUpperCase()}&symbols=${to.toUpperCase()}`);
-      if (resp.ok) { const data = await resp.json(); const rate = data.rates?.[to.toUpperCase()]; if (rate) return rate; }
+      const resp = await fetch(
+        `https://api.frankfurter.dev/v1/latest?base=${from.toUpperCase()}&symbols=${to.toUpperCase()}`
+      );
+      if (resp.ok) {
+        const data = await resp.json();
+        const rate = data.rates?.[to.toUpperCase()];
+        if (rate) return rate;
+      }
     } catch (_) {}
+
+    // 3. ExchangeRate-API 無料枠
     try {
-      const resp = await fetch(`https://open.er-api.com/v6/latest/${from.toUpperCase()}`);
-      if (resp.ok) { const data = await resp.json(); const rate = data.rates?.[to.toUpperCase()]; if (rate) return rate; }
+      const resp = await fetch(
+        `https://open.er-api.com/v6/latest/${from.toUpperCase()}`
+      );
+      if (resp.ok) {
+        const data = await resp.json();
+        const rate = data.rates?.[to.toUpperCase()];
+        if (rate) return rate;
+      }
     } catch (_) {}
+
     return null;
   }
 
@@ -606,14 +703,28 @@ const SubmitView = (() => {
     try {
       const result = await Gemini.analyzeReceipt(files, _cats);
       console.log('[AI解析結果]', result);
-      _showReceiptFields(el);
-      let filled = 0;
-      if (result.date)    { el.querySelector('#inputDate').value    = result.date;    filled++; }
-      if (result.shop)    { el.querySelector('#inputPlace').value   = result.shop;    filled++; }
-      if (result.invoice) { el.querySelector('#inputInvoice').value = result.invoice; filled++; }
 
+      _showReceiptFields(el);
+
+      let filled = 0;
+      if (result.date) {
+        el.querySelector('#inputDate').value = result.date;
+        filled++;
+      }
+      if (result.shop) {
+        el.querySelector('#inputPlace').value = result.shop;
+        filled++;
+      }
+      if (result.invoice) {
+        el.querySelector('#inputInvoice').value = result.invoice;
+        filled++;
+      }
+
+      // 金額・勘定科目：items が複数なら分割、それ以外は単一行に統合
       const hasMultiItems = result.items && result.items.length > 1;
+
       if (hasMultiItems) {
+        // 2件以上の明細 → 分割モード
         const isSplit = !el.querySelector('#splitLines')?.classList.contains('d-none');
         if (!isSplit) el.querySelector('#btnToggleSplit')?.click();
         const container = el.querySelector('#splitLines');
@@ -628,25 +739,35 @@ const SubmitView = (() => {
               const amtInput = lastRow.querySelector('.split-amount');
               const catSel   = lastRow.querySelector('.split-cat');
               if (amtInput) amtInput.value = Number(item.amount || 0).toLocaleString('ja-JP');
-              if (catSel && item.category) [...catSel.options].forEach(o => o.selected = o.value === item.category);
+              if (catSel && item.category) {
+                [...catSel.options].forEach(o => o.selected = o.value === item.category);
+              }
             }
           });
           _calcSplitTotal(el);
         }
         filled++;
       } else {
-        const singleItem  = result.items?.[0];
-        const totalAmount = singleItem?.amount  ?? result.total_amount;
-        const singleCat   = singleItem?.category ?? result.category;
+        // 1件 or items なし → 単一行モード（items[0] を優先して拾う）
+        const singleItem   = result.items?.[0];
+        const totalAmount  = singleItem?.amount  ?? result.total_amount;
+        const singleCat    = singleItem?.category ?? result.category;
+
         if (result.fx_currency && result.fx_amount) {
+          // 外貨：複数APIを順に試して換算
           const rate = await _fetchExchangeRate(result.fx_currency, 'JPY');
           if (rate) {
             const jpy = Math.ceil(Number(result.fx_amount) * rate);
             const amtInput = el.querySelector('#inputAmount');
             if (amtInput) amtInput.value = jpy.toLocaleString('ja-JP');
+            // 備考欄に換算内訳を自動入力
             const noteInput = el.querySelector('#inputNote');
-            if (noteInput) noteInput.value = `${result.fx_currency} ${Number(result.fx_amount).toLocaleString()} × ${rate.toFixed(2)} = ¥${jpy.toLocaleString()}`;
-            App.showToast(`外貨換算: ${result.fx_currency} ${Number(result.fx_amount).toLocaleString()} × ${rate.toFixed(2)} = ¥${jpy.toLocaleString()}（確認してください）`, 'warning');
+            if (noteInput) noteInput.value =
+              `${result.fx_currency} ${Number(result.fx_amount).toLocaleString()} × ${rate.toFixed(2)} = ¥${jpy.toLocaleString()}`;
+            App.showToast(
+              `外貨換算: ${result.fx_currency} ${Number(result.fx_amount).toLocaleString()} × ${rate.toFixed(2)} = ¥${jpy.toLocaleString()}（確認してください）`,
+              'warning'
+            );
             filled++;
           } else {
             App.showToast(`外貨検出（${result.fx_currency} ${result.fx_amount}）。為替レートが取得できませんでした。手動で入力してください`, 'warning');
@@ -656,6 +777,7 @@ const SubmitView = (() => {
           if (amtInput) amtInput.value = Number(totalAmount).toLocaleString('ja-JP');
           filled++;
         }
+
         if (singleCat) {
           const sel = el.querySelector('#selCategory');
           if (sel) [...sel.options].forEach(o => o.selected = o.value === singleCat);
@@ -663,7 +785,9 @@ const SubmitView = (() => {
         }
       }
 
+      // 解析完了後、フォームを画面内にスクロール
       el.querySelector('#receiptFields')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
       if (filled === 0) {
         App.showToast('読み取れませんでした。内容を手動で入力してください', 'warning');
       } else {
@@ -688,21 +812,26 @@ const SubmitView = (() => {
 
   async function _handleSubmit(el) {
     const data = _collectFormData(el);
-    if (!data) return;
+    if (!data) return; // バリデーション失敗
 
+    // 2ヶ月以上前の日付チェック（電帳法対応）
     const dateVal = new Date(data.date);
     const twoMonthsAgo = new Date();
     twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
     if (dateVal < twoMonthsAgo) {
-      const ok = await App.confirm(`日付が2ヶ月以上前（${data.date}）です。\n電子帳簿保存法では受領後速やかな保存が求められます。\nこのまま申請しますか？`);
+      const ok = await App.confirm(
+        `日付が2ヶ月以上前（${data.date}）です。\n電子帳簿保存法では受領後速やかな保存が求められます。\nこのまま申請しますか？`
+      );
       if (!ok) return;
     }
 
     App.showLoading('申請中...');
     try {
+      // 1. サーバー時刻取得（電帳法対応）
       const timeResp = await fetch(`${window.APP_CONFIG?.apiBase || ''}/api/time`);
       const { jst: appliedAt } = await timeResp.json();
 
+      // 2. ファイルアップロード + SHA-256ハッシュ計算
       const activeFiles = _selectedFiles.filter(Boolean);
       const uploadedUrls = [..._existingUrls];
       const hashes = _existingHash ? [_existingHash] : [];
@@ -724,27 +853,42 @@ const SubmitView = (() => {
         if (warn) App.showToast(warn, 'warning');
       }
 
+      // 3. 重複チェック
       const expenses = await Sheets.readExpenses();
       const dup = _checkDuplicate(expenses, data, hashes);
       if (dup) {
-        App.hideLoading();
+        App.hideLoading(); // ダイアログ表示前にオーバーレイを隠す
         const ok = await App.confirm(`⚠️ ${dup}\nこのまま申請しますか？`);
         if (!ok) return;
-        App.showLoading('申請中...');
+        App.showLoading('申請中...'); // 続行する場合は再表示
       }
 
+      // 4. AI監査フラグ設定
       const aiAudit = dup ? `⛔ ${dup}` : '✅ OK';
+
+      // 5. 行データ組み立て
       const row = Sheets.expenseToRow({
-        appliedAt, name: userName, type: _currentType,
-        date: data.date, place: data.place, amount: data.amount,
-        category: data.category, note: data.note,
-        imageLinks: uploadedUrls.join(', '), confirmed: false, aiAudit,
-        payment: data.corpPay ? `会社払い（${data.paySource}）` : '',
-        invoice: data.invoice, aiAmount: 0, imageHash: hashes.join(','),
-        email: Auth.getUserEmail(), id: _editId || crypto.randomUUID(),
-        device: navigator.userAgent,
+        appliedAt,
+        name:       userName,
+        type:       _currentType,
+        date:       data.date,
+        place:      data.place,
+        amount:     data.amount,
+        category:   data.category,
+        note:       data.note,
+        imageLinks: uploadedUrls.join(', '),
+        confirmed:  false,
+        aiAudit,
+        payment:    data.corpPay ? `会社払い（${data.paySource}）` : '',
+        invoice:    data.invoice,
+        aiAmount:   0,
+        imageHash:  hashes.join(','),
+        email:      Auth.getUserEmail(),
+        id:         _editId || crypto.randomUUID(),
+        device:     navigator.userAgent,
       });
 
+      // 6. 編集の場合は修正履歴に旧データを保存してから更新
       if (_editId) {
         const rowNum = await Sheets.findRowById(_editId);
         if (rowNum > 0) {
@@ -769,6 +913,8 @@ const SubmitView = (() => {
   function _collectFormData(el) {
     const pnl  = _activePanel(el);
     const date = pnl.querySelector('#inputDate')?.value;
+
+    // place は交通費・自家用車では専用フィールドから生成
     let place = '';
     if (_currentType === '交通費') {
       const from = el.querySelector('#txtFrom')?.value.trim();
@@ -779,10 +925,12 @@ const SubmitView = (() => {
     } else {
       place = pnl.querySelector('#inputPlace')?.value?.trim() || '';
     }
+
     if (!date)  { App.showToast('日付を入力してください', 'danger'); return null; }
     if (!place) { App.showToast('支払先・経路を入力してください', 'danger'); return null; }
 
     let amount = 0, category = '', note = '';
+
     if (_currentType === '交通費') {
       const raw   = (el.querySelector('#numTransitFare')?.value || '').replace(/[^\d]/g, '');
       const fare  = Number(raw) || 0;
@@ -816,28 +964,42 @@ const SubmitView = (() => {
       if (amount === 0) { App.showToast('金額を入力してください', 'danger'); return null; }
     }
 
+    // 勘定科目は必須
     if (!category) { App.showToast('勘定科目を選択してください', 'danger'); return null; }
+
+    // 領収書なしは理由が必須、かつnoteに合算
     if (_currentType === '領収書なし') {
       const reason = pnl.querySelector('#txtReason')?.value?.trim();
       if (!reason) { App.showToast('理由・詳細を入力してください', 'danger'); return null; }
       note = [reason, note].filter(Boolean).join('\n');
     }
+
     const corpPay   = el.querySelector('#chkCorpPay')?.checked || false;
     const paySource = el.querySelector('#selPaySource')?.value || '';
     if (corpPay && !paySource) { App.showToast('会社払いの支払元を選択してください', 'danger'); return null; }
-    return { date, place, amount, category, note, invoice: pnl.querySelector('#inputInvoice')?.value?.trim() || '', corpPay, paySource };
+
+    return {
+      date, place, amount, category, note,
+      invoice:   pnl.querySelector('#inputInvoice')?.value?.trim() || '',
+      corpPay, paySource,
+    };
   }
 
   function _checkDuplicate(expenses, data, newHashes) {
     const userEmail = Auth.getUserEmail();
+    // 同一申請者の既存レコードと照合
     for (const e of expenses) {
-      if (e.id === _editId) continue;
-      if (e.date === data.date && e.place === data.place && e.amount === data.amount && e.email === userEmail)
+      if (e.id === _editId) continue; // 自分自身は除く
+      // 日付・支払先・金額の完全一致
+      if (e.date === data.date && e.place === data.place && e.amount === data.amount && e.email === userEmail) {
         return '同じ日付・支払先・金額の申請が既に存在します';
+      }
+      // 画像ハッシュの重複
       if (newHashes.length > 0 && e.imageHash) {
         const existingHashes = e.imageHash.split(',');
-        if (newHashes.some(h => existingHashes.includes(h)))
+        if (newHashes.some(h => existingHashes.includes(h))) {
           return '同じ証票画像が既に申請されています（重複の可能性）';
+        }
       }
     }
     return null;
@@ -871,13 +1033,21 @@ const SubmitView = (() => {
     const statusClass = e.confirmed ? 'badge-confirmed'
       : e.aiAudit?.startsWith('⛔') ? 'badge-duplicate' : 'badge-pending';
     const statusText = e.confirmed ? '承認済' : e.aiAudit?.startsWith('⛔') ? '要確認' : '未確認';
+
     const imageBtn = e.imageLinks
-      ? `<a href="${e.imageLinks.split(',')[0].trim()}" target="_blank" class="btn btn-sm btn-outline-primary"><i class="bi bi-image me-1"></i>証票</a>`
+      ? `<a href="${e.imageLinks.split(',')[0].trim()}" target="_blank" class="btn btn-sm btn-outline-primary">
+           <i class="bi bi-image me-1"></i>証票
+         </a>`
       : '';
     const editBtn = e.confirmed ? '' :
-      `<button class="btn btn-sm btn-outline-secondary btn-edit-history" data-id="${e.id}"><i class="bi bi-pencil"></i></button>`;
+      `<button class="btn btn-sm btn-outline-secondary btn-edit-history" data-id="${e.id}">
+         <i class="bi bi-pencil"></i>
+       </button>`;
     const delBtn = e.confirmed ? '' :
-      `<button class="btn btn-sm btn-outline-danger btn-del-history" data-id="${e.id}"><i class="bi bi-trash"></i></button>`;
+      `<button class="btn btn-sm btn-outline-danger btn-del-history" data-id="${e.id}">
+         <i class="bi bi-trash"></i>
+       </button>`;
+
     return `
     <div class="history-card">
       <div class="d-flex justify-content-between align-items-start">
@@ -901,17 +1071,22 @@ const SubmitView = (() => {
     _editId = id;
     _existingUrls = e.imageLinks ? e.imageLinks.split(',').map(s => s.trim()).filter(Boolean) : [];
     _existingHash = e.imageHash || '';
+
+    // タイプ切り替え（_currentType も更新される）
     const typeBtn = el.querySelector(`[data-type="${e.type}"]`);
     if (typeBtn) typeBtn.click();
 
     setTimeout(() => {
       if (e.type === '領収書') _showReceiptFields(el);
       const pnl = _activePanel(el);
+
+      // 共通フィールド（パネルにスコープ）
       const dateInput = pnl.querySelector('#inputDate');
       if (dateInput) dateInput.value = e.date;
       const noteInput = pnl.querySelector('#inputNote');
       if (noteInput) noteInput.value = e.note || '';
 
+      // タイプ別フィールド
       if (e.type === '領収書' || e.type === '領収書なし') {
         const placeInput = pnl.querySelector('#inputPlace');
         if (placeInput) placeInput.value = e.place || '';
@@ -953,12 +1128,19 @@ const SubmitView = (() => {
       const expenses = await Sheets.readExpenses();
       const e = expenses.find(x => x.id === id);
       if (!e) throw new Error('申請が見つかりません');
+
       const rowNum = await Sheets.findRowById(id);
       if (rowNum < 0) throw new Error('行が見つかりません');
+
+      // 削除一覧に移動
       const timeResp = await fetch(`${window.APP_CONFIG?.apiBase || ''}/api/time`);
       const { jst: deletedAt } = await timeResp.json();
       await Sheets.append('削除一覧', [deletedAt, Auth.getUserEmail(), ...Sheets.expenseToRow(e)]);
+
+      // 元の行を削除（sheetIdが必要なのでbatchUpdateを使う）
+      // 簡略化：行の内容を空白で上書きしてフィルタリングする方式
       await Sheets.update(`経費一覧!A${rowNum}:R${rowNum}`, [new Array(18).fill('')]);
+
       App.showToast('削除しました', 'success');
       _loadHistory(el);
     } catch (err) {
@@ -969,24 +1151,33 @@ const SubmitView = (() => {
   }
 
   function _cancelEdit(el) {
-    _editId = null; _existingUrls = []; _existingHash = '';
+    _editId = null;
+    _existingUrls = [];
+    _existingHash = '';
     _resetForm(el);
   }
 
   function _resetForm(el) {
-    _selectedFiles = []; _editId = null;
+    _selectedFiles = [];
+    _editId = null;
     el.querySelector('#editBanner')?.classList.add('d-none');
     const btn = el.querySelector('#btnSubmit');
     if (btn) { btn.innerHTML = '<i class="bi bi-send me-2"></i>申請する'; btn.className = 'btn btn-primary btn-lg rounded-3'; }
     TYPES.forEach(t => el.querySelector(`#previewArea-${t}`)?.replaceChildren());
     el.querySelector('#receiptFields')?.classList.add('d-none');
+    // 重複IDは querySelectorAll で全パネル一括リセット
     const today = new Date().toISOString().split('T')[0];
     el.querySelectorAll('#inputDate').forEach(i => { i.value = today; });
-    el.querySelectorAll('#inputPlace, #inputAmount, #inputNote, #inputInvoice').forEach(i => { i.value = ''; });
+    el.querySelectorAll('#inputPlace').forEach(i => { i.value = ''; });
+    el.querySelectorAll('#inputAmount').forEach(i => { i.value = ''; });
+    el.querySelectorAll('#inputNote').forEach(i => { i.value = ''; });
+    el.querySelectorAll('#inputInvoice').forEach(i => { i.value = ''; });
     el.querySelector('#chkCorpPay') && (el.querySelector('#chkCorpPay').checked = false);
     el.querySelector('#corpPayDetails')?.classList.add('d-none');
+    // 交通費・自家用車の専用フィールドもクリア
     el.querySelector('#txtFrom')     && (el.querySelector('#txtFrom').value = '');
     el.querySelector('#txtTo')       && (el.querySelector('#txtTo').value = '');
+    // 交通費サブタイプを電車・バスにリセット
     _transitMode = '電車・バス';
     el.querySelectorAll('#transitModeGroup [data-mode]').forEach(b => {
       b.classList.toggle('btn-secondary', b.dataset.mode === '電車・バス');
