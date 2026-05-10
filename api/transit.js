@@ -29,12 +29,12 @@ export default async function handler(req, res) {
   const printUrl =
     `https://transit.yahoo.co.jp/search/print?` +
     `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}` +
-    `&type=1&expkind=1&userpass=1&ws=3${ticketParam}&y=${ty}&m=${tm}&d=${td}&hh=9&m2=0`;
+    `&type=3&expkind=1&userpass=1&ws=3${ticketParam}&y=${ty}&m=${tm}&d=${td}&hh=9&m2=0`;
 
   const resultUrl =
     `https://transit.yahoo.co.jp/search/result?` +
     `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}` +
-    `&type=1&expkind=1&userpass=1${ticketParam}&y=${ry}&m=${rm}&d=${rd}&hh=${rh}&m2=${rn}`;
+    `&type=3&expkind=1&userpass=1${ticketParam}&y=${ry}&m=${rm}&d=${rd}&hh=${rh}&m2=${rn}`;
 
   try {
     const resp = await fetch(printUrl, {
