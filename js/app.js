@@ -181,8 +181,13 @@ const App = (() => {
 
 // アプリ起動
 document.addEventListener('DOMContentLoaded', () => {
+  // デモモード：Google ライブラリ不要のため即時起動
+  if (typeof Demo !== 'undefined' && Demo.isActive()) {
+    App.init();
+    return;
+  }
+
   // gapiとGISが読み込まれた後に初期化
-  // app.html では gapi.js がすでに読み込まれているため直接呼び出す
   const waitForLibs = setInterval(() => {
     if (typeof gapi !== 'undefined' && typeof google !== 'undefined') {
       clearInterval(waitForLibs);
