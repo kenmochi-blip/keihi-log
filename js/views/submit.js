@@ -17,7 +17,6 @@ const SubmitView = (() => {
 
   const TYPES = ['領収書', '領収書なし', '交通費', '自家用車'];
   const CAR_RATE_KEY = 'keihi_car_rate';
-  let _transitMode = '電車・バス'; // 電車・バス / 高速
 
   function render() {
     return `
@@ -113,32 +112,18 @@ const SubmitView = (() => {
   <!-- 交通費 -->
   <div id="panel-交通費" class="d-none">
     ${_dateField()}
-    <!-- サブタイプ選択 -->
-    <div class="btn-group btn-group-sm w-100 mb-2" id="transitModeGroup">
-      <button class="btn btn-secondary" data-mode="電車・バス">
-        <i class="bi bi-train-front-fill me-1"></i>電車・バス
-      </button>
-      <button class="btn btn-outline-secondary" data-mode="高速">
-        <i class="bi bi-car-front-fill me-1"></i>高速
-      </button>
-    </div>
     <div class="row g-2 mb-2">
       <div class="col-6">
-        <label class="form-label small fw-semibold" id="lblTransitFrom">出発駅・バス停</label>
+        <label class="form-label small fw-semibold">出発駅・停留所</label>
         <input type="text" class="form-control form-control-sm" id="txtFrom" placeholder="例：渋谷">
       </div>
       <div class="col-6">
-        <label class="form-label small fw-semibold" id="lblTransitTo">到着駅・バス停</label>
+        <label class="form-label small fw-semibold">到着駅・停留所</label>
         <input type="text" class="form-control form-control-sm" id="txtTo" placeholder="例：新宿">
       </div>
     </div>
-    <!-- 電車・バス用 -->
     <button class="btn btn-outline-secondary btn-sm w-100" id="btnYahooTransit">
-      <i class="bi bi-search me-1"></i>最安値を検索
-    </button>
-    <!-- 高速用 -->
-    <button class="btn btn-outline-secondary btn-sm w-100 d-none" id="btnNexco">
-      <i class="bi bi-car-front-fill me-1"></i>Yahoo地図で経路・料金を確認
+      <i class="bi bi-search me-1"></i>料金を検索して入力
     </button>
     <!-- 検索結果表示エリア -->
     <div id="transitResult" class="d-none mt-2 mb-3 p-2 rounded" style="background:#f0f7ff;border:1px solid #c8e0f8;font-size:0.82rem;">
@@ -495,12 +480,6 @@ const SubmitView = (() => {
     });
   }
 
-  // サブタイプごとのラベル・プレースホルダー設定
-  const _TRANSIT_MODE_CONFIG = {
-    '電車・バス': { fromLabel: '出発駅・バス停', toLabel: '到着駅・バス停', fromPh: '例：渋谷', toPh: '例：新宿' },
-    '高速':       { fromLabel: '入口IC',         toLabel: '出口IC',         fromPh: '例：東名川崎IC', toPh: '例：東名横浜IC' },
-  };
-
   function _bindTransitCalc(el) {
     const calcTotal = () => {
       const raw  = (el.querySelector('#numTransitFare')?.value || '').replace(/[^\d]/g, '');
@@ -511,83 +490,10 @@ const SubmitView = (() => {
     el.querySelector('#numTransitFare')?.addEventListener('input', calcTotal);
     el.querySelector('#chkRoundTrip')?.addEventListener('change', calcTotal);
 
-    // サブタイプ切り替え
-    el.querySelectorAll('#transitModeGroup [data-mode]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        _transitMode = btn.dataset.mode;
-        el.querySelectorAll('#transitModeGroup [data-mode]').forEach(b => {
-          b.classList.toggle('btn-secondary', b === btn);
-          b.classList.toggle('btn-outline-secondary', b !== btn);
-        });
-        const cfg = _TRANSIT_MODE_CONFIG[_transitMode];
-        el.querySelector('#lblTransitFrom').textContent = cfg.fromLabel;
-        el.querySelector('#lblTransitTo').textContent   = cfg.toLabel;
-        el.querySelector('#txtFrom').placeholder = cfg.fromPh;
-        el.querySelector('#txtTo').placeholder   = cfg.toPh;
-        // 高速：NEXCO リンクを表示、電車/バス：Yahoo 乗換を表示
-        const isHighway = _transitMode === '高速';
-        el.querySelector('#btnYahooTransit').classList.toggle('d-none', isHighway);
-        el.querySelector('#btnNexco').classList.toggle('d-none', !isHighway);
-        el.querySelector('#transitResult')?.classList.add('d-none');
-      });
-    });
-
-    el.querySelector('#btnNexco')?.addEventListener('click', async () => {
-      const from = el.querySelector('#txtFrom')?.value.trim();
-      const to   = el.querySelector('#txtTo')?.value.trim();
-      if (!from || !to) return App.showToast('入口ICと出口ICを入力してください', 'warning');
-
-      const btn = el.querySelector('#btnNexco');
-      const resultDiv = el.querySelector('#transitResult');
-      btn.disabled = true;
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>検索中...';
-      resultDiv?.classList.add('d-none');
-
-      try {
-        const apiBase = window.APP_CONFIG?.apiBase || '';
-        const resp = await fetch(
-          `${apiBase}/api/highway?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
-        );
-        const data = await resp.json();
-
-        if (data.toll) {
-          const fareInput = el.querySelector('#numTransitFare');
-          if (fareInput) fareInput.value = data.toll.toLocaleString('ja-JP');
-          calcTotal();
-
-          if (resultDiv) {
-            const kmText = data.km ? `（${data.km}km）` : '';
-            el.querySelector('#transitResultRoute').textContent = `${from} → ${to}${kmText}`;
-            el.querySelector('#transitResultFare').textContent = `高速料金（ETC）: ¥${data.toll.toLocaleString()} ／片道`;
-            const link = el.querySelector('#transitResultLink');
-            if (link) {
-              link.href = data.resultUrl;
-              link.innerHTML = '<i class="bi bi-box-arrow-up-right me-1"></i>Yahoo地図で経路・料金を確認する';
-            }
-            resultDiv.classList.remove('d-none');
-          }
-          App.showToast(`高速料金 ¥${data.toll.toLocaleString()} を入力しました`, 'success');
-        } else {
-          App.showToast('料金を自動取得できませんでした。Yahoo地図を開きます', 'warning');
-          window.open(data.resultUrl, '_blank');
-        }
-      } catch (err) {
-        App.showToast('検索エラー: ' + err.message, 'danger');
-        window.open(
-          `https://map.yahoo.co.jp/route/car?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
-          '_blank'
-        );
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-car-front-fill me-1"></i>Yahoo地図で経路・料金を確認';
-      }
-    });
-
     el.querySelector('#btnYahooTransit')?.addEventListener('click', async () => {
       const from = el.querySelector('#txtFrom')?.value.trim();
       const to   = el.querySelector('#txtTo')?.value.trim();
-      const modeLabel = _TRANSIT_MODE_CONFIG[_transitMode]?.fromLabel || '出発地';
-      if (!from || !to) return App.showToast(`${modeLabel}と到着地を入力してください`, 'warning');
+      if (!from || !to) return App.showToast('出発駅・停留所と到着駅・停留所を入力してください', 'warning');
 
       const btn = el.querySelector('#btnYahooTransit');
       const resultDiv  = el.querySelector('#transitResult');
@@ -597,18 +503,16 @@ const SubmitView = (() => {
 
       try {
         const apiBase = window.APP_CONFIG?.apiBase || '';
-        const mode = 'train'; // 電車・バス統合モード（Yahoo乗換が最安値を自動選択）
         const resp = await fetch(
-          `${apiBase}/api/transit?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&mode=${mode}`,
+          `${apiBase}/api/transit?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
           { cache: 'no-store' }
         );
         const data = await resp.json();
 
         if (!resp.ok || !data.fare) {
           App.showToast(data.error || '運賃を取得できませんでした', 'warning');
-          const ticket = mode === 'bus' ? '' : '&ticket=ic';
           window.open(
-            `https://transit.yahoo.co.jp/search/result?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&type=2&expkind=1&userpass=1${ticket}`,
+            `https://transit.yahoo.co.jp/search/result?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&type=1&expkind=1&userpass=1&ticket=ic`,
             '_blank'
           );
           return;
@@ -619,12 +523,12 @@ const SubmitView = (() => {
         calcTotal();
 
         if (resultDiv) {
-          const routeText = data.lines?.length ? data.lines.join(' → ') : `${from} → ${to}`;
+          const transfers = data.transfers?.length ? data.transfers.join('・') : null;
+          const routeText = transfers ? `${from} → ${transfers} → ${to}` : `${from} → ${to}`;
           const timeText  = data.minutes ? `（約${data.minutes}分）` : '';
           el.querySelector('#transitResultRoute').textContent = `${routeText}${timeText}`;
-          const fareLabel = '最安値（IC）';
           el.querySelector('#transitResultFare').textContent =
-            `${fareLabel}: ¥${data.fare.toLocaleString()} ／片道`;
+            `最安値（IC）: ¥${data.fare.toLocaleString()} ／片道`;
           const link = el.querySelector('#transitResultLink');
           if (link) link.href = data.resultUrl;
           resultDiv.classList.remove('d-none');
@@ -635,7 +539,7 @@ const SubmitView = (() => {
         App.showToast('検索エラー: ' + err.message, 'danger');
       } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-search me-1"></i>最安値を検索';
+        btn.innerHTML = '<i class="bi bi-search me-1"></i>料金を検索して入力';
       }
     });
   }
@@ -1178,19 +1082,6 @@ const SubmitView = (() => {
     // 交通費・自家用車の専用フィールドもクリア
     el.querySelector('#txtFrom')     && (el.querySelector('#txtFrom').value = '');
     el.querySelector('#txtTo')       && (el.querySelector('#txtTo').value = '');
-    // 交通費サブタイプを電車・バスにリセット
-    _transitMode = '電車・バス';
-    el.querySelectorAll('#transitModeGroup [data-mode]').forEach(b => {
-      b.classList.toggle('btn-secondary', b.dataset.mode === '電車・バス');
-      b.classList.toggle('btn-outline-secondary', b.dataset.mode !== '電車・バス');
-    });
-    const cfg0 = _TRANSIT_MODE_CONFIG['電車・バス'];
-    el.querySelector('#lblTransitFrom') && (el.querySelector('#lblTransitFrom').textContent = cfg0.fromLabel);
-    el.querySelector('#lblTransitTo')   && (el.querySelector('#lblTransitTo').textContent   = cfg0.toLabel);
-    el.querySelector('#txtFrom')?.setAttribute('placeholder', cfg0.fromPh);
-    el.querySelector('#txtTo')?.setAttribute('placeholder', cfg0.toPh);
-    el.querySelector('#btnYahooTransit')?.classList.remove('d-none');
-    el.querySelector('#btnNexco')?.classList.add('d-none');
     el.querySelector('#txtCarRoute') && (el.querySelector('#txtCarRoute').value = '');
     el.querySelector('#numTransitFare') && (el.querySelector('#numTransitFare').value = '');
     el.querySelector('#numCarKm')       && (el.querySelector('#numCarKm').value = '');
