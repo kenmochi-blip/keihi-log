@@ -137,10 +137,9 @@ const SubmitView = (() => {
       <i class="bi bi-search me-1"></i>最安値を検索
     </button>
     <!-- 高速用 -->
-    <a href="https://www.driveplaza.com/dp/SearchTop" target="_blank"
-       class="btn btn-outline-secondary btn-sm w-100 d-none" id="btnNexco">
-      <i class="bi bi-box-arrow-up-right me-1"></i>NEXCO料金表で料金を確認
-    </a>
+    <button class="btn btn-outline-secondary btn-sm w-100 d-none" id="btnNexco">
+      <i class="bi bi-car-front-fill me-1"></i>Yahoo地図で経路・料金を確認
+    </button>
     <!-- 検索結果表示エリア -->
     <div id="transitResult" class="d-none mt-2 mb-3 p-2 rounded" style="background:#f0f7ff;border:1px solid #c8e0f8;font-size:0.82rem;">
       <div id="transitResultRoute" class="fw-semibold mb-1"></div>
@@ -238,7 +237,6 @@ const SubmitView = (() => {
 </div>`;
   }
 
-  // ヘルパーHTML生成関数
   function _dateField() {
     const today = new Date().toISOString().split('T')[0];
     return `<div class="mb-2">
@@ -285,7 +283,6 @@ const SubmitView = (() => {
   }
 
   async function bindEvents(el) {
-    // マスタデータ読み込み
     try {
       const master = await App.getMaster();
       _cats       = master.categories;
@@ -305,7 +302,6 @@ const SubmitView = (() => {
     el.querySelector('#btnCancelEdit')?.addEventListener('click', () => _cancelEdit(el));
     _loadHistory(el);
 
-    // 一覧表の鉛筆ボタンからのジャンプ処理
     if (_pendingEdit) {
       const { id, expenses } = _pendingEdit;
       _pendingEdit = null;
@@ -313,11 +309,8 @@ const SubmitView = (() => {
     }
   }
 
-  /** アクティブなパネルのルート要素を返す（複数パネルでIDが重複するため必須） */
   function _activePanel(el) {
-    if (_currentType === '領収書') {
-      return el.querySelector('#receiptFields') || el;
-    }
+    if (_currentType === '領収書') return el.querySelector('#receiptFields') || el;
     return el.querySelector(`[id="panel-${_currentType}"]`) || el;
   }
 
@@ -377,14 +370,12 @@ const SubmitView = (() => {
     TYPES.forEach(type => {
       const fileInput = el.querySelector(`#fileInput-${type}`);
       if (!fileInput) return;
-
       const camInput = el.querySelector(`#camInput-${type}`);
       const camBtn   = el.querySelector(`#btnCamera-${type}`);
       if (camBtn && camInput) {
         camBtn.addEventListener('click', () => camInput.click());
         camInput.addEventListener('change', e => handleFiles(el, type, e));
       }
-
       const fileBtn = el.querySelector(`#btnFile-${type}`);
       if (fileBtn) fileBtn.addEventListener('click', () => fileInput.click());
       fileInput.addEventListener('change', e => handleFiles(el, type, e));
@@ -459,7 +450,6 @@ const SubmitView = (() => {
     };
     amtInp.addEventListener('input', () => { fmtAmt(); _calcSplitTotalIn(pnl); });
     container.appendChild(row);
-
     if (!pnl.querySelector('#btnAddSplitRow')) {
       const btn = document.createElement('button');
       btn.id = 'btnAddSplitRow';
@@ -470,9 +460,7 @@ const SubmitView = (() => {
     }
   }
 
-  function _calcSplitTotal(el) {
-    _calcSplitTotalIn(_activePanel(el));
-  }
+  function _calcSplitTotal(el) { _calcSplitTotalIn(_activePanel(el)); }
 
   function _calcSplitTotalIn(pnl) {
     const total = Array.from(pnl.querySelectorAll('.split-amount'))
@@ -487,7 +475,6 @@ const SubmitView = (() => {
     });
   }
 
-  // サブタイプごとのラベル・プレースホルダー設定
   const _TRANSIT_MODE_CONFIG = {
     '電車・バス': { fromLabel: '出発駅・バス停', toLabel: '到着駅・バス停', fromPh: '例：渋谷', toPh: '例：新宿' },
     '高速':       { fromLabel: '入口IC',         toLabel: '出口IC',         fromPh: '例：東名川崎IC', toPh: '例：東名横浜IC' },
@@ -503,7 +490,6 @@ const SubmitView = (() => {
     el.querySelector('#numTransitFare')?.addEventListener('input', calcTotal);
     el.querySelector('#chkRoundTrip')?.addEventListener('change', calcTotal);
 
-    // サブタイプ切り替え
     el.querySelectorAll('#transitModeGroup [data-mode]').forEach(btn => {
       btn.addEventListener('click', () => {
         _transitMode = btn.dataset.mode;
@@ -521,6 +507,14 @@ const SubmitView = (() => {
         el.querySelector('#btnNexco').classList.toggle('d-none', !isHighway);
         el.querySelector('#transitResult')?.classList.add('d-none');
       });
+    });
+
+    // 高速：Yahoo地図カーナビにIC名を引き継いで開く
+    el.querySelector('#btnNexco')?.addEventListener('click', () => {
+      const from = el.querySelector('#txtFrom')?.value.trim();
+      const to   = el.querySelector('#txtTo')?.value.trim();
+      const params = new URLSearchParams({ ...(from && { from }), ...(to && { to }) });
+      window.open(`https://map.yahoo.co.jp/route/car?${params}`, '_blank');
     });
 
     el.querySelector('#btnYahooTransit')?.addEventListener('click', async () => {
@@ -587,42 +581,19 @@ const SubmitView = (() => {
   }
 
   async function _fetchExchangeRate(from, to) {
-    const f = from.toLowerCase();
-    const t = to.toLowerCase();
-
+    const f = from.toLowerCase(), t = to.toLowerCase();
     try {
-      const resp = await fetch(
-        `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/${f}.json`
-      );
-      if (resp.ok) {
-        const data = await resp.json();
-        const rate = data[f]?.[t];
-        if (rate) return rate;
-      }
+      const resp = await fetch(`https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/${f}.json`);
+      if (resp.ok) { const data = await resp.json(); const rate = data[f]?.[t]; if (rate) return rate; }
     } catch (_) {}
-
     try {
-      const resp = await fetch(
-        `https://api.frankfurter.dev/v1/latest?base=${from.toUpperCase()}&symbols=${to.toUpperCase()}`
-      );
-      if (resp.ok) {
-        const data = await resp.json();
-        const rate = data.rates?.[to.toUpperCase()];
-        if (rate) return rate;
-      }
+      const resp = await fetch(`https://api.frankfurter.dev/v1/latest?base=${from.toUpperCase()}&symbols=${to.toUpperCase()}`);
+      if (resp.ok) { const data = await resp.json(); const rate = data.rates?.[to.toUpperCase()]; if (rate) return rate; }
     } catch (_) {}
-
     try {
-      const resp = await fetch(
-        `https://open.er-api.com/v6/latest/${from.toUpperCase()}`
-      );
-      if (resp.ok) {
-        const data = await resp.json();
-        const rate = data.rates?.[to.toUpperCase()];
-        if (rate) return rate;
-      }
+      const resp = await fetch(`https://open.er-api.com/v6/latest/${from.toUpperCase()}`);
+      if (resp.ok) { const data = await resp.json(); const rate = data.rates?.[to.toUpperCase()]; if (rate) return rate; }
     } catch (_) {}
-
     return null;
   }
 
@@ -635,16 +606,13 @@ const SubmitView = (() => {
     try {
       const result = await Gemini.analyzeReceipt(files, _cats);
       console.log('[AI解析結果]', result);
-
       _showReceiptFields(el);
-
       let filled = 0;
-      if (result.date) { el.querySelector('#inputDate').value = result.date; filled++; }
-      if (result.shop) { el.querySelector('#inputPlace').value = result.shop; filled++; }
+      if (result.date)    { el.querySelector('#inputDate').value    = result.date;    filled++; }
+      if (result.shop)    { el.querySelector('#inputPlace').value   = result.shop;    filled++; }
       if (result.invoice) { el.querySelector('#inputInvoice').value = result.invoice; filled++; }
 
       const hasMultiItems = result.items && result.items.length > 1;
-
       if (hasMultiItems) {
         const isSplit = !el.querySelector('#splitLines')?.classList.contains('d-none');
         if (!isSplit) el.querySelector('#btnToggleSplit')?.click();
@@ -660,9 +628,7 @@ const SubmitView = (() => {
               const amtInput = lastRow.querySelector('.split-amount');
               const catSel   = lastRow.querySelector('.split-cat');
               if (amtInput) amtInput.value = Number(item.amount || 0).toLocaleString('ja-JP');
-              if (catSel && item.category) {
-                [...catSel.options].forEach(o => o.selected = o.value === item.category);
-              }
+              if (catSel && item.category) [...catSel.options].forEach(o => o.selected = o.value === item.category);
             }
           });
           _calcSplitTotal(el);
@@ -672,7 +638,6 @@ const SubmitView = (() => {
         const singleItem  = result.items?.[0];
         const totalAmount = singleItem?.amount  ?? result.total_amount;
         const singleCat   = singleItem?.category ?? result.category;
-
         if (result.fx_currency && result.fx_amount) {
           const rate = await _fetchExchangeRate(result.fx_currency, 'JPY');
           if (rate) {
@@ -680,12 +645,8 @@ const SubmitView = (() => {
             const amtInput = el.querySelector('#inputAmount');
             if (amtInput) amtInput.value = jpy.toLocaleString('ja-JP');
             const noteInput = el.querySelector('#inputNote');
-            if (noteInput) noteInput.value =
-              `${result.fx_currency} ${Number(result.fx_amount).toLocaleString()} × ${rate.toFixed(2)} = ¥${jpy.toLocaleString()}`;
-            App.showToast(
-              `外貨換算: ${result.fx_currency} ${Number(result.fx_amount).toLocaleString()} × ${rate.toFixed(2)} = ¥${jpy.toLocaleString()}（確認してください）`,
-              'warning'
-            );
+            if (noteInput) noteInput.value = `${result.fx_currency} ${Number(result.fx_amount).toLocaleString()} × ${rate.toFixed(2)} = ¥${jpy.toLocaleString()}`;
+            App.showToast(`外貨換算: ${result.fx_currency} ${Number(result.fx_amount).toLocaleString()} × ${rate.toFixed(2)} = ¥${jpy.toLocaleString()}（確認してください）`, 'warning');
             filled++;
           } else {
             App.showToast(`外貨検出（${result.fx_currency} ${result.fx_amount}）。為替レートが取得できませんでした。手動で入力してください`, 'warning');
@@ -695,7 +656,6 @@ const SubmitView = (() => {
           if (amtInput) amtInput.value = Number(totalAmount).toLocaleString('ja-JP');
           filled++;
         }
-
         if (singleCat) {
           const sel = el.querySelector('#selCategory');
           if (sel) [...sel.options].forEach(o => o.selected = o.value === singleCat);
@@ -704,7 +664,6 @@ const SubmitView = (() => {
       }
 
       el.querySelector('#receiptFields')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-
       if (filled === 0) {
         App.showToast('読み取れませんでした。内容を手動で入力してください', 'warning');
       } else {
@@ -735,9 +694,7 @@ const SubmitView = (() => {
     const twoMonthsAgo = new Date();
     twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
     if (dateVal < twoMonthsAgo) {
-      const ok = await App.confirm(
-        `日付が2ヶ月以上前（${data.date}）です。\n電子帳簿保存法では受領後速やかな保存が求められます。\nこのまま申請しますか？`
-      );
+      const ok = await App.confirm(`日付が2ヶ月以上前（${data.date}）です。\n電子帳簿保存法では受領後速やかな保存が求められます。\nこのまま申請しますか？`);
       if (!ok) return;
     }
 
@@ -777,26 +734,15 @@ const SubmitView = (() => {
       }
 
       const aiAudit = dup ? `⛔ ${dup}` : '✅ OK';
-
       const row = Sheets.expenseToRow({
-        appliedAt,
-        name:       userName,
-        type:       _currentType,
-        date:       data.date,
-        place:      data.place,
-        amount:     data.amount,
-        category:   data.category,
-        note:       data.note,
-        imageLinks: uploadedUrls.join(', '),
-        confirmed:  false,
-        aiAudit,
-        payment:    data.corpPay ? `会社払い（${data.paySource}）` : '',
-        invoice:    data.invoice,
-        aiAmount:   0,
-        imageHash:  hashes.join(','),
-        email:      Auth.getUserEmail(),
-        id:         _editId || crypto.randomUUID(),
-        device:     navigator.userAgent,
+        appliedAt, name: userName, type: _currentType,
+        date: data.date, place: data.place, amount: data.amount,
+        category: data.category, note: data.note,
+        imageLinks: uploadedUrls.join(', '), confirmed: false, aiAudit,
+        payment: data.corpPay ? `会社払い（${data.paySource}）` : '',
+        invoice: data.invoice, aiAmount: 0, imageHash: hashes.join(','),
+        email: Auth.getUserEmail(), id: _editId || crypto.randomUUID(),
+        device: navigator.userAgent,
       });
 
       if (_editId) {
@@ -823,7 +769,6 @@ const SubmitView = (() => {
   function _collectFormData(el) {
     const pnl  = _activePanel(el);
     const date = pnl.querySelector('#inputDate')?.value;
-
     let place = '';
     if (_currentType === '交通費') {
       const from = el.querySelector('#txtFrom')?.value.trim();
@@ -834,12 +779,10 @@ const SubmitView = (() => {
     } else {
       place = pnl.querySelector('#inputPlace')?.value?.trim() || '';
     }
-
     if (!date)  { App.showToast('日付を入力してください', 'danger'); return null; }
     if (!place) { App.showToast('支払先・経路を入力してください', 'danger'); return null; }
 
     let amount = 0, category = '', note = '';
-
     if (_currentType === '交通費') {
       const raw   = (el.querySelector('#numTransitFare')?.value || '').replace(/[^\d]/g, '');
       const fare  = Number(raw) || 0;
@@ -874,36 +817,27 @@ const SubmitView = (() => {
     }
 
     if (!category) { App.showToast('勘定科目を選択してください', 'danger'); return null; }
-
     if (_currentType === '領収書なし') {
       const reason = pnl.querySelector('#txtReason')?.value?.trim();
       if (!reason) { App.showToast('理由・詳細を入力してください', 'danger'); return null; }
       note = [reason, note].filter(Boolean).join('\n');
     }
-
     const corpPay   = el.querySelector('#chkCorpPay')?.checked || false;
     const paySource = el.querySelector('#selPaySource')?.value || '';
     if (corpPay && !paySource) { App.showToast('会社払いの支払元を選択してください', 'danger'); return null; }
-
-    return {
-      date, place, amount, category, note,
-      invoice:   pnl.querySelector('#inputInvoice')?.value?.trim() || '',
-      corpPay, paySource,
-    };
+    return { date, place, amount, category, note, invoice: pnl.querySelector('#inputInvoice')?.value?.trim() || '', corpPay, paySource };
   }
 
   function _checkDuplicate(expenses, data, newHashes) {
     const userEmail = Auth.getUserEmail();
     for (const e of expenses) {
       if (e.id === _editId) continue;
-      if (e.date === data.date && e.place === data.place && e.amount === data.amount && e.email === userEmail) {
+      if (e.date === data.date && e.place === data.place && e.amount === data.amount && e.email === userEmail)
         return '同じ日付・支払先・金額の申請が既に存在します';
-      }
       if (newHashes.length > 0 && e.imageHash) {
         const existingHashes = e.imageHash.split(',');
-        if (newHashes.some(h => existingHashes.includes(h))) {
+        if (newHashes.some(h => existingHashes.includes(h)))
           return '同じ証票画像が既に申請されています（重複の可能性）';
-        }
       }
     }
     return null;
@@ -937,21 +871,13 @@ const SubmitView = (() => {
     const statusClass = e.confirmed ? 'badge-confirmed'
       : e.aiAudit?.startsWith('⛔') ? 'badge-duplicate' : 'badge-pending';
     const statusText = e.confirmed ? '承認済' : e.aiAudit?.startsWith('⛔') ? '要確認' : '未確認';
-
     const imageBtn = e.imageLinks
-      ? `<a href="${e.imageLinks.split(',')[0].trim()}" target="_blank" class="btn btn-sm btn-outline-primary">
-           <i class="bi bi-image me-1"></i>証票
-         </a>`
+      ? `<a href="${e.imageLinks.split(',')[0].trim()}" target="_blank" class="btn btn-sm btn-outline-primary"><i class="bi bi-image me-1"></i>証票</a>`
       : '';
     const editBtn = e.confirmed ? '' :
-      `<button class="btn btn-sm btn-outline-secondary btn-edit-history" data-id="${e.id}">
-         <i class="bi bi-pencil"></i>
-       </button>`;
+      `<button class="btn btn-sm btn-outline-secondary btn-edit-history" data-id="${e.id}"><i class="bi bi-pencil"></i></button>`;
     const delBtn = e.confirmed ? '' :
-      `<button class="btn btn-sm btn-outline-danger btn-del-history" data-id="${e.id}">
-         <i class="bi bi-trash"></i>
-       </button>`;
-
+      `<button class="btn btn-sm btn-outline-danger btn-del-history" data-id="${e.id}"><i class="bi bi-trash"></i></button>`;
     return `
     <div class="history-card">
       <div class="d-flex justify-content-between align-items-start">
@@ -975,14 +901,12 @@ const SubmitView = (() => {
     _editId = id;
     _existingUrls = e.imageLinks ? e.imageLinks.split(',').map(s => s.trim()).filter(Boolean) : [];
     _existingHash = e.imageHash || '';
-
     const typeBtn = el.querySelector(`[data-type="${e.type}"]`);
     if (typeBtn) typeBtn.click();
 
     setTimeout(() => {
       if (e.type === '領収書') _showReceiptFields(el);
       const pnl = _activePanel(el);
-
       const dateInput = pnl.querySelector('#inputDate');
       if (dateInput) dateInput.value = e.date;
       const noteInput = pnl.querySelector('#inputNote');
@@ -994,7 +918,7 @@ const SubmitView = (() => {
         const invInput = pnl.querySelector('#inputInvoice');
         if (invInput) invInput.value = e.invoice || '';
         const amtInput = pnl.querySelector('#inputAmount');
-        if (amtInput) amtInput.value = e.amount;
+        if (amtInput) amtInput.value = Number(e.amount).toLocaleString('ja-JP');
         const sel = pnl.querySelector('#selCategory');
         if (sel) [...sel.options].forEach(o => o.selected = o.value === e.category);
       } else if (e.type === '交通費') {
@@ -1003,6 +927,8 @@ const SubmitView = (() => {
         const toInput   = el.querySelector('#txtTo');
         if (fromInput) fromInput.value = parts[0] || e.place;
         if (toInput)   toInput.value   = parts[1] || '';
+        const fareInput = el.querySelector('#numTransitFare');
+        if (fareInput) fareInput.value = Number(e.amount).toLocaleString('ja-JP');
         const selT = el.querySelector('#selCatTransit');
         if (selT) [...selT.options].forEach(o => o.selected = o.value === e.category);
       } else if (e.type === '自家用車') {
@@ -1027,15 +953,12 @@ const SubmitView = (() => {
       const expenses = await Sheets.readExpenses();
       const e = expenses.find(x => x.id === id);
       if (!e) throw new Error('申請が見つかりません');
-
       const rowNum = await Sheets.findRowById(id);
       if (rowNum < 0) throw new Error('行が見つかりません');
-
       const timeResp = await fetch(`${window.APP_CONFIG?.apiBase || ''}/api/time`);
       const { jst: deletedAt } = await timeResp.json();
       await Sheets.append('削除一覧', [deletedAt, Auth.getUserEmail(), ...Sheets.expenseToRow(e)]);
       await Sheets.update(`経費一覧!A${rowNum}:R${rowNum}`, [new Array(18).fill('')]);
-
       App.showToast('削除しました', 'success');
       _loadHistory(el);
     } catch (err) {
@@ -1046,15 +969,12 @@ const SubmitView = (() => {
   }
 
   function _cancelEdit(el) {
-    _editId = null;
-    _existingUrls = [];
-    _existingHash = '';
+    _editId = null; _existingUrls = []; _existingHash = '';
     _resetForm(el);
   }
 
   function _resetForm(el) {
-    _selectedFiles = [];
-    _editId = null;
+    _selectedFiles = []; _editId = null;
     el.querySelector('#editBanner')?.classList.add('d-none');
     const btn = el.querySelector('#btnSubmit');
     if (btn) { btn.innerHTML = '<i class="bi bi-send me-2"></i>申請する'; btn.className = 'btn btn-primary btn-lg rounded-3'; }
@@ -1062,15 +982,11 @@ const SubmitView = (() => {
     el.querySelector('#receiptFields')?.classList.add('d-none');
     const today = new Date().toISOString().split('T')[0];
     el.querySelectorAll('#inputDate').forEach(i => { i.value = today; });
-    el.querySelectorAll('#inputPlace').forEach(i => { i.value = ''; });
-    el.querySelectorAll('#inputAmount').forEach(i => { i.value = ''; });
-    el.querySelectorAll('#inputNote').forEach(i => { i.value = ''; });
-    el.querySelectorAll('#inputInvoice').forEach(i => { i.value = ''; });
+    el.querySelectorAll('#inputPlace, #inputAmount, #inputNote, #inputInvoice').forEach(i => { i.value = ''; });
     el.querySelector('#chkCorpPay') && (el.querySelector('#chkCorpPay').checked = false);
     el.querySelector('#corpPayDetails')?.classList.add('d-none');
     el.querySelector('#txtFrom')     && (el.querySelector('#txtFrom').value = '');
     el.querySelector('#txtTo')       && (el.querySelector('#txtTo').value = '');
-    // 交通費サブタイプを電車・バスにリセット
     _transitMode = '電車・バス';
     el.querySelectorAll('#transitModeGroup [data-mode]').forEach(b => {
       b.classList.toggle('btn-secondary', b.dataset.mode === '電車・バス');

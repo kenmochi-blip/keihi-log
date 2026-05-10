@@ -11,15 +11,13 @@ export default async function handler(req, res) {
   // 電車・バス共通で IC 優先（Yahoo乗換が最安値を自動選択）
   const ticketParam = '&ticket=ic';
 
-  // Vercel は UTC 動作のため JST (UTC+9) に変換して Yahoo 乗換に渡す
+  // 出発時刻は昼12時固定（JST時刻計算の複雑さを回避）
   // Yahoo乗換のパラメータ: y=年 m=月 d=日 hh=時 m2=分
   const jst = new Date(Date.now() + 9 * 60 * 60 * 1000);
   const y  = jst.getUTCFullYear();
-  const mo = jst.getUTCMonth() + 1; // 0始まりなので+1
+  const mo = jst.getUTCMonth() + 1;
   const d  = jst.getUTCDate();
-  const hh = jst.getUTCHours();
-  const mn = jst.getUTCMinutes();
-  const timeParams = `&y=${y}&m=${mo}&d=${d}&hh=${hh}&m2=${mn}`;
+  const timeParams = `&y=${y}&m=${mo}&d=${d}&hh=12&m2=0`;
 
   const printUrl =
     `https://transit.yahoo.co.jp/search/print?` +
@@ -73,37 +71,33 @@ function _parse(html) {
     .replace(/\s+/g, ' ');
 
   // --- IC運賃の抽出 ---
-  // Yahoo乗換の印刷ページは "IC 230円" や "IC　230円" のような形式
   let fare = null;
   const farePatterns = [
-    /IC\s*[：:]?\s*([\d,]+)\s*円/,       // "IC 230円" / "IC: 230円"
-    /合計\s*IC\s*([\d,]+)\s*円/,         // "合計 IC 230円"
-    /IC優先\s*([\d,]+)\s*円/,            // "IC優先 230円"
-    /運賃[\s\S]{0,30}?([\d,]+)\s*円/,   // "運賃 ... 230円"
-    /料金[\s\S]{0,30}?([\d,]+)\s*円/,   // "料金 ... 230円"
+    /IC\s*[：:]?\s*([\d,]+)\s*円/,
+    /合計\s*IC\s*([\d,]+)\s*円/,
+    /IC優先\s*([\d,]+)\s*円/,
+    /運賃[\s\S]{0,30}?([\d,]+)\s*円/,
+    /料金[\s\S]{0,30}?([\d,]+)\s*円/,
   ];
   for (const p of farePatterns) {
     const m = text.match(p);
     if (m) {
       fare = parseInt(m[1].replace(/,/g, ''), 10);
-      if (fare > 0 && fare < 100000) break; // 妥当な範囲にある場合のみ採用
+      if (fare > 0 && fare < 100000) break;
       fare = null;
     }
   }
-  // 最終フォールバック：最初に出てくる円表記（ただし1件目が時刻などでないか検証）
   if (!fare) {
     const all = [...text.matchAll(/([\d,]+)\s*円/g)];
     for (const m of all) {
       const v = parseInt(m[1].replace(/,/g, ''), 10);
-      if (v >= 100 && v <= 50000) { fare = v; break; } // 100円〜50,000円を妥当な運賃と判断
+      if (v >= 100 && v <= 50000) { fare = v; break; }
     }
   }
 
-  // --- 所要時間 ---
   const timeMatch = text.match(/(\d+)\s*分/);
   const minutes = timeMatch ? parseInt(timeMatch[1], 10) : null;
 
-  // --- 路線名 ---
   const lineSet = new Set();
   const lineRe = /([^\s　、。「」（）\d]{2,10}(?:線|鉄道|地下鉄|モノレール|ライナー|エクスプレス|バス))/g;
   for (const m of text.matchAll(lineRe)) {
