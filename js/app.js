@@ -181,6 +181,11 @@ const App = (() => {
 
 // アプリ起動
 document.addEventListener('DOMContentLoaded', () => {
+  // ?demo パラメータで直接デモ起動（/demo リダイレクト経由）
+  if (new URLSearchParams(location.search).has('demo')) {
+    Demo.enable();
+  }
+
   // デモモード：Googleスクリプトを読み込まず即時起動（ポップアップブロック回避）
   if (typeof Demo !== 'undefined' && Demo.isActive()) {
     App.init();
