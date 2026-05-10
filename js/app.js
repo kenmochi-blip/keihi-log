@@ -10,6 +10,15 @@ const App = (() => {
   let _confirmResolve = null;
 
   async function init() {
+    // デモモード：認証・ライセンス・シート確認をスキップ
+    if (typeof Demo !== 'undefined' && Demo.isActive()) {
+      _masterCache = Demo.MASTER;
+      _isAdmin = true;
+      _setupUI('submit');
+      showToast('デモモード：サンプルデータで動作中', 'info');
+      return;
+    }
+
     // 認証トークン確認（未認証ならログイン画面へ）
     try {
       await Auth.getToken();

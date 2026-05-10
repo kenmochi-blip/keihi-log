@@ -25,6 +25,7 @@ const Sheets = (() => {
 
   /** 行を末尾に追記する。 */
   async function append(sheetName, values, ssId) {
+    if (typeof Demo !== 'undefined' && Demo.isActive()) return { updates: { updatedRows: 1 } };
     ssId = ssId || _ssId();
     const range = `${sheetName}!A1`;
     const resp = await Auth.authFetch(
@@ -41,6 +42,7 @@ const Sheets = (() => {
 
   /** 指定セル範囲を上書きする。 */
   async function update(range, values, ssId) {
+    if (typeof Demo !== 'undefined' && Demo.isActive()) return {};
     ssId = ssId || _ssId();
     const resp = await Auth.authFetch(
       `${BASE}/${ssId}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`,
@@ -85,6 +87,7 @@ const Sheets = (() => {
 
   /** 経費一覧シートから全行を読み込んでオブジェクト配列に変換する。 */
   async function readExpenses(ssId) {
+    if (typeof Demo !== 'undefined' && Demo.isActive()) return [...Demo.EXPENSES];
     const rows = await read('経費一覧!A2:R', ssId);
     return rows.map(_rowToExpense).filter(e => e.id); // IDがない行はスキップ
   }
@@ -157,6 +160,10 @@ const Sheets = (() => {
    * 見つからない場合は -1 を返す。
    */
   async function findRowById(id, ssId) {
+    if (typeof Demo !== 'undefined' && Demo.isActive()) {
+      const idx = Demo.EXPENSES.findIndex(e => e.id === id);
+      return idx === -1 ? -1 : idx + 2;
+    }
     const rows = await read('経費一覧!Q2:Q', ssId);
     const idx = rows.findIndex(r => r[0] === id);
     return idx === -1 ? -1 : idx + 2; // ヘッダー行(1) + 0-index補正
@@ -164,12 +171,17 @@ const Sheets = (() => {
 
   /** 設定シートから指定セルの値を読む */
   async function readSetting(cell, ssId) {
+    if (typeof Demo !== 'undefined' && Demo.isActive()) {
+      if (cell === 'B2') return 'デモ会社';
+      return '';
+    }
     const rows = await read(`設定!${cell}`, ssId);
     return rows?.[0]?.[0] ?? '';
   }
 
   /** マスタ表を読んでメンバー・カテゴリ・支払元を返す */
   async function readMaster(ssId) {
+    if (typeof Demo !== 'undefined' && Demo.isActive()) return Demo.MASTER;
     const rows = await read('マスタ表!A2:G', ssId);
     const members    = [];
     const categories = [];

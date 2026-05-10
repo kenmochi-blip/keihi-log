@@ -26,6 +26,8 @@ const Auth = (() => {
   let _pendingResolves = [];
 
   function init() {
+    // デモモード：トークン不要
+    if (typeof Demo !== 'undefined' && Demo.isActive()) return;
     // sessionStorage からトークンを復元（ページ遷移後もポップアップ不要）
     try {
       const saved = JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null');
@@ -84,6 +86,10 @@ const Auth = (() => {
    */
   function getToken() {
     return new Promise((resolve, reject) => {
+      if (typeof Demo !== 'undefined' && Demo.isActive()) {
+        resolve({ email: 'demo@example.com', name: 'デモ ユーザー' });
+        return;
+      }
       if (_accessToken && Date.now() < _tokenExpiry) {
         resolve(_userInfo);
         return;
@@ -97,10 +103,23 @@ const Auth = (() => {
   }
 
   function getAccessToken() { return _accessToken; }
-  function getUserInfo()    { return _userInfo;    }
-  function getUserEmail()   { return _userInfo?.email || ''; }
+  function getUserInfo()    {
+    if (typeof Demo !== 'undefined' && Demo.isActive())
+      return { email: 'demo@example.com', name: 'デモ ユーザー', picture: '' };
+    return _userInfo;
+  }
+  function getUserEmail()   {
+    if (typeof Demo !== 'undefined' && Demo.isActive()) return 'demo@example.com';
+    return _userInfo?.email || '';
+  }
 
   function signOut() {
+    if (typeof Demo !== 'undefined' && Demo.isActive()) {
+      Demo.disable();
+      sessionStorage.removeItem(SESSION_KEY);
+      window.location.href = 'index.html';
+      return;
+    }
     if (_accessToken) {
       google.accounts.oauth2.revoke(_accessToken);
     }
