@@ -599,7 +599,8 @@ const SubmitView = (() => {
         const apiBase = window.APP_CONFIG?.apiBase || '';
         const mode = 'train'; // 電車・バス統合モード（Yahoo乗換が最安値を自動選択）
         const resp = await fetch(
-          `${apiBase}/api/transit?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&mode=${mode}`
+          `${apiBase}/api/transit?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&mode=${mode}`,
+          { cache: 'no-store' }
         );
         const data = await resp.json();
 
