@@ -137,10 +137,9 @@ const SubmitView = (() => {
       <i class="bi bi-search me-1"></i>最安値を検索
     </button>
     <!-- 高速用 -->
-    <a href="https://www.driveplaza.com/dp/SearchTop" target="_blank"
-       class="btn btn-outline-secondary btn-sm w-100 d-none" id="btnNexco">
-      <i class="bi bi-box-arrow-up-right me-1"></i>NEXCO料金表で料金を確認
-    </a>
+    <button class="btn btn-outline-secondary btn-sm w-100 d-none" id="btnNexco">
+      <i class="bi bi-car-front-fill me-1"></i>Yahoo地図で経路・料金を確認
+    </button>
     <!-- 検索結果表示エリア -->
     <div id="transitResult" class="d-none mt-2 mb-3 p-2 rounded" style="background:#f0f7ff;border:1px solid #c8e0f8;font-size:0.82rem;">
       <div id="transitResultRoute" class="fw-semibold mb-1"></div>
@@ -531,6 +530,14 @@ const SubmitView = (() => {
         el.querySelector('#btnNexco').classList.toggle('d-none', !isHighway);
         el.querySelector('#transitResult')?.classList.add('d-none');
       });
+    });
+
+    el.querySelector('#btnNexco')?.addEventListener('click', () => {
+      const from = el.querySelector('#txtFrom')?.value.trim();
+      const to   = el.querySelector('#txtTo')?.value.trim();
+      const base = 'https://map.yahoo.co.jp/route/car';
+      const params = new URLSearchParams({ ...(from && { from }), ...(to && { to }) });
+      window.open(`${base}?${params}`, '_blank');
     });
 
     el.querySelector('#btnYahooTransit')?.addEventListener('click', async () => {
@@ -1043,16 +1050,17 @@ const SubmitView = (() => {
         const invInput = pnl.querySelector('#inputInvoice');
         if (invInput) invInput.value = e.invoice || '';
         const amtInput = pnl.querySelector('#inputAmount');
-        if (amtInput) amtInput.value = e.amount;
+        if (amtInput) amtInput.value = Number(e.amount).toLocaleString('ja-JP');
         const sel = pnl.querySelector('#selCategory');
         if (sel) [...sel.options].forEach(o => o.selected = o.value === e.category);
       } else if (e.type === '交通費') {
-        // place は "from → to" 形式なので分割を試みる
         const parts = (e.place || '').split(' → ');
         const fromInput = el.querySelector('#txtFrom');
         const toInput   = el.querySelector('#txtTo');
         if (fromInput) fromInput.value = parts[0] || e.place;
         if (toInput)   toInput.value   = parts[1] || '';
+        const fareInput = el.querySelector('#numTransitFare');
+        if (fareInput) fareInput.value = Number(e.amount).toLocaleString('ja-JP');
         const selT = el.querySelector('#selCatTransit');
         if (selT) [...selT.options].forEach(o => o.selected = o.value === e.category);
       } else if (e.type === '自家用車') {

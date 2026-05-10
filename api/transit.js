@@ -11,15 +11,13 @@ export default async function handler(req, res) {
   // 電車・バス共通で IC 優先（Yahoo乗換が最安値を自動選択）
   const ticketParam = '&ticket=ic';
 
-  // Vercel は UTC 動作のため JST (UTC+9) に変換して Yahoo 乗換に渡す
+  // 出発時刻は昼12時固定（JST時刻計算の複雑さを回避）
   // Yahoo乗換のパラメータ: y=年 m=月 d=日 hh=時 m2=分
   const jst = new Date(Date.now() + 9 * 60 * 60 * 1000);
   const y  = jst.getUTCFullYear();
-  const mo = jst.getUTCMonth() + 1; // 0始まりなので+1
+  const mo = jst.getUTCMonth() + 1;
   const d  = jst.getUTCDate();
-  const hh = jst.getUTCHours();
-  const mn = jst.getUTCMinutes();
-  const timeParams = `&y=${y}&m=${mo}&d=${d}&hh=${hh}&m2=${mn}`;
+  const timeParams = `&y=${y}&m=${mo}&d=${d}&hh=12&m2=0`;
 
   const printUrl =
     `https://transit.yahoo.co.jp/search/print?` +
