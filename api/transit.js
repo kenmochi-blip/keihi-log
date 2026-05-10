@@ -19,15 +19,17 @@ export default async function handler(req, res) {
   const mo = jstTomorrow.getUTCMonth() + 1;
   const d  = jstTomorrow.getUTCDate();
 
+  // type=1（時間が早い）= 一般的な昼間の主要便を選択
+  // type=2（乗換少ない）は終電の直通便を拾いやすいため不使用
   const printUrl =
     `https://transit.yahoo.co.jp/search/print?` +
     `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}` +
-    `&type=2&expkind=1&userpass=1&ws=3${ticketParam}&y=${y}&m=${mo}&d=${d}&hh=9&m2=0`;
+    `&type=1&expkind=1&userpass=1&ws=3${ticketParam}&y=${y}&m=${mo}&d=${d}&hh=9&m2=0`;
 
   const resultUrl =
     `https://transit.yahoo.co.jp/search/result?` +
     `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}` +
-    `&type=2&expkind=1&userpass=1${ticketParam}`;
+    `&type=1&expkind=1&userpass=1${ticketParam}`;
 
   try {
     const resp = await fetch(printUrl, {
@@ -71,8 +73,7 @@ function _parse(html) {
     .replace(/\s+/g, ' ');
 
   // --- IC運賃の抽出（最初にマッチした合計IC運賃を採用）---
-  // type=2（料金安い順）でリクエストするため先頭ルートが最安値
-  // Math.min()は区間ごとの部分運賃を拾うため使用しない
+  // type=1（時間が早い順）でリクエストするため先頭ルートが最速＝主要昼間便
   const icFareMatch = text.match(/IC\s*[：:]?\s*([\d,]+)\s*円/);
   const icFareVal = icFareMatch ? parseInt(icFareMatch[1].replace(/,/g, ''), 10) : 0;
   let fare = (icFareVal >= 100 && icFareVal < 100000) ? icFareVal : null;
