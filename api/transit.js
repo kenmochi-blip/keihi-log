@@ -11,17 +11,18 @@ export default async function handler(req, res) {
   // 電車・バス共通で IC 優先（Yahoo乗換が最安値を自動選択）
   const ticketParam = '&ticket=ic';
 
-  // printUrl: 昼12時固定（運賃は時間帯に依存しない。過去時刻指定だと終電に進んでしまうため固定）
-  // resultUrl: 時刻パラメータなし（ユーザーがリンクを開いた時刻で検索させる）
-  const jst = new Date(Date.now() + 9 * 60 * 60 * 1000);
-  const y  = jst.getUTCFullYear();
-  const mo = jst.getUTCMonth() + 1;
-  const d  = jst.getUTCDate();
+  // 明日の午前9時（JST）を指定 → 常に未来時刻のためYahoo乗換が終電に進まない
+  // 運賃は時間帯・日付によらず同額なので翌日で問題ない
+  const jstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  const jstTomorrow = new Date(jstNow.getTime() + 24 * 60 * 60 * 1000);
+  const y  = jstTomorrow.getUTCFullYear();
+  const mo = jstTomorrow.getUTCMonth() + 1;
+  const d  = jstTomorrow.getUTCDate();
 
   const printUrl =
     `https://transit.yahoo.co.jp/search/print?` +
     `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}` +
-    `&type=2&expkind=1&userpass=1&ws=3${ticketParam}&y=${y}&m=${mo}&d=${d}&hh=12&m2=0`;
+    `&type=2&expkind=1&userpass=1&ws=3${ticketParam}&y=${y}&m=${mo}&d=${d}&hh=9&m2=0`;
 
   const resultUrl =
     `https://transit.yahoo.co.jp/search/result?` +
