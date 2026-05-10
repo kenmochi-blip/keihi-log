@@ -120,9 +120,17 @@ const SubmitView = (() => {
         <input type="text" class="form-control form-control-sm" id="txtTo" placeholder="例：新宿">
       </div>
     </div>
-    <button class="btn btn-outline-secondary btn-sm mb-3 w-100" id="btnYahooTransit">
-      <i class="bi bi-train-front me-1"></i>Yahoo乗換で検索
+    <button class="btn btn-outline-secondary btn-sm w-100" id="btnYahooTransit">
+      <i class="bi bi-train-front me-1"></i>最安値を検索
     </button>
+    <!-- 検索結果表示エリア -->
+    <div id="transitResult" class="d-none mt-2 mb-3 p-2 rounded" style="background:#f0f7ff;border:1px solid #c8e0f8;font-size:0.82rem;">
+      <div id="transitResultRoute" class="fw-semibold mb-1"></div>
+      <div id="transitResultFare" class="text-primary fw-bold mb-1"></div>
+      <a id="transitResultLink" href="#" target="_blank" class="btn btn-link btn-sm p-0 text-decoration-none">
+        <i class="bi bi-box-arrow-up-right me-1"></i>Yahoo乗換で検索結果を確認する
+      </a>
+    </div>
     <div class="row g-2 mb-2">
       <div class="col-6">
         <label class="form-label small fw-semibold">片道運賃（円）</label>
@@ -471,20 +479,70 @@ const SubmitView = (() => {
   }
 
   function _bindTransitCalc(el) {
-    const calc = () => {
+    const calcTotal = () => {
       const raw  = (el.querySelector('#numTransitFare')?.value || '').replace(/[^\d]/g, '');
       const fare = Number(raw) || 0;
       const round = el.querySelector('#chkRoundTrip')?.checked ? 2 : 1;
       el.querySelector('#lblTransitTotal').textContent = (fare * round).toLocaleString() + '円';
     };
-    el.querySelector('#numTransitFare')?.addEventListener('input', calc);
-    el.querySelector('#chkRoundTrip')?.addEventListener('change', calc);
+    el.querySelector('#numTransitFare')?.addEventListener('input', calcTotal);
+    el.querySelector('#chkRoundTrip')?.addEventListener('change', calcTotal);
 
-    el.querySelector('#btnYahooTransit')?.addEventListener('click', () => {
+    el.querySelector('#btnYahooTransit')?.addEventListener('click', async () => {
       const from = el.querySelector('#txtFrom')?.value.trim();
       const to   = el.querySelector('#txtTo')?.value.trim();
       if (!from || !to) return App.showToast('出発・到着駅を入力してください', 'warning');
-      window.open(`https://transit.yahoo.co.jp/search/print?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&fromgid=&togid=&flatlon=&tlatlon=&via=&viacode=&y=&m=&d=&hh=&s=0&m2=00&type=1&ws=3&s=0&expkind=1&userpass=1&ws=3&prop=0&ticket=ic`, '_blank');
+
+      const btn = el.querySelector('#btnYahooTransit');
+      const resultDiv  = el.querySelector('#transitResult');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>検索中...';
+      resultDiv?.classList.add('d-none');
+
+      try {
+        const apiBase = window.APP_CONFIG?.apiBase || '';
+        const resp = await fetch(
+          `${apiBase}/api/transit?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
+        );
+        const data = await resp.json();
+
+        if (!resp.ok || !data.fare) {
+          App.showToast(data.error || '運賃を取得できませんでした', 'warning');
+          // フォールバック：Yahoo乗換を別タブで開く
+          window.open(
+            `https://transit.yahoo.co.jp/search/result?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&type=2&expkind=1&userpass=1&ticket=ic`,
+            '_blank'
+          );
+          return;
+        }
+
+        // 運賃を入力欄に反映
+        const fareInput = el.querySelector('#numTransitFare');
+        if (fareInput) fareInput.value = data.fare.toLocaleString('ja-JP');
+        calcTotal();
+
+        // 結果エリアを表示
+        if (resultDiv) {
+          const routeText = data.lines?.length
+            ? data.lines.join(' → ')
+            : `${from} → ${to}`;
+          const timeText = data.minutes ? `（約${data.minutes}分）` : '';
+          el.querySelector('#transitResultRoute').textContent =
+            `${routeText}${timeText}`;
+          el.querySelector('#transitResultFare').textContent =
+            `最安値（IC）: ¥${data.fare.toLocaleString()} ／片道`;
+          const link = el.querySelector('#transitResultLink');
+          if (link) link.href = data.resultUrl;
+          resultDiv.classList.remove('d-none');
+        }
+
+        App.showToast(`片道 ¥${data.fare.toLocaleString()} を入力しました`, 'success');
+      } catch (err) {
+        App.showToast('検索エラー: ' + err.message, 'danger');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-train-front me-1"></i>最安値を検索';
+      }
     });
   }
 
