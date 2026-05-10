@@ -46,7 +46,7 @@ const ListView = (() => {
             value="${toYM}" style="width:140px;">
         </div>
       </div>
-      <!-- タイプ・状態・キーワード -->
+      <!-- タイプ・承認状態・申請者・キーワード（横4列） -->
       <div class="row g-2">
         <div class="col-6 col-md-3">
           <select class="form-select form-select-sm" id="filterType">
@@ -62,21 +62,15 @@ const ListView = (() => {
             <option value="pending">未確認</option>
           </select>
         </div>
-        <div class="col-12 col-md-6">
-          <div class="input-group input-group-sm">
-            <span class="input-group-text"><i class="bi bi-search"></i></span>
-            <input type="text" class="form-control" id="filterKeyword" placeholder="支払先・備考・勘定科目で検索">
-          </div>
-        </div>
         <div class="col-6 col-md-3" id="filterMemberWrap" style="display:none;">
           <select class="form-select form-select-sm" id="filterMember">
             <option value="">申請者（全員）</option>
           </select>
         </div>
-        <div class="col-6 col-md-3 d-flex align-items-center gap-2" id="adminToggleWrap" style="display:none;">
-          <div class="form-check form-switch mb-0">
-            <input class="form-check-input" type="checkbox" id="chkShowAll">
-            <label class="form-check-label small" for="chkShowAll">全員分表示</label>
+        <div class="col-6 col-md-3">
+          <div class="input-group input-group-sm">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control" id="filterKeyword" placeholder="支払先・備考・科目">
           </div>
         </div>
       </div>
@@ -145,9 +139,9 @@ const ListView = (() => {
       return;
     }
 
-    // 管理者用UI
+    // 管理者用UI（全員表示はデフォルトON、トグルなし）
     if (_isAdmin) {
-      el.querySelector('#adminToggleWrap').style.display = '';
+      _showAll = true;
       el.querySelector('#filterMemberWrap').style.display = '';
       const sel = el.querySelector('#filterMember');
       _master.members.forEach(m => {
@@ -191,11 +185,6 @@ const ListView = (() => {
     // フィルタリング
     ['filterType','filterStatus','filterKeyword','filterMember'].forEach(id => {
       el.querySelector(`#${id}`)?.addEventListener('input', () => _renderTable(el));
-    });
-    el.querySelector('#chkShowAll')?.addEventListener('change', e => {
-      _showAll = e.target.checked;
-      el.querySelector('#filterMemberWrap').style.display = _showAll ? '' : 'none';
-      _renderTable(el);
     });
 
     el.querySelector('#btnRefreshList')?.addEventListener('click', async () => {
