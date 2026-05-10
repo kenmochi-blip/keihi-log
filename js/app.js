@@ -181,26 +181,35 @@ const App = (() => {
 
 // アプリ起動
 document.addEventListener('DOMContentLoaded', () => {
-  // デモモード：Google ライブラリ不要のため即時起動
+  // デモモード：Googleスクリプトを読み込まず即時起動（ポップアップブロック回避）
   if (typeof Demo !== 'undefined' && Demo.isActive()) {
     App.init();
     return;
   }
 
-  // gapiとGISが読み込まれた後に初期化
-  const waitForLibs = setInterval(() => {
-    if (typeof gapi !== 'undefined' && typeof google !== 'undefined') {
-      clearInterval(waitForLibs);
-      gapi.load('client', async () => {
-        await gapi.client.init({
-          discoveryDocs: [
-            'https://sheets.googleapis.com/$discovery/rest?version=v4',
-            'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'
-          ]
-        });
-        Auth.init();
-        App.init();
+  // 通常モード：gapi・GIS を動的ロードしてから初期化
+  let gapiReady = false, gisReady = false;
+
+  function _onBothReady() {
+    gapi.load('client', async () => {
+      await gapi.client.init({
+        discoveryDocs: [
+          'https://sheets.googleapis.com/$discovery/rest?version=v4',
+          'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'
+        ]
       });
-    }
-  }, 100);
+      Auth.init();
+      App.init();
+    });
+  }
+
+  const gapiScript = document.createElement('script');
+  gapiScript.src = 'https://apis.google.com/js/api.js';
+  gapiScript.onload = () => { gapiReady = true; if (gisReady) _onBothReady(); };
+  document.head.appendChild(gapiScript);
+
+  const gisScript = document.createElement('script');
+  gisScript.src = 'https://accounts.google.com/gsi/client';
+  gisScript.onload = () => { gisReady = true; if (gapiReady) _onBothReady(); };
+  document.head.appendChild(gisScript);
 });
