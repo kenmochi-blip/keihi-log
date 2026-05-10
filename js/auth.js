@@ -1,6 +1,6 @@
 /**
  * Google Identity Services (GIS) 認証モジュール
- * アクセストークンはメモリのみ保持（sessionStorageも使わない）
+ * アクセストークンはメモリ + sessionStorage で保持（タブを閉じると消える）
  */
 const Auth = (() => {
   // GCPコンソールで発行したOAuthクライアントID
@@ -15,6 +15,8 @@ const Auth = (() => {
     'email'
   ].join(' ');
 
+  const SESSION_KEY = 'keihi_auth_session';
+
   let _tokenClient = null;
   let _accessToken  = null;
   let _userInfo     = null;
@@ -24,6 +26,17 @@ const Auth = (() => {
   let _pendingResolves = [];
 
   function init() {
+    // sessionStorage からトークンを復元（ページ遷移後もポップアップ不要）
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null');
+      if (saved && saved.expiry > Date.now()) {
+        _accessToken = saved.access_token;
+        _tokenExpiry = saved.expiry;
+        _userInfo    = saved.userInfo;
+        gapi.client.setToken({ access_token: _accessToken });
+      }
+    } catch (_) {}
+
     _tokenClient = google.accounts.oauth2.initTokenClient({
       client_id: CLIENT_ID,
       scope: SCOPES,
@@ -38,11 +51,16 @@ const Auth = (() => {
       return;
     }
     _accessToken = resp.access_token;
-    _tokenExpiry = Date.now() + (resp.expires_in - 60) * 1000; // 60秒余裕を持たせる
+    _tokenExpiry = Date.now() + (resp.expires_in - 60) * 1000;
     gapi.client.setToken({ access_token: _accessToken });
 
-    // ユーザー情報を取得
+    // ユーザー情報を取得してから sessionStorage に保存
     _fetchUserInfo().then(() => {
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify({
+        access_token: _accessToken,
+        expiry: _tokenExpiry,
+        userInfo: _userInfo,
+      }));
       _pendingResolves.forEach(({ resolve }) => resolve(_userInfo));
       _pendingResolves = [];
     });
@@ -61,7 +79,8 @@ const Auth = (() => {
 
   /**
    * トークンを取得する。有効なトークンがあればそれを返す。
-   * なければGoogleのポップアップを表示してユーザーに許可を求める。
+   * sessionStorage に復元済みの場合はポップアップなしで即返す。
+   * 期限切れの場合は GIS のサイレントリフレッシュを試みる。
    */
   function getToken() {
     return new Promise((resolve, reject) => {
@@ -71,7 +90,7 @@ const Auth = (() => {
       }
       _pendingResolves.push({ resolve, reject });
       if (_pendingResolves.length === 1) {
-        // 初回リクエストのみポップアップを開く
+        // prompt:'' = 既に同意済みならポップアップなしでサイレント取得
         _tokenClient.requestAccessToken({ prompt: '' });
       }
     });
@@ -88,8 +107,8 @@ const Auth = (() => {
     _accessToken = null;
     _userInfo    = null;
     _tokenExpiry = 0;
+    sessionStorage.removeItem(SESSION_KEY);
     gapi.client.setToken(null);
-    // ログイン画面に戻る
     window.location.href = 'index.html';
   }
 
