@@ -15,7 +15,7 @@ export default async function handler(req, res) {
   const jstHour = jstNow.getUTCHours();
 
   // 22時〜翌6時は翌朝10時に丸める（終電・始発を避けて昼間の便を取得）
-  // それ以外は現在時刻をそのまま使用。printUrlとresultUrlを同じ時刻で統一。
+  // それ以外は現在時刻をそのまま使用
   let sd;
   if (jstHour >= 22) {
     sd = new Date(jstNow.getTime() + 24 * 60 * 60 * 1000);
@@ -29,11 +29,12 @@ export default async function handler(req, res) {
   const sy = sd.getUTCFullYear(), sm = sd.getUTCMonth() + 1, sdd = sd.getUTCDate();
   const sh = sd.getUTCHours(), sn = sd.getUTCMinutes();
 
-  // type=3（料金安い順）で最安値ルートを取得
+  // printUrl: type=1（時間順）で昼間の主要便を選択 → 始発・夜間便を避けて運賃を取得
+  // resultUrl: type=3（料金安い順）でユーザーに最安値候補を表示
   const printUrl =
     `https://transit.yahoo.co.jp/search/print?` +
     `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}` +
-    `&type=3&expkind=1&userpass=1&ws=3${ticketParam}&y=${sy}&m=${sm}&d=${sdd}&hh=${sh}&m2=${sn}`;
+    `&type=1&expkind=1&userpass=1&ws=3${ticketParam}&y=${sy}&m=${sm}&d=${sdd}&hh=${sh}&m2=${sn}`;
 
   const resultUrl =
     `https://transit.yahoo.co.jp/search/result?` +
@@ -81,13 +82,12 @@ function _parse(html) {
     .replace(/&yen;/g, '¥')
     .replace(/\s+/g, ' ');
 
-  // --- IC運賃の抽出（type=3：料金安い順の先頭ルートが最安値）---
+  // --- IC運賃の抽出（type=1：時間順の先頭ルートから取得）---
   const icFareMatch = text.match(/IC\s*[：:]?\s*([\d,]+)\s*円/);
   const icFareVal = icFareMatch ? parseInt(icFareMatch[1].replace(/,/g, ''), 10) : 0;
   let fare = (icFareVal >= 100 && icFareVal < 100000) ? icFareVal : null;
 
   if (!fare) {
-    // IC表記なし → 合計・運賃・料金パターンを順に試す
     for (const p of [
       /合計\s*IC\s*([\d,]+)\s*円/,
       /IC優先\s*([\d,]+)\s*円/,
@@ -101,7 +101,6 @@ function _parse(html) {
       }
     }
   }
-  // 最終フォールバック：妥当な範囲の最初の円表記
   if (!fare) {
     for (const m of text.matchAll(/([\d,]+)\s*円/g)) {
       const v = parseInt(m[1].replace(/,/g, ''), 10);
