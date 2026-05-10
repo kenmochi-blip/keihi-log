@@ -11,25 +11,30 @@ export default async function handler(req, res) {
   // 電車・バス共通で IC 優先（Yahoo乗換が最安値を自動選択）
   const ticketParam = '&ticket=ic';
 
-  // 明日の午前9時（JST）を指定 → 常に未来時刻のためYahoo乗換が終電に進まない
-  // 運賃は時間帯・日付によらず同額なので翌日で問題ない
   const jstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
-  const jstTomorrow = new Date(jstNow.getTime() + 24 * 60 * 60 * 1000);
-  const y  = jstTomorrow.getUTCFullYear();
-  const mo = jstTomorrow.getUTCMonth() + 1;
-  const d  = jstTomorrow.getUTCDate();
 
-  // type=1（時間が早い）= 一般的な昼間の主要便を選択
-  // type=2（乗換少ない）は終電の直通便を拾いやすいため不使用
+  // printUrl: 翌日9時固定（常に未来時刻 → 終電に進まない。運賃は時間帯依存なし）
+  const jstTomorrow = new Date(jstNow.getTime() + 24 * 60 * 60 * 1000);
+  const ty = jstTomorrow.getUTCFullYear();
+  const tm = jstTomorrow.getUTCMonth() + 1;
+  const td = jstTomorrow.getUTCDate();
+
+  // resultUrl: 現在のJST時刻（ユーザーが検索した時点の電車を表示）
+  const ry = jstNow.getUTCFullYear();
+  const rm = jstNow.getUTCMonth() + 1;
+  const rd = jstNow.getUTCDate();
+  const rh = jstNow.getUTCHours();
+  const rn = jstNow.getUTCMinutes();
+
   const printUrl =
     `https://transit.yahoo.co.jp/search/print?` +
     `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}` +
-    `&type=1&expkind=1&userpass=1&ws=3${ticketParam}&y=${y}&m=${mo}&d=${d}&hh=9&m2=0`;
+    `&type=1&expkind=1&userpass=1&ws=3${ticketParam}&y=${ty}&m=${tm}&d=${td}&hh=9&m2=0`;
 
   const resultUrl =
     `https://transit.yahoo.co.jp/search/result?` +
     `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}` +
-    `&type=1&expkind=1&userpass=1${ticketParam}`;
+    `&type=1&expkind=1&userpass=1${ticketParam}&y=${ry}&m=${rm}&d=${rd}&hh=${rh}&m2=${rn}`;
 
   try {
     const resp = await fetch(printUrl, {
