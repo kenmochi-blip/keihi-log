@@ -62,7 +62,7 @@ const SubmitView = (() => {
   <!-- 領収書：カメラ/ファイル → プレビュー → AI → フォーム -->
   <div id="panel-領収書">
     <input type="file" class="d-none" id="camInput-領収書" accept="image/*" capture="environment">
-    <input type="file" class="d-none" id="fileInput-領収書" accept="image/*,.pdf" multiple>
+    <input type="file" class="d-none" id="fileInput-領収書" accept=".jpg,.jpeg,.png,.heic,.gif,.pdf" multiple>
     <div class="upload-grid mb-3">
       <button class="upload-card" id="btnCamera-領収書">
         <i class="bi bi-camera-fill"></i>カメラ
@@ -102,7 +102,7 @@ const SubmitView = (() => {
     <div class="mb-2">
       <label class="form-label small fw-semibold">参考資料（任意）</label>
       <div class="d-flex flex-wrap gap-2 mb-2" id="previewArea-領収書なし"></div>
-      <input type="file" class="d-none" id="fileInput-領収書なし" accept="image/*" multiple>
+      <input type="file" class="d-none" id="fileInput-領収書なし" accept=".jpg,.jpeg,.png,.heic,.gif" multiple>
       <button class="btn btn-outline-secondary btn-sm" id="btnFile-領収書なし">
         <i class="bi bi-folder2-open me-1"></i>ファイル選択
       </button>
@@ -157,7 +157,7 @@ const SubmitView = (() => {
     <div class="mb-2">
       <label class="form-label small fw-semibold">領収書（任意）</label>
       <div class="d-flex flex-wrap gap-2 mb-2" id="previewArea-交通費"></div>
-      <input type="file" class="d-none" id="fileInput-交通費" accept="image/*,.pdf" multiple>
+      <input type="file" class="d-none" id="fileInput-交通費" accept=".jpg,.jpeg,.png,.heic,.gif,.pdf" multiple>
       <button class="btn btn-outline-secondary btn-sm" id="btnFile-交通費">
         <i class="bi bi-folder2-open me-1"></i>ファイル選択
       </button>
@@ -194,7 +194,7 @@ const SubmitView = (() => {
     <div class="mb-2">
       <label class="form-label small fw-semibold">地図・参考資料（任意）</label>
       <div class="d-flex flex-wrap gap-2 mb-2" id="previewArea-自家用車"></div>
-      <input type="file" class="d-none" id="fileInput-自家用車" accept="image/*" multiple>
+      <input type="file" class="d-none" id="fileInput-自家用車" accept=".jpg,.jpeg,.png,.heic,.gif" multiple>
       <button class="btn btn-outline-secondary btn-sm" id="btnFile-自家用車">
         <i class="bi bi-folder2-open me-1"></i>ファイル選択
       </button>

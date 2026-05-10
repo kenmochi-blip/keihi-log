@@ -83,8 +83,8 @@ const ListView = (() => {
     <span class="fw-bold" id="lblFilterTotal"></span>
   </div>
 
-  <!-- PC テーブル（md以上） -->
-  <div class="d-none d-md-block table-responsive">
+  <!-- PC テーブル（lg以上） -->
+  <div class="d-none d-lg-block table-responsive">
     <table class="table table-hover list-table list-table-pc">
       <thead class="table-light">
         <tr>
@@ -104,8 +104,8 @@ const ListView = (() => {
     </table>
   </div>
 
-  <!-- スマホカードリスト（md未満） -->
-  <div class="d-md-none" id="listCardsSp">
+  <!-- スマホカードリスト（lg未満） -->
+  <div class="d-lg-none" id="listCardsSp">
     <div class="text-center text-muted py-3">読み込み中...</div>
   </div>
 
