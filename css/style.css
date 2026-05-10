@@ -144,17 +144,31 @@ body { font-size: 0.9rem; }
 /* 列リサイズハンドル */
 .col-resizer {
   position: absolute;
-  right: -3px;
+  right: 0;
   top: 0;
-  width: 7px;
+  width: 12px;
   height: 100%;
   cursor: col-resize;
   user-select: none;
   z-index: 1;
-  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.col-resizer:hover,
-.col-resizer:active { background: rgba(0,0,0,0.15); }
+/* グリップ記号（|| 二本線） */
+.col-resizer::before {
+  content: '';
+  display: block;
+  height: 52%;
+  min-height: 12px;
+  width: 4px;
+  border-left: 2px solid #c0ccd8;
+  border-right: 2px solid #c0ccd8;
+  border-radius: 1px;
+  transition: border-color 0.12s;
+}
+.col-resizer:hover::before { border-color: #6c9fc8; }
+.col-resizer.dragging::before { border-color: #0d6efd; }
 
 /* 集計 */
 .summary-total {

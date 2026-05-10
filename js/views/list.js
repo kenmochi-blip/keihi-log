@@ -217,6 +217,12 @@ const ListView = (() => {
   function _initResizableColumns(table) {
     if (!table) return;
     const ths = [...table.querySelectorAll('thead tr th')];
+
+    // 全列幅を現在の描画値で固定し、table-layout:fixedへ切り替え
+    // （table.style.widthは設定しないので列を広げるとテーブルが右に伸びる）
+    ths.forEach(th => { th.style.width = th.offsetWidth + 'px'; });
+    table.style.tableLayout = 'fixed';
+
     ths.forEach((th, i) => {
       if (i === ths.length - 1) return; // 操作列はスキップ
       const resizer = document.createElement('div');
@@ -229,16 +235,12 @@ const ListView = (() => {
         e.preventDefault();
         startX = e.pageX;
         startW = th.offsetWidth;
-        // 初回ドラッグ時にtable-layout:fixedへ切り替え
-        if (table.style.tableLayout !== 'fixed') {
-          ths.forEach(t => { t.style.width = t.offsetWidth + 'px'; });
-          table.style.tableLayout = 'fixed';
-          table.style.width = table.offsetWidth + 'px';
-        }
+        resizer.classList.add('dragging');
         const onMove = e2 => {
           th.style.width = Math.max(40, startW + e2.pageX - startX) + 'px';
         };
         const onUp = () => {
+          resizer.classList.remove('dragging');
           document.removeEventListener('mousemove', onMove);
           document.removeEventListener('mouseup', onUp);
         };
