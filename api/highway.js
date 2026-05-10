@@ -16,9 +16,11 @@ export default async function handler(req, res) {
   const fromList = _variants(from);
   const toList   = _variants(to);
 
+  // Yahoo乗換の車ルートページ（高速料金が表示される）を確認リンクとして使用
+  // Yahoo地図は高速料金が表示されないため不使用
   const resultUrl =
-    `https://map.yahoo.co.jp/route/car?` +
-    `from=${encodeURIComponent(fromList[0])}&to=${encodeURIComponent(toList[0])}`;
+    `https://transit.yahoo.co.jp/search/car?` +
+    `from=${encodeURIComponent(fromList[0])}&to=${encodeURIComponent(toList[0])}&type=1`;
 
   // 組み合わせを順に試してtollが取れた時点で返す
   let toll = null, km = null;
