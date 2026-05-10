@@ -5,20 +5,21 @@
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).end();
 
-  const { from, to, mode } = req.query;
+  const { from, to } = req.query;
   if (!from || !to) return res.status(400).json({ error: 'from と to が必要です' });
 
-  // バスモードは IC 優先なし、電車はIC優先
-  const ticketParam = mode === 'bus' ? '' : '&ticket=ic';
+  // 電車・バス共通で IC 優先（Yahoo乗換が最安値を自動選択）
+  const ticketParam = '&ticket=ic';
 
   // Vercel は UTC 動作のため JST (UTC+9) に変換して Yahoo 乗換に渡す
+  // Yahoo乗換のパラメータ: y=年 m=月 d=日 hh=時 m2=分
   const jst = new Date(Date.now() + 9 * 60 * 60 * 1000);
   const y  = jst.getUTCFullYear();
-  const mo = jst.getUTCMonth() + 1;
+  const mo = jst.getUTCMonth() + 1; // 0始まりなので+1
   const d  = jst.getUTCDate();
   const hh = jst.getUTCHours();
-  const m2 = jst.getUTCMinutes();
-  const timeParams = `&y=${y}&m=${mo}&d=${d}&hh=${hh}&m2=${m2}`;
+  const mn = jst.getUTCMinutes();
+  const timeParams = `&y=${y}&m=${mo}&d=${d}&hh=${hh}&m2=${mn}`;
 
   const printUrl =
     `https://transit.yahoo.co.jp/search/print?` +
@@ -51,7 +52,7 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: '運賃を取得できませんでした。駅名を確認してください。' });
     }
 
-    res.setHeader('Cache-Control', 's-maxage=1800'); // 30分キャッシュ
+    res.setHeader('Cache-Control', 'no-store'); // 時刻パラメータが含まれるためキャッシュ無効
     res.json({ fare, minutes, lines, resultUrl });
   } catch (err) {
     if (err.name === 'TimeoutError') {
