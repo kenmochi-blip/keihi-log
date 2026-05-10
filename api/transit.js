@@ -29,11 +29,12 @@ export default async function handler(req, res) {
   const sy = sd.getUTCFullYear(), sm = sd.getUTCMonth() + 1, sdd = sd.getUTCDate();
   const sh = sd.getUTCHours(), sn = sd.getUTCMinutes();
 
-  // type=3（料金安い順）で最安値ルートを取得
+  // printUrl: type=1（時間順）で昼間の主要便を選択 → 始発・夜間便を避けて運賃を取得
+  // resultUrl: type=3（料金安い順）でユーザーに最安値候補を表示
   const printUrl =
     `https://transit.yahoo.co.jp/search/print?` +
     `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}` +
-    `&type=3&expkind=1&userpass=1&ws=3${ticketParam}&y=${sy}&m=${sm}&d=${sdd}&hh=${sh}&m2=${sn}`;
+    `&type=1&expkind=1&userpass=1&ws=3${ticketParam}&y=${sy}&m=${sm}&d=${sdd}&hh=${sh}&m2=${sn}`;
 
   const resultUrl =
     `https://transit.yahoo.co.jp/search/result?` +
