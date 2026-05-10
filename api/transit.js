@@ -29,17 +29,14 @@ export default async function handler(req, res) {
   const sy = sd.getUTCFullYear(), sm = sd.getUTCMonth() + 1, sdd = sd.getUTCDate();
   const sh = sd.getUTCHours(), sn = sd.getUTCMinutes();
 
-  // printUrl/resultUrl ともに type=1（到着時刻順）を使用
-  // type=3（料金安い順）は指定時刻を無視して1日の最安値便（始発等）を返すため不使用
-  const printUrl =
-    `https://transit.yahoo.co.jp/search/print?` +
-    `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}` +
-    `&type=1&expkind=1&userpass=1&ws=3${ticketParam}&y=${sy}&m=${sm}&d=${sdd}&hh=${sh}&m2=${sn}`;
-
+  // search/result（複数ルート一覧）を取得して全ルートのIC運賃から最安値を選ぶ
+  // type=1（到着時刻順）で現在時刻以降の便を取得。printUrlとresultUrlは同じURL。
   const resultUrl =
     `https://transit.yahoo.co.jp/search/result?` +
     `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}` +
     `&type=1&expkind=1&userpass=1${ticketParam}&y=${sy}&m=${sm}&d=${sdd}&hh=${sh}&m2=${sn}`;
+
+  const printUrl = resultUrl; // 同じページを取得して複数ルートから最安値を解析
 
   try {
     const resp = await fetch(printUrl, {
@@ -81,30 +78,20 @@ function _parse(html) {
     .replace(/&yen;/g, '¥')
     .replace(/\s+/g, ' ');
 
-  // --- IC運賃の抽出（type=1：到着時刻順の先頭ルートから取得）---
-  const icFareMatch = text.match(/IC\s*[：:]?\s*([\d,]+)\s*円/);
-  const icFareVal = icFareMatch ? parseInt(icFareMatch[1].replace(/,/g, ''), 10) : 0;
-  let fare = (icFareVal >= 100 && icFareVal < 100000) ? icFareVal : null;
+  // --- IC運賃の抽出（search/resultの複数ルートから最安値を選択）---
+  // 結果一覧ページのIC優先運賃は "IC優先：387円" 形式で各ルートに記載されている
+  // matchAllで全ルート分を拾い Math.min() で最安値を得る
+  const icFares = [...text.matchAll(/IC(?:優先)?\s*[：:]\s*([\d,]+)\s*円/g)]
+    .map(m => parseInt(m[1].replace(/,/g, ''), 10))
+    .filter(v => v >= 100 && v < 100000);
+  let fare = icFares.length > 0 ? Math.min(...icFares) : null;
 
+  // IC表記なし → 汎用パターンで最安値を探す
   if (!fare) {
-    for (const p of [
-      /合計\s*IC\s*([\d,]+)\s*円/,
-      /IC優先\s*([\d,]+)\s*円/,
-      /運賃[\s\S]{0,30}?([\d,]+)\s*円/,
-      /料金[\s\S]{0,30}?([\d,]+)\s*円/,
-    ]) {
-      const m = text.match(p);
-      if (m) {
-        const v = parseInt(m[1].replace(/,/g, ''), 10);
-        if (v >= 100 && v < 100000) { fare = v; break; }
-      }
-    }
-  }
-  if (!fare) {
-    for (const m of text.matchAll(/([\d,]+)\s*円/g)) {
-      const v = parseInt(m[1].replace(/,/g, ''), 10);
-      if (v >= 100 && v <= 50000) { fare = v; break; }
-    }
+    const allFares = [...text.matchAll(/([\d,]+)\s*円/g)]
+      .map(m => parseInt(m[1].replace(/,/g, ''), 10))
+      .filter(v => v >= 100 && v <= 50000);
+    if (allFares.length > 0) fare = Math.min(...allFares);
   }
 
   // --- 所要時間 ---
