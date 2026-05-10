@@ -11,15 +11,13 @@ export default async function handler(req, res) {
   // 電車・バス共通で IC 優先（Yahoo乗換が最安値を自動選択）
   const ticketParam = '&ticket=ic';
 
-  // 出発時刻は昼12時固定（JST時刻計算の複雑さを回避）
+  // 出発時刻は昼12時固定（夜間テストで終電が出ないよう、また運賃は時間帯に依存しないため）
   // Yahoo乗換のパラメータ: y=年 m=月 d=日 hh=時 m2=分
   const jst = new Date(Date.now() + 9 * 60 * 60 * 1000);
   const y  = jst.getUTCFullYear();
   const mo = jst.getUTCMonth() + 1;
   const d  = jst.getUTCDate();
-  const hh = jst.getUTCHours();
-  const mn = jst.getUTCMinutes();
-  const timeParams = `&y=${y}&m=${mo}&d=${d}&hh=${hh}&m2=${mn}`;
+  const timeParams = `&y=${y}&m=${mo}&d=${d}&hh=12&m2=0`;
 
   const printUrl =
     `https://transit.yahoo.co.jp/search/print?` +
@@ -72,12 +70,12 @@ function _parse(html) {
     .replace(/&yen;/g, '¥')
     .replace(/\s+/g, ' ');
 
-  // --- IC運賃の抽出（全ルートから最安値を選択）---
-  // 複数ルートが印刷ページに並ぶ場合、最初のIC運賃が最安値とは限らないため全件取得してmin
-  const icFares = [...text.matchAll(/IC\s*[：:]?\s*([\d,]+)\s*円/g)]
-    .map(m => parseInt(m[1].replace(/,/g, ''), 10))
-    .filter(v => v >= 100 && v < 100000);
-  let fare = icFares.length > 0 ? Math.min(...icFares) : null;
+  // --- IC運賃の抽出（最初にマッチした合計IC運賃を採用）---
+  // type=2（料金安い順）でリクエストするため先頭ルートが最安値
+  // Math.min()は区間ごとの部分運賃を拾うため使用しない
+  const icFareMatch = text.match(/IC\s*[：:]?\s*([\d,]+)\s*円/);
+  const icFareVal = icFareMatch ? parseInt(icFareMatch[1].replace(/,/g, ''), 10) : 0;
+  let fare = (icFareVal >= 100 && icFareVal < 100000) ? icFareVal : null;
 
   if (!fare) {
     // IC表記なし → 合計・運賃・料金パターンを順に試す
