@@ -12,30 +12,33 @@ export default async function handler(req, res) {
   const ticketParam = '&ticket=ic';
 
   const jstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  const jstHour = jstNow.getUTCHours();
 
-  // printUrl: 翌日9時固定（常に未来時刻 → 終電に進まない。運賃は時間帯依存なし）
-  const jstTomorrow = new Date(jstNow.getTime() + 24 * 60 * 60 * 1000);
-  const ty = jstTomorrow.getUTCFullYear();
-  const tm = jstTomorrow.getUTCMonth() + 1;
-  const td = jstTomorrow.getUTCDate();
-
-  // resultUrl: 現在のJST時刻（ユーザーが検索した時点の電車を表示）
-  const ry = jstNow.getUTCFullYear();
-  const rm = jstNow.getUTCMonth() + 1;
-  const rd = jstNow.getUTCDate();
-  const rh = jstNow.getUTCHours();
-  const rn = jstNow.getUTCMinutes();
+  // 22時〜翌6時は翌朝10時に丸める（終電・始発を避けて昼間の便を取得）
+  // それ以外は現在時刻をそのまま使用。printUrlとresultUrlを同じ時刻で統一。
+  let sd;
+  if (jstHour >= 22) {
+    sd = new Date(jstNow.getTime() + 24 * 60 * 60 * 1000);
+    sd.setUTCHours(10, 0, 0, 0);
+  } else if (jstHour < 6) {
+    sd = new Date(jstNow);
+    sd.setUTCHours(10, 0, 0, 0);
+  } else {
+    sd = jstNow;
+  }
+  const sy = sd.getUTCFullYear(), sm = sd.getUTCMonth() + 1, sdd = sd.getUTCDate();
+  const sh = sd.getUTCHours(), sn = sd.getUTCMinutes();
 
   // type=3（料金安い順）で最安値ルートを取得
   const printUrl =
     `https://transit.yahoo.co.jp/search/print?` +
     `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}` +
-    `&type=3&expkind=1&userpass=1&ws=3${ticketParam}&y=${ty}&m=${tm}&d=${td}&hh=9&m2=0`;
+    `&type=3&expkind=1&userpass=1&ws=3${ticketParam}&y=${sy}&m=${sm}&d=${sdd}&hh=${sh}&m2=${sn}`;
 
   const resultUrl =
     `https://transit.yahoo.co.jp/search/result?` +
     `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}` +
-    `&type=3&expkind=1&userpass=1${ticketParam}&y=${ry}&m=${rm}&d=${rd}&hh=${rh}&m2=${rn}`;
+    `&type=3&expkind=1&userpass=1${ticketParam}&y=${sy}&m=${sm}&d=${sdd}&hh=${sh}&m2=${sn}`;
 
   try {
     const resp = await fetch(printUrl, {
