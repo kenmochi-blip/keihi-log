@@ -83,23 +83,43 @@ const ListView = (() => {
     <span class="fw-bold" id="lblFilterTotal"></span>
   </div>
 
-  <!-- テーブル -->
-  <div class="table-responsive">
-    <table class="table table-hover list-table">
+  <!-- PC テーブル（md以上） -->
+  <div class="d-none d-md-block table-responsive">
+    <table class="table table-hover list-table list-table-pc">
       <thead class="table-light">
         <tr>
           <th class="text-center">日付</th>
           <th class="text-center">支払先</th>
-          <th class="d-none d-md-table-cell text-center">タイプ</th>
+          <th class="text-center">タイプ</th>
           <th class="text-center">金額</th>
           <th class="text-center">科目</th>
-          <th class="d-none d-md-table-cell text-center">備考</th>
+          <th class="text-center">備考</th>
           <th class="text-center">状態</th>
           <th class="no-print text-center">操作</th>
         </tr>
       </thead>
-      <tbody id="listTableBody">
+      <tbody id="listTbodyPc">
         <tr><td colspan="8" class="text-center text-muted py-3">読み込み中...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- スマホテーブル（md未満） -->
+  <div class="d-md-none table-responsive">
+    <table class="table table-sm table-hover list-table list-table-sp">
+      <thead class="table-light">
+        <tr>
+          <th>日付</th>
+          <th>支払先</th>
+          <th class="text-end">金額</th>
+          <th>科目</th>
+          <th class="no-print">操作</th>
+          <th>備考</th>
+          <th>状態</th>
+        </tr>
+      </thead>
+      <tbody id="listTbodySp">
+        <tr><td colspan="7" class="text-center text-muted py-3">読み込み中...</td></tr>
       </tbody>
     </table>
   </div>
@@ -134,8 +154,8 @@ const ListView = (() => {
       _isAdmin = App.isAdmin();
       _expenses = await Sheets.readExpenses();
     } catch (err) {
-      el.querySelector('#listTableBody').innerHTML =
-        `<tr><td colspan="8" class="text-danger text-center">${err.message}</td></tr>`;
+      el.querySelector('#listTbodyPc').innerHTML = `<tr><td colspan="8" class="text-danger text-center">${err.message}</td></tr>`;
+      el.querySelector('#listTbodySp').innerHTML = `<tr><td colspan="7" class="text-danger text-center">${err.message}</td></tr>`;
       return;
     }
 
@@ -200,7 +220,7 @@ const ListView = (() => {
     el.querySelector('#btnExportCsv')?.addEventListener('click', () => _exportCsv(el));
 
     _renderTable(el);
-    requestAnimationFrame(() => _initResizableColumns(el.querySelector('.list-table')));
+    requestAnimationFrame(() => _initResizableColumns(el.querySelector('.list-table-pc')));
   }
 
   const _COL_WIDTHS_KEY = 'keihi_list_col_widths';
@@ -298,61 +318,82 @@ const ListView = (() => {
     el.querySelector('#lblFilterTotal').textContent = filtered.length > 0
       ? `合計 ¥${total.toLocaleString()}` : '';
 
-    const tbody = el.querySelector('#listTableBody');
+    const tbodyPc = el.querySelector('#listTbodyPc');
+    const tbodySp = el.querySelector('#listTbodySp');
+
     if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">該当する申請がありません</td></tr>';
+      tbodyPc.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">該当する申請がありません</td></tr>';
+      tbodySp.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">該当する申請がありません</td></tr>';
       return;
     }
+
     const email = Auth.getUserEmail();
-    tbody.innerHTML = filtered.map(e => {
+    const rowsPc = [], rowsSp = [];
+
+    filtered.forEach(e => {
       const statusBadge = e.confirmed
         ? `<span class="badge badge-confirmed" style="font-size:0.65rem;">承認済</span>`
         : `<span class="badge badge-pending" style="font-size:0.65rem;">未確認</span>`;
-
       const canEdit = !e.confirmed && e.email === email;
       const imageBtn = e.imageLinks
-        ? `<a href="${e.imageLinks.split(',')[0].trim()}" target="_blank" class="btn btn-outline-primary btn-sm py-0">
-            <i class="bi bi-image"></i></a>` : '';
-
+        ? `<a href="${e.imageLinks.split(',')[0].trim()}" target="_blank" class="btn btn-outline-primary btn-sm py-0"><i class="bi bi-image"></i></a>` : '';
       const approveBtn = _isAdmin && !e.confirmed
-        ? `<button class="btn btn-outline-success btn-sm py-0 btn-approve" data-id="${e.id}">
-            <i class="bi bi-check"></i></button>` : '';
-
+        ? `<button class="btn btn-outline-success btn-sm py-0 btn-approve" data-id="${e.id}"><i class="bi bi-check"></i></button>` : '';
       const editBtn = canEdit
-        ? `<button class="btn btn-outline-secondary btn-sm py-0 btn-edit-list" data-id="${e.id}">
-            <i class="bi bi-pencil"></i></button>` : '';
+        ? `<button class="btn btn-outline-secondary btn-sm py-0 btn-edit-list" data-id="${e.id}"><i class="bi bi-pencil"></i></button>` : '';
+      const ops = `<div class="d-flex gap-1">${imageBtn}${approveBtn}${editBtn}</div>`;
 
-      const applicantSub = `<div class="text-muted" style="font-size:0.7rem;">${_escape(e.name)}</div>`;
-
-      return `<tr>
+      // PC行（8列）
+      rowsPc.push(`<tr>
         <td class="list-date">${e.date}</td>
         <td class="list-place">
           <div>${_escape(e.place)}</div>
-          ${applicantSub}
+          <div class="text-muted" style="font-size:0.7rem;">${_escape(e.name)}</div>
         </td>
-        <td class="d-none d-md-table-cell list-type-cell">${_escape(e.type)}</td>
+        <td class="list-type-cell">${_escape(e.type)}</td>
         <td class="text-end list-amount">¥${e.amount.toLocaleString()}</td>
         <td class="list-cat">${_escape(e.category)}</td>
-        <td class="d-none d-md-table-cell list-note-cell text-muted">${_escape(e.note || '')}</td>
+        <td class="list-note-cell text-muted">${_escape(e.note || '')}</td>
         <td>${statusBadge}</td>
-        <td class="no-print">
-          <div class="d-flex gap-1">${imageBtn}${approveBtn}${editBtn}</div>
-        </td>
-      </tr>`;
-    }).join('');
+        <td class="no-print">${ops}</td>
+      </tr>`);
 
-    // 承認ボタンのイベント
-    tbody.querySelectorAll('.btn-approve').forEach(btn => {
-      btn.addEventListener('click', () => _approveExpense(btn.dataset.id, el));
+      // SP行（7列）：日付M/D、支払先+申請者、金額、科目、操作、備考、状態
+      rowsSp.push(`<tr>
+        <td style="white-space:nowrap;font-size:0.75rem;">${_fmtDateShort(e.date)}</td>
+        <td>
+          <div style="font-size:0.78rem;">${_escape(e.place)}</div>
+          <div class="text-muted" style="font-size:0.68rem;">${_escape(e.name)}</div>
+        </td>
+        <td class="text-end" style="white-space:nowrap;font-size:0.78rem;font-weight:600;">¥${e.amount.toLocaleString()}</td>
+        <td style="font-size:0.72rem;white-space:nowrap;">${_escape(e.category)}</td>
+        <td class="no-print">${ops}</td>
+        <td class="text-muted" style="font-size:0.72rem;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${_escape(e.note || '')}</td>
+        <td>${statusBadge}</td>
+      </tr>`);
     });
 
-    // 編集ボタン：申請タブへ遷移して編集モードを起動
-    tbody.querySelectorAll('.btn-edit-list').forEach(btn => {
-      btn.addEventListener('click', () => {
-        SubmitView.queueEdit(btn.dataset.id, _expenses);
-        Router.navigate('submit');
+    tbodyPc.innerHTML = rowsPc.join('');
+    tbodySp.innerHTML = rowsSp.join('');
+
+    // イベントを両テーブルにバインド
+    [tbodyPc, tbodySp].forEach(tbody => {
+      tbody.querySelectorAll('.btn-approve').forEach(btn => {
+        btn.addEventListener('click', () => _approveExpense(btn.dataset.id, el));
+      });
+      tbody.querySelectorAll('.btn-edit-list').forEach(btn => {
+        btn.addEventListener('click', () => {
+          SubmitView.queueEdit(btn.dataset.id, _expenses);
+          Router.navigate('submit');
+        });
       });
     });
+  }
+
+  function _fmtDateShort(dateStr) {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    return `${Number(parts[1])}/${Number(parts[2])}`;
   }
 
   async function _approveExpense(id, el) {

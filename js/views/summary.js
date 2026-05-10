@@ -40,12 +40,6 @@ const SummaryView = (() => {
           <input type="month" class="form-control form-control-sm" id="inputTo"
             value="${toYM}" style="width:140px;">
         </div>
-        <div id="scopeWrap" class="ms-auto d-none">
-          <select class="form-select form-select-sm" id="selScope" style="width:auto;">
-            <option value="me">自分のみ</option>
-            <option value="all">全員</option>
-          </select>
-        </div>
       </div>
     </div>
   </div>
@@ -91,9 +85,6 @@ const SummaryView = (() => {
     const appMain = document.getElementById('appMain');
     if (appMain) appMain.style.maxWidth = '';
 
-    const isAdmin = App.isAdmin();
-    if (isAdmin) el.querySelector('#scopeWrap').classList.remove('d-none');
-
     App.showLoading('読み込み中...');
     try {
       _expenses = await Sheets.readExpenses();
@@ -104,7 +95,7 @@ const SummaryView = (() => {
       App.hideLoading();
     }
 
-    const update = () => _renderAll(el, isAdmin);
+    const update = () => _renderAll(el);
 
     // プリセットボタン
     el.querySelectorAll('#presetBtns [data-months]').forEach(btn => {
@@ -138,7 +129,6 @@ const SummaryView = (() => {
 
     el.querySelector('#inputFrom')?.addEventListener('change', update);
     el.querySelector('#inputTo')?.addEventListener('change', update);
-    el.querySelector('#selScope')?.addEventListener('change', update);
     el.querySelector('#btnRefreshSummary')?.addEventListener('click', async () => {
       App.showLoading('更新中...');
       try { _expenses = await Sheets.readExpenses(); } finally { App.hideLoading(); }
@@ -178,16 +168,13 @@ const SummaryView = (() => {
   }
 
   // ─── メイン描画 ────────────────────────────────────────────
-  function _renderAll(el, isAdmin) {
+  function _renderAll(el) {
     const { fromYM, toYM, months } = _currentRange(el);
-    const scope  = isAdmin ? (el.querySelector('#selScope')?.value || 'me') : 'me';
-    const email  = Auth.getUserEmail();
 
     const filtered = _expenses.filter(e => {
       if (!e.id || !e.date) return false;
       const ym = e.date.substring(0, 7);
       if (ym < fromYM || ym > toYM) return false;
-      if (scope === 'me' && e.email !== email) return false;
       return true;
     });
     const unpaid = filtered.filter(e => !e.confirmed);
