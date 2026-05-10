@@ -11,15 +11,24 @@ export default async function handler(req, res) {
   // バスモードは IC 優先なし、電車はIC優先
   const ticketParam = mode === 'bus' ? '' : '&ticket=ic';
 
+  // Vercel は UTC 動作のため JST (UTC+9) に変換して Yahoo 乗換に渡す
+  const jst = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  const y  = jst.getUTCFullYear();
+  const mo = jst.getUTCMonth() + 1;
+  const d  = jst.getUTCDate();
+  const hh = jst.getUTCHours();
+  const m2 = jst.getUTCMinutes();
+  const timeParams = `&y=${y}&m=${mo}&d=${d}&hh=${hh}&m2=${m2}`;
+
   const printUrl =
     `https://transit.yahoo.co.jp/search/print?` +
     `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}` +
-    `&type=2&expkind=1&userpass=1&ws=3${ticketParam}`;
+    `&type=2&expkind=1&userpass=1&ws=3${ticketParam}${timeParams}`;
 
   const resultUrl =
     `https://transit.yahoo.co.jp/search/result?` +
     `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}` +
-    `&type=2&expkind=1&userpass=1${ticketParam}`;
+    `&type=2&expkind=1&userpass=1${ticketParam}${timeParams}`;
 
   try {
     const resp = await fetch(printUrl, {
