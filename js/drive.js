@@ -40,6 +40,8 @@ const Drive = (() => {
    * @returns {{ id, webViewLink }} ファイルID とウェブリンク
    */
   async function uploadFile(base64, mimeType, filename) {
+    if (typeof Demo !== 'undefined' && Demo.isActive())
+      return { id: 'demo', webViewLink: '' };
     const folderId = _folderId();
 
     // Base64 → Blob
