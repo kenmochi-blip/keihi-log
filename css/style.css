@@ -133,12 +133,12 @@ body { font-size: 0.9rem; }
 .list-amount { font-weight: 600; white-space: nowrap; }
 .list-date  { white-space: nowrap; }
 .list-cat   { white-space: nowrap; }
-.list-note-cell { font-size: 0.75rem; max-width: 200px; }
+.list-note-cell { font-size: 0.75rem; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
 
 /* PC：セルをゆったり */
 @media (min-width: 768px) {
   .list-table th, .list-table td { font-size: 0.875rem; padding: 0.6rem 0.8rem; }
-  .list-note-cell { max-width: 300px; }
+  .list-note-cell { max-width: 400px; }
 }
 
 /* 集計 */
@@ -162,12 +162,25 @@ body { font-size: 0.9rem; }
   padding: 6px 10px;
   border: none;
 }
+.pivot-table thead tr th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: #3a5f82;
+}
 .pivot-table tbody td {
   padding: 5px 10px;
   border-bottom: 1px solid #f0f0f0;
   vertical-align: middle;
 }
+.pivot-table tbody td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: #fff;
+}
 .pivot-table tbody tr:hover td { background: #f5f8ff; }
+.pivot-table tbody tr:hover td:first-child { background: #f5f8ff; }
 .pivot-table .pivot-cell:hover { text-decoration: underline; color: #0a58ca; }
 .pivot-table tfoot td {
   background: #dde8f0;
@@ -175,6 +188,12 @@ body { font-size: 0.9rem; }
   padding: 6px 10px;
   border-top: 2px solid #3a5f82;
   border-bottom: none;
+}
+.pivot-table tfoot td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: #dde8f0;
 }
 .pivot-title { font-size: 0.95rem; }
 

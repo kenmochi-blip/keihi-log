@@ -12,6 +12,7 @@ const ListView = (() => {
   let _showAll  = false;
 
   function render() {
+    const { fromYM, toYM } = _defaultRange();
     return `
 <div class="pt-3">
   <div class="d-flex justify-content-between align-items-center mb-3">
@@ -29,14 +30,24 @@ const ListView = (() => {
   <!-- フィルターパネル -->
   <div class="card mb-3 no-print">
     <div class="card-body py-2 px-3">
-      <!-- PC：1行4列、スマホ：2列 -->
+      <!-- 期間プリセット（集計表と統一） -->
+      <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+        <div class="btn-group btn-group-sm" id="listPresetBtns">
+          <button class="btn btn-outline-secondary" data-months="3">3ヶ月</button>
+          <button class="btn btn-outline-secondary" data-months="6">6ヶ月</button>
+          <button class="btn btn-outline-primary active" data-months="12">12ヶ月</button>
+          <button class="btn btn-outline-secondary" data-months="0">カスタム</button>
+        </div>
+        <div id="listCustomRange" class="d-none d-flex align-items-center gap-1">
+          <input type="month" class="form-control form-control-sm" id="filterMonthFrom"
+            value="${fromYM}" style="width:140px;">
+          <span class="text-muted small">〜</span>
+          <input type="month" class="form-control form-control-sm" id="filterMonthTo"
+            value="${toYM}" style="width:140px;">
+        </div>
+      </div>
+      <!-- タイプ・状態・キーワード -->
       <div class="row g-2">
-        <div class="col-6 col-md-3">
-          <input type="date" class="form-control form-control-sm" id="filterDateFrom" placeholder="開始日">
-        </div>
-        <div class="col-6 col-md-3">
-          <input type="date" class="form-control form-control-sm" id="filterDateTo" placeholder="終了日">
-        </div>
         <div class="col-6 col-md-3">
           <select class="form-select form-select-sm" id="filterType">
             <option value="">タイプ（全て）</option>
@@ -83,14 +94,14 @@ const ListView = (() => {
     <table class="table table-hover list-table">
       <thead class="table-light">
         <tr>
-          <th>日付</th>
-          <th>支払先</th>
-          <th class="d-none d-md-table-cell">タイプ</th>
-          <th class="text-end">金額</th>
-          <th>科目</th>
-          <th class="d-none d-md-table-cell">備考</th>
-          <th>状態</th>
-          <th class="no-print">操作</th>
+          <th class="text-center">日付</th>
+          <th class="text-center">支払先</th>
+          <th class="d-none d-md-table-cell text-center">タイプ</th>
+          <th class="text-center">金額</th>
+          <th class="text-center">科目</th>
+          <th class="d-none d-md-table-cell text-center">備考</th>
+          <th class="text-center">状態</th>
+          <th class="no-print text-center">操作</th>
         </tr>
       </thead>
       <tbody id="listTableBody">
@@ -106,6 +117,17 @@ const ListView = (() => {
     </a>
   </div>
 </div>`;
+  }
+
+  // ─── 期間ヘルパー ────────────────────────────────────────────
+  function _defaultRange() { return _rangeForMonths(12); }
+
+  function _rangeForMonths(n) {
+    const now  = new Date();
+    const toYM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const from = new Date(now.getFullYear(), now.getMonth() - (n - 1), 1);
+    const fromYM = `${from.getFullYear()}-${String(from.getMonth() + 1).padStart(2, '0')}`;
+    return { fromYM, toYM };
   }
 
   async function bindEvents(el) {
@@ -139,8 +161,35 @@ const ListView = (() => {
       }
     }
 
+    // 期間プリセットボタン
+    el.querySelectorAll('#listPresetBtns [data-months]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        el.querySelectorAll('#listPresetBtns [data-months]').forEach(b => {
+          b.classList.remove('active', 'btn-outline-primary');
+          b.classList.add('btn-outline-secondary');
+        });
+        btn.classList.add('active');
+        btn.classList.remove('btn-outline-secondary');
+        btn.classList.add('btn-outline-primary');
+
+        const months = Number(btn.dataset.months);
+        const customRange = el.querySelector('#listCustomRange');
+        if (months === 0) {
+          customRange.classList.remove('d-none');
+        } else {
+          customRange.classList.add('d-none');
+          const { fromYM, toYM } = _rangeForMonths(months);
+          el.querySelector('#filterMonthFrom').value = fromYM;
+          el.querySelector('#filterMonthTo').value   = toYM;
+        }
+        _renderTable(el);
+      });
+    });
+    el.querySelector('#filterMonthFrom')?.addEventListener('change', () => _renderTable(el));
+    el.querySelector('#filterMonthTo')?.addEventListener('change', () => _renderTable(el));
+
     // フィルタリング
-    ['filterDateFrom','filterDateTo','filterType','filterStatus','filterKeyword','filterMember'].forEach(id => {
+    ['filterType','filterStatus','filterKeyword','filterMember'].forEach(id => {
       el.querySelector(`#${id}`)?.addEventListener('input', () => _renderTable(el));
     });
     el.querySelector('#chkShowAll')?.addEventListener('change', e => {
@@ -165,8 +214,10 @@ const ListView = (() => {
   }
 
   function _getFiltered(el) {
-    const from    = el.querySelector('#filterDateFrom')?.value || '';
-    const to      = el.querySelector('#filterDateTo')?.value   || '';
+    const fromYM  = el.querySelector('#filterMonthFrom')?.value || _defaultRange().fromYM;
+    const toYM    = el.querySelector('#filterMonthTo')?.value   || _defaultRange().toYM;
+    const fromDate = fromYM ? `${fromYM}-01` : '';
+    const toDate   = toYM   ? `${toYM}-31`   : '';
     const type    = el.querySelector('#filterType')?.value     || '';
     const status  = el.querySelector('#filterStatus')?.value   || '';
     const keyword = (el.querySelector('#filterKeyword')?.value || '').toLowerCase();
@@ -180,8 +231,8 @@ const ListView = (() => {
         if (e.email !== email) return false;
       } else if (member && e.email !== member) return false;
 
-      if (from && e.date < from) return false;
-      if (to   && e.date > to)   return false;
+      if (fromDate && e.date < fromDate) return false;
+      if (toDate   && e.date > toDate)   return false;
       if (type && e.type !== type) return false;
       if (status === 'confirmed' && !e.confirmed)  return false;
       if (status === 'pending'   &&  e.confirmed)  return false;

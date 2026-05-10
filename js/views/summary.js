@@ -50,15 +50,6 @@ const SummaryView = (() => {
     </div>
   </div>
 
-  <!-- 合計バナー -->
-  <div class="card summary-card mb-3 text-center">
-    <div class="card-body py-3">
-      <div class="text-muted small mb-1" id="lblPeriodLabel">集計中...</div>
-      <div class="summary-total" id="lblTotal">¥0</div>
-      <div class="text-muted small mt-1" id="lblTotalSub"></div>
-    </div>
-  </div>
-
   <!-- ① 勘定科目別 -->
   <div class="card mb-3">
     <div class="card-body">
@@ -200,11 +191,6 @@ const SummaryView = (() => {
       return true;
     });
     const unpaid = filtered.filter(e => !e.confirmed);
-
-    const total = filtered.reduce((s, e) => s + e.amount, 0);
-    el.querySelector('#lblTotal').textContent  = `¥${total.toLocaleString()}`;
-    el.querySelector('#lblTotalSub').textContent = `${filtered.length}件`;
-    el.querySelector('#lblPeriodLabel').textContent = `${_fmtYM(fromYM)} 〜 ${_fmtYM(toYM)}`;
 
     const periodLabel = `直近${months.length}ヶ月間`;
     el.querySelector('#titleMember').textContent = `メンバー別${periodLabel}`;

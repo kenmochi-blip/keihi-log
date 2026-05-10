@@ -39,36 +39,47 @@ const SettingsView = (() => {
     </div>
   </div>
 
-  <!-- ライセンス -->
-  <div class="card mb-3">
-    <div class="card-body">
-      <div class="settings-section-title">ライセンス</div>
-      <div id="licenseStatus" class="mb-2"></div>
-      <div class="input-group">
-        <input type="password" class="form-control form-control-sm" id="inputLicenseKey"
-          placeholder="KL-XXXXXXXXXXXXXXXXXXXX" value="${_escape(licKey)}">
-        <button class="btn btn-outline-primary btn-sm" id="btnVerifyLicense">確認</button>
+  <!-- 初期設定項目（折りたたみ） -->
+  <div class="accordion mb-3" id="initSettingsAcc">
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed py-2" type="button"
+          data-bs-toggle="collapse" data-bs-target="#initSettingsBody">
+          <i class="bi bi-sliders me-2 text-primary"></i>初期設定項目
+        </button>
+      </h2>
+      <div id="initSettingsBody" class="accordion-collapse collapse">
+        <div class="accordion-body px-3 py-2">
+
+          <!-- ライセンス -->
+          <div class="settings-section-title">ライセンス</div>
+          <div id="licenseStatus" class="mb-2"></div>
+          <div class="input-group mb-1">
+            <input type="password" class="form-control form-control-sm" id="inputLicenseKey"
+              placeholder="KL-XXXXXXXXXXXXXXXXXXXX" value="${_escape(licKey)}">
+            <button class="btn btn-outline-primary btn-sm" id="btnVerifyLicense">確認</button>
+          </div>
+          <div id="licenseMsg" class="form-text mb-3"></div>
+
+          <!-- スプレッドシート設定 -->
+          <div class="settings-section-title">スプレッドシート</div>
+          <div class="input-group mb-1">
+            <input type="text" class="form-control form-control-sm" id="inputSheetUrl"
+              placeholder="https://docs.google.com/spreadsheets/d/..." value="${_escape(ssId ? `https://docs.google.com/spreadsheets/d/${ssId}` : '')}">
+            <button class="btn btn-outline-primary btn-sm" id="btnSaveSheetUrl">保存</button>
+          </div>
+          <div id="sheetMsg" class="form-text mb-1"></div>
+          ${ssId ? `<a href="https://docs.google.com/spreadsheets/d/${ssId}" target="_blank" class="btn btn-outline-secondary btn-sm mb-3 w-100">
+            <i class="bi bi-table me-1"></i>スプレッドシートを開く</a>` : '<div class="mb-3"></div>'}
+
+          ${showSetup ? _renderAdminSections(ssId, isAdmin) : ''}
+
+        </div>
       </div>
-      <div id="licenseMsg" class="form-text"></div>
     </div>
   </div>
 
-  <!-- スプレッドシート設定 -->
-  <div class="card mb-3">
-    <div class="card-body">
-      <div class="settings-section-title">スプレッドシート</div>
-      <div class="input-group mb-2">
-        <input type="text" class="form-control form-control-sm" id="inputSheetUrl"
-          placeholder="https://docs.google.com/spreadsheets/d/..." value="${_escape(ssId ? `https://docs.google.com/spreadsheets/d/${ssId}` : '')}">
-        <button class="btn btn-outline-primary btn-sm" id="btnSaveSheetUrl">保存</button>
-      </div>
-      <div id="sheetMsg" class="form-text"></div>
-      ${ssId ? `<a href="https://docs.google.com/spreadsheets/d/${ssId}" target="_blank" class="btn btn-outline-secondary btn-sm mt-1 w-100">
-        <i class="bi bi-table me-1"></i>スプレッドシートを開く</a>` : ''}
-    </div>
-  </div>
-
-  ${showSetup ? _renderAdminSections(ssId, isAdmin) : ''}
+  ${isAdmin ? _renderMasterSections() : ''}
 
   <!-- バージョン情報 -->
   <div class="text-center text-muted mt-4 mb-2" style="font-size:0.7rem;">
@@ -79,34 +90,29 @@ const SettingsView = (() => {
 
   function _renderAdminSections(ssId, isAdmin) {
     return `
-  <!-- 初回セットアップ -->
-  <div class="card mb-3">
-    <div class="card-body">
-      <div class="settings-section-title">スプレッドシート新規作成</div>
-      ${ssId ? '<div class="alert alert-warning small py-2">⚠️ 既にスプレッドシートが設定されています。新規作成すると別のシートが作られます。</div>' : ''}
-      <p class="text-muted small mb-2">スプレッドシートがまだない場合は自動作成できます。</p>
-      <input type="text" class="form-control form-control-sm mb-2" id="inputCompanyName" placeholder="会社名・チーム名">
-      <button class="btn btn-primary btn-sm w-100" id="btnCreateSheet">
-        <i class="bi bi-plus-circle me-1"></i>スプレッドシートを新規作成
-      </button>
-      <div id="createSheetMsg" class="form-text mt-2"></div>
-    </div>
-  </div>
+  <!-- 初回セットアップ（アコーディオン内） -->
+  <div class="settings-section-title">スプレッドシート新規作成</div>
+  ${ssId ? '<div class="alert alert-warning small py-2">⚠️ 既にスプレッドシートが設定されています。新規作成すると別のシートが作られます。</div>' : ''}
+  <p class="text-muted small mb-2">スプレッドシートがまだない場合は自動作成できます。</p>
+  <input type="text" class="form-control form-control-sm mb-2" id="inputCompanyName" placeholder="会社名・チーム名">
+  <button class="btn btn-primary btn-sm w-100" id="btnCreateSheet">
+    <i class="bi bi-plus-circle me-1"></i>スプレッドシートを新規作成
+  </button>
+  <div id="createSheetMsg" class="form-text mt-2 mb-1"></div>
 
   ${isAdmin ? `
-  <!-- Gemini APIキー（管理者のみ） -->
-  <div class="card mb-3">
-    <div class="card-body">
-      <div class="settings-section-title">Gemini APIキー（全メンバー共用）</div>
-      <p class="text-muted small mb-2">Google AI Studioで取得したAPIキーを入力してください。メンバーは個別取得不要です。</p>
-      <div class="input-group">
-        <input type="password" class="form-control form-control-sm" id="inputGeminiKey" placeholder="AIzaSy...">
-        <button class="btn btn-outline-primary btn-sm" id="btnSaveGeminiKey">保存</button>
-      </div>
-      <div id="geminiKeyMsg" class="form-text"></div>
-    </div>
+  <!-- Gemini APIキー（管理者のみ・アコーディオン内） -->
+  <div class="settings-section-title mt-3">Gemini APIキー（全メンバー共用）</div>
+  <p class="text-muted small mb-2">Google AI Studioで取得したAPIキーを入力してください。メンバーは個別取得不要です。</p>
+  <div class="input-group mb-1">
+    <input type="password" class="form-control form-control-sm" id="inputGeminiKey" placeholder="AIzaSy...">
+    <button class="btn btn-outline-primary btn-sm" id="btnSaveGeminiKey">保存</button>
   </div>
+  <div id="geminiKeyMsg" class="form-text"></div>` : ''}`;
+  }
 
+  function _renderMasterSections() {
+    return `
   <!-- メンバー管理（管理者のみ） -->
   <div class="card mb-3">
     <div class="card-body">
@@ -144,7 +150,7 @@ const SettingsView = (() => {
         <div class="text-muted small text-center py-2">読み込み中...</div>
       </div>
     </div>
-  </div>` : ''}`;
+  </div>`;
   }
 
   async function bindEvents(el) {
