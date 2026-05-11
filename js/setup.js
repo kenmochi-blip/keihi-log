@@ -11,7 +11,7 @@ const Setup = (() => {
    * @param {string} companyName 会社名（シートタイトルに使用）
    * @returns {string} 作成されたスプレッドシートID
    */
-  async function createSpreadsheet(companyName) {
+  async function createSpreadsheet(companyName, parentFolderId) {
     const title = `経費ログ - ${companyName || ''}`.trim();
 
     // 1. スプレッドシート作成（シート構成まで一括で作成）
@@ -42,13 +42,18 @@ const Setup = (() => {
     // 2. ヘッダーと初期データを書き込む
     await _writeInitialData(ssId, sheetIds, companyName);
 
-    // 3. Drive フォルダ作成
-    const folderId = await Drive.createFolder(`経費証票 - ${companyName || ''}`.trim());
+    // 3. 保存先フォルダが指定されていればスプレッドシートを移動
+    if (parentFolderId) {
+      await Drive.moveToFolder(ssId, parentFolderId).catch(() => {});
+    }
 
-    // 4. フォルダIDを設定シートに保存
+    // 4. Drive 証票フォルダ作成（保存先フォルダ内 or ルート）
+    const folderId = await Drive.createFolder(`経費証票 - ${companyName || ''}`.trim(), parentFolderId || null);
+
+    // 5. フォルダIDを設定シートに保存
     await Sheets.update('設定!B4', [[folderId]], ssId);
 
-    // 5. localStorageとDriveに保存（端末間同期）
+    // 6. localStorageとDriveに保存（端末間同期）
     localStorage.setItem('keihi_sheet_id', ssId);
     localStorage.setItem('keihi_folder_id', folderId);
     Drive.saveSettings({

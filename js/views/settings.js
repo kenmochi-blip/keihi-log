@@ -1,7 +1,7 @@
 /**
  * 設定・管理ビュー（統合版）
  * 全ユーザー：ライセンス・スプレッドシート設定
- * 管理者のみ：メンバー管理・勘定科目・支払元・Gemini APIキー
+ * 管理者のみ：会社名・Gemini APIキー・メンバー管理・勘定科目・支払元
  */
 const SettingsView = (() => {
 
@@ -12,8 +12,6 @@ const SettingsView = (() => {
     const licKey = localStorage.getItem('keihi_license_key') || '';
     const email  = Auth.getUserEmail();
     const isAdmin = App.isAdmin();
-    // シート未設定の新規ユーザーにも作成ボタンを表示（鶏と卵問題の回避）
-    const showSetup = isAdmin || !ssId;
 
     return `
 <div class="pt-3">
@@ -39,19 +37,58 @@ const SettingsView = (() => {
     </div>
   </div>
 
-  <!-- 初期設定項目（折りたたみ） -->
+  <!-- 初期設定（シート未設定時は自動展開・バッジ表示） -->
   <div class="accordion mb-3" id="initSettingsAcc">
     <div class="accordion-item">
       <h2 class="accordion-header">
-        <button class="accordion-button collapsed py-2" type="button"
+        <button class="accordion-button ${ssId ? 'collapsed' : ''} py-2" type="button"
           data-bs-toggle="collapse" data-bs-target="#initSettingsBody">
-          <i class="bi bi-sliders me-2 text-primary"></i>初期設定項目
+          <i class="bi bi-sliders me-2 text-primary"></i>初期設定
+          ${!ssId ? '<span class="badge bg-danger ms-2" style="font-size:0.65rem;">要設定</span>' : ''}
         </button>
       </h2>
-      <div id="initSettingsBody" class="accordion-collapse collapse">
+      <div id="initSettingsBody" class="accordion-collapse ${ssId ? 'collapse' : ''}">
         <div class="accordion-body px-3 py-2">
 
-          <!-- ライセンス -->
+          <!-- ① スプレッドシート -->
+          <div class="settings-section-title">スプレッドシート</div>
+
+          ${!ssId ? `
+          <!-- 初回：新規作成フォーム -->
+          <div class="alert alert-info small py-2 mb-3">
+            <i class="bi bi-info-circle me-1"></i>
+            管理者の方はまずスプレッドシートを新規作成してください。作成後にURLをメンバーに共有します。
+          </div>
+          <div class="mb-2">
+            <label class="form-label small fw-semibold">会社名・チーム名 <span class="text-danger">*</span></label>
+            <input type="text" class="form-control form-control-sm" id="inputCompanyName" placeholder="例：〇〇株式会社">
+          </div>
+          <div class="mb-2">
+            <label class="form-label small fw-semibold">保存先フォルダ（任意）</label>
+            <input type="text" class="form-control form-control-sm" id="inputFolderUrl"
+              placeholder="Google Drive フォルダのURL（空欄 = マイドライブのルート）">
+            <div class="form-text">Driveで保存先フォルダを開き、URLを貼り付けると指定フォルダに作成されます</div>
+          </div>
+          <button class="btn btn-primary btn-sm w-100 mb-2" id="btnCreateSheet">
+            <i class="bi bi-plus-circle me-1"></i>スプレッドシートを新規作成
+          </button>
+          <div id="createSheetMsg" class="form-text mb-3"></div>
+          <div class="text-center text-muted small mb-2">― または既存のシートを使用 ―</div>
+          ` : ''}
+
+          <!-- シートURL入力（新規作成時は「既存シートを使用」として表示） -->
+          <div class="input-group mb-1">
+            <input type="text" class="form-control form-control-sm" id="inputSheetUrl"
+              placeholder="https://docs.google.com/spreadsheets/d/..."
+              value="${_escape(ssId ? `https://docs.google.com/spreadsheets/d/${ssId}` : '')}">
+            <button class="btn btn-outline-primary btn-sm" id="btnSaveSheetUrl">保存</button>
+          </div>
+          <div id="sheetMsg" class="form-text mb-1"></div>
+          ${ssId ? `<a href="https://docs.google.com/spreadsheets/d/${ssId}" target="_blank"
+            class="btn btn-outline-secondary btn-sm w-100 mb-3">
+            <i class="bi bi-table me-1"></i>スプレッドシートを開く</a>` : '<div class="mb-3"></div>'}
+
+          <!-- ② ライセンス -->
           <div class="settings-section-title">ライセンス</div>
           <div id="licenseStatus" class="mb-2"></div>
           <div class="input-group mb-1">
@@ -59,20 +96,7 @@ const SettingsView = (() => {
               placeholder="KL-XXXXXXXXXXXXXXXXXXXX" value="${_escape(licKey)}">
             <button class="btn btn-outline-primary btn-sm" id="btnVerifyLicense">確認</button>
           </div>
-          <div id="licenseMsg" class="form-text mb-3"></div>
-
-          <!-- スプレッドシート設定 -->
-          <div class="settings-section-title">スプレッドシート</div>
-          <div class="input-group mb-1">
-            <input type="text" class="form-control form-control-sm" id="inputSheetUrl"
-              placeholder="https://docs.google.com/spreadsheets/d/..." value="${_escape(ssId ? `https://docs.google.com/spreadsheets/d/${ssId}` : '')}">
-            <button class="btn btn-outline-primary btn-sm" id="btnSaveSheetUrl">保存</button>
-          </div>
-          <div id="sheetMsg" class="form-text mb-1"></div>
-          ${ssId ? `<a href="https://docs.google.com/spreadsheets/d/${ssId}" target="_blank" class="btn btn-outline-secondary btn-sm mb-3 w-100">
-            <i class="bi bi-table me-1"></i>スプレッドシートを開く</a>` : '<div class="mb-3"></div>'}
-
-          ${showSetup ? _renderAdminSections(ssId, isAdmin) : ''}
+          <div id="licenseMsg" class="form-text mb-1"></div>
 
         </div>
       </div>
@@ -88,31 +112,34 @@ const SettingsView = (() => {
 </div>`;
   }
 
-  function _renderAdminSections(ssId, isAdmin) {
-    return `
-  <!-- 初回セットアップ（アコーディオン内） -->
-  <div class="settings-section-title">スプレッドシート新規作成</div>
-  ${ssId ? '<div class="alert alert-warning small py-2">⚠️ 既にスプレッドシートが設定されています。新規作成すると別のシートが作られます。</div>' : ''}
-  <p class="text-muted small mb-2">スプレッドシートがまだない場合は自動作成できます。</p>
-  <input type="text" class="form-control form-control-sm mb-2" id="inputCompanyName" placeholder="会社名・チーム名">
-  <button class="btn btn-primary btn-sm w-100" id="btnCreateSheet">
-    <i class="bi bi-plus-circle me-1"></i>スプレッドシートを新規作成
-  </button>
-  <div id="createSheetMsg" class="form-text mt-2 mb-1"></div>
-
-  ${isAdmin ? `
-  <!-- Gemini APIキー（管理者のみ・アコーディオン内） -->
-  <div class="settings-section-title mt-3">Gemini APIキー（全メンバー共用）</div>
-  <p class="text-muted small mb-2">Google AI Studioで取得したAPIキーを入力してください。メンバーは個別取得不要です。</p>
-  <div class="input-group mb-1">
-    <input type="password" class="form-control form-control-sm" id="inputGeminiKey" placeholder="AIzaSy...">
-    <button class="btn btn-outline-primary btn-sm" id="btnSaveGeminiKey">保存</button>
-  </div>
-  <div id="geminiKeyMsg" class="form-text"></div>` : ''}`;
-  }
-
   function _renderMasterSections() {
     return `
+  <!-- 会社名（管理者のみ・随時変更可） -->
+  <div class="card mb-3">
+    <div class="card-body">
+      <div class="settings-section-title">会社名</div>
+      <div class="input-group mb-1">
+        <input type="text" class="form-control form-control-sm" id="inputCompanyNameEdit"
+          placeholder="会社名・チーム名">
+        <button class="btn btn-outline-primary btn-sm" id="btnSaveCompanyName">保存</button>
+      </div>
+      <div id="companyNameMsg" class="form-text"></div>
+    </div>
+  </div>
+
+  <!-- Gemini APIキー（管理者のみ） -->
+  <div class="card mb-3">
+    <div class="card-body">
+      <div class="settings-section-title">Gemini APIキー（全メンバー共用）</div>
+      <p class="text-muted small mb-2">Google AI Studioで取得したAPIキーを入力してください。メンバーは個別取得不要です。</p>
+      <div class="input-group mb-1">
+        <input type="password" class="form-control form-control-sm" id="inputGeminiKey" placeholder="AIzaSy...">
+        <button class="btn btn-outline-primary btn-sm" id="btnSaveGeminiKey">保存</button>
+      </div>
+      <div id="geminiKeyMsg" class="form-text"></div>
+    </div>
+  </div>
+
   <!-- メンバー管理（管理者のみ） -->
   <div class="card mb-3">
     <div class="card-body">
@@ -187,20 +214,16 @@ const SettingsView = (() => {
       const btn = el.querySelector('#btnSaveSheetUrl');
       btn.disabled = true; btn.textContent = '確認中...';
       try {
-        // アクセス確認（読み取りテスト）
         await Sheets.read('A1', id);
       } catch (err) {
         const status = (err.message || '').match(/\d{3}/)?.[0];
         if (status === '403') {
           msg.innerHTML = '<span class="text-danger"><i class="bi bi-x-circle me-1"></i>このスプレッドシートへのアクセス権がありません。共有設定を確認してください。</span>';
-          btn.disabled = false; btn.textContent = '保存';
-          return;
+          btn.disabled = false; btn.textContent = '保存'; return;
         } else if (status === '404') {
           msg.innerHTML = '<span class="text-danger"><i class="bi bi-x-circle me-1"></i>スプレッドシートが見つかりません。URLを確認してください。</span>';
-          btn.disabled = false; btn.textContent = '保存';
-          return;
+          btn.disabled = false; btn.textContent = '保存'; return;
         }
-        // その他のエラーは無視して保存続行
       } finally {
         btn.disabled = false; btn.textContent = '保存';
       }
@@ -210,27 +233,27 @@ const SettingsView = (() => {
       _syncSettingsToDrive();
     });
 
-    // スプレッドシート新規作成（シート未設定ユーザーにも開放）
+    // スプレッドシート新規作成（シート未設定時のみ表示）
     el.querySelector('#btnCreateSheet')?.addEventListener('click', async () => {
-      const existing = localStorage.getItem('keihi_sheet_id');
-      if (existing) {
-        const ok = await App.confirm('既にスプレッドシートが設定されています。\n新規作成すると別のシートが作られ、元のデータは残ります。\n本当に新規作成しますか？');
-        if (!ok) return;
-      }
       const name = el.querySelector('#inputCompanyName').value.trim();
-      const msg  = el.querySelector('#createSheetMsg');
-      const btn  = el.querySelector('#btnCreateSheet');
+      if (!name) { App.showToast('会社名・チーム名を入力してください', 'danger'); return; }
+
+      const folderUrl = el.querySelector('#inputFolderUrl')?.value.trim() || '';
+      const parentFolderId = folderUrl.match(/folders\/([a-zA-Z0-9_-]+)/)?.[1] || null;
+
+      const msg = el.querySelector('#createSheetMsg');
+      const btn = el.querySelector('#btnCreateSheet');
       btn.disabled = true;
       btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>作成中...';
       msg.textContent = '';
       try {
-        const ssId = await Setup.createSpreadsheet(name);
+        const ssId = await Setup.createSpreadsheet(name, parentFolderId);
         const url  = `https://docs.google.com/spreadsheets/d/${ssId}`;
         msg.innerHTML = `<span class="text-success"><i class="bi bi-check-circle me-1"></i>作成完了！</span><br>
           <a href="${url}" target="_blank" class="small">${url}</a><br>
           <span class="text-muted small">↑ このURLをメンバーに共有してください</span>`;
-        App.showToast('スプレッドシートを作成しました', 'success');
         el.querySelector('#inputSheetUrl').value = url;
+        App.showToast('スプレッドシートを作成しました', 'success');
       } catch (err) {
         msg.innerHTML = `<span class="text-danger">${_escape(err.message)}</span>`;
       } finally {
@@ -240,6 +263,29 @@ const SettingsView = (() => {
     });
 
     if (!App.isAdmin()) return;
+
+    // 会社名の読み込みと保存
+    try {
+      const companyName = await Sheets.readSetting('B2');
+      if (el.querySelector('#inputCompanyNameEdit')) {
+        el.querySelector('#inputCompanyNameEdit').value = companyName || '';
+      }
+    } catch (_) {}
+
+    el.querySelector('#btnSaveCompanyName')?.addEventListener('click', async () => {
+      const name = el.querySelector('#inputCompanyNameEdit').value.trim();
+      const msg  = el.querySelector('#companyNameMsg');
+      try {
+        await Sheets.update('設定!B2', [[name]]);
+        msg.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>保存しました</span>';
+        App.showToast('会社名を保存しました', 'success');
+        // ナビバーのタイトルを即時更新
+        const titleEl = document.getElementById('navAppTitle');
+        if (titleEl && name) titleEl.textContent = name;
+      } catch (err) {
+        msg.innerHTML = `<span class="text-danger">${_escape(err.message)}</span>`;
+      }
+    });
 
     // Gemini APIキー読み込みと保存
     try {
@@ -411,11 +457,8 @@ const SettingsView = (() => {
     await Sheets.update(`マスタ表!A2:G${rows.length + 1}`, rows);
     App.showToast('保存しました', 'success');
 
-    // メンバー名が登録されている場合、既存申請データの表示名を一括更新
     const syncCount = await _syncMemberNamesToExpenses(_master.members);
-    if (syncCount > 0) {
-      App.showToast(`${syncCount}件の申請データの表示名を更新しました`, 'info');
-    }
+    if (syncCount > 0) App.showToast(`${syncCount}件の申請データの表示名を更新しました`, 'info');
 
     App.clearMasterCache();
     _master = await App.getMaster();
@@ -430,27 +473,18 @@ const SettingsView = (() => {
     try {
       const allRows = await Sheets.read('経費一覧!A2:R');
       if (!allRows.length) return 0;
-
       const emailToName = {};
-      members.forEach(m => {
-        if (m.email && m.name) emailToName[m.email.toLowerCase()] = m.name;
-      });
-
+      members.forEach(m => { if (m.email && m.name) emailToName[m.email.toLowerCase()] = m.name; });
       const updates = [];
       allRows.forEach((row, i) => {
-        const email = (row[15] || '').toLowerCase(); // P列: 申請者Email
-        const currentName = row[1] || '';            // B列: 申請者名
+        const email = (row[15] || '').toLowerCase();
+        const currentName = row[1] || '';
         const newName = emailToName[email];
-        if (newName && newName !== currentName) {
-          updates.push({ range: `経費一覧!B${i + 2}`, values: [[newName]] });
-        }
+        if (newName && newName !== currentName) updates.push({ range: `経費一覧!B${i + 2}`, values: [[newName]] });
       });
-
       if (updates.length > 0) await Sheets.batchUpdateValues(updates);
       return updates.length;
-    } catch (_) {
-      return 0;
-    }
+    } catch (_) { return 0; }
   }
 
   function _updateLicenseStatus(el, result) {

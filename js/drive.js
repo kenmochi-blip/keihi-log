@@ -176,5 +176,14 @@ const Drive = (() => {
     return data.files?.[0]?.id || null;
   }
 
-  return { createFolder, uploadFile, uploadReceiptFile, fileToBase64, saveSettings, loadSettings };
+  async function moveToFolder(fileId, folderId) {
+    if (!fileId || !folderId) return;
+    const resp = await Auth.authFetch(
+      `https://www.googleapis.com/drive/v3/files/${fileId}?addParents=${folderId}&removeParents=root&fields=id`,
+      { method: 'PATCH', headers: { 'Content-Type': 'application/json' } }
+    );
+    if (!resp.ok) throw new Error(`Drive moveToFolder error: ${resp.status}`);
+  }
+
+  return { createFolder, moveToFolder, uploadFile, uploadReceiptFile, fileToBase64, saveSettings, loadSettings };
 })();
