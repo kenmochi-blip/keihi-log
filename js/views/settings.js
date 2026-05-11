@@ -53,15 +53,23 @@ const SettingsView = (() => {
           <!-- ① スプレッドシート -->
           <div class="settings-section-title">スプレッドシート</div>
 
+          ${isAdmin ? `
+          <!-- 会社名（新規作成時は必須・既存シート時は随時変更可） -->
+          <div class="mb-2">
+            <label class="form-label small fw-semibold">会社名・団体名・屋号${!ssId ? ' <span class="text-danger">*</span>' : ''}</label>
+            <div class="${ssId ? 'input-group' : ''}">
+              <input type="text" class="form-control form-control-sm" id="inputCompanyName"
+                placeholder="例：〇〇株式会社、NPO法人〇〇、屋号など">
+              ${ssId ? '<button class="btn btn-outline-primary btn-sm" id="btnSaveCompanyName">保存</button>' : ''}
+            </div>
+            <div id="companyNameMsg" class="form-text"></div>
+          </div>` : ''}
+
           ${!ssId ? `
           <!-- 初回：新規作成フォーム -->
           <div class="alert alert-info small py-2 mb-3">
             <i class="bi bi-info-circle me-1"></i>
             管理者の方はまずスプレッドシートを新規作成してください。作成後にURLをメンバーに共有します。
-          </div>
-          <div class="mb-2">
-            <label class="form-label small fw-semibold">会社名・団体名・屋号 <span class="text-danger">*</span></label>
-            <input type="text" class="form-control form-control-sm" id="inputCompanyName" placeholder="例：〇〇株式会社、NPO法人〇〇、屋号など">
           </div>
           <div class="mb-2">
             <label class="form-label small fw-semibold">保存先フォルダ（任意）</label>
@@ -124,19 +132,6 @@ const SettingsView = (() => {
 
   function _renderMasterSections() {
     return `
-  <!-- 会社名・団体名・屋号（管理者のみ・随時変更可） -->
-  <div class="card mb-3">
-    <div class="card-body">
-      <div class="settings-section-title">会社名・団体名・屋号</div>
-      <div class="input-group mb-1">
-        <input type="text" class="form-control form-control-sm" id="inputCompanyNameEdit"
-          placeholder="例：〇〇株式会社、NPO法人〇〇、屋号など">
-        <button class="btn btn-outline-primary btn-sm" id="btnSaveCompanyName">保存</button>
-      </div>
-      <div id="companyNameMsg" class="form-text"></div>
-    </div>
-  </div>
-
   <!-- メンバー管理（管理者のみ） -->
   <div class="card mb-3">
     <div class="card-body">
@@ -261,22 +256,24 @@ const SettingsView = (() => {
 
     if (!App.isAdmin()) return;
 
-    // 会社名の読み込みと保存
-    try {
-      const companyName = await Sheets.readSetting('B2');
-      if (el.querySelector('#inputCompanyNameEdit')) {
-        el.querySelector('#inputCompanyNameEdit').value = companyName || '';
-      }
-    } catch (_) {}
+    // 会社名の読み込みと保存（ssId がある場合のみ。新規作成時は作成ボタンで使用される）
+    const ssId = localStorage.getItem('keihi_sheet_id');
+    if (ssId) {
+      try {
+        const companyName = await Sheets.readSetting('B2');
+        if (el.querySelector('#inputCompanyName')) {
+          el.querySelector('#inputCompanyName').value = companyName || '';
+        }
+      } catch (_) {}
+    }
 
     el.querySelector('#btnSaveCompanyName')?.addEventListener('click', async () => {
-      const name = el.querySelector('#inputCompanyNameEdit').value.trim();
+      const name = el.querySelector('#inputCompanyName').value.trim();
       const msg  = el.querySelector('#companyNameMsg');
       try {
         await Sheets.update('設定!B2', [[name]]);
         msg.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>保存しました</span>';
         App.showToast('会社名を保存しました', 'success');
-        // ナビバーのタイトルを即時更新
         const titleEl = document.getElementById('navAppTitle');
         if (titleEl) titleEl.textContent = name ? `経費ログ - ${name}` : '経費ログ';
       } catch (err) {
