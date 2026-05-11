@@ -201,7 +201,7 @@ const SummaryView = (() => {
     const unpaid = filtered.filter(e => !e.confirmed);
 
     const periodLabel = `直近${months.length}ヶ月間`;
-    el.querySelector('#titleMember').textContent = `メンバー別${periodLabel}`;
+    el.querySelector('#titleMember').textContent = `メンバー別（${periodLabel}）`;
     el.querySelector('#titleUnpaid').textContent = `未精算一覧（${periodLabel}）`;
     el.querySelector('#titleCat').textContent    = `勘定科目一覧（${periodLabel}）`;
 
