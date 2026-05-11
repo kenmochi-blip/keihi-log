@@ -37,7 +37,7 @@ const SubmitView = (() => {
       <i class="bi bi-pencil-square"></i>領収書なし
     </button>
     <button class="type-card" data-type="交通費">
-      <i class="bi bi-train-front-fill"></i>電車/バス/高速
+      <i class="bi bi-train-front-fill"></i>電車/バス
     </button>
     <button class="type-card" data-type="自家用車">
       <i class="bi bi-car-front-fill"></i>自家用車
@@ -114,11 +114,11 @@ const SubmitView = (() => {
     ${_dateField()}
     <div class="row g-2 mb-2">
       <div class="col-6">
-        <label class="form-label small fw-semibold">出発駅・停留所</label>
+        <label class="form-label small fw-semibold">出発駅・バス停</label>
         <input type="text" class="form-control form-control-sm" id="txtFrom" placeholder="例：渋谷">
       </div>
       <div class="col-6">
-        <label class="form-label small fw-semibold">到着駅・停留所</label>
+        <label class="form-label small fw-semibold">到着駅・バス停</label>
         <input type="text" class="form-control form-control-sm" id="txtTo" placeholder="例：新宿">
       </div>
     </div>
