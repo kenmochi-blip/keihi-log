@@ -78,7 +78,7 @@ const SettingsView = (() => {
             <div class="form-text">Driveで保存先フォルダを開き、URLを貼り付けると指定フォルダに作成されます</div>
           </div>
           <button class="btn btn-primary btn-sm w-100 mb-2" id="btnCreateSheet">
-            <i class="bi bi-plus-circle me-1"></i>スプレッドシートを新規作成
+            <i class="bi bi-plus-circle me-1"></i>データ保存先を新規作成
           </button>
           <div id="createSheetMsg" class="form-text mb-3"></div>
           ` : ''}
@@ -290,7 +290,7 @@ const SettingsView = (() => {
         msg.innerHTML = `<span class="text-danger">${_escape(err.message)}</span>`;
       } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-plus-circle me-1"></i>スプレッドシートを新規作成';
+        btn.innerHTML = '<i class="bi bi-plus-circle me-1"></i>データ保存先を新規作成';
       }
     });
 
