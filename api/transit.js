@@ -99,9 +99,9 @@ function _parse(html) {
   const minutes = timeMatch ? parseInt(timeMatch[1], 10) : null;
 
   // --- 乗換駅（中間駅）の抽出 ---
-  // Yahoo乗換結果ページでは "○○駅 乗換" または "○○ で乗り換え" の形式で記載される
+  // "○○駅乗換" または "○○駅で乗り換え" の形式のみに限定（駅で終わるものだけ）
   const transferSet = new Set();
-  const transferRe = /([^\s　、。「」（）\d]{2,10}(?:駅|バス停)?)\s*(?:で\s*)?(?:乗り換え|乗換)/g;
+  const transferRe = /([^\s　、。「」（）\d&＆]{2,8}駅)\s*(?:で\s*)?(?:乗り換え|乗換)/g;
   for (const m of text.matchAll(transferRe)) {
     const name = m[1].replace(/駅$/, '').trim();
     if (name.length >= 2) transferSet.add(name);
