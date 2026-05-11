@@ -8,7 +8,8 @@ const SettingsView = (() => {
   let _master = null;
 
   function render() {
-    const ssId   = localStorage.getItem('keihi_sheet_id')    || '';
+    const isDemo = typeof Demo !== 'undefined' && Demo.isActive();
+    const ssId   = isDemo ? Demo.SHEET_ID : (localStorage.getItem('keihi_sheet_id') || '');
     const licKey = localStorage.getItem('keihi_license_key') || '';
     const email  = Auth.getUserEmail();
     const isAdmin = App.isAdmin();
@@ -123,7 +124,8 @@ const SettingsView = (() => {
   }
 
   function _renderMasterSections() {
-    const ssId = localStorage.getItem('keihi_sheet_id') || '';
+    const isDemo = typeof Demo !== 'undefined' && Demo.isActive();
+    const ssId = isDemo ? '' : (localStorage.getItem('keihi_sheet_id') || '');
     const shareUrl = ssId ? `${location.origin}/${ssId}` : '';
     return `
   <!-- メンバー招待URL（管理者のみ） -->
