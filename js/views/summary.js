@@ -212,6 +212,7 @@ const SummaryView = (() => {
 
   // ─── キー関数 ──────────────────────────────────────────────
   function _memberKey(e) {
+    if (e.payment) return [{ key: `🏢 ${e.payment}`, amount: e.amount }];
     return [{ key: e.name || e.email || '（不明）', amount: e.amount }];
   }
   function _categoryKey(e) {
