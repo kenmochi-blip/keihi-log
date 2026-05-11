@@ -99,10 +99,16 @@ const SubmitView = (() => {
     <div class="mb-2">
       <label class="form-label small fw-semibold">参考資料（任意）</label>
       <div class="d-flex flex-wrap gap-2 mb-2" id="previewArea-領収書なし"></div>
+      <input type="file" class="d-none" id="camInput-領収書なし" accept="image/*" capture="environment">
       <input type="file" class="d-none" id="fileInput-領収書なし" accept="*/*" multiple>
-      <button class="btn btn-outline-secondary btn-sm" id="btnFile-領収書なし">
-        <i class="bi bi-folder2-open me-1"></i>ファイル選択
-      </button>
+      <div class="d-flex gap-2">
+        <button class="upload-card-sm flex-fill" id="btnCamera-領収書なし">
+          <i class="bi bi-camera-fill"></i>カメラ
+        </button>
+        <button class="upload-card-sm flex-fill" id="btnFile-領収書なし">
+          <i class="bi bi-folder-fill"></i>ファイル
+        </button>
+      </div>
     </div>
   </div>
 
@@ -155,10 +161,16 @@ const SubmitView = (() => {
     <div class="mb-2">
       <label class="form-label small fw-semibold">領収書（任意）</label>
       <div class="d-flex flex-wrap gap-2 mb-2" id="previewArea-交通費"></div>
+      <input type="file" class="d-none" id="camInput-交通費" accept="image/*" capture="environment">
       <input type="file" class="d-none" id="fileInput-交通費" accept="*/*" multiple>
-      <button class="btn btn-outline-secondary btn-sm" id="btnFile-交通費">
-        <i class="bi bi-folder2-open me-1"></i>ファイル選択
-      </button>
+      <div class="d-flex gap-2">
+        <button class="upload-card-sm flex-fill" id="btnCamera-交通費">
+          <i class="bi bi-camera-fill"></i>カメラ
+        </button>
+        <button class="upload-card-sm flex-fill" id="btnFile-交通費">
+          <i class="bi bi-folder-fill"></i>ファイル
+        </button>
+      </div>
     </div>
   </div>
 
@@ -192,10 +204,16 @@ const SubmitView = (() => {
     <div class="mb-2">
       <label class="form-label small fw-semibold">地図・参考資料（任意）</label>
       <div class="d-flex flex-wrap gap-2 mb-2" id="previewArea-自家用車"></div>
+      <input type="file" class="d-none" id="camInput-自家用車" accept="image/*" capture="environment">
       <input type="file" class="d-none" id="fileInput-自家用車" accept="*/*" multiple>
-      <button class="btn btn-outline-secondary btn-sm" id="btnFile-自家用車">
-        <i class="bi bi-folder2-open me-1"></i>ファイル選択
-      </button>
+      <div class="d-flex gap-2">
+        <button class="upload-card-sm flex-fill" id="btnCamera-自家用車">
+          <i class="bi bi-camera-fill"></i>カメラ
+        </button>
+        <button class="upload-card-sm flex-fill" id="btnFile-自家用車">
+          <i class="bi bi-folder-fill"></i>ファイル
+        </button>
+      </div>
     </div>
   </div>
 
