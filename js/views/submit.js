@@ -546,8 +546,7 @@ const SubmitView = (() => {
         if (resultDiv) {
           const transfers = data.transfers?.length ? data.transfers.join(' → ') : null;
           const routeText = transfers ? `${from} → ${transfers} → ${to}` : `${from} → ${to}`;
-          const timeText  = data.minutes ? `（約${data.minutes}分）` : '';
-          el.querySelector('#transitResultRoute').textContent = `${routeText}${timeText}`;
+          el.querySelector('#transitResultRoute').textContent = routeText;
           el.querySelector('#transitResultFare').textContent =
             `最安値（IC）: ¥${data.fare.toLocaleString()} ／片道`;
           const link = el.querySelector('#transitResultLink');

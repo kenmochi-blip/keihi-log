@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="560" viewBox="0 0 400 560">
+  <rect width="400" height="560" fill="#fff" stroke="#ddd" stroke-width="1"/>
+  <!-- ヘッダー -->
+  <rect width="400" height="70" fill="#1a3a5c"/>
+  <text x="200" y="35" font-family="sans-serif" font-size="20" font-weight="bold" fill="white" text-anchor="middle">大阪ビジネスホテル</text>
+  <text x="200" y="58" font-family="sans-serif" font-size="12" fill="#aad4f5" text-anchor="middle">OSAKA BUSINESS HOTEL</text>
+  <!-- 領収書タイトル -->
+  <text x="200" y="105" font-family="sans-serif" font-size="22" font-weight="bold" fill="#1a3a5c" text-anchor="middle">領　収　書</text>
+  <line x1="30" y1="115" x2="370" y2="115" stroke="#1a3a5c" stroke-width="2"/>
+  <!-- 宛先 -->
+  <text x="40" y="145" font-family="sans-serif" font-size="14" fill="#333">御名前：デモ ユーザー　様</text>
+  <line x1="30" y1="155" x2="370" y2="155" stroke="#ccc" stroke-width="1"/>
+  <!-- 金額 -->
+  <text x="40" y="185" font-family="sans-serif" font-size="13" fill="#555">下記の通り領収いたしました。</text>
+  <rect x="30" y="200" width="340" height="60" fill="#f0f5fb" rx="4"/>
+  <text x="200" y="223" font-family="sans-serif" font-size="14" fill="#555" text-anchor="middle">金　額</text>
+  <text x="200" y="250" font-family="sans-serif" font-size="28" font-weight="bold" fill="#1a3a5c" text-anchor="middle">￥12,000</text>
+  <text x="200" y="275" font-family="sans-serif" font-size="11" fill="#888" text-anchor="middle">（税込）</text>
+  <!-- 明細 -->
+  <line x1="30" y1="285" x2="370" y2="285" stroke="#ccc" stroke-width="1"/>
+  <text x="40" y="310" font-family="sans-serif" font-size="13" fill="#333">品　目：宿泊料金</text>
+  <text x="40" y="335" font-family="sans-serif" font-size="13" fill="#333">宿泊日：2026年5月9日（土）</text>
+  <text x="40" y="360" font-family="sans-serif" font-size="13" fill="#333">室　数：シングル × 1泊</text>
+  <text x="40" y="385" font-family="sans-serif" font-size="13" fill="#333">内　訳：室料 ¥10,909　消費税 ¥1,091</text>
+  <line x1="30" y1="400" x2="370" y2="400" stroke="#ccc" stroke-width="1"/>
+  <!-- インボイス -->
+  <text x="40" y="425" font-family="sans-serif" font-size="12" fill="#555">登録番号：T1234567890123</text>
+  <text x="40" y="447" font-family="sans-serif" font-size="12" fill="#555">発行日：2026年5月10日</text>
+  <!-- 住所 -->
+  <line x1="30" y1="460" x2="370" y2="460" stroke="#ccc" stroke-width="1"/>
+  <text x="200" y="483" font-family="sans-serif" font-size="11" fill="#888" text-anchor="middle">〒530-0001 大阪府大阪市北区梅田1-1-1</text>
+  <text x="200" y="500" font-family="sans-serif" font-size="11" fill="#888" text-anchor="middle">TEL: 06-1234-5678</text>
+  <!-- スタンプ風 -->
+  <circle cx="320" cy="440" r="42" fill="none" stroke="#c0392b" stroke-width="3" opacity="0.7"/>
+  <text x="320" y="433" font-family="sans-serif" font-size="13" font-weight="bold" fill="#c0392b" text-anchor="middle" opacity="0.7">領　収</text>
+  <text x="320" y="452" font-family="sans-serif" font-size="11" fill="#c0392b" text-anchor="middle" opacity="0.7">済　み</text>
+  <!-- フッター -->
+  <rect y="530" width="400" height="30" fill="#1a3a5c"/>
+  <text x="200" y="550" font-family="sans-serif" font-size="10" fill="#aad4f5" text-anchor="middle">ありがとうございました</text>
+</svg>
