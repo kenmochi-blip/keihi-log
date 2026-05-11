@@ -218,12 +218,46 @@ const SettingsView = (() => {
       btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>作成中...';
       msg.textContent = '';
       try {
-        const ssId = await Setup.createSpreadsheet(name, parentFolderId);
-        const url  = `https://docs.google.com/spreadsheets/d/${ssId}`;
-        msg.innerHTML = `<span class="text-success"><i class="bi bi-check-circle me-1"></i>作成完了！</span><br>
-          <a href="${url}" target="_blank" class="small">${url}</a><br>
-          <span class="text-muted small">↑ このURLをメンバーに共有してください</span>`;
-        el.querySelector('#inputSheetUrl').value = url;
+        const ssId    = await Setup.createSpreadsheet(name, parentFolderId);
+        const shareUrl = `${location.origin}${location.pathname}?sheet=${ssId}`;
+        const qrUrl   = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(shareUrl)}`;
+        const mailSubject = encodeURIComponent(`【経費ログ】${name} へのご招待`);
+        const mailBody = encodeURIComponent(
+          `${name} の経費ログにご参加ください。\n\n` +
+          `以下のURLからアクセスしてGoogleアカウントでログインしてください。\n\n` +
+          `${shareUrl}\n\n` +
+          `（QRコードは設定画面からご確認いただけます）`
+        );
+        msg.innerHTML = `
+          <div class="alert alert-success py-2 mt-2 mb-0">
+            <div class="fw-semibold mb-2"><i class="bi bi-check-circle me-1"></i>スプレッドシートを作成しました</div>
+            <div class="mb-2 small">メンバーに以下のURLを共有してください：</div>
+            <div class="input-group input-group-sm mb-2">
+              <input type="text" class="form-control form-control-sm" id="shareUrlDisplay"
+                value="${_escape(shareUrl)}" readonly>
+              <button class="btn btn-outline-secondary btn-sm" id="btnCopyShareUrl">
+                <i class="bi bi-clipboard"></i>
+              </button>
+            </div>
+            <div class="text-center mb-2">
+              <img src="${qrUrl}" alt="QRコード" width="160" height="160"
+                class="rounded border" style="image-rendering:pixelated;">
+              <div class="text-muted" style="font-size:0.7rem;">QRコードをスクリーンショットしてメールなどで共有できます</div>
+            </div>
+            <div class="d-flex gap-2">
+              <a href="mailto:?subject=${mailSubject}&body=${mailBody}"
+                class="btn btn-outline-primary btn-sm flex-fill">
+                <i class="bi bi-envelope me-1"></i>メールで送る
+              </a>
+              <button class="btn btn-primary btn-sm flex-fill" id="btnReloadAfterCreate">
+                <i class="bi bi-arrow-clockwise me-1"></i>再読み込みして開始
+              </button>
+            </div>
+          </div>`;
+        el.querySelector('#btnCopyShareUrl')?.addEventListener('click', () => {
+          navigator.clipboard.writeText(shareUrl).then(() => App.showToast('URLをコピーしました', 'success'));
+        });
+        el.querySelector('#btnReloadAfterCreate')?.addEventListener('click', () => location.reload());
         App.showToast('スプレッドシートを作成しました', 'success');
       } catch (err) {
         msg.innerHTML = `<span class="text-danger">${_escape(err.message)}</span>`;
