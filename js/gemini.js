@@ -49,15 +49,13 @@ const Gemini = (() => {
    * @param {string[]} categories 勘定科目リスト
    */
   async function analyzeReceipt(files, categories) {
-    // デモモード時はプロキシ経由のため画像を圧縮（Vercel 4.5MB上限対策）
-    const isDemo = typeof Demo !== 'undefined' && Demo.isActive();
-    const processedFiles = isDemo
-      ? await Promise.all(files.map(async f => ({
-          ...f,
-          base64: await _compressImage(f.base64, f.mimeType),
-          mimeType: f.mimeType.startsWith('image/') ? 'image/jpeg' : f.mimeType,
-        })))
-      : files;
+    // 電帳法要件（200万画素以上）を満たしつつ圧縮（2000px長辺・quality 0.85）
+    // 2000×1500=300万画素で要件をクリア。全モードで適用。
+    const processedFiles = await Promise.all(files.map(async f => ({
+      ...f,
+      base64: await _compressImage(f.base64, f.mimeType, 2000, 0.85),
+      mimeType: f.mimeType.startsWith('image/') ? 'image/jpeg' : f.mimeType,
+    })));
 
     const imageParts = processedFiles.map(f => ({
       inlineData: {
