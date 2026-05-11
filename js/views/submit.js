@@ -968,31 +968,12 @@ const SubmitView = (() => {
     list.innerHTML = '<div class="text-muted small text-center py-2">読み込み中...</div>';
     try {
       const all = await Sheets.readExpenses();
-<<<<<<< HEAD
       _historyExpenses = all;
       _historyAll = all
         .filter(e => e.email === Auth.getUserEmail())
         .sort((a, b) => (b.appliedAt || b.date).localeCompare(a.appliedAt || a.date));
       _historyShown = _HIST_PAGE;
       _renderHistory(el);
-=======
-      const email = Auth.getUserEmail();
-      const mine  = all
-        .filter(e => e.email === email)
-        .sort((a, b) => (b.appliedAt || b.date).localeCompare(a.appliedAt || a.date))
-        .slice(0, 10);
-      if (mine.length === 0) {
-        list.innerHTML = '<div class="text-muted small text-center py-3">申請履歴がありません</div>';
-        return;
-      }
-      list.innerHTML = mine.map(e => _renderHistoryCard(e)).join('');
-      list.querySelectorAll('.btn-edit-history').forEach(btn => {
-        btn.addEventListener('click', () => _startEdit(el, btn.dataset.id, all));
-      });
-      list.querySelectorAll('.btn-del-history').forEach(btn => {
-        btn.addEventListener('click', () => _deleteExpense(btn.dataset.id, el));
-      });
->>>>>>> origin/main
     } catch (err) {
       list.innerHTML = `<div class="text-danger small text-center py-2">${err.message}</div>`;
     }
