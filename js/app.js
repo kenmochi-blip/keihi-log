@@ -94,7 +94,7 @@ const App = (() => {
     const savedNavColor = localStorage.getItem('keihi_nav_color');
     if (savedNavColor) {
       const navbar = document.querySelector('nav.navbar.sticky-top');
-      if (navbar) navbar.style.backgroundColor = savedNavColor;
+      if (navbar) navbar.style.setProperty('background-color', savedNavColor, 'important');
     }
 
     // ナビゲーションにユーザーEmail表示

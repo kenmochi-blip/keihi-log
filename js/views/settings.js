@@ -390,7 +390,7 @@ const SettingsView = (() => {
   function _applyNavColor(hexColor) {
     const navbar = document.querySelector('nav.navbar.sticky-top');
     if (!navbar) return;
-    navbar.style.backgroundColor = hexColor;
+    navbar.style.setProperty('background-color', hexColor, 'important');
     // 明度を計算して文字色を白/黒に自動切替
     const r = parseInt(hexColor.slice(1, 3), 16);
     const g = parseInt(hexColor.slice(3, 5), 16);
