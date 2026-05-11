@@ -308,9 +308,9 @@ const SummaryView = (() => {
       <div class="modal fade" tabindex="-1">
         <div class="modal-dialog modal-lg modal-dialog-scrollable">
           <div class="modal-content">
-            <div class="modal-header py-2">
-              <h6 class="modal-title">${_escape(title)}</h6>
-              <button class="btn-close" data-bs-dismiss="modal"></button>
+            <div class="modal-header py-2 justify-content-center position-relative">
+              <h6 class="modal-title text-center w-100">${_escape(title)}</h6>
+              <button class="btn-close position-absolute end-0 me-3" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-0">
               <div class="table-responsive">
