@@ -316,7 +316,7 @@ const SummaryView = (() => {
               <div class="table-responsive">
                 <table class="table table-sm mb-0">
                   <thead class="table-light">
-                    <tr><th>日付</th><th>支払先</th><th class="text-end">金額</th><th>申請者</th><th>科目</th><th>状態</th></tr>
+                    <tr><th class="text-center">日付</th><th class="text-center">支払先</th><th class="text-center">金額</th><th class="text-center">申請者</th><th class="text-center">科目</th><th class="text-center">状態</th></tr>
                   </thead>
                   <tbody>${rows}</tbody>
                   <tfoot class="table-light">
