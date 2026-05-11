@@ -823,7 +823,10 @@ const SubmitView = (() => {
           await Sheets.update(`経費一覧!A${rowNum}:R${rowNum}`, [row]);
         }
       } else {
-        await Sheets.append('経費一覧', row);
+        const appendResult = await Sheets.append('経費一覧', row);
+        if (appendResult?.updates?.updatedRange) {
+          Sheets.formatExpenseRow(appendResult.updates.updatedRange).catch(() => {});
+        }
       }
 
       App.showToast(_editId ? '修正しました' : '登録しました', 'success');

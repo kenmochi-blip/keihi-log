@@ -218,6 +218,57 @@ const Sheets = (() => {
     return resp.json();
   }
 
+  /** シート名 → sheetId のマップを返す */
+  async function _getSheetId(sheetName, ssId) {
+    const resp = await Auth.authFetch(`${BASE}/${ssId}?fields=sheets.properties`);
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    const sheet = data.sheets.find(s => s.properties.title === sheetName);
+    return sheet ? sheet.properties.sheetId : null;
+  }
+
+  /**
+   * 経費一覧に追記した後、行の書式をリセットし金額列をカンマ右寄せにする
+   * @param {string} updatedRange  append レスポンスの updates.updatedRange
+   */
+  async function formatExpenseRow(updatedRange, ssId) {
+    if (typeof Demo !== 'undefined' && Demo.isActive()) return;
+    ssId = ssId || _ssId();
+    const match = updatedRange.match(/!A(\d+):/);
+    if (!match) return;
+    const rowIdx = parseInt(match[1], 10) - 1; // 0-based
+
+    const sheetId = await _getSheetId('経費一覧', ssId);
+    if (sheetId === null) return;
+
+    const rowRange = { sheetId, startRowIndex: rowIdx, endRowIndex: rowIdx + 1 };
+    const amountCols = [5, 13]; // F列（金額）・N列（AI解析額）
+
+    await batchUpdate([
+      // 行全体の書式をリセット（ヘッダー色の引き継ぎを除去）
+      {
+        repeatCell: {
+          range: rowRange,
+          cell: { userEnteredFormat: {} },
+          fields: 'userEnteredFormat',
+        }
+      },
+      // 金額列に #,##0 フォーマットと右寄せを適用
+      ...amountCols.map(col => ({
+        repeatCell: {
+          range: { ...rowRange, startColumnIndex: col, endColumnIndex: col + 1 },
+          cell: {
+            userEnteredFormat: {
+              numberFormat: { type: 'NUMBER', pattern: '#,##0' },
+              horizontalAlignment: 'RIGHT',
+            }
+          },
+          fields: 'userEnteredFormat(numberFormat,horizontalAlignment)',
+        }
+      })),
+    ], ssId);
+  }
+
   return {
     read,
     append,
@@ -228,6 +279,7 @@ const Sheets = (() => {
     readExpenses,
     expenseToRow,
     findRowById,
+    formatExpenseRow,
     readSetting,
     readMaster,
     _rowToExpense,
