@@ -4,7 +4,8 @@
   ],
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api/:path*" },
-    { "source": "/((?!js/|css/|api/).*)", "destination": "/index.html" }
+    { "source": "/privacy", "destination": "/privacy.html" },
+    { "source": "/((?!js/|css/|api/|privacy\\.html|privacy|demo/).*)", "destination": "/index.html" }
   ],
   "headers": [
     {
