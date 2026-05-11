@@ -549,7 +549,7 @@ const SubmitView = (() => {
           const timeText  = data.minutes ? `（約${data.minutes}分）` : '';
           el.querySelector('#transitResultRoute').textContent = `${routeText}${timeText}`;
           el.querySelector('#transitResultFare').textContent =
-            `${fareLabel}: ¥${data.fare.toLocaleString()} ／片道`;
+            `最安値（IC）: ¥${data.fare.toLocaleString()} ／片道`;
           const link = el.querySelector('#transitResultLink');
           if (link) link.href = data.resultUrl;
           resultDiv.classList.remove('d-none');
