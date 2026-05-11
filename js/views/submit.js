@@ -777,13 +777,14 @@ const SubmitView = (() => {
       const userName = master.members.find(m => m.email === Auth.getUserEmail())?.name
         || Auth.getUserInfo()?.name || Auth.getUserEmail();
 
-      const dateStr = data.date.replace(/-/g, '');
-      const amtStr  = String(data.amount);
+      const dateStr  = data.date.replace(/-/g, '');
+      const amtStr   = String(data.amount);
+      const placeStr = (data.place || '').replace(/[\\/:*?"<>|]/g, '').trim().slice(0, 20);
 
       for (let i = 0; i < activeFiles.length; i++) {
         const f = activeFiles[i];
-        const ext = f.mimeType.split('/')[1] || 'jpg';
-        const filename = `${dateStr}_${amtStr}円_${userName}_${i + 1}.${ext}`;
+        const ext = f.mimeType.split('/')[1]?.replace('jpeg', 'jpg') || 'jpg';
+        const filename = `${dateStr}_${placeStr}_${amtStr}円_${userName}_${i + 1}.${ext}`;
         const { url, hash, warn } = await Drive.uploadReceiptFile(f.base64, f.mimeType, filename);
         uploadedUrls.push(url);
         hashes.push(hash);

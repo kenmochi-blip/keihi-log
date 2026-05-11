@@ -162,6 +162,21 @@ const SettingsView = (() => {
     </div>
   </div>
 
+  <!-- 証票保存フォルダ（管理者のみ） -->
+  <div class="card mb-3">
+    <div class="card-body">
+      <div class="settings-section-title">証票保存フォルダ</div>
+      <p class="text-muted small mb-2">領収書・証票画像のアップロード先フォルダです。</p>
+      <div id="folderCurrentLink" class="mb-2"></div>
+      <div class="input-group mb-1">
+        <input type="text" class="form-control form-control-sm" id="inputReceiptFolderUrl"
+          placeholder="Google Drive フォルダのURL">
+        <button class="btn btn-outline-primary btn-sm" id="btnSaveReceiptFolder">変更</button>
+      </div>
+      <div id="receiptFolderMsg" class="form-text"></div>
+    </div>
+  </div>
+
   <!-- ヘッダー色（管理者のみ） -->
   <div class="card mb-3">
     <div class="card-body">
@@ -326,6 +341,43 @@ const SettingsView = (() => {
     el.querySelector('#btnAddMember')?.addEventListener('click', () => _showMemberForm(el, null));
     el.querySelector('#btnAddCategory')?.addEventListener('click', () => _showInlineAdd(el, 'category'));
     el.querySelector('#btnAddPaySource')?.addEventListener('click', () => _showInlineAdd(el, 'paySource'));
+
+    // 証票フォルダ：現在値を表示してリンクとURL入力欄を設定
+    const currentFolderId = localStorage.getItem('keihi_folder_id') || await Sheets.readSetting('B4').catch(() => '');
+    const folderLinkEl = el.querySelector('#folderCurrentLink');
+    if (folderLinkEl) {
+      folderLinkEl.innerHTML = currentFolderId
+        ? `<a href="https://drive.google.com/drive/folders/${currentFolderId}" target="_blank" class="small">
+             <i class="bi bi-folder-fill me-1 text-warning"></i>現在のフォルダを開く</a>`
+        : '<span class="text-muted small">未設定</span>';
+    }
+
+    el.querySelector('#btnSaveReceiptFolder')?.addEventListener('click', async () => {
+      const raw = el.querySelector('#inputReceiptFolderUrl').value.trim();
+      const folderId = raw.match(/folders\/([a-zA-Z0-9_-]+)/)?.[1] || '';
+      const msg = el.querySelector('#receiptFolderMsg');
+      if (!folderId) {
+        msg.innerHTML = '<span class="text-danger">DriveフォルダのURLを正しく入力してください</span>';
+        return;
+      }
+      try {
+        await Sheets.update('設定!B4', [[folderId]]);
+        localStorage.setItem('keihi_folder_id', folderId);
+        Drive.saveSettings({
+          licenseKey: localStorage.getItem('keihi_license_key') || '',
+          sheetId:    localStorage.getItem('keihi_sheet_id')    || '',
+          folderId,
+        }).catch(() => {});
+        msg.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>保存しました</span>';
+        if (folderLinkEl) {
+          folderLinkEl.innerHTML = `<a href="https://drive.google.com/drive/folders/${folderId}" target="_blank" class="small">
+            <i class="bi bi-folder-fill me-1 text-warning"></i>現在のフォルダを開く</a>`;
+        }
+        App.showToast('証票フォルダを変更しました', 'success');
+      } catch (err) {
+        msg.innerHTML = `<span class="text-danger">${_escape(err.message)}</span>`;
+      }
+    });
 
     // ヘッダー色：設定シートから読み込み
     try {
