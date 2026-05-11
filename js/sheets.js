@@ -58,6 +58,7 @@ const Sheets = (() => {
 
   /** 複数の更新をバッチで送る。 */
   async function batchUpdate(requests, ssId) {
+    if (typeof Demo !== 'undefined' && Demo.isActive()) return {};
     ssId = ssId || _ssId();
     const resp = await Auth.authFetch(
       `${BASE}/${ssId}:batchUpdate`,
@@ -73,6 +74,7 @@ const Sheets = (() => {
 
   /** 行番号（1始まり）を指定して行を削除する。 */
   async function deleteRow(sheetId, rowIndex, ssId) {
+    if (typeof Demo !== 'undefined' && Demo.isActive()) return {};
     return batchUpdate([{
       deleteDimension: {
         range: {
@@ -209,6 +211,7 @@ const Sheets = (() => {
 
   /** 複数範囲を一括上書きする（名前同期などに使用）*/
   async function batchUpdateValues(data, ssId) {
+    if (typeof Demo !== 'undefined' && Demo.isActive()) return {};
     ssId = ssId || _ssId();
     const resp = await Auth.authFetch(
       `${BASE}/${ssId}/values:batchUpdate`,
