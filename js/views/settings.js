@@ -50,12 +50,10 @@ const SettingsView = (() => {
       <div id="initSettingsBody" class="accordion-collapse collapse">
         <div class="accordion-body px-3 py-2">
 
-          <!-- ① スプレッドシート -->
-          <div class="settings-section-title">スプレッドシート</div>
-
+          <!-- ① 社名（管理者のみ） -->
           ${isAdmin ? `
-          <!-- 会社名（新規作成時は必須・既存シート時は随時変更可） -->
-          <div class="mb-2">
+          <div class="settings-section-title">① 社名</div>
+          <div class="mb-3">
             <label class="form-label small fw-semibold">会社名・団体名・屋号等${!ssId ? ' <span class="text-danger">*</span>' : ''}<span class="text-muted fw-normal ms-1" style="font-size:0.75rem;">（ヘッダー名に使用されます、変更可）</span></label>
             <div class="${ssId ? 'input-group' : ''}">
               <input type="text" class="form-control form-control-sm" id="inputCompanyName"
@@ -65,12 +63,10 @@ const SettingsView = (() => {
             <div id="companyNameMsg" class="form-text"></div>
           </div>` : ''}
 
+          <!-- ② 保存先フォルダ（管理者のみ） -->
+          ${isAdmin ? `
+          <div class="settings-section-title">② 保存先フォルダ</div>
           ${!ssId ? `
-          <!-- 初回：新規作成フォーム -->
-          <div class="alert alert-info small py-2 mb-3">
-            <i class="bi bi-info-circle me-1"></i>
-            管理者の方はまずスプレッドシートを新規作成してください。作成後にURLをメンバーに共有します。
-          </div>
           <div class="mb-2">
             <label class="form-label small fw-semibold">スプレッドシート・証票画像データ保存先フォルダ（任意）</label>
             <input type="text" class="form-control form-control-sm" id="inputFolderUrl"
@@ -81,37 +77,33 @@ const SettingsView = (() => {
             <i class="bi bi-plus-circle me-1"></i>データ保存先を新規作成
           </button>
           <div id="createSheetMsg" class="form-text mb-3"></div>
-          ` : ''}
-
-          ${ssId ? `<a href="https://docs.google.com/spreadsheets/d/${ssId}" target="_blank"
-            class="btn btn-outline-secondary btn-sm w-100 mb-3">
-            <i class="bi bi-table me-1"></i>スプレッドシートを開く</a>` : ''}
-
-          <!-- ② 証票保存フォルダ（管理者・シート設定済みのみ） -->
-          ${isAdmin && ssId ? `
-          <div class="settings-section-title">証票保存フォルダ</div>
+          ` : `
+          <a href="https://docs.google.com/spreadsheets/d/${ssId}" target="_blank"
+            class="btn btn-outline-secondary btn-sm w-100 mb-2">
+            <i class="bi bi-table me-1"></i>スプレッドシートを開く</a>
           <div id="folderCurrentLink" class="mb-1"></div>
           <div class="input-group mb-1">
             <input type="text" class="form-control form-control-sm" id="inputReceiptFolderUrl"
               placeholder="Google Drive フォルダのURL">
-            <button class="btn btn-outline-primary btn-sm" id="btnSaveReceiptFolder">変更</button>
+            <button class="btn btn-outline-primary btn-sm" id="btnSaveReceiptFolder">証票フォルダを変更</button>
           </div>
-          <div id="receiptFolderMsg" class="form-text mb-2"></div>
+          <div id="receiptFolderMsg" class="form-text mb-3"></div>
+          `}
           ` : ''}
 
-          <!-- ③ ライセンス -->
-          <div class="settings-section-title">ライセンス</div>
+          <!-- ③ ライセンスキー -->
+          <div class="settings-section-title">${isAdmin ? '③ ' : ''}ライセンスキー</div>
           <div id="licenseStatus" class="mb-2"></div>
           <div class="input-group mb-1">
             <input type="password" class="form-control form-control-sm" id="inputLicenseKey"
               placeholder="KL-XXXXXXXXXXXXXXXXXXXX" value="${_escape(licKey)}">
             <button class="btn btn-outline-primary btn-sm" id="btnVerifyLicense">確認</button>
           </div>
-          <div id="licenseMsg" class="form-text mb-1"></div>
+          <div id="licenseMsg" class="form-text mb-2"></div>
 
-          <!-- ③ Gemini APIキー（管理者のみ） -->
+          <!-- ④ APIキー（管理者のみ） -->
           ${isAdmin ? `
-          <div class="settings-section-title mt-2">Gemini APIキー（全メンバー共用）</div>
+          <div class="settings-section-title">④ APIキー <span class="text-muted fw-normal" style="font-size:0.72rem;">（Gemini・全メンバー共用）</span></div>
           <p class="text-muted small mb-2">Google AI Studioで取得したAPIキーを入力してください。メンバーは個別取得不要です。</p>
           <div class="input-group mb-1">
             <input type="password" class="form-control form-control-sm" id="inputGeminiKey" placeholder="AIzaSy...">
