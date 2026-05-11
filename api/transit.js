@@ -70,7 +70,6 @@ export default async function handler(req, res) {
 }
 
 function _parse(html) {
-  // スクリプト・スタイルを除去してテキスト化
   const text = html
     .replace(/<script[\s\S]*?<\/script>/gi, '')
     .replace(/<style[\s\S]*?<\/style>/gi, '')
