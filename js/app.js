@@ -38,24 +38,15 @@ const App = (() => {
       }
     } catch (_) { /* Drive読み込み失敗は無視してlocalStorageで続行 */ }
 
-    // ライセンス確認
+    // ライセンス・シート未設定の場合は申請画面を表示してバナーで案内
     const licKey = localStorage.getItem('keihi_license_key');
-    if (!licKey) {
-      _setupUI('settings');
-      showToast('ライセンスキーを設定してください', 'warning');
+    if (!licKey || !localStorage.getItem('keihi_sheet_id')) {
+      _setupUI('submit');
       return;
     }
     const lic = await License.verify(licKey);
     if (!lic.valid) {
-      _setupUI('settings');
-      showToast(`ライセンスが無効です（${lic.reason}）。設定画面で確認してください。`, 'danger');
-      return;
-    }
-
-    // スプレッドシート未設定の場合は設定画面
-    if (!localStorage.getItem('keihi_sheet_id')) {
-      _setupUI('settings');
-      showToast('スプレッドシートURLを設定してください', 'warning');
+      _setupUI('submit');
       return;
     }
 

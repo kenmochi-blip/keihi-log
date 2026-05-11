@@ -19,8 +19,19 @@ const SubmitView = (() => {
   const CAR_RATE_KEY = 'keihi_car_rate';
 
   function render() {
+    const ssId   = localStorage.getItem('keihi_sheet_id');
+    const licKey = localStorage.getItem('keihi_license_key');
+    const setupIncomplete = !ssId || !licKey;
+
     return `
 <div class="pt-3">
+
+  <!-- 初期設定未完了バナー -->
+  ${setupIncomplete ? `
+  <div class="alert alert-warning d-flex align-items-center gap-2 py-2 mb-3" role="alert">
+    <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
+    <div class="small">初期設定が完了していません。<strong>設定タブ</strong>から初期設定を完了してください。</div>
+  </div>` : ''}
 
   <!-- 編集モードバナー -->
   <div id="editBanner" class="edit-banner d-none mb-3">
