@@ -90,6 +90,12 @@ const App = (() => {
   }
 
   function _setupUI(initialView = 'submit') {
+    // URLをシートID付きパスに書き換え（例: /app.html → /SHEET_ID）
+    const _ssId = localStorage.getItem('keihi_sheet_id');
+    if (_ssId && location.pathname === '/app.html') {
+      history.replaceState(null, '', '/' + _ssId);
+    }
+
     // 保存済みナビカラーを適用（デモは青、通常はオリーブをデフォルトに）
     const _defaultNavColor = (typeof Demo !== 'undefined' && Demo.isActive()) ? '#0d6efd' : '#808000';
     const savedNavColor = localStorage.getItem('keihi_nav_color') || _defaultNavColor;
