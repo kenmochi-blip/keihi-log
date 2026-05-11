@@ -140,5 +140,8 @@ const Demo = (() => {
        '領収書', '2026-01-31', 'Slack（プロプラン）', 4500, '通信費', '月次利用料（25名分）', true, '', '', '会社払い（三井住友）'),
   ];
 
-  return { enable, disable, isActive, MASTER, EXPENSES };
+  // デモ用スプレッドシートID（「リンクを知っている全員が閲覧可」のシートIDを入力）
+  const SHEET_ID = '18wDzX43PgeUAXm_Wri-vPogEkkhWNeUhk5F_R1OyFi4';
+
+  return { enable, disable, isActive, MASTER, EXPENSES, SHEET_ID };
 })();

@@ -90,6 +90,12 @@ const App = (() => {
   }
 
   function _setupUI(initialView = 'submit') {
+    // URLをシートID付きパスに書き換え（例: /app.html → /SHEET_ID）
+    const _ssId = localStorage.getItem('keihi_sheet_id');
+    if (_ssId && location.pathname === '/app.html') {
+      history.replaceState(null, '', '/' + _ssId);
+    }
+
     // 保存済みナビカラーを適用（デモは青、通常はオリーブをデフォルトに）
     const _defaultNavColor = (typeof Demo !== 'undefined' && Demo.isActive()) ? '#0d6efd' : '#808000';
     const savedNavColor = localStorage.getItem('keihi_nav_color') || _defaultNavColor;
@@ -265,27 +271,56 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 通常モード：gapi・GIS を動的ロードしてから初期化
   let gapiReady = false, gisReady = false;
+  let _apiLoadFailed = false;
+
+  function _onApiLoadError(name) {
+    if (_apiLoadFailed) return;
+    _apiLoadFailed = true;
+    _bootError(`Google APIの読み込みに失敗しました（${name}）。ネットワーク接続を確認してページを再読み込みしてください。`);
+  }
 
   function _onBothReady() {
-    gapi.load('client', async () => {
-      await gapi.client.init({
-        discoveryDocs: [
-          'https://sheets.googleapis.com/$discovery/rest?version=v4',
-          'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'
-        ]
+    try {
+      gapi.load('client', async () => {
+        try {
+          await gapi.client.init({
+            discoveryDocs: [
+              'https://sheets.googleapis.com/$discovery/rest?version=v4',
+              'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'
+            ]
+          });
+          Auth.init();
+          App.init().catch(err => {
+            console.error('App.init error:', err);
+            _bootError(`初期化エラー: ${err.message}`);
+          });
+        } catch (err) {
+          console.error('gapi.client.init error:', err);
+          _bootError(`Google APIの初期化に失敗しました: ${err.message}`);
+        }
       });
-      Auth.init();
-      App.init();
-    });
+    } catch (err) {
+      console.error('gapi.load error:', err);
+      _bootError(`Google APIの読み込みに失敗しました: ${err.message}`);
+    }
   }
 
   const gapiScript = document.createElement('script');
   gapiScript.src = 'https://apis.google.com/js/api.js';
   gapiScript.onload = () => { gapiReady = true; if (gisReady) _onBothReady(); };
+  gapiScript.onerror = () => _onApiLoadError('gapi');
   document.head.appendChild(gapiScript);
 
   const gisScript = document.createElement('script');
   gisScript.src = 'https://accounts.google.com/gsi/client';
   gisScript.onload = () => { gisReady = true; if (gapiReady) _onBothReady(); };
+  gisScript.onerror = () => _onApiLoadError('GIS');
   document.head.appendChild(gisScript);
+
+  // 30秒以内にGoogle APIが準備できなければタイムアウトエラーを表示
+  setTimeout(() => {
+    if (!gapiReady || !gisReady) {
+      _onApiLoadError('タイムアウト');
+    }
+  }, 30000);
 });

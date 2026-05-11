@@ -107,6 +107,17 @@
       window.location.replace('app.html');
     }
 
+    // パスからスプレッドシートIDを取得（例: keihi-log.vercel.app/SHEET_ID）
+    const _pathMatch = location.pathname.match(/^\/([a-zA-Z0-9_-]{20,})$/);
+    if (_pathMatch) {
+      localStorage.setItem('keihi_sheet_id', _pathMatch[1]);
+      // セッションが有効なら即 app.html へ（再ログイン不要）
+      const _sess = JSON.parse(sessionStorage.getItem('keihi_auth_session') || 'null');
+      if (_sess && _sess.expiry > Date.now()) {
+        window.location.replace('app.html');
+      }
+    }
+
     // デモボタン（Google APIの読み込みを待たずに即動作）
     document.getElementById('demoBtn').addEventListener('click', () => {
       Demo.enable();
