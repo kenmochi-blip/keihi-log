@@ -272,7 +272,7 @@ const SummaryView = (() => {
           style="cursor:pointer;">${Math.round(v).toLocaleString()}</td>`;
       }).join('');
       return `<tr>
-        <td style="white-space:nowrap;min-width:100px;">${_escape(key)}</td>
+        <td title="${_escape(key)}">${_escape(key)}</td>
         ${cells}
         <td class="text-end fw-bold">${Math.round(rowTotals[key]).toLocaleString()}</td>
       </tr>`;
@@ -286,7 +286,7 @@ const SummaryView = (() => {
     container.innerHTML = `
       <table class="table table-sm pivot-table mb-0">
         <thead><tr>
-          <th style="min-width:100px;">${_escape(rowLabel)}</th>
+          <th>${_escape(rowLabel)}</th>
           ${thMonths}
           <th class="text-end" style="min-width:72px;">総計</th>
         </tr></thead>
