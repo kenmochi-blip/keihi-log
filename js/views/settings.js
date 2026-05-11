@@ -174,20 +174,7 @@ const SettingsView = (() => {
     </div>
   </div>
 
-  <!-- 証票保存フォルダ（管理者のみ） -->
-  <div class="card mb-3">
-    <div class="card-body">
-      <div class="settings-section-title">証票保存フォルダ</div>
-      <p class="text-muted small mb-2">領収書・証票画像のアップロード先フォルダです。</p>
-      <div id="folderCurrentLink" class="mb-2"></div>
-      <div class="input-group mb-1">
-        <input type="text" class="form-control form-control-sm" id="inputReceiptFolderUrl"
-          placeholder="Google Drive フォルダのURL">
-        <button class="btn btn-outline-primary btn-sm" id="btnSaveReceiptFolder">変更</button>
-      </div>
-      <div id="receiptFolderMsg" class="form-text"></div>
-    </div>
-  </div>
+
 
   <!-- ヘッダー色（管理者のみ） -->
   <div class="card mb-3">
