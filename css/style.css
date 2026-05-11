@@ -59,6 +59,14 @@ body { font-size: 0.9rem; }
 .upload-card i { font-size: 1.7rem; }
 .upload-card:hover { border-color: #0d6efd; }
 
+/* 領収書アップロードエリア（白カード） */
+.receipt-upload-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+}
+
 /* コンパクトアップロードボタン */
 .upload-card-sm {
   display: flex;
