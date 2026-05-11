@@ -1007,7 +1007,7 @@ const SubmitView = (() => {
     return `
     <div class="history-card">
       <div class="d-flex justify-content-between align-items-start">
-        <span class="h-place">${_escape(e.place)}</span>
+        <span class="h-place">${e.payment ? '🏢 ' : ''}${_escape(e.place)}</span>
         <span class="h-amount">¥${e.amount.toLocaleString()}</span>
       </div>
       <div class="d-flex justify-content-between align-items-center mt-1">

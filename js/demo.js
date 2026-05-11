@@ -22,9 +22,9 @@ const Demo = (() => {
     viewers: [],
   };
 
-  function _e(id, appliedAt, name, email, type, date, place, amount, category, note, confirmed, invoice, imageLinks = '') {
+  function _e(id, appliedAt, name, email, type, date, place, amount, category, note, confirmed, invoice, imageLinks = '', payment = '') {
     return { id, appliedAt, name, email, type, date, place, amount, category, note, confirmed, invoice,
-             imageLinks, aiAudit: '', payment: '', aiAmount: amount, imageHash: '', device: 'demo' };
+             imageLinks, aiAudit: '', payment, aiAmount: amount, imageHash: '', device: 'demo' };
   }
 
   const _img = f => `demo/receipts/${f}`;
@@ -127,6 +127,17 @@ const Demo = (() => {
        '領収書', '2025-06-28', 'キンコーズ', 2200, '消耗品費', '資料印刷・製本', true, ''),
     _e('demo-040', '2025-06-15T14:30:00Z', '佐藤 次郎', 'sato@example.com',
        '領収書なし', '2025-06-15', '社内会議用飲み物', 800, '会議費', '自動販売機利用（領収書なし）', true, ''),
+    // ── 会社払いサンプル ──
+    _e('demo-c01', '2026-05-10T10:00:00Z', 'デモ ユーザー', 'demo@example.com',
+       '領収書', '2026-05-10', 'AWS（クラウド利用料）', 38500, '通信費', '5月分クラウド費用', true, '', '', '会社払い（三井住友）'),
+    _e('demo-c02', '2026-04-30T09:00:00Z', '田中 太郎', 'tanaka@example.com',
+       '領収書', '2026-04-30', 'ANAビジネスクラス', 85000, '旅費交通費', '海外出張（ニューヨーク往復）', true, 'T9000000000001', '', '会社払い（楽天）'),
+    _e('demo-c03', '2026-03-25T11:00:00Z', '鈴木 花子', 'suzuki@example.com',
+       '領収書', '2026-03-25', 'リクナビNEXT 掲載費', 55000, '消耗品費', '中途採用求人掲載（3月）', true, '', '', '会社払い（三井住友）'),
+    _e('demo-c04', '2026-02-28T14:00:00Z', 'デモ ユーザー', 'demo@example.com',
+       '領収書', '2026-02-28', 'Adobe Creative Cloud', 6578, '通信費', '年間契約・月次引き落とし', true, '', '', '会社払い（楽天）'),
+    _e('demo-c05', '2026-01-31T13:00:00Z', '佐藤 次郎', 'sato@example.com',
+       '領収書', '2026-01-31', 'Slack（プロプラン）', 4500, '通信費', '月次利用料（25名分）', true, '', '', '会社払い（三井住友）'),
   ];
 
   return { enable, disable, isActive, MASTER, EXPENSES };
