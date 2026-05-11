@@ -6,10 +6,11 @@
  */
 const ListView = (() => {
 
-  let _expenses = [];
-  let _master   = null;
-  let _isAdmin  = false;
-  let _showAll  = false;
+  let _expenses  = [];
+  let _master    = null;
+  let _isAdmin   = false;
+  let _userRole  = 'member';
+  let _showAll   = false;
 
   function render() {
     const { fromYM, toYM } = _defaultRange();
@@ -135,8 +136,10 @@ const ListView = (() => {
     if (main) main.style.maxWidth = '';
 
     try {
-      _master  = await App.getMaster();
-      _isAdmin = App.isAdmin();
+      _master   = await App.getMaster();
+      _userRole = App.getUserRole();
+      _isAdmin  = _userRole === 'admin';
+      _showAll  = _userRole === 'admin' || _userRole === 'viewer';
       _expenses = await Sheets.readExpenses();
     } catch (err) {
       el.querySelector('#listTbodyPc').innerHTML = `<tr><td colspan="8" class="text-danger text-center">${err.message}</td></tr>`;
@@ -144,15 +147,14 @@ const ListView = (() => {
       return;
     }
 
-    // 管理者用UI（全員表示はデフォルトON、トグルなし）
+    // 管理者用UI
     if (_isAdmin) {
-      _showAll = true;
       el.querySelector('#filterMemberWrap').style.display = '';
       const sel = el.querySelector('#filterMember');
       _master.members.forEach(m => {
         sel.innerHTML += `<option value="${m.email}">${m.name}</option>`;
       });
-      // スプレッドシートリンク
+      // スプレッドシートリンク（管理者のみ）
       const ssId = localStorage.getItem('keihi_sheet_id');
       if (ssId) {
         el.querySelector('#sheetLinkArea').classList.remove('d-none');
@@ -281,10 +283,10 @@ const ListView = (() => {
 
     return _expenses.filter(e => {
       if (!e.id) return false;
-      // 表示対象
-      if (!_isAdmin || !_showAll) {
+      // 表示対象：admin/viewer は全員分、member は自分のみ
+      if (!_showAll) {
         if (e.email !== email) return false;
-      } else if (member && e.email !== member) return false;
+      } else if (_isAdmin && member && e.email !== member) return false;
 
       if (fromDate && e.date < fromDate) return false;
       if (toDate   && e.date > toDate)   return false;

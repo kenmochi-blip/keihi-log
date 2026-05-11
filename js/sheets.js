@@ -187,12 +187,15 @@ const Sheets = (() => {
     const categories = [];
     const paySources = [];
     const admins     = [];
+    const viewers    = [];
 
     rows.forEach(r => {
       if (r[0] || r[1]) members.push({ name: r[0] || '', email: r[1] || '', dept: r[2] || '', role: r[5] || '' });
       if (r[3]) paySources.push(r[3]);
       if (r[4]) categories.push(r[4]);
-      if ((r[5] || '').toLowerCase() === 'admin' && r[1]) admins.push(r[1].toLowerCase());
+      const role = (r[5] || '').toLowerCase();
+      if (role === 'admin' && r[1]) admins.push(r[1].toLowerCase());
+      if (role === 'viewer' && r[1]) viewers.push(r[1].toLowerCase());
     });
 
     return {
@@ -200,6 +203,7 @@ const Sheets = (() => {
       categories: [...new Set(categories)],
       paySources: [...new Set(paySources)],
       admins,
+      viewers,
     };
   }
 

@@ -6,6 +6,7 @@ const App = (() => {
 
   let _masterCache  = null;
   let _isAdmin      = false;
+  let _userRole     = 'member'; // 'admin' | 'viewer' | 'member'
   let _confirmModal = null;
   let _confirmResolve = null;
 
@@ -63,7 +64,14 @@ const App = (() => {
       _masterCache = await Sheets.readMaster();
       const email  = Auth.getUserEmail().toLowerCase();
       // 管理者が誰も登録されていない場合（初期状態）は現ユーザーを管理者扱い
-      _isAdmin = _masterCache.admins.length === 0 || _masterCache.admins.includes(email);
+      if (_masterCache.admins.length === 0 || _masterCache.admins.includes(email)) {
+        _userRole = 'admin';
+      } else if (_masterCache.viewers && _masterCache.viewers.includes(email)) {
+        _userRole = 'viewer';
+      } else {
+        _userRole = 'member';
+      }
+      _isAdmin = _userRole === 'admin';
 
       // メンバー制限：登録メンバーが1人以上いる場合、未登録ユーザーはアクセス不可
       if (_masterCache.members.length > 0 && !_masterCache.members.some(m => m.email.toLowerCase() === email)) {
@@ -72,7 +80,8 @@ const App = (() => {
         return;
       }
     } catch (_) {
-      _masterCache = { members: [], categories: [], paySources: [], admins: [] };
+      _masterCache = { members: [], categories: [], paySources: [], admins: [], viewers: [] };
+      _userRole = 'admin';
       _isAdmin = true; // マスタ読み込み失敗時も管理者扱いにして設定できるようにする
     }
 
@@ -131,12 +140,20 @@ const App = (() => {
     if (_masterCache) return _masterCache;
     _masterCache = await Sheets.readMaster();
     const email = Auth.getUserEmail().toLowerCase();
-    _isAdmin = _masterCache.admins.includes(email);
+    if (_masterCache.admins.includes(email)) {
+      _userRole = 'admin';
+    } else if (_masterCache.viewers && _masterCache.viewers.includes(email)) {
+      _userRole = 'viewer';
+    } else {
+      _userRole = 'member';
+    }
+    _isAdmin = _userRole === 'admin';
     return _masterCache;
   }
 
   function clearMasterCache() { _masterCache = null; }
   function isAdmin() { return _isAdmin; }
+  function getUserRole() { return _userRole; }
 
   /** ローディングオーバーレイを表示 */
   function showLoading(msg = '処理中...') {
@@ -175,6 +192,7 @@ const App = (() => {
     getMaster,
     clearMasterCache,
     isAdmin,
+    getUserRole,
     showLoading,
     hideLoading,
     showToast,
