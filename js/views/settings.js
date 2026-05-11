@@ -325,17 +325,24 @@ const SettingsView = (() => {
       container.innerHTML = '<div class="text-muted small">メンバーが登録されていません</div>';
       return;
     }
-    container.innerHTML = _master.members.map((m, i) => `
+    container.innerHTML = _master.members.map((m, i) => {
+      const roleBadge = m.role === 'admin'
+        ? '<span class="badge bg-primary ms-1" style="font-size:0.6rem;">管理者</span>'
+        : m.role === 'viewer'
+          ? '<span class="badge bg-info text-dark ms-1" style="font-size:0.6rem;">閲覧者</span>'
+          : '';
+      return `
       <div class="d-flex align-items-center gap-2 py-2 border-bottom">
         <div class="flex-grow-1">
           <div class="fw-semibold small">${_escape(m.name)}</div>
           <div class="text-muted" style="font-size:0.72rem;">${_escape(m.email)}${m.dept ? ' / ' + _escape(m.dept) : ''}
-            ${m.role === 'admin' ? '<span class="badge bg-primary ms-1" style="font-size:0.6rem;">管理者</span>' : ''}
+            ${roleBadge}
           </div>
         </div>
         <button class="btn btn-outline-secondary btn-sm btn-edit-member" data-index="${i}"><i class="bi bi-pencil"></i></button>
         <button class="btn btn-outline-danger btn-sm btn-del-member" data-index="${i}"><i class="bi bi-trash"></i></button>
-      </div>`).join('');
+      </div>`;
+    }).join('');
     container.querySelectorAll('.btn-edit-member').forEach(btn =>
       btn.addEventListener('click', () => _showMemberForm(el, Number(btn.dataset.index))));
     container.querySelectorAll('.btn-del-member').forEach(btn =>
@@ -378,8 +385,9 @@ const SettingsView = (() => {
                 <input type="text" class="form-control form-control-sm" id="mDept" value="${_escape(m.dept)}"></div>
               <div class="mb-2"><label class="form-label small">権限</label>
                 <select class="form-select form-select-sm" id="mRole">
-                  <option value="" ${!m.role || m.role === 'member' ? 'selected' : ''}>一般ユーザー</option>
-                  <option value="admin" ${m.role === 'admin' ? 'selected' : ''}>管理者</option>
+                  <option value="member" ${!m.role || m.role === 'member' ? 'selected' : ''}>一般（申請のみ）</option>
+                  <option value="viewer" ${m.role === 'viewer' ? 'selected' : ''}>閲覧者（申請＋全体一覧・集計の閲覧）</option>
+                  <option value="admin" ${m.role === 'admin' ? 'selected' : ''}>管理者（全操作・メンバー管理）</option>
                 </select></div>
             </div>
             <div class="modal-footer">
@@ -400,8 +408,17 @@ const SettingsView = (() => {
         role:  div.querySelector('#mRole').value,
       };
       if (!updated.name || !updated.email) return App.showToast('氏名・メールは必須です', 'danger');
+      const oldEmail = isNew ? null : (_master.members[idx]?.email || null);
       if (isNew) _master.members.push(updated);
       else       _master.members[idx] = updated;
+      // Drive権限：メールアドレスが変わった場合は旧アドレスの権限を削除
+      if (oldEmail && oldEmail.toLowerCase() !== updated.email.toLowerCase()) {
+        _revokeMemberAccess(oldEmail).catch(() => {});
+      }
+      // 新規追加または新しいメールアドレスに権限付与
+      if (isNew || (oldEmail && oldEmail.toLowerCase() !== updated.email.toLowerCase())) {
+        _grantMemberAccess(updated.email).catch(() => {});
+      }
       await _saveMasterToSheet(el);
       modal.hide();
     });
@@ -430,10 +447,30 @@ const SettingsView = (() => {
   }
 
   async function _deleteMember(el, idx) {
-    const ok = await App.confirm(`${_master.members[idx].name} を削除しますか？`);
+    const member = _master.members[idx];
+    const ok = await App.confirm(`${member.name} を削除しますか？`);
     if (!ok) return;
     _master.members.splice(idx, 1);
+    _revokeMemberAccess(member.email).catch(() => {});
     await _saveMasterToSheet(el);
+  }
+
+  async function _grantMemberAccess(email) {
+    const ssId     = localStorage.getItem('keihi_sheet_id');
+    const folderId = localStorage.getItem('keihi_folder_id');
+    const tasks = [];
+    if (ssId)     tasks.push(Drive.grantEditorAccess(email, ssId).catch(() => {}));
+    if (folderId) tasks.push(Drive.grantEditorAccess(email, folderId).catch(() => {}));
+    await Promise.all(tasks);
+  }
+
+  async function _revokeMemberAccess(email) {
+    const ssId     = localStorage.getItem('keihi_sheet_id');
+    const folderId = localStorage.getItem('keihi_folder_id');
+    const tasks = [];
+    if (ssId)     tasks.push(Drive.revokeAccess(email, ssId).catch(() => {}));
+    if (folderId) tasks.push(Drive.revokeAccess(email, folderId).catch(() => {}));
+    await Promise.all(tasks);
   }
 
   async function _deleteSimpleItem(el, type, idx) {

@@ -185,5 +185,43 @@ const Drive = (() => {
     if (!resp.ok) throw new Error(`Drive moveToFolder error: ${resp.status}`);
   }
 
-  return { createFolder, moveToFolder, uploadFile, uploadReceiptFile, fileToBase64, saveSettings, loadSettings };
+  /**
+   * ファイルにメンバーの編集権限を付与する
+   * @param {string} email  付与先メールアドレス
+   * @param {string} fileId スプレッドシートIDまたはフォルダID
+   */
+  async function grantEditorAccess(email, fileId) {
+    if (!email || !fileId) return;
+    const resp = await Auth.authFetch(
+      `https://www.googleapis.com/drive/v3/files/${fileId}/permissions`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'user', role: 'writer', emailAddress: email })
+      }
+    );
+    if (!resp.ok) throw new Error(`Drive grantEditorAccess error: ${resp.status}`);
+  }
+
+  /**
+   * ファイルからメンバーの権限を削除する
+   * @param {string} email  削除対象のメールアドレス
+   * @param {string} fileId スプレッドシートIDまたはフォルダID
+   */
+  async function revokeAccess(email, fileId) {
+    if (!email || !fileId) return;
+    const listResp = await Auth.authFetch(
+      `https://www.googleapis.com/drive/v3/files/${fileId}/permissions?fields=permissions(id,emailAddress)`
+    );
+    if (!listResp.ok) return;
+    const data = await listResp.json();
+    const perm = data.permissions?.find(p => p.emailAddress?.toLowerCase() === email.toLowerCase());
+    if (!perm) return;
+    await Auth.authFetch(
+      `https://www.googleapis.com/drive/v3/files/${fileId}/permissions/${perm.id}`,
+      { method: 'DELETE' }
+    );
+  }
+
+  return { createFolder, moveToFolder, uploadFile, uploadReceiptFile, fileToBase64, saveSettings, loadSettings, grantEditorAccess, revokeAccess };
 })();

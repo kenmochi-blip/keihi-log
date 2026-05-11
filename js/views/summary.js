@@ -171,10 +171,13 @@ const SummaryView = (() => {
   function _renderAll(el) {
     const { fromYM, toYM, months } = _currentRange(el);
 
+    const role      = App.getUserRole();
+    const userEmail = Auth.getUserEmail();
     const filtered = _expenses.filter(e => {
       if (!e.id || !e.date) return false;
       const ym = e.date.substring(0, 7);
       if (ym < fromYM || ym > toYM) return false;
+      if (role === 'member' && e.email !== userEmail) return false;
       return true;
     });
     const unpaid = filtered.filter(e => !e.confirmed);
