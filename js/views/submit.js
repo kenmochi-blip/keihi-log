@@ -828,11 +828,11 @@ const SubmitView = (() => {
         await Sheets.append('経費一覧', row);
       }
 
-      App.showToast(_editId ? '修正しました' : '申請しました', 'success');
+      App.showToast(_editId ? '修正しました' : '登録しました', 'success');
       _resetForm(el);
       _loadHistory(el);
     } catch (err) {
-      App.showToast('申請エラー: ' + err.message, 'danger');
+      App.showToast('登録エラー: ' + err.message, 'danger');
     } finally {
       App.hideLoading();
     }
