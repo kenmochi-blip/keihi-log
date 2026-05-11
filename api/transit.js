@@ -99,12 +99,13 @@ function _parse(html) {
   const minutes = timeMatch ? parseInt(timeMatch[1], 10) : null;
 
   // --- 乗換駅（中間駅）の抽出 ---
-  // "○○駅乗換" または "○○駅で乗り換え" の形式のみに限定（駅で終わるものだけ）
+  // 日本語文字のみ・前後スペース1個以内・UIテキストをブロックリストで除外
+  const TRANSFER_BLOCKLIST = new Set(['路線情報', '乗換情報', '所要時間', '到着順', '出発順', '料金順', 'IC優先', '合計金額', '乗換回数']);
   const transferSet = new Set();
-  const transferRe = /([^\s　、。「」（）\d&＆]{2,8}駅)\s*(?:で\s*)?(?:乗り換え|乗換)/g;
+  const transferRe = /([一-鿿ぁ-ゖァ-ヶー]{2,6}(?:駅|バス停)?)\s?(?:で\s*)?(?:乗り換え|乗換)/g;
   for (const m of text.matchAll(transferRe)) {
-    const name = m[1].replace(/駅$/, '').trim();
-    if (name.length >= 2) transferSet.add(name);
+    const name = m[1].replace(/(?:駅|バス停)$/, '').trim();
+    if (name.length >= 2 && !TRANSFER_BLOCKLIST.has(name)) transferSet.add(name);
     if (transferSet.size >= 4) break;
   }
   const transfers = [...transferSet];
