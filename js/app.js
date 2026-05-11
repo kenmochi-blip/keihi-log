@@ -15,6 +15,7 @@ const App = (() => {
     if (typeof Demo !== 'undefined' && Demo.isActive()) {
       _masterCache = Demo.MASTER;
       _isAdmin = true;
+      _userRole = 'admin';
       _setupUI('submit');
       showToast('デモモード：サンプルデータで動作中', 'info');
       return;

@@ -19,6 +19,7 @@ const Demo = (() => {
     categories: ['会議費', '旅費交通費', '消耗品費', '接待交際費', '通信費', '研修費', '新聞図書費', '福利厚生費'],
     paySources: ['法人カード（三井住友）', '法人カード（楽天）'],
     admins: ['demo@example.com'],
+    viewers: [],
   };
 
   function _e(id, appliedAt, name, email, type, date, place, amount, category, note, confirmed, invoice, imageLinks = '') {
@@ -32,7 +33,7 @@ const Demo = (() => {
     // ── 2026-05 ──
     _e('demo-001', '2026-05-09T09:15:00Z', 'デモ ユーザー', 'demo@example.com',
        '領収書', '2026-05-09', '大阪ビジネスホテル', 12000, '旅費交通費', '出張宿泊（大阪）', false, 'T1234567890123',
-       _img('receipt_hotel.svg')),
+       _img('receipt_hotel.svg') + ',' + _img('receipt_restaurant.svg')),
     _e('demo-002', '2026-05-08T14:30:00Z', '田中 太郎', 'tanaka@example.com',
        '交通費', '2026-05-08', '東京→横浜（往復）', 940, '旅費交通費', '取引先訪問', false, ''),
     _e('demo-003', '2026-05-07T10:00:00Z', '鈴木 花子', 'suzuki@example.com',
@@ -52,8 +53,8 @@ const Demo = (() => {
     _e('demo-008', '2026-04-22T11:00:00Z', '田中 太郎', 'tanaka@example.com',
        '交通費', '2026-04-22', '新宿→品川（往復）', 760, '旅費交通費', '社内研修参加', true, ''),
     _e('demo-009', '2026-04-18T15:00:00Z', '佐藤 次郎', 'sato@example.com',
-       '領収書', '2026-04-18', 'AWS Summit Tokyo', 10000, '研修費', 'カンファレンス参加費', true, 'T2222222222222',
-       _img('receipt_book.svg')),
+       '領収書', '2026-04-18', 'AWS Summit Tokyo', 10000, '研修費', 'カンファレンス参加費・懇親会費込み', true, 'T2222222222222',
+       _img('receipt_book.svg') + ',' + _img('receipt_restaurant.svg') + ',' + _img('receipt_office.svg')),
     _e('demo-010', '2026-04-10T10:30:00Z', 'デモ ユーザー', 'demo@example.com',
        '領収書', '2026-04-10', 'コワーキングスペース渋谷', 3300, '会議費', 'チームミーティング会場費', true, '',
        _img('receipt_office.svg')),
@@ -64,7 +65,8 @@ const Demo = (() => {
     _e('demo-012', '2026-03-20T09:30:00Z', '鈴木 花子', 'suzuki@example.com',
        '領収書', '2026-03-20', 'Amazon.co.jp', 4580, '消耗品費', 'オフィス備品', true, ''),
     _e('demo-013', '2026-03-15T16:00:00Z', 'デモ ユーザー', 'demo@example.com',
-       '交通費', '2026-03-15', '東京→名古屋（新幹線往復）', 27000, '旅費交通費', '取締役会出席', true, ''),
+       '領収書', '2026-03-15', '東京→名古屋（新幹線往復）', 27000, '旅費交通費', '取締役会出席・宿泊含む', true, '',
+       _img('receipt_hotel.svg') + ',' + _img('receipt_restaurant.svg')),
     _e('demo-014', '2026-03-05T11:00:00Z', '佐藤 次郎', 'sato@example.com',
        '領収書', '2026-03-05', 'Udemy（オンライン）', 1800, '研修費', 'React上級コース', true, ''),
     // ── 2026-02 ──
