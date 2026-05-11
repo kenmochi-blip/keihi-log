@@ -11,6 +11,25 @@ const Gemini = (() => {
   // 設定シートから読んだAPIキーをメモリにキャッシュ
   let _apiKey = '';
 
+  // 画像をCanvas経由でリサイズ・圧縮してbase64を返す（プロキシの4.5MB上限対策）
+  async function _compressImage(base64, mimeType, maxPx = 1600, quality = 0.82) {
+    if (!mimeType.startsWith('image/')) return base64; // 非画像はそのまま
+    return new Promise(resolve => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxPx / Math.max(img.width, img.height));
+        const w = Math.round(img.width  * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = () => resolve(base64);
+      img.src = base64;
+    });
+  }
+
   async function _getApiKey() {
     if (_apiKey) return _apiKey;
     // まずlocalStorageの個人設定を確認（任意のオーバーライド）
@@ -30,7 +49,17 @@ const Gemini = (() => {
    * @param {string[]} categories 勘定科目リスト
    */
   async function analyzeReceipt(files, categories) {
-    const imageParts = files.map(f => ({
+    // デモモード時はプロキシ経由のため画像を圧縮（Vercel 4.5MB上限対策）
+    const isDemo = typeof Demo !== 'undefined' && Demo.isActive();
+    const processedFiles = isDemo
+      ? await Promise.all(files.map(async f => ({
+          ...f,
+          base64: await _compressImage(f.base64, f.mimeType),
+          mimeType: f.mimeType.startsWith('image/') ? 'image/jpeg' : f.mimeType,
+        })))
+      : files;
+
+    const imageParts = processedFiles.map(f => ({
       inlineData: {
         mimeType: f.mimeType,
         data: f.base64.replace(/^data:[^;]+;base64,/, ''),
