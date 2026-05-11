@@ -238,10 +238,17 @@ const SubmitView = (() => {
   <!-- 直近履歴 -->
   <div class="mt-2 mb-4">
     <div class="d-flex justify-content-between align-items-center mb-2">
-      <h6 class="fw-bold mb-0">直近の履歴</h6>
-      <button class="btn btn-link btn-sm text-decoration-none text-secondary p-0" id="btnRefreshHistory">
-        <i class="bi bi-arrow-clockwise me-1"></i>更新
-      </button>
+      <h6 class="fw-bold mb-0">直近の自分の履歴（10件）</h6>
+      <div class="d-flex gap-2 align-items-center">
+        ${App.isAdmin() && localStorage.getItem('keihi_sheet_id') ? `
+        <a href="https://docs.google.com/spreadsheets/d/${localStorage.getItem('keihi_sheet_id')}" target="_blank" rel="noopener"
+           class="btn btn-link btn-sm text-decoration-none text-secondary p-0" style="font-size:0.8rem;">
+          <i class="bi bi-table me-1"></i>シートを開く
+        </a>` : ''}
+        <button class="btn btn-link btn-sm text-decoration-none text-secondary p-0" id="btnRefreshHistory">
+          <i class="bi bi-arrow-clockwise me-1"></i>更新
+        </button>
+      </div>
     </div>
     <div id="historyList"><div class="text-muted small text-center py-3">読み込み中...</div></div>
   </div>
@@ -958,7 +965,10 @@ const SubmitView = (() => {
     try {
       const all = await Sheets.readExpenses();
       const email = Auth.getUserEmail();
-      const mine  = all.filter(e => e.email === email).slice(-30).reverse();
+      const mine  = all
+        .filter(e => e.email === email)
+        .sort((a, b) => (b.appliedAt || b.date).localeCompare(a.appliedAt || a.date))
+        .slice(0, 10);
       if (mine.length === 0) {
         list.innerHTML = '<div class="text-muted small text-center py-3">申請履歴がありません</div>';
         return;
