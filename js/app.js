@@ -81,7 +81,7 @@ const App = (() => {
       const companyName = await Sheets.readSetting('B2');
       if (companyName) {
         const titleEl = document.getElementById('navAppTitle');
-        if (titleEl) titleEl.textContent = companyName;
+        if (titleEl) titleEl.textContent = `経費ログ - ${companyName}`;
       }
     } catch (_) {}
 

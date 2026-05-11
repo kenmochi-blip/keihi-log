@@ -60,8 +60,8 @@ const SettingsView = (() => {
             管理者の方はまずスプレッドシートを新規作成してください。作成後にURLをメンバーに共有します。
           </div>
           <div class="mb-2">
-            <label class="form-label small fw-semibold">会社名・チーム名 <span class="text-danger">*</span></label>
-            <input type="text" class="form-control form-control-sm" id="inputCompanyName" placeholder="例：〇〇株式会社">
+            <label class="form-label small fw-semibold">会社名・団体名・屋号 <span class="text-danger">*</span></label>
+            <input type="text" class="form-control form-control-sm" id="inputCompanyName" placeholder="例：〇〇株式会社、NPO法人〇〇、屋号など">
           </div>
           <div class="mb-2">
             <label class="form-label small fw-semibold">保存先フォルダ（任意）</label>
@@ -98,6 +98,16 @@ const SettingsView = (() => {
           </div>
           <div id="licenseMsg" class="form-text mb-1"></div>
 
+          <!-- ③ Gemini APIキー（管理者のみ） -->
+          ${isAdmin ? `
+          <div class="settings-section-title mt-2">Gemini APIキー（全メンバー共用）</div>
+          <p class="text-muted small mb-2">Google AI Studioで取得したAPIキーを入力してください。メンバーは個別取得不要です。</p>
+          <div class="input-group mb-1">
+            <input type="password" class="form-control form-control-sm" id="inputGeminiKey" placeholder="AIzaSy...">
+            <button class="btn btn-outline-primary btn-sm" id="btnSaveGeminiKey">保存</button>
+          </div>
+          <div id="geminiKeyMsg" class="form-text"></div>` : ''}
+
         </div>
       </div>
     </div>
@@ -114,29 +124,16 @@ const SettingsView = (() => {
 
   function _renderMasterSections() {
     return `
-  <!-- 会社名（管理者のみ・随時変更可） -->
+  <!-- 会社名・団体名・屋号（管理者のみ・随時変更可） -->
   <div class="card mb-3">
     <div class="card-body">
-      <div class="settings-section-title">会社名</div>
+      <div class="settings-section-title">会社名・団体名・屋号</div>
       <div class="input-group mb-1">
         <input type="text" class="form-control form-control-sm" id="inputCompanyNameEdit"
-          placeholder="会社名・チーム名">
+          placeholder="例：〇〇株式会社、NPO法人〇〇、屋号など">
         <button class="btn btn-outline-primary btn-sm" id="btnSaveCompanyName">保存</button>
       </div>
       <div id="companyNameMsg" class="form-text"></div>
-    </div>
-  </div>
-
-  <!-- Gemini APIキー（管理者のみ） -->
-  <div class="card mb-3">
-    <div class="card-body">
-      <div class="settings-section-title">Gemini APIキー（全メンバー共用）</div>
-      <p class="text-muted small mb-2">Google AI Studioで取得したAPIキーを入力してください。メンバーは個別取得不要です。</p>
-      <div class="input-group mb-1">
-        <input type="password" class="form-control form-control-sm" id="inputGeminiKey" placeholder="AIzaSy...">
-        <button class="btn btn-outline-primary btn-sm" id="btnSaveGeminiKey">保存</button>
-      </div>
-      <div id="geminiKeyMsg" class="form-text"></div>
     </div>
   </div>
 
@@ -281,7 +278,7 @@ const SettingsView = (() => {
         App.showToast('会社名を保存しました', 'success');
         // ナビバーのタイトルを即時更新
         const titleEl = document.getElementById('navAppTitle');
-        if (titleEl && name) titleEl.textContent = name;
+        if (titleEl) titleEl.textContent = name ? `経費ログ - ${name}` : '経費ログ';
       } catch (err) {
         msg.innerHTML = `<span class="text-danger">${_escape(err.message)}</span>`;
       }
