@@ -63,11 +63,11 @@ const SubmitView = (() => {
   <div id="panel-領収書">
     <input type="file" class="d-none" id="camInput-領収書" accept="image/*" capture="environment">
     <input type="file" class="d-none" id="fileInput-領収書" accept="*/*" multiple>
-    <div class="upload-grid mb-3">
-      <button class="upload-card" id="btnCamera-領収書">
+    <div class="d-flex gap-2 mb-3">
+      <button class="upload-card-sm flex-fill" id="btnCamera-領収書">
         <i class="bi bi-camera-fill"></i>カメラ
       </button>
-      <button class="upload-card" id="btnFile-領収書">
+      <button class="upload-card-sm flex-fill" id="btnFile-領収書">
         <i class="bi bi-folder-fill"></i>ファイル
       </button>
     </div>
@@ -75,11 +75,6 @@ const SubmitView = (() => {
     <button class="btn btn-primary w-100 mb-2" id="btnAnalyze">
       <i class="bi bi-stars me-2"></i>AIで読み取る
     </button>
-    <div class="text-center mb-3">
-      <button class="btn btn-link btn-sm text-decoration-none text-muted" id="btnManualInput">
-        手動で入力する
-      </button>
-    </div>
     <div id="receiptFields" class="d-none">
       ${_dateField()}
       ${_placeField('支払先（店名・会社名）')}
@@ -346,9 +341,13 @@ const SubmitView = (() => {
         TYPES.forEach(t => {
           el.querySelector(`#panel-${t}`)?.classList.toggle('d-none', t !== _currentType);
         });
-        // 領収書以外はフォームをそのまま表示
-        if (_currentType !== '領収書') return;
-        el.querySelector('#receiptFields')?.classList.add('d-none');
+        // 領収書：フォームとボタンを非表示（AI読み取り後に表示）
+        if (_currentType === '領収書') {
+          el.querySelector('#receiptFields')?.classList.add('d-none');
+          el.querySelector('#btnSubmit')?.classList.add('d-none');
+        } else {
+          el.querySelector('#btnSubmit')?.classList.remove('d-none');
+        }
       });
     });
   }
@@ -383,7 +382,6 @@ const SubmitView = (() => {
     });
 
     el.querySelector('#btnAnalyze')?.addEventListener('click', () => _runAiAnalysis(el));
-    el.querySelector('#btnManualInput')?.addEventListener('click', () => _showReceiptFields(el));
   }
 
   function _addPreviewItem(el, type, base64, mimeType, idx) {
@@ -711,6 +709,7 @@ const SubmitView = (() => {
 
   function _showReceiptFields(el) {
     el.querySelector('#receiptFields')?.classList.remove('d-none');
+    el.querySelector('#btnSubmit')?.classList.remove('d-none');
   }
 
   function _bindSubmit(el) {
@@ -1072,6 +1071,8 @@ const SubmitView = (() => {
     if (btn) { btn.innerHTML = '<i class="bi bi-send me-2"></i>申請する'; btn.className = 'btn btn-primary btn-lg rounded-3'; }
     TYPES.forEach(t => el.querySelector(`#previewArea-${t}`)?.replaceChildren());
     el.querySelector('#receiptFields')?.classList.add('d-none');
+    // 領収書パネルのリセット時は申請ボタンを非表示
+    if (_currentType === '領収書') el.querySelector('#btnSubmit')?.classList.add('d-none');
     // 重複IDは querySelectorAll で全パネル一括リセット
     const today = new Date().toISOString().split('T')[0];
     el.querySelectorAll('#inputDate').forEach(i => { i.value = today; });
