@@ -38,7 +38,7 @@ const SubmitView = (() => {
       <i class="bi bi-pencil-square"></i>領収書なし
     </button>
     <button class="type-card" data-type="交通費">
-      <i class="bi bi-train-front-fill"></i>電車/バス/高速
+      <i class="bi bi-train-front-fill"></i>電車/バス
     </button>
     <button class="type-card" data-type="自家用車">
       <i class="bi bi-car-front-fill"></i>自家用車
@@ -124,21 +124,17 @@ const SubmitView = (() => {
     </div>
     <div class="row g-2 mb-2">
       <div class="col-6">
-        <label class="form-label small fw-semibold" id="lblTransitFrom">出発駅・バス停</label>
-        <input type="text" class="form-control form-control-sm" id="txtFrom" placeholder="例：渋谷">
+        <label class="form-label small fw-semibold">出発駅・バス停</label>
+        <input type="text" class="form-control form-control-sm" id="txtFrom" placeholder="例：渋谷 / 聖母病院入口/都営バス">
       </div>
       <div class="col-6">
-        <label class="form-label small fw-semibold" id="lblTransitTo">到着駅・バス停</label>
-        <input type="text" class="form-control form-control-sm" id="txtTo" placeholder="例：新宿">
+        <label class="form-label small fw-semibold">到着駅・バス停</label>
+        <input type="text" class="form-control form-control-sm" id="txtTo" placeholder="例：新宿 / 飯田橋/都営バス">
       </div>
     </div>
-    <!-- 電車・バス用 -->
+    <div class="text-muted mb-2" style="font-size:0.75rem;">※バス停は「バス停名/事業者名」形式で入力（例：聖母病院入口/都営バス）</div>
     <button class="btn btn-outline-secondary btn-sm w-100" id="btnYahooTransit">
-      <i class="bi bi-search me-1"></i>最安値を検索
-    </button>
-    <!-- 高速用 -->
-    <button class="btn btn-outline-secondary btn-sm w-100 d-none" id="btnNexco">
-      <i class="bi bi-car-front-fill me-1"></i>Yahoo地図で経路・料金を確認
+      <i class="bi bi-search me-1"></i>料金を検索して入力
     </button>
     <!-- 検索結果表示エリア -->
     <div id="transitResult" class="d-none mt-2 mb-3 p-2 rounded" style="background:#f0f7ff;border:1px solid #c8e0f8;font-size:0.82rem;">
@@ -586,8 +582,7 @@ const SubmitView = (() => {
     el.querySelector('#btnYahooTransit')?.addEventListener('click', async () => {
       const from = el.querySelector('#txtFrom')?.value.trim();
       const to   = el.querySelector('#txtTo')?.value.trim();
-      const modeLabel = _TRANSIT_MODE_CONFIG[_transitMode]?.fromLabel || '出発地';
-      if (!from || !to) return App.showToast(`${modeLabel}と到着地を入力してください`, 'warning');
+      if (!from || !to) return App.showToast('出発駅・停留所と到着駅・停留所を入力してください', 'warning');
 
       const btn = el.querySelector('#btnYahooTransit');
       const resultDiv  = el.querySelector('#transitResult');
@@ -599,16 +594,15 @@ const SubmitView = (() => {
         const apiBase = window.APP_CONFIG?.apiBase || '';
         const mode = 'train'; // 電車・バス統合モード（Yahoo乗換が最安値を自動選択）
         const resp = await fetch(
-          `${apiBase}/api/transit?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&mode=${mode}`,
+          `${apiBase}/api/transit?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
           { cache: 'no-store' }
         );
         const data = await resp.json();
 
         if (!resp.ok || !data.fare) {
           App.showToast(data.error || '運賃を取得できませんでした', 'warning');
-          const ticket = mode === 'bus' ? '' : '&ticket=ic';
           window.open(
-            `https://transit.yahoo.co.jp/search/result?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&type=2&expkind=1&userpass=1${ticket}`,
+            `https://transit.yahoo.co.jp/search/result?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&type=1&expkind=1&userpass=1&ticket=ic`,
             '_blank'
           );
           return;
@@ -619,10 +613,10 @@ const SubmitView = (() => {
         calcTotal();
 
         if (resultDiv) {
-          const routeText = data.lines?.length ? data.lines.join(' → ') : `${from} → ${to}`;
+          const transfers = data.transfers?.length ? data.transfers.join('・') : null;
+          const routeText = transfers ? `${from} → ${transfers} → ${to}` : `${from} → ${to}`;
           const timeText  = data.minutes ? `（約${data.minutes}分）` : '';
           el.querySelector('#transitResultRoute').textContent = `${routeText}${timeText}`;
-          const fareLabel = '最安値（IC）';
           el.querySelector('#transitResultFare').textContent =
             `${fareLabel}: ¥${data.fare.toLocaleString()} ／片道`;
           const link = el.querySelector('#transitResultLink');
@@ -635,7 +629,7 @@ const SubmitView = (() => {
         App.showToast('検索エラー: ' + err.message, 'danger');
       } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-search me-1"></i>最安値を検索';
+        btn.innerHTML = '<i class="bi bi-search me-1"></i>料金を検索して入力';
       }
     });
   }

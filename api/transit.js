@@ -15,7 +15,7 @@ export default async function handler(req, res) {
   const jstHour = jstNow.getUTCHours();
 
   // 22時〜翌6時は翌朝10時に丸める（終電・始発を避けて昼間の便を取得）
-  // それ以外は現在時刻をそのまま使用
+  // それ以外は現在時刻をそのまま使用。printUrlとresultUrlを同じ時刻で統一。
   let sd;
   if (jstHour >= 22) {
     sd = new Date(jstNow.getTime() + 24 * 60 * 60 * 1000);
@@ -53,14 +53,14 @@ export default async function handler(req, res) {
     }
 
     const html = await resp.text();
-    const { fare, minutes, lines } = _parse(html);
+    const { fare, minutes, transfers } = _parse(html);
 
     if (!fare) {
       return res.status(404).json({ error: '運賃を取得できませんでした。駅名を確認してください。' });
     }
 
     res.setHeader('Cache-Control', 'no-store');
-    res.json({ fare, minutes, lines, resultUrl });
+    res.json({ fare, minutes, transfers, resultUrl });
   } catch (err) {
     if (err.name === 'TimeoutError') {
       return res.status(504).json({ error: 'Yahoo乗換への接続がタイムアウトしました' });
@@ -98,14 +98,17 @@ function _parse(html) {
   const timeMatch = text.match(/(\d+)\s*分/);
   const minutes = timeMatch ? parseInt(timeMatch[1], 10) : null;
 
-  // --- 路線名 ---
-  const lineSet = new Set();
-  const lineRe = /([^\s　、。「」（）\d]{2,10}(?:線|鉄道|地下鉄|モノレール|ライナー|エクスプレス|バス))/g;
-  for (const m of text.matchAll(lineRe)) {
-    lineSet.add(m[1]);
-    if (lineSet.size >= 5) break;
+  // --- 乗換駅（中間駅）の抽出 ---
+  // 最安値ルートの乗換駅を「乗換」「乗り換え」前後の駅名から取得
+  // Yahoo乗換結果ページでは "○○駅 乗換" または "○○ で乗り換え" の形式で記載される
+  const transferSet = new Set();
+  const transferRe = /([^\s　「」（）]{2,10}(?:駅|バス停)?)\s*(?:で)?乗[り換]{1,2}[え換]/g;
+  for (const m of text.matchAll(transferRe)) {
+    const name = m[1].replace(/駅$/, '').trim();
+    if (name.length >= 2) transferSet.add(name);
+    if (transferSet.size >= 4) break;
   }
-  const lines = [...lineSet];
+  const transfers = [...transferSet];
 
-  return { fare, minutes, lines };
+  return { fare, minutes, transfers };
 }
