@@ -8,7 +8,12 @@ const SummaryView = (() => {
   let _expenses = [];
 
   function render() {
-    const { fromYM, toYM } = _defaultRange();
+    const defaultMonths = window.innerWidth >= 768 ? 12 : 3;
+    const { fromYM, toYM } = _rangeForMonths(defaultMonths);
+    const _btn = (m, label) => {
+      const active = m === defaultMonths;
+      return `<button class="btn ${active ? 'btn-outline-primary active' : 'btn-outline-secondary'}" data-months="${m}">${label}</button>`;
+    };
     return `
 <div class="pt-3">
   <div class="d-flex justify-content-between align-items-center mb-3">
@@ -28,9 +33,9 @@ const SummaryView = (() => {
     <div class="card-body py-2">
       <div class="d-flex flex-wrap gap-2 align-items-center">
         <div class="btn-group btn-group-sm" id="presetBtns">
-          <button class="btn btn-outline-secondary" data-months="3">3ヶ月</button>
-          <button class="btn btn-outline-secondary" data-months="6">6ヶ月</button>
-          <button class="btn btn-outline-primary active" data-months="12">12ヶ月</button>
+          ${_btn(3, '3ヶ月')}
+          ${_btn(6, '6ヶ月')}
+          ${_btn(12, '12ヶ月')}
           <button class="btn btn-outline-secondary" data-months="0">カスタム</button>
         </div>
         <div id="customRange" class="d-none d-flex align-items-center gap-1">
@@ -135,11 +140,24 @@ const SummaryView = (() => {
       update();
     });
 
+    // 3テーブルの横スクロールを連動させる
+    const wraps = ['#wrapCat', '#wrapMember', '#wrapUnpaid']
+      .map(id => el.querySelector(id)).filter(Boolean);
+    let _syncing = false;
+    wraps.forEach(wrap => {
+      wrap.addEventListener('scroll', () => {
+        if (_syncing) return;
+        _syncing = true;
+        wraps.forEach(w => { if (w !== wrap) w.scrollLeft = wrap.scrollLeft; });
+        _syncing = false;
+      });
+    });
+
     update();
   }
 
   // ─── 期間ヘルパー ──────────────────────────────────────────
-  function _defaultRange() { return _rangeForMonths(12); }
+  function _defaultRange() { return _rangeForMonths(window.innerWidth >= 768 ? 12 : 3); }
 
   function _rangeForMonths(n) {
     const now  = new Date();
