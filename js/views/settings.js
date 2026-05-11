@@ -81,20 +81,11 @@ const SettingsView = (() => {
             <i class="bi bi-plus-circle me-1"></i>スプレッドシートを新規作成
           </button>
           <div id="createSheetMsg" class="form-text mb-3"></div>
-          <div class="text-center text-muted small mb-2">― または既存のシートを使用 ―</div>
           ` : ''}
 
-          <!-- シートURL入力（新規作成時は「既存シートを使用」として表示） -->
-          <div class="input-group mb-1">
-            <input type="text" class="form-control form-control-sm" id="inputSheetUrl"
-              placeholder="https://docs.google.com/spreadsheets/d/..."
-              value="${_escape(ssId ? `https://docs.google.com/spreadsheets/d/${ssId}` : '')}">
-            <button class="btn btn-outline-primary btn-sm" id="btnSaveSheetUrl">保存</button>
-          </div>
-          <div id="sheetMsg" class="form-text mb-1"></div>
           ${ssId ? `<a href="https://docs.google.com/spreadsheets/d/${ssId}" target="_blank"
             class="btn btn-outline-secondary btn-sm w-100 mb-3">
-            <i class="bi bi-table me-1"></i>スプレッドシートを開く</a>` : '<div class="mb-3"></div>'}
+            <i class="bi bi-table me-1"></i>スプレッドシートを開く</a>` : ''}
 
           <!-- ② ライセンス -->
           <div class="settings-section-title">ライセンス</div>
@@ -212,34 +203,6 @@ const SettingsView = (() => {
       _updateLicenseStatus(el, result);
     });
     _updateLicenseStatus(el, _getCachedLicenseResult());
-
-    // シートURL保存
-    el.querySelector('#btnSaveSheetUrl')?.addEventListener('click', async () => {
-      const raw = el.querySelector('#inputSheetUrl').value.trim();
-      const id  = _extractSheetId(raw);
-      const msg = el.querySelector('#sheetMsg');
-      if (!id) { msg.innerHTML = '<span class="text-danger">URLまたはIDを正しく入力してください</span>'; return; }
-      const btn = el.querySelector('#btnSaveSheetUrl');
-      btn.disabled = true; btn.textContent = '確認中...';
-      try {
-        await Sheets.read('A1', id);
-      } catch (err) {
-        const status = (err.message || '').match(/\d{3}/)?.[0];
-        if (status === '403') {
-          msg.innerHTML = '<span class="text-danger"><i class="bi bi-x-circle me-1"></i>このスプレッドシートへのアクセス権がありません。共有設定を確認してください。</span>';
-          btn.disabled = false; btn.textContent = '保存'; return;
-        } else if (status === '404') {
-          msg.innerHTML = '<span class="text-danger"><i class="bi bi-x-circle me-1"></i>スプレッドシートが見つかりません。URLを確認してください。</span>';
-          btn.disabled = false; btn.textContent = '保存'; return;
-        }
-      } finally {
-        btn.disabled = false; btn.textContent = '保存';
-      }
-      localStorage.setItem('keihi_sheet_id', id);
-      msg.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>保存しました。ページを再読み込みして反映してください。</span>';
-      App.showToast('スプレッドシートIDを保存しました', 'success');
-      _syncSettingsToDrive();
-    });
 
     // スプレッドシート新規作成（シート未設定時のみ表示）
     el.querySelector('#btnCreateSheet')?.addEventListener('click', async () => {
@@ -608,13 +571,6 @@ const SettingsView = (() => {
   function _getCachedLicenseResult() {
     try { return JSON.parse(localStorage.getItem('keihi_license_cache') || 'null')?.result || null; }
     catch (_) { return null; }
-  }
-
-  function _extractSheetId(urlOrId) {
-    if (!urlOrId) return '';
-    const m = urlOrId.match(/\/d\/([a-zA-Z0-9_-]{20,})/);
-    if (m) return m[1];
-    return /^[a-zA-Z0-9_-]{20,}$/.test(urlOrId) ? urlOrId : '';
   }
 
   function _escape(s) {

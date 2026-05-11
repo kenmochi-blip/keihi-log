@@ -201,9 +201,19 @@ const App = (() => {
 
 // アプリ起動
 document.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(location.search);
+
   // ?demo パラメータで直接デモ起動（/demo リダイレクト経由）
-  if (new URLSearchParams(location.search).has('demo')) {
+  if (params.has('demo')) {
     Demo.enable();
+  }
+
+  // ?sheet=SHEET_ID_OR_URL でスプレッドシートを自動設定（管理者がメンバーに共有するURL用）
+  const sheetParam = params.get('sheet');
+  if (sheetParam) {
+    const m = sheetParam.match(/\/d\/([a-zA-Z0-9_-]{20,})/);
+    const sheetId = m ? m[1] : (/^[a-zA-Z0-9_-]{20,}$/.test(sheetParam) ? sheetParam : null);
+    if (sheetId) localStorage.setItem('keihi_sheet_id', sheetId);
   }
 
   // デモモード：Googleスクリプトを読み込まず即時起動（ポップアップブロック回避）
