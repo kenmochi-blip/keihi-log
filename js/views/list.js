@@ -80,7 +80,10 @@ const ListView = (() => {
 
   <!-- 合計表示 -->
   <div class="d-flex justify-content-between align-items-center mb-2">
-    <span class="text-muted small" id="lblCount">読み込み中...</span>
+    <div class="d-flex align-items-center gap-2">
+      <span class="text-muted small" id="lblCount">読み込み中...</span>
+      <span class="text-muted" style="font-size:0.72rem;">🏢 = 会社直接支払</span>
+    </div>
     <span class="fw-bold" id="lblFilterTotal"></span>
   </div>
 
