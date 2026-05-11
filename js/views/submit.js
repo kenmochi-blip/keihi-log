@@ -115,13 +115,14 @@ const SubmitView = (() => {
     <div class="row g-2 mb-2">
       <div class="col-6">
         <label class="form-label small fw-semibold">出発駅・バス停</label>
-        <input type="text" class="form-control form-control-sm" id="txtFrom" placeholder="例：渋谷">
+        <input type="text" class="form-control form-control-sm" id="txtFrom" placeholder="例：渋谷 / 聖母病院入口/都営バス">
       </div>
       <div class="col-6">
         <label class="form-label small fw-semibold">到着駅・バス停</label>
-        <input type="text" class="form-control form-control-sm" id="txtTo" placeholder="例：新宿">
+        <input type="text" class="form-control form-control-sm" id="txtTo" placeholder="例：新宿 / 飯田橋/都営バス">
       </div>
     </div>
+    <div class="text-muted mb-2" style="font-size:0.75rem;">※バス停は「バス停名/事業者名」形式で入力（例：聖母病院入口/都営バス）</div>
     <button class="btn btn-outline-secondary btn-sm w-100" id="btnYahooTransit">
       <i class="bi bi-search me-1"></i>料金を検索して入力
     </button>
