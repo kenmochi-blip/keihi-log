@@ -322,15 +322,22 @@ const ListView = (() => {
         ? `<span class="badge badge-confirmed" style="font-size:0.65rem;">承認済</span>`
         : `<span class="badge badge-pending" style="font-size:0.65rem;">未確認</span>`;
       const canEdit = !e.confirmed && e.email === email;
-      const imageBtn = e.imageLinks
-        ? `<a href="${e.imageLinks.split(',')[0].trim()}" target="_blank" class="btn btn-outline-primary btn-sm py-0 px-1"><i class="bi bi-image"></i></a>` : '';
       const approveBtn = _isAdmin && !e.confirmed
         ? `<button class="btn btn-outline-success btn-sm py-0 px-1 btn-approve" data-id="${e.id}"><i class="bi bi-check"></i></button>` : '';
       const editBtn = canEdit
         ? `<button class="btn btn-outline-secondary btn-sm py-0 px-1 btn-edit-list" data-id="${e.id}"><i class="bi bi-pencil"></i></button>` : '';
-      const ops = `<div class="d-flex gap-1">${imageBtn}${approveBtn}${editBtn}</div>`;
+      const ops = `<div class="d-flex gap-1">${approveBtn}${editBtn}</div>`;
 
-      // PC行（8列）
+      // 証票リンク（複数対応）
+      const imgUrls = e.imageLinks ? e.imageLinks.split(',').map(s => s.trim()).filter(Boolean) : [];
+      const receiptBtns = imgUrls.map((url, i) =>
+        `<a href="${url}" target="_blank" class="btn btn-outline-primary btn-sm py-0 px-2">
+           <i class="bi bi-image me-1"></i>${imgUrls.length > 1 ? `証票${i + 1}` : '証票'}
+         </a>`
+      ).join('');
+
+      // PC行（8列）+ 金額クリックで開く詳細行
+      const hasDetail = e.note || imgUrls.length > 0;
       rowsPc.push(`<tr>
         <td class="list-date">${e.date}</td>
         <td class="list-place">
@@ -338,14 +345,24 @@ const ListView = (() => {
           <div class="text-muted" style="font-size:0.7rem;">${_escape(e.name)}</div>
         </td>
         <td class="list-type-cell">${_escape(e.type)}</td>
-        <td class="text-end list-amount">¥${e.amount.toLocaleString()}</td>
+        <td class="text-end list-amount${hasDetail ? ' list-amount-toggle' : ''}" data-detail="${e.id}"
+          ${hasDetail ? `title="クリックして備考・証票を表示"` : ''}>
+          ¥${e.amount.toLocaleString()}
+        </td>
         <td class="list-cat">${_escape(e.category)}</td>
         <td class="list-note-cell text-muted">${_escape(e.note || '')}</td>
         <td>${statusBadge}</td>
         <td class="no-print">${ops}</td>
-      </tr>`);
+      </tr>
+      ${hasDetail ? `<tr class="list-detail-row d-none" data-detail-row="${e.id}">
+        <td colspan="8" class="px-3 py-2">
+          ${e.note ? `<div class="text-muted mb-1"><i class="bi bi-chat-text me-1 text-secondary"></i>${_escape(e.note)}</div>` : ''}
+          ${receiptBtns ? `<div class="d-flex flex-wrap gap-1">${receiptBtns}</div>` : ''}
+        </td>
+      </tr>` : ''}`);
 
       // SPカード
+      const hasExtra = e.note || imgUrls.length > 0;
       cardHtmls.push(`
         <div class="list-sp-card" data-id="${e.id}">
           <div class="d-flex justify-content-between align-items-start gap-2">
@@ -356,7 +373,10 @@ const ListView = (() => {
               </div>
               <div class="list-sp-name">${_escape(e.name)}</div>
             </div>
-            <div class="list-sp-amount flex-shrink-0">¥${e.amount.toLocaleString()}</div>
+            <div class="list-sp-amount flex-shrink-0${hasExtra ? ' expandable' : ''}">
+              ¥${e.amount.toLocaleString()}
+              ${hasExtra ? '<i class="bi bi-chevron-down chevron"></i>' : ''}
+            </div>
           </div>
           <div class="d-flex justify-content-between align-items-center mt-1 gap-2">
             <div class="d-flex align-items-center gap-1 flex-wrap" style="min-width:0;">
@@ -366,6 +386,11 @@ const ListView = (() => {
             </div>
             <div class="no-print flex-shrink-0">${ops}</div>
           </div>
+          ${hasExtra ? `
+          <div class="list-sp-extra d-none">
+            ${e.note ? `<div class="list-sp-extra-note"><i class="bi bi-chat-text me-1 text-secondary"></i>${_escape(e.note)}</div>` : ''}
+            ${receiptBtns ? `<div class="d-flex flex-wrap gap-1">${receiptBtns}</div>` : ''}
+          </div>` : ''}
         </div>`);
     });
 
@@ -382,6 +407,30 @@ const ListView = (() => {
           SubmitView.queueEdit(btn.dataset.id, _expenses);
           Router.navigate('submit');
         });
+      });
+    });
+
+    // PC：金額クリックで詳細行トグル
+    tbodyPc.querySelectorAll('.list-amount-toggle').forEach(td => {
+      td.addEventListener('click', () => {
+        const detailRow = tbodyPc.querySelector(`[data-detail-row="${td.dataset.detail}"]`);
+        if (!detailRow) return;
+        const open = !detailRow.classList.contains('d-none');
+        detailRow.classList.toggle('d-none', open);
+        td.style.color = open ? '' : '#0a58ca';
+      });
+    });
+
+    // SP：金額タップで詳細エリアトグル
+    cardsSp.querySelectorAll('.list-sp-amount.expandable').forEach(amountEl => {
+      amountEl.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        const card  = amountEl.closest('.list-sp-card');
+        const extra = card?.querySelector('.list-sp-extra');
+        if (!extra) return;
+        const opening = extra.classList.contains('d-none');
+        extra.classList.toggle('d-none', !opening);
+        amountEl.classList.toggle('open', opening);
       });
     });
   }

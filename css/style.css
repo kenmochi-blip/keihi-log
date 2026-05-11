@@ -358,8 +358,28 @@ body { font-size: 0.9rem; }
 .list-sp-place { font-size: 0.88rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .list-sp-name  { font-size: 0.7rem; color: #6c757d; }
 .list-sp-amount { font-size: 0.9rem; font-weight: 700; color: #0d6efd; white-space: nowrap; }
+.list-sp-amount.expandable { cursor: pointer; user-select: none; }
+.list-sp-amount.expandable .chevron { font-size: 0.6rem; opacity: 0.55; vertical-align: middle; margin-left: 2px; transition: transform 0.15s; }
+.list-sp-amount.expandable.open .chevron { transform: rotate(180deg); }
 .list-sp-cat   { font-size: 0.72rem; color: #6c757d; }
 .list-sp-note  { font-size: 0.7rem; color: #adb5bd; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px; display: inline-block; vertical-align: middle; }
+/* 金額タップで展開される詳細エリア */
+.list-sp-extra {
+  margin-top: 0.45rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid #f0f0f0;
+}
+.list-sp-extra-note {
+  font-size: 0.78rem;
+  color: #495057;
+  margin-bottom: 0.35rem;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+/* PCテーブル：金額クリックで展開される詳細行 */
+.list-detail-row td { background: #f8f9fa; border-top: none !important; font-size: 0.8rem; }
+.list-amount-toggle { cursor: pointer; }
+.list-amount-toggle:hover { text-decoration: underline; }
 
 /* PC/タブレット：集計ビュー全幅レイアウト */
 @media (min-width: 768px) {
