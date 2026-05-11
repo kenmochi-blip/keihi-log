@@ -21,7 +21,8 @@ const SubmitView = (() => {
   function render() {
     const ssId   = localStorage.getItem('keihi_sheet_id');
     const licKey = localStorage.getItem('keihi_license_key');
-    const setupIncomplete = !ssId || !licKey;
+    const isDemo = typeof Demo !== 'undefined' && Demo.isActive();
+    const setupIncomplete = !isDemo && (!ssId || !licKey);
 
     return `
 <div class="pt-3">
