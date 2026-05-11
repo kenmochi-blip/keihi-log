@@ -52,27 +52,23 @@ const SettingsView = (() => {
 
           <!-- ① 社名（管理者のみ） -->
           ${isAdmin ? `
-          <div class="settings-section-title">① 社名</div>
-          <div class="mb-3">
-            <label class="form-label small fw-semibold">会社名・団体名・屋号等${!ssId ? ' <span class="text-danger">*</span>' : ''}<span class="text-muted fw-normal ms-1" style="font-size:0.75rem;">（ヘッダー名に使用されます、変更可）</span></label>
-            <div class="${ssId ? 'input-group' : ''}">
-              <input type="text" class="form-control form-control-sm" id="inputCompanyName"
-                placeholder="例：〇〇株式会社、NPO法人〇〇、屋号など">
-              ${ssId ? '<button class="btn btn-outline-primary btn-sm" id="btnSaveCompanyName">保存</button>' : ''}
-            </div>
-            <div id="companyNameMsg" class="form-text"></div>
-          </div>` : ''}
+          <div class="settings-step-title">① 社名・団体名・屋号等${!ssId ? ' <span class="text-danger" style="font-size:0.8rem;">*</span>' : ''}</div>
+          <div class="settings-step-hint">ヘッダー名に使用されます（後から変更可）</div>
+          <div class="${ssId ? 'input-group' : ''} mb-3">
+            <input type="text" class="form-control form-control-sm" id="inputCompanyName"
+              placeholder="例：〇〇株式会社、NPO法人〇〇、屋号など">
+            ${ssId ? '<button class="btn btn-outline-primary btn-sm" id="btnSaveCompanyName">保存</button>' : ''}
+          </div>
+          <div id="companyNameMsg" class="form-text" style="margin-top:-0.75rem;"></div>
+          ` : ''}
 
           <!-- ② 保存先フォルダ（管理者のみ） -->
           ${isAdmin ? `
-          <div class="settings-section-title">② 保存先フォルダ</div>
+          <div class="settings-step-title">② 保存先フォルダ</div>
           ${!ssId ? `
-          <div class="mb-2">
-            <label class="form-label small fw-semibold">スプレッドシート・証票画像データ保存先フォルダ（任意）</label>
-            <input type="text" class="form-control form-control-sm" id="inputFolderUrl"
-              placeholder="Google Drive フォルダのURL（空欄 = マイドライブのルート）">
-            <div class="form-text">Driveで保存先フォルダを開き、URLを貼り付けると指定フォルダに作成されます</div>
-          </div>
+          <div class="settings-step-hint">スプレッドシートと証票画像の保存先（空欄でマイドライブのルートに作成）</div>
+          <input type="text" class="form-control form-control-sm mb-2" id="inputFolderUrl"
+            placeholder="Google Drive フォルダのURL（任意）">
           <button class="btn btn-primary btn-sm w-100 mb-2" id="btnCreateSheet">
             <i class="bi bi-plus-circle me-1"></i>データ保存先を新規作成
           </button>
@@ -81,18 +77,19 @@ const SettingsView = (() => {
           <a href="https://docs.google.com/spreadsheets/d/${ssId}" target="_blank"
             class="btn btn-outline-secondary btn-sm w-100 mb-2">
             <i class="bi bi-table me-1"></i>スプレッドシートを開く</a>
+          <div class="settings-step-hint" style="margin-top:0.25rem;">証票画像の保存先フォルダを変更する場合</div>
           <div id="folderCurrentLink" class="mb-1"></div>
           <div class="input-group mb-1">
             <input type="text" class="form-control form-control-sm" id="inputReceiptFolderUrl"
               placeholder="Google Drive フォルダのURL">
-            <button class="btn btn-outline-primary btn-sm" id="btnSaveReceiptFolder">証票フォルダを変更</button>
+            <button class="btn btn-outline-primary btn-sm" id="btnSaveReceiptFolder">変更</button>
           </div>
           <div id="receiptFolderMsg" class="form-text mb-3"></div>
           `}
           ` : ''}
 
           <!-- ③ ライセンスキー -->
-          <div class="settings-section-title">${isAdmin ? '③ ' : ''}ライセンスキー</div>
+          <div class="settings-step-title">${isAdmin ? '③ ' : ''}ライセンスキー</div>
           <div id="licenseStatus" class="mb-2"></div>
           <div class="input-group mb-1">
             <input type="password" class="form-control form-control-sm" id="inputLicenseKey"
@@ -101,10 +98,10 @@ const SettingsView = (() => {
           </div>
           <div id="licenseMsg" class="form-text mb-2"></div>
 
-          <!-- ④ APIキー（管理者のみ） -->
+          <!-- ④ Gemini APIキー（管理者のみ） -->
           ${isAdmin ? `
-          <div class="settings-section-title">④ APIキー <span class="text-muted fw-normal" style="font-size:0.72rem;">（Gemini・全メンバー共用）</span></div>
-          <p class="text-muted small mb-2">Google AI Studioで取得したAPIキーを入力してください。メンバーは個別取得不要です。</p>
+          <div class="settings-step-title">④ Gemini APIキー</div>
+          <div class="settings-step-hint">全メンバー共用 — メンバーは個別取得不要。Google AI Studioで取得してください。</div>
           <div class="input-group mb-1">
             <input type="password" class="form-control form-control-sm" id="inputGeminiKey" placeholder="AIzaSy...">
             <button class="btn btn-outline-primary btn-sm" id="btnSaveGeminiKey">保存</button>
