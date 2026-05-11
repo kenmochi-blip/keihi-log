@@ -53,14 +53,14 @@ export default async function handler(req, res) {
     }
 
     const html = await resp.text();
-    const { fare, minutes, transfers } = _parse(html);
+    const { fare, transfers } = _parse(html);
 
     if (!fare) {
       return res.status(404).json({ error: '運賃を取得できませんでした。駅名を確認してください。' });
     }
 
     res.setHeader('Cache-Control', 'no-store');
-    res.json({ fare, minutes, transfers, resultUrl });
+    res.json({ fare, transfers, resultUrl });
   } catch (err) {
     if (err.name === 'TimeoutError') {
       return res.status(504).json({ error: 'Yahoo乗換への接続がタイムアウトしました' });
@@ -94,14 +94,6 @@ function _parse(html) {
     if (allFares.length > 0) fare = Math.min(...allFares);
   }
 
-  // --- 所要時間 ---
-  const timeHourMin = text.match(/(\d+)\s*時間\s*(\d+)\s*分/);
-  const timeHourOnly = text.match(/(\d+)\s*時間/);
-  const timeMinOnly = text.match(/(\d+)\s*分/);
-  let minutes = null;
-  if (timeHourMin) minutes = parseInt(timeHourMin[1], 10) * 60 + parseInt(timeHourMin[2], 10);
-  else if (timeHourOnly) minutes = parseInt(timeHourOnly[1], 10) * 60;
-  else if (timeMinOnly) minutes = parseInt(timeMinOnly[1], 10);
 
   // --- 乗換駅（中間駅）の抽出 ---
   // 実際の乗換には「○○ 3分乗換」のように待ち時間が付く
@@ -115,5 +107,5 @@ function _parse(html) {
   }
   const transfers = [...transferSet];
 
-  return { fare, minutes, transfers };
+  return { fare, transfers };
 }
