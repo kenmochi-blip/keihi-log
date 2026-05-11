@@ -14,6 +14,10 @@ const SubmitView = (() => {
   let _cats          = [];
   let _paySources    = [];
   let _pendingEdit   = null; // 一覧表からの編集キュー {id, expenses}
+  let _historyAll      = []; // 自分の全履歴（ソート済）
+  let _historyExpenses = []; // 全経費データ（編集用）
+  let _historyShown    = 15;
+  const _HIST_PAGE     = 15;
 
   const TYPES = ['領収書', '領収書なし', '交通費', '自家用車'];
   const CAR_RATE_KEY = 'keihi_car_rate';
@@ -238,7 +242,7 @@ const SubmitView = (() => {
   <!-- 直近履歴 -->
   <div class="mt-2 mb-4">
     <div class="d-flex justify-content-between align-items-center mb-2">
-      <h6 class="fw-bold mb-0">直近の自分の履歴（10件）</h6>
+      <h6 class="fw-bold mb-0">直近の自分の履歴</h6>
       <div class="d-flex gap-2 align-items-center">
         ${App.isAdmin() && localStorage.getItem('keihi_sheet_id') ? `
         <a href="https://docs.google.com/spreadsheets/d/${localStorage.getItem('keihi_sheet_id')}" target="_blank" rel="noopener"
@@ -964,25 +968,42 @@ const SubmitView = (() => {
     list.innerHTML = '<div class="text-muted small text-center py-2">読み込み中...</div>';
     try {
       const all = await Sheets.readExpenses();
-      const email = Auth.getUserEmail();
-      const mine  = all
-        .filter(e => e.email === email)
-        .sort((a, b) => (b.appliedAt || b.date).localeCompare(a.appliedAt || a.date))
-        .slice(0, 10);
-      if (mine.length === 0) {
-        list.innerHTML = '<div class="text-muted small text-center py-3">申請履歴がありません</div>';
-        return;
-      }
-      list.innerHTML = mine.map(e => _renderHistoryCard(e)).join('');
-      list.querySelectorAll('.btn-edit-history').forEach(btn => {
-        btn.addEventListener('click', () => _startEdit(el, btn.dataset.id, all));
-      });
-      list.querySelectorAll('.btn-del-history').forEach(btn => {
-        btn.addEventListener('click', () => _deleteExpense(btn.dataset.id, el));
-      });
+      _historyExpenses = all;
+      _historyAll = all
+        .filter(e => e.email === Auth.getUserEmail())
+        .sort((a, b) => (b.appliedAt || b.date).localeCompare(a.appliedAt || a.date));
+      _historyShown = _HIST_PAGE;
+      _renderHistory(el);
     } catch (err) {
       list.innerHTML = `<div class="text-danger small text-center py-2">${err.message}</div>`;
     }
+  }
+
+  function _renderHistory(el) {
+    const list = el.querySelector('#historyList');
+    if (!list) return;
+    if (_historyAll.length === 0) {
+      list.innerHTML = '<div class="text-muted small text-center py-3">申請履歴がありません</div>';
+      return;
+    }
+    const visible = _historyAll.slice(0, _historyShown);
+    const hasMore = _historyShown < _historyAll.length;
+    list.innerHTML = visible.map(e => _renderHistoryCard(e)).join('') +
+      (hasMore
+        ? `<button class="btn btn-outline-secondary btn-sm w-100 mt-1" id="btnHistoryMore">
+             <i class="bi bi-chevron-down me-1"></i>もっと見る
+           </button>`
+        : '');
+    list.querySelectorAll('.btn-edit-history').forEach(btn => {
+      btn.addEventListener('click', () => _startEdit(el, btn.dataset.id, _historyExpenses));
+    });
+    list.querySelectorAll('.btn-del-history').forEach(btn => {
+      btn.addEventListener('click', () => _deleteExpense(btn.dataset.id, el));
+    });
+    list.querySelector('#btnHistoryMore')?.addEventListener('click', () => {
+      _historyShown += _HIST_PAGE;
+      _renderHistory(el);
+    });
   }
 
   function _renderHistoryCard(e) {

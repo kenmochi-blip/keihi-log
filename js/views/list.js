@@ -11,6 +11,7 @@ const ListView = (() => {
   let _isAdmin   = false;
   let _userRole  = 'member';
   let _showAll   = false;
+  let _shownCount = 50;
 
   function render() {
     const { fromYM, toYM } = _defaultRange();
@@ -113,6 +114,13 @@ const ListView = (() => {
     <div class="text-center text-muted py-3">読み込み中...</div>
   </div>
 
+  <!-- もっと見る -->
+  <div id="listLoadMore" class="text-center mt-2 mb-1 d-none no-print">
+    <button class="btn btn-outline-secondary btn-sm px-4" id="btnLoadMore">
+      <i class="bi bi-chevron-down me-1"></i>もっと見る
+    </button>
+  </div>
+
   <!-- スプレッドシートリンク（管理者のみ） -->
   <div id="sheetLinkArea" class="mt-3 d-none no-print">
     <a id="sheetDirectLink" href="#" target="_blank" class="btn btn-outline-secondary btn-sm w-100">
@@ -186,15 +194,16 @@ const ListView = (() => {
           el.querySelector('#filterMonthFrom').value = fromYM;
           el.querySelector('#filterMonthTo').value   = toYM;
         }
-        _renderTable(el);
+        _shownCount = 50; _renderTable(el);
       });
     });
-    el.querySelector('#filterMonthFrom')?.addEventListener('change', () => _renderTable(el));
-    el.querySelector('#filterMonthTo')?.addEventListener('change', () => _renderTable(el));
+    const _reset = () => { _shownCount = 50; _renderTable(el); };
+    el.querySelector('#filterMonthFrom')?.addEventListener('change', _reset);
+    el.querySelector('#filterMonthTo')?.addEventListener('change', _reset);
 
     // フィルタリング
     ['filterType','filterStatus','filterKeyword','filterMember'].forEach(id => {
-      el.querySelector(`#${id}`)?.addEventListener('input', () => _renderTable(el));
+      el.querySelector(`#${id}`)?.addEventListener('input', _reset);
     });
 
     el.querySelector('#btnRefreshList')?.addEventListener('click', async () => {
@@ -310,17 +319,33 @@ const ListView = (() => {
 
     const tbodyPc  = el.querySelector('#listTbodyPc');
     const cardsSp  = el.querySelector('#listCardsSp');
+    const loadMore = el.querySelector('#listLoadMore');
+    const visible  = filtered.slice(0, _shownCount);
 
     if (filtered.length === 0) {
       tbodyPc.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">該当する申請がありません</td></tr>';
       cardsSp.innerHTML = '<div class="text-center text-muted py-3">該当する申請がありません</div>';
+      loadMore?.classList.add('d-none');
       return;
+    }
+
+    // もっと見るボタン制御
+    if (loadMore) {
+      if (_shownCount < filtered.length) {
+        loadMore.classList.remove('d-none');
+        loadMore.querySelector('#btnLoadMore').onclick = () => {
+          _shownCount += 50;
+          _renderTable(el);
+        };
+      } else {
+        loadMore.classList.add('d-none');
+      }
     }
 
     const email = Auth.getUserEmail();
     const rowsPc = [], cardHtmls = [];
 
-    filtered.forEach(e => {
+    visible.forEach(e => {
       const statusBadge = e.confirmed
         ? `<span class="badge badge-confirmed" style="font-size:0.65rem;">承認済</span>`
         : `<span class="badge badge-pending" style="font-size:0.65rem;">未確認</span>`;
