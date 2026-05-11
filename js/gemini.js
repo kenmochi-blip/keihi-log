@@ -30,8 +30,6 @@ const Gemini = (() => {
    * @param {string[]} categories 勘定科目リスト
    */
   async function analyzeReceipt(files, categories) {
-    const key = await _getApiKey();
-
     const imageParts = files.map(f => ({
       inlineData: {
         mimeType: f.mimeType,
@@ -62,23 +60,28 @@ const Gemini = (() => {
 - インボイス番号は T+13桁の数字で始まる番号
 `;
 
-    const resp = await fetch(`${API_URL}?key=${key}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{
-          parts: [
-            ...imageParts,
-            { text: prompt }
-          ]
-        }],
-        generationConfig: {
-          temperature: 0.1,
-          responseMimeType: 'application/json',
-        }
-      })
+    const body = JSON.stringify({
+      contents: [{ parts: [...imageParts, { text: prompt }] }],
+      generationConfig: { temperature: 0.1, responseMimeType: 'application/json' },
     });
 
+    // デモモード：サーバーサイドプロキシ経由（APIキーをフロントに持たない）
+    let resp;
+    if (typeof Demo !== 'undefined' && Demo.isActive()) {
+      const apiBase = window.APP_CONFIG?.apiBase || '';
+      resp = await fetch(`${apiBase}/api/gemini-proxy`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+      });
+    } else {
+      const key = await _getApiKey();
+      resp = await fetch(`${API_URL}?key=${key}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+      });
+    }
     if (!resp.ok) {
       const err = await resp.json().catch(() => ({}));
       throw new Error(err.error?.message || `Gemini API error: ${resp.status}`);
