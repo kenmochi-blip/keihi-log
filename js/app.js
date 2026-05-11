@@ -62,7 +62,8 @@ const App = (() => {
     try {
       _masterCache = await Sheets.readMaster();
       const email  = Auth.getUserEmail().toLowerCase();
-      _isAdmin = _masterCache.admins.includes(email);
+      // 管理者が誰も登録されていない場合（初期状態）は現ユーザーを管理者扱い
+      _isAdmin = _masterCache.admins.length === 0 || _masterCache.admins.includes(email);
 
       // メンバー制限：登録メンバーが1人以上いる場合、未登録ユーザーはアクセス不可
       if (_masterCache.members.length > 0 && !_masterCache.members.some(m => m.email.toLowerCase() === email)) {
@@ -72,6 +73,7 @@ const App = (() => {
       }
     } catch (_) {
       _masterCache = { members: [], categories: [], paySources: [], admins: [] };
+      _isAdmin = true; // マスタ読み込み失敗時も管理者扱いにして設定できるようにする
     }
 
     // 会社名をナビタイトルに反映
