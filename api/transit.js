@@ -95,8 +95,13 @@ function _parse(html) {
   }
 
   // --- 所要時間 ---
-  const timeMatch = text.match(/(\d+)\s*分/);
-  const minutes = timeMatch ? parseInt(timeMatch[1], 10) : null;
+  const timeHourMin = text.match(/(\d+)\s*時間\s*(\d+)\s*分/);
+  const timeHourOnly = text.match(/(\d+)\s*時間/);
+  const timeMinOnly = text.match(/(\d+)\s*分/);
+  let minutes = null;
+  if (timeHourMin) minutes = parseInt(timeHourMin[1], 10) * 60 + parseInt(timeHourMin[2], 10);
+  else if (timeHourOnly) minutes = parseInt(timeHourOnly[1], 10) * 60;
+  else if (timeMinOnly) minutes = parseInt(timeMinOnly[1], 10);
 
   // --- 乗換駅（中間駅）の抽出 ---
   // 実際の乗換には「○○ 3分乗換」のように待ち時間が付く
