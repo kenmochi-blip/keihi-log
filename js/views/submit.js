@@ -63,18 +63,20 @@ const SubmitView = (() => {
   <div id="panel-領収書">
     <input type="file" class="d-none" id="camInput-領収書" accept="image/*" capture="environment">
     <input type="file" class="d-none" id="fileInput-領収書" accept="*/*" multiple>
-    <div class="d-flex gap-2 mb-3">
-      <button class="upload-card-sm flex-fill" id="btnCamera-領収書">
-        <i class="bi bi-camera-fill"></i>カメラ
-      </button>
-      <button class="upload-card-sm flex-fill" id="btnFile-領収書">
-        <i class="bi bi-folder-fill"></i>ファイル
+    <div class="receipt-upload-card mb-3">
+      <div class="upload-grid mb-2">
+        <button class="upload-card" id="btnCamera-領収書">
+          <i class="bi bi-camera-fill"></i>カメラ
+        </button>
+        <button class="upload-card" id="btnFile-領収書">
+          <i class="bi bi-folder-fill"></i>ファイル
+        </button>
+      </div>
+      <div id="previewArea-領収書" class="d-flex flex-wrap gap-2 mb-2"></div>
+      <button class="btn btn-primary w-100" id="btnAnalyze">
+        <i class="bi bi-stars me-2"></i>AIで読み取る
       </button>
     </div>
-    <div id="previewArea-領収書" class="d-flex flex-wrap gap-2 mb-3"></div>
-    <button class="btn btn-primary w-100 mb-2" id="btnAnalyze">
-      <i class="bi bi-stars me-2"></i>AIで読み取る
-    </button>
     <div id="receiptFields" class="d-none">
       ${_dateField()}
       ${_placeField('支払先（店名・会社名）')}
@@ -283,6 +285,8 @@ const SubmitView = (() => {
     _bindSubmit(el);
     el.querySelector('#btnRefreshHistory')?.addEventListener('click', () => _loadHistory(el));
     el.querySelector('#btnCancelEdit')?.addEventListener('click', () => _cancelEdit(el));
+    // 初期パネルが領収書の場合は申請ボタンを非表示
+    if (_currentType === '領収書') el.querySelector('#btnSubmit')?.classList.add('d-none');
     _loadHistory(el);
 
     // 一覧表の鉛筆ボタンからのジャンプ処理
