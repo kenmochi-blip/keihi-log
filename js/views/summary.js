@@ -291,12 +291,26 @@ const SummaryView = (() => {
   // ─── ドリルダウンモーダル ──────────────────────────────────
   function _showDrill(title, expenses) {
     const total = expenses.reduce((s, e) => s + e.amount, 0);
-    const rows = expenses
-      .slice().sort((a, b) => a.date.localeCompare(b.date))
-      .map(e => `<tr>
+    const sorted = expenses.slice().sort((a, b) => a.date.localeCompare(b.date));
+
+    const rows = sorted.map((e, i) => {
+      const imgUrls = (e.imageLinks || '').split(',').map(s => s.trim()).filter(Boolean);
+      const hasExtra = e.note || imgUrls.length > 0;
+      const receiptBtns = imgUrls.map((url, j) =>
+        `<a href="${_escape(url)}" target="_blank" rel="noopener"
+            class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size:0.75rem;">
+           <i class="bi bi-image me-1"></i>証票${imgUrls.length > 1 ? j + 1 : ''}
+         </a>`
+      ).join('');
+
+      return `<tr>
         <td style="white-space:nowrap;">${e.date}</td>
         <td>${_escape(e.place)}</td>
-        <td class="text-end">¥${e.amount.toLocaleString()}</td>
+        <td class="text-end${hasExtra ? ' drill-amount-toggle' : ''}" data-row="${i}"
+            style="${hasExtra ? 'cursor:pointer;' : ''}">
+          ¥${e.amount.toLocaleString()}
+          ${hasExtra ? '<i class="bi bi-chevron-down" style="font-size:0.6rem;opacity:0.55;margin-left:2px;vertical-align:middle;"></i>' : ''}
+        </td>
         <td class="text-muted">${_escape(e.name)}</td>
         <td class="text-muted" style="font-size:0.75rem;">${_escape(e.category)}</td>
         <td>
@@ -304,7 +318,16 @@ const SummaryView = (() => {
             ? '<span class="badge badge-confirmed rounded-pill px-2">承認済</span>'
             : '<span class="badge badge-pending rounded-pill px-2">未確認</span>'}
         </td>
-      </tr>`).join('');
+      </tr>
+      ${hasExtra ? `<tr class="drill-detail-row d-none" data-row="${i}">
+        <td colspan="6" style="background:#f8f9fa;border-top:none;padding:0.4rem 0.75rem 0.5rem;">
+          ${e.note ? `<div style="font-size:0.78rem;color:#495057;white-space:pre-wrap;word-break:break-all;margin-bottom:${imgUrls.length ? '0.3rem' : '0'};">
+            <i class="bi bi-chat-text me-1 text-secondary"></i>${_escape(e.note)}
+          </div>` : ''}
+          ${receiptBtns ? `<div class="d-flex gap-1 flex-wrap">${receiptBtns}</div>` : ''}
+        </td>
+      </tr>` : ''}`;
+    }).join('');
 
     const div = document.createElement('div');
     div.innerHTML = `
@@ -339,6 +362,20 @@ const SummaryView = (() => {
         </div>
       </div>`;
     document.body.appendChild(div);
+
+    // 金額タップで詳細行を展開
+    div.querySelectorAll('.drill-amount-toggle').forEach(td => {
+      td.addEventListener('click', () => {
+        const row = td.dataset.row;
+        const detail = div.querySelector(`.drill-detail-row[data-row="${row}"]`);
+        if (!detail) return;
+        const isOpen = !detail.classList.contains('d-none');
+        detail.classList.toggle('d-none', isOpen);
+        const chevron = td.querySelector('.bi-chevron-down, .bi-chevron-up');
+        if (chevron) chevron.className = `bi bi-chevron-${isOpen ? 'down' : 'up'}`;
+      });
+    });
+
     const modal = new bootstrap.Modal(div.querySelector('.modal'));
     modal.show();
     div.querySelector('.modal').addEventListener('hidden.bs.modal', () => div.remove());
