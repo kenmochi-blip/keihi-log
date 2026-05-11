@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="340" height="440" viewBox="0 0 340 440">
+  <rect width="340" height="440" fill="#fafafa" stroke="#bbb" stroke-width="1"/>
+  <!-- ヘッダー -->
+  <rect width="340" height="55" fill="#2c3e50"/>
+  <text x="170" y="25" font-family="sans-serif" font-size="17" font-weight="bold" fill="white" text-anchor="middle">技術書典オンライン</text>
+  <text x="170" y="44" font-family="sans-serif" font-size="10" fill="#95a5a6" text-anchor="middle">TECHBOOKFEST ONLINE STORE</text>
+  <!-- 領収書 -->
+  <text x="170" y="85" font-family="sans-serif" font-size="18" font-weight="bold" fill="#2c3e50" text-anchor="middle">領　収　書</text>
+  <line x1="20" y1="94" x2="320" y2="94" stroke="#2c3e50" stroke-width="1.5"/>
+  <!-- 宛先 -->
+  <text x="30" y="118" font-family="sans-serif" font-size="12" fill="#333">佐藤 次郎　様</text>
+  <!-- 注文情報 -->
+  <text x="30" y="143" font-family="sans-serif" font-size="11" fill="#666">注文番号：TBF-2026-047892</text>
+  <text x="30" y="161" font-family="sans-serif" font-size="11" fill="#666">注文日：2026年5月6日</text>
+  <line x1="20" y1="172" x2="320" y2="172" stroke="#ddd" stroke-width="0.5"/>
+  <!-- 商品 -->
+  <rect x="20" y="180" width="300" height="22" fill="#ecf0f1"/>
+  <text x="30" y="195" font-family="sans-serif" font-size="11" fill="#666">商品名</text>
+  <text x="320" y="195" font-family="sans-serif" font-size="11" fill="#666" text-anchor="end">価格</text>
+  <text x="30" y="218" font-family="sans-serif" font-size="12" fill="#333">Webアーキテクチャ解体新書（電子版）</text>
+  <text x="320" y="218" font-family="sans-serif" font-size="12" fill="#333" text-anchor="end">¥2,500</text>
+  <line x1="20" y1="228" x2="320" y2="228" stroke="#eee" stroke-width="0.5"/>
+  <text x="30" y="246" font-family="sans-serif" font-size="12" fill="#333">消費税（10%）</text>
+  <text x="320" y="246" font-family="sans-serif" font-size="12" fill="#333" text-anchor="end">¥250</text>
+  <line x1="20" y1="256" x2="320" y2="256" stroke="#2c3e50" stroke-width="1"/>
+  <!-- 合計 -->
+  <rect x="20" y="263" width="300" height="45" fill="#eaf2ff" rx="3"/>
+  <text x="160" y="281" font-family="sans-serif" font-size="12" fill="#2c3e50">お支払い合計</text>
+  <text x="310" y="299" font-family="sans-serif" font-size="24" font-weight="bold" fill="#2c3e50" text-anchor="end">¥2,750</text>
+  <!-- お支払い -->
+  <text x="30" y="330" font-family="sans-serif" font-size="11" fill="#555">お支払い方法：クレジットカード</text>
+  <!-- インボイス -->
+  <rect x="20" y="342" width="300" height="38" fill="#f8f9fa" rx="3" stroke="#ddd" stroke-width="0.5"/>
+  <text x="30" y="357" font-family="sans-serif" font-size="10" fill="#888">適格請求書発行事業者</text>
+  <text x="30" y="373" font-family="sans-serif" font-size="11" fill="#555">登録番号：T9876543210987</text>
+  <!-- スタンプ -->
+  <circle cx="270" cy="360" r="33" fill="none" stroke="#c0392b" stroke-width="2" opacity="0.6"/>
+  <text x="270" y="355" font-family="sans-serif" font-size="11" font-weight="bold" fill="#c0392b" text-anchor="middle" opacity="0.6">領　収</text>
+  <text x="270" y="371" font-family="sans-serif" font-size="10" fill="#c0392b" text-anchor="middle" opacity="0.6">済　み</text>
+  <!-- フッター -->
+  <line x1="20" y1="396" x2="320" y2="396" stroke="#ddd" stroke-width="0.5"/>
+  <text x="170" y="415" font-family="sans-serif" font-size="10" fill="#aaa" text-anchor="middle">このPDFは電子帳簿保存法に対応した電子領収書です</text>
+  <text x="170" y="431" font-family="sans-serif" font-size="10" fill="#aaa" text-anchor="middle">support@techbookfest.online</text>
+</svg>

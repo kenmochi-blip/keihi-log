@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="380" height="520" viewBox="0 0 380 520">
+  <rect width="380" height="520" fill="#fffdf8" stroke="#e8d5b0" stroke-width="1"/>
+  <!-- 波線装飾 上 -->
+  <path d="M0,12 Q19,0 38,12 Q57,24 76,12 Q95,0 114,12 Q133,24 152,12 Q171,0 190,12 Q209,24 228,12 Q247,0 266,12 Q285,24 304,12 Q323,0 342,12 Q361,24 380,12" fill="none" stroke="#8b6914" stroke-width="2"/>
+  <!-- ヘッダー -->
+  <text x="190" y="50" font-family="serif" font-size="22" font-weight="bold" fill="#5a3a00" text-anchor="middle">銀座グリル</text>
+  <text x="190" y="72" font-family="sans-serif" font-size="11" fill="#8b6914" text-anchor="middle">GINZA GRILL</text>
+  <line x1="30" y1="82" x2="350" y2="82" stroke="#8b6914" stroke-width="1" stroke-dasharray="4,2"/>
+  <!-- 領収書 -->
+  <text x="190" y="112" font-family="serif" font-size="20" fill="#5a3a00" text-anchor="middle">領　収　書</text>
+  <line x1="30" y1="122" x2="350" y2="122" stroke="#8b6914" stroke-width="1" stroke-dasharray="4,2"/>
+  <!-- 宛先 -->
+  <text x="40" y="148" font-family="sans-serif" font-size="13" fill="#444">田中 太郎　様</text>
+  <!-- 金額 -->
+  <text x="40" y="175" font-family="sans-serif" font-size="12" fill="#666">以下の通り領収いたしました。</text>
+  <rect x="30" y="188" width="320" height="55" fill="#faf3e0" rx="3"/>
+  <text x="190" y="207" font-family="sans-serif" font-size="12" fill="#666" text-anchor="middle">合　計</text>
+  <text x="190" y="235" font-family="serif" font-size="30" font-weight="bold" fill="#5a3a00" text-anchor="middle">¥ 8,400</text>
+  <!-- 明細テーブル -->
+  <line x1="30" y1="255" x2="350" y2="255" stroke="#c9a84c" stroke-width="1"/>
+  <text x="40" y="276" font-family="sans-serif" font-size="12" fill="#555">品目</text>
+  <text x="320" y="276" font-family="sans-serif" font-size="12" fill="#555" text-anchor="end">金額</text>
+  <line x1="30" y1="283" x2="350" y2="283" stroke="#ddd" stroke-width="0.5"/>
+  <text x="40" y="302" font-family="sans-serif" font-size="12" fill="#333">コース料理（2名分）</text>
+  <text x="320" y="302" font-family="sans-serif" font-size="12" fill="#333" text-anchor="end">¥6,000</text>
+  <text x="40" y="322" font-family="sans-serif" font-size="12" fill="#333">ドリンク</text>
+  <text x="320" y="322" font-family="sans-serif" font-size="12" fill="#333" text-anchor="end">¥1,636</text>
+  <text x="40" y="342" font-family="sans-serif" font-size="12" fill="#333">消費税（10%）</text>
+  <text x="320" y="342" font-family="sans-serif" font-size="12" fill="#333" text-anchor="end">¥764</text>
+  <line x1="30" y1="353" x2="350" y2="353" stroke="#c9a84c" stroke-width="1"/>
+  <!-- 日付・インボイス -->
+  <text x="40" y="378" font-family="sans-serif" font-size="12" fill="#555">日付：2026年5月2日</text>
+  <text x="40" y="398" font-family="sans-serif" font-size="12" fill="#555">登録番号：T1111111111111</text>
+  <text x="40" y="418" font-family="sans-serif" font-size="12" fill="#555">お支払：現金</text>
+  <!-- スタンプ -->
+  <circle cx="300" cy="405" r="38" fill="none" stroke="#c0392b" stroke-width="2.5" opacity="0.65"/>
+  <text x="300" y="399" font-family="sans-serif" font-size="12" font-weight="bold" fill="#c0392b" text-anchor="middle" opacity="0.65">領　収</text>
+  <text x="300" y="417" font-family="sans-serif" font-size="11" fill="#c0392b" text-anchor="middle" opacity="0.65">済　み</text>
+  <!-- 住所 -->
+  <line x1="30" y1="435" x2="350" y2="435" stroke="#8b6914" stroke-width="1" stroke-dasharray="4,2"/>
+  <text x="190" y="455" font-family="sans-serif" font-size="10" fill="#999" text-anchor="middle">東京都中央区銀座3-5-7</text>
+  <text x="190" y="471" font-family="sans-serif" font-size="10" fill="#999" text-anchor="middle">TEL: 03-3456-7890 / 営業時間: 11:30〜23:00</text>
+  <!-- 波線装飾 下 -->
+  <path d="M0,508 Q19,496 38,508 Q57,520 76,508 Q95,496 114,508 Q133,520 152,508 Q171,496 190,508 Q209,520 228,508 Q247,496 266,508 Q285,520 304,508 Q323,496 342,508 Q361,520 380,508" fill="none" stroke="#8b6914" stroke-width="2"/>
+</svg>

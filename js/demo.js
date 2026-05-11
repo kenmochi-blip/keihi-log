@@ -21,23 +21,29 @@ const Demo = (() => {
     admins: ['demo@example.com'],
   };
 
-  function _e(id, appliedAt, name, email, type, date, place, amount, category, note, confirmed, invoice) {
+  function _e(id, appliedAt, name, email, type, date, place, amount, category, note, confirmed, invoice, imageLinks = '') {
     return { id, appliedAt, name, email, type, date, place, amount, category, note, confirmed, invoice,
-             imageLinks: '', aiAudit: '', payment: '', aiAmount: amount, imageHash: '', device: 'demo' };
+             imageLinks, aiAudit: '', payment: '', aiAmount: amount, imageHash: '', device: 'demo' };
   }
+
+  const _img = f => `demo/receipts/${f}`;
 
   const EXPENSES = [
     // ── 2026-05 ──
     _e('demo-001', '2026-05-09T09:15:00Z', 'デモ ユーザー', 'demo@example.com',
-       '領収書', '2026-05-09', '大阪ビジネスホテル', 12000, '旅費交通費', '出張宿泊（大阪）', false, 'T1234567890123'),
+       '領収書', '2026-05-09', '大阪ビジネスホテル', 12000, '旅費交通費', '出張宿泊（大阪）', false, 'T1234567890123',
+       _img('receipt_hotel.svg')),
     _e('demo-002', '2026-05-08T14:30:00Z', '田中 太郎', 'tanaka@example.com',
        '交通費', '2026-05-08', '東京→横浜（往復）', 940, '旅費交通費', '取引先訪問', false, ''),
     _e('demo-003', '2026-05-07T10:00:00Z', '鈴木 花子', 'suzuki@example.com',
-       '領収書', '2026-05-07', 'オフィスデポ', 3280, '消耗品費', 'コピー用紙・文具', true, ''),
+       '領収書', '2026-05-07', 'オフィスデポ', 3280, '消耗品費', 'コピー用紙・文具', true, '',
+       _img('receipt_office.svg')),
     _e('demo-004', '2026-05-06T16:00:00Z', '佐藤 次郎', 'sato@example.com',
-       '領収書', '2026-05-06', '技術書典オンライン', 2750, '研修費', 'Webアーキテクチャ本', false, 'T9876543210987'),
+       '領収書', '2026-05-06', '技術書典オンライン', 2750, '研修費', 'Webアーキテクチャ本', false, 'T9876543210987',
+       _img('receipt_book.svg')),
     _e('demo-005', '2026-05-02T12:30:00Z', '田中 太郎', 'tanaka@example.com',
-       '領収書', '2026-05-02', '銀座グリル', 8400, '接待交際費', '〇〇商事様との会食', false, 'T1111111111111'),
+       '領収書', '2026-05-02', '銀座グリル', 8400, '接待交際費', '〇〇商事様との会食', false, 'T1111111111111',
+       _img('receipt_restaurant.svg')),
     // ── 2026-04 ──
     _e('demo-006', '2026-04-28T09:00:00Z', 'デモ ユーザー', 'demo@example.com',
        '自家用車', '2026-04-28', '本社→埼玉工場', 1200, '旅費交通費', '60km × 20円/km', true, ''),
@@ -46,12 +52,15 @@ const Demo = (() => {
     _e('demo-008', '2026-04-22T11:00:00Z', '田中 太郎', 'tanaka@example.com',
        '交通費', '2026-04-22', '新宿→品川（往復）', 760, '旅費交通費', '社内研修参加', true, ''),
     _e('demo-009', '2026-04-18T15:00:00Z', '佐藤 次郎', 'sato@example.com',
-       '領収書', '2026-04-18', 'AWS Summit Tokyo', 10000, '研修費', 'カンファレンス参加費', true, 'T2222222222222'),
+       '領収書', '2026-04-18', 'AWS Summit Tokyo', 10000, '研修費', 'カンファレンス参加費', true, 'T2222222222222',
+       _img('receipt_book.svg')),
     _e('demo-010', '2026-04-10T10:30:00Z', 'デモ ユーザー', 'demo@example.com',
-       '領収書', '2026-04-10', 'コワーキングスペース渋谷', 3300, '会議費', 'チームミーティング会場費', true, ''),
+       '領収書', '2026-04-10', 'コワーキングスペース渋谷', 3300, '会議費', 'チームミーティング会場費', true, '',
+       _img('receipt_office.svg')),
     // ── 2026-03 ──
     _e('demo-011', '2026-03-28T14:00:00Z', '田中 太郎', 'tanaka@example.com',
-       '領収書', '2026-03-28', '帝国ホテル 宴会場', 15000, '接待交際費', '年度末お礼会食', true, 'T3333333333333'),
+       '領収書', '2026-03-28', '帝国ホテル 宴会場', 15000, '接待交際費', '年度末お礼会食', true, 'T3333333333333',
+       _img('receipt_hotel.svg')),
     _e('demo-012', '2026-03-20T09:30:00Z', '鈴木 花子', 'suzuki@example.com',
        '領収書', '2026-03-20', 'Amazon.co.jp', 4580, '消耗品費', 'オフィス備品', true, ''),
     _e('demo-013', '2026-03-15T16:00:00Z', 'デモ ユーザー', 'demo@example.com',
@@ -78,7 +87,8 @@ const Demo = (() => {
        '領収書', '2026-01-08', 'GitHub（SaaS）', 3500, '通信費', 'GitHub Copilot 年間', true, ''),
     // ── 2025-12 ──
     _e('demo-023', '2025-12-25T12:00:00Z', '田中 太郎', 'tanaka@example.com',
-       '領収書', '2025-12-25', '八芳園', 22000, '接待交際費', '忘年会（15名分担）', true, 'T4444444444444'),
+       '領収書', '2025-12-25', '八芳園', 22000, '接待交際費', '忘年会（15名分担）', true, 'T4444444444444',
+       _img('receipt_restaurant.svg')),
     _e('demo-024', '2025-12-18T10:00:00Z', '鈴木 花子', 'suzuki@example.com',
        '領収書', '2025-12-18', 'ヤマト運輸', 1230, '通信費', '年末ご挨拶便', true, ''),
     _e('demo-025', '2025-12-10T14:00:00Z', 'デモ ユーザー', 'demo@example.com',
