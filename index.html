@@ -3,41 +3,94 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <title>経費ログ</title>
+  <title>経費ログ｜AI領収書解析・経費申請システム</title>
+  <meta name="description" content="経費ログは、AI領収書解析・経費申請・承認・集計をブラウザで完結できる経費管理Webアプリです。Googleアカウントで簡単にログインしてご利用いただけます。">
+  <!-- Google Search Console verification: <meta name="google-site-verification" content="YOUR_CODE_HERE"> -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link rel="stylesheet" href="css/style.css">
 </head>
-<body class="bg-light d-flex align-items-center justify-content-center min-vh-100">
+<body class="bg-light">
 
-  <div class="card shadow-sm" style="max-width:400px;width:100%;margin:1rem;">
-    <div class="card-body text-center p-4">
-      <div class="mb-3">
-        <i class="bi bi-receipt-cutoff text-primary" style="font-size:3rem;"></i>
+  <!-- アプリ紹介セクション（ログイン不要で閲覧可能） -->
+  <div class="bg-primary text-white py-5">
+    <div class="container text-center" style="max-width:600px;">
+      <i class="bi bi-receipt-cutoff" style="font-size:3.5rem;"></i>
+      <h1 class="h2 fw-bold mt-2 mb-2">経費ログ</h1>
+      <p class="mb-0" style="font-size:1rem;opacity:0.9;">AI領収書解析・経費申請・承認・集計をブラウザで完結</p>
+    </div>
+  </div>
+
+  <div class="container py-4" style="max-width:600px;">
+    <!-- 機能紹介 -->
+    <div class="row g-3 mb-4">
+      <div class="col-6">
+        <div class="card h-100 border-0 shadow-sm">
+          <div class="card-body text-center py-3">
+            <i class="bi bi-camera-fill text-primary" style="font-size:1.8rem;"></i>
+            <p class="small fw-semibold mb-0 mt-2">AI領収書解析</p>
+            <p class="text-muted mb-0" style="font-size:0.75rem;">撮影するだけで自動入力</p>
+          </div>
+        </div>
       </div>
-      <h1 class="h4 fw-bold mb-1">経費ログ</h1>
-      <p class="text-muted small mb-4">AI領収書解析・経費申請システム</p>
-
-      <div id="loginArea">
-        <p class="text-muted small mb-3">Googleアカウントでログインして開始してください</p>
-        <button id="signInBtn" class="btn btn-outline-primary w-100 mb-2">
-          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" class="me-2">Googleでログイン
-        </button>
-        <div id="loginError" class="alert alert-danger small d-none"></div>
-        <hr class="my-3">
-        <button id="demoBtn" class="btn btn-outline-secondary w-100 mb-1">
-          <i class="bi bi-play-circle me-2"></i>デモで試す（ログイン不要）
-        </button>
-        <p class="text-muted mb-0" style="font-size:0.7rem;">サンプルデータで全機能をお試しいただけます</p>
+      <div class="col-6">
+        <div class="card h-100 border-0 shadow-sm">
+          <div class="card-body text-center py-3">
+            <i class="bi bi-google text-danger" style="font-size:1.8rem;"></i>
+            <p class="small fw-semibold mb-0 mt-2">Googleスプレッドシート</p>
+            <p class="text-muted mb-0" style="font-size:0.75rem;">データはGoogleに安全保管</p>
+          </div>
+        </div>
       </div>
-
-      <div id="loadingArea" class="d-none">
-        <div class="spinner-border text-primary" role="status"></div>
-        <p class="text-muted small mt-2 mb-0">認証中...</p>
+      <div class="col-6">
+        <div class="card h-100 border-0 shadow-sm">
+          <div class="card-body text-center py-3">
+            <i class="bi bi-bar-chart-fill text-success" style="font-size:1.8rem;"></i>
+            <p class="small fw-semibold mb-0 mt-2">集計・レポート</p>
+            <p class="text-muted mb-0" style="font-size:0.75rem;">勘定科目別グラフで確認</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-6">
+        <div class="card h-100 border-0 shadow-sm">
+          <div class="card-body text-center py-3">
+            <i class="bi bi-shield-check-fill text-info" style="font-size:1.8rem;"></i>
+            <p class="small fw-semibold mb-0 mt-2">電帳法対応</p>
+            <p class="text-muted mb-0" style="font-size:0.75rem;">タイムスタンプ・ハッシュ管理</p>
+          </div>
+        </div>
       </div>
     </div>
-    <div class="card-footer text-center text-muted" style="font-size:0.7rem;">
-      &copy; 2025 経費ログ &mdash; ライセンス制
+
+    <!-- ログインカード -->
+    <div class="card shadow-sm mb-3">
+      <div class="card-body p-4">
+        <div id="loginArea">
+          <p class="text-muted small mb-3 text-center">Googleアカウントでログインして開始してください</p>
+          <button id="signInBtn" class="btn btn-outline-primary w-100 mb-2">
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" class="me-2">Googleでログイン
+          </button>
+          <div id="loginError" class="alert alert-danger small d-none"></div>
+          <hr class="my-3">
+          <button id="demoBtn" class="btn btn-outline-secondary w-100 mb-1">
+            <i class="bi bi-play-circle me-2"></i>デモで試す（ログイン不要）
+          </button>
+          <p class="text-muted mb-0 text-center" style="font-size:0.7rem;">サンプルデータで全機能をお試しいただけます</p>
+        </div>
+
+        <div id="loadingArea" class="d-none text-center">
+          <div class="spinner-border text-primary" role="status"></div>
+          <p class="text-muted small mt-2 mb-0">認証中...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- フッター -->
+    <div class="text-center text-muted" style="font-size:0.72rem;">
+      <p class="mb-1">&copy; 2025 合同会社Smart&amp;Smooth &mdash; 経費ログ</p>
+      <a href="/privacy" class="text-muted">プライバシーポリシー</a>
+      <span class="mx-1">｜</span>
+      <a href="mailto:info@smartandsmooth.com" class="text-muted">お問い合わせ</a>
     </div>
   </div>
 
