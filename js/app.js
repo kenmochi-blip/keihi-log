@@ -213,6 +213,32 @@ const App = (() => {
 
 // アプリ起動
 document.addEventListener('DOMContentLoaded', () => {
+  const _bootError = (msg) => {
+    const main = document.getElementById('appMain');
+    if (!main) return;
+    main.innerHTML = `<div class="pt-4">
+      <div class="alert alert-danger small">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>${msg}
+      </div>
+      <button class="btn btn-outline-secondary btn-sm" onclick="location.reload()">
+        <i class="bi bi-arrow-clockwise me-1"></i>再読み込み
+      </button>
+    </div>`;
+  };
+
+  // 必須スクリプトの存在チェック（読み込み失敗で真っ白になるのを防ぐ）
+  // 注：トップレベルの const は window に attach されないので typeof で直接参照する
+  const missing = [];
+  try { if (typeof Demo    === 'undefined') missing.push('Demo'); }    catch (_) { missing.push('Demo'); }
+  try { if (typeof Auth    === 'undefined') missing.push('Auth'); }    catch (_) { missing.push('Auth'); }
+  try { if (typeof Sheets  === 'undefined') missing.push('Sheets'); }  catch (_) { missing.push('Sheets'); }
+  try { if (typeof Router  === 'undefined') missing.push('Router'); }  catch (_) { missing.push('Router'); }
+  try { if (typeof App     === 'undefined') missing.push('App'); }     catch (_) { missing.push('App'); }
+  if (missing.length > 0) {
+    _bootError(`スクリプトの読み込みに失敗しました: ${missing.join(', ')}`);
+    return;
+  }
+
   const params = new URLSearchParams(location.search);
 
   // ?demo パラメータで直接デモ起動（/demo リダイレクト経由）
@@ -230,7 +256,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // デモモード：Googleスクリプトを読み込まず即時起動（ポップアップブロック回避）
   if (typeof Demo !== 'undefined' && Demo.isActive()) {
-    App.init();
+    App.init().catch(err => {
+      console.error('App.init error:', err);
+      _bootError(`デモモード初期化エラー: ${err.message}`);
+    });
     return;
   }
 
