@@ -123,7 +123,25 @@ const SettingsView = (() => {
   }
 
   function _renderMasterSections() {
+    const ssId = localStorage.getItem('keihi_sheet_id') || '';
+    const shareUrl = ssId ? `${location.origin}/${ssId}` : '';
     return `
+  <!-- メンバー招待URL（管理者のみ） -->
+  ${ssId ? `
+  <div class="card mb-3">
+    <div class="card-body">
+      <div class="settings-section-title">メンバー招待URL</div>
+      <div class="settings-step-hint">このURLをメンバーに共有すると、スプレッドシートが自動設定されます</div>
+      <div class="input-group input-group-sm">
+        <input type="text" class="form-control form-control-sm" id="shareUrlDisplay"
+          value="${_escape(shareUrl)}" readonly>
+        <button class="btn btn-outline-secondary btn-sm" id="btnCopyShareUrl">
+          <i class="bi bi-clipboard"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+  ` : ''}
   <!-- メンバー管理（管理者のみ） -->
   <div class="card mb-3">
     <div class="card-body">
@@ -222,7 +240,7 @@ const SettingsView = (() => {
       msg.textContent = '';
       try {
         const ssId    = await Setup.createSpreadsheet(name, parentFolderId);
-        const shareUrl = `${location.origin}${location.pathname}?sheet=${ssId}`;
+        const shareUrl = `${location.origin}/${ssId}`;
         const qrUrl   = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(shareUrl)}`;
         const mailSubject = encodeURIComponent(`【経費ログ】${name} へのご招待`);
         const mailBody = encodeURIComponent(
@@ -268,6 +286,12 @@ const SettingsView = (() => {
         btn.disabled = false;
         btn.innerHTML = '<i class="bi bi-plus-circle me-1"></i>データ保存先を新規作成';
       }
+    });
+
+    // 招待URLコピーボタン（常時表示カード）
+    el.querySelector('#btnCopyShareUrl')?.addEventListener('click', () => {
+      const url = el.querySelector('#shareUrlDisplay')?.value;
+      if (url) navigator.clipboard.writeText(url).then(() => App.showToast('URLをコピーしました', 'success'));
     });
 
     if (!App.isAdmin()) return;
