@@ -393,7 +393,14 @@ const ListView = (() => {
   }
 
   async function _approveExpense(id, el) {
-    const ok = await App.confirm('この申請を承認しますか？');
+    const expense = _expenses.find(x => x.id === id);
+    const aiAudit = expense?.aiAudit?.trim();
+    const detailHtml = aiAudit
+      ? `<div class="alert alert-info py-2 mb-0 small">
+           <i class="bi bi-stars me-1"></i><strong>AI監査：</strong>${_escape(aiAudit)}
+         </div>`
+      : '';
+    const ok = await App.confirm('この申請を承認しますか？', detailHtml);
     if (!ok) return;
     App.showLoading('承認中...');
     try {

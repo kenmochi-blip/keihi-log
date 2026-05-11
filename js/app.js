@@ -117,12 +117,26 @@ const App = (() => {
     }
   }
 
-  /** 確認ダイアログを表示してOK/キャンセルをPromiseで返す */
-  function confirm(message) {
+  /** 確認ダイアログを表示してOK/キャンセルをPromiseで返す
+   * @param {string} message メインメッセージ（テキスト）
+   * @param {string} [detailHtml] メッセージ下部に追加表示するHTML（任意）
+   */
+  function confirm(message, detailHtml = '') {
     return new Promise(resolve => {
       _confirmResolve = resolve;
       const body = document.getElementById('confirmModalBody');
-      if (body) body.textContent = message;
+      if (body) {
+        body.innerHTML = '';
+        const p = document.createElement('p');
+        p.className = 'mb-2';
+        p.textContent = message;
+        body.appendChild(p);
+        if (detailHtml) {
+          const detail = document.createElement('div');
+          detail.innerHTML = detailHtml;
+          body.appendChild(detail);
+        }
+      }
       _confirmModal?.show();
     });
   }
