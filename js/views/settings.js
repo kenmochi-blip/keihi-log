@@ -53,15 +53,23 @@ const SettingsView = (() => {
           <!-- ① スプレッドシート -->
           <div class="settings-section-title">スプレッドシート</div>
 
+          ${isAdmin ? `
+          <!-- 会社名（新規作成時は必須・既存シート時は随時変更可） -->
+          <div class="mb-2">
+            <label class="form-label small fw-semibold">会社名・団体名・屋号${!ssId ? ' <span class="text-danger">*</span>' : ''}</label>
+            <div class="${ssId ? 'input-group' : ''}">
+              <input type="text" class="form-control form-control-sm" id="inputCompanyName"
+                placeholder="例：〇〇株式会社、NPO法人〇〇、屋号など">
+              ${ssId ? '<button class="btn btn-outline-primary btn-sm" id="btnSaveCompanyName">保存</button>' : ''}
+            </div>
+            <div id="companyNameMsg" class="form-text"></div>
+          </div>` : ''}
+
           ${!ssId ? `
           <!-- 初回：新規作成フォーム -->
           <div class="alert alert-info small py-2 mb-3">
             <i class="bi bi-info-circle me-1"></i>
             管理者の方はまずスプレッドシートを新規作成してください。作成後にURLをメンバーに共有します。
-          </div>
-          <div class="mb-2">
-            <label class="form-label small fw-semibold">会社名・団体名・屋号 <span class="text-danger">*</span></label>
-            <input type="text" class="form-control form-control-sm" id="inputCompanyName" placeholder="例：〇〇株式会社、NPO法人〇〇、屋号など">
           </div>
           <div class="mb-2">
             <label class="form-label small fw-semibold">保存先フォルダ（任意）</label>
@@ -124,19 +132,6 @@ const SettingsView = (() => {
 
   function _renderMasterSections() {
     return `
-  <!-- 会社名・団体名・屋号（管理者のみ・随時変更可） -->
-  <div class="card mb-3">
-    <div class="card-body">
-      <div class="settings-section-title">会社名・団体名・屋号</div>
-      <div class="input-group mb-1">
-        <input type="text" class="form-control form-control-sm" id="inputCompanyNameEdit"
-          placeholder="例：〇〇株式会社、NPO法人〇〇、屋号など">
-        <button class="btn btn-outline-primary btn-sm" id="btnSaveCompanyName">保存</button>
-      </div>
-      <div id="companyNameMsg" class="form-text"></div>
-    </div>
-  </div>
-
   <!-- メンバー管理（管理者のみ） -->
   <div class="card mb-3">
     <div class="card-body">
@@ -172,6 +167,22 @@ const SettingsView = (() => {
       </div>
       <div id="paySourceList" class="mt-2">
         <div class="text-muted small text-center py-2">読み込み中...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ヘッダー色（管理者のみ） -->
+  <div class="card mb-3">
+    <div class="card-body">
+      <div class="settings-section-title">スプレッドシートのヘッダー色</div>
+      <p class="text-muted small mb-2">全シートのヘッダー行の背景色を変更します。</p>
+      <div class="d-flex align-items-center gap-2 mb-1">
+        <input type="color" class="form-control form-control-color" id="inputHeaderColor"
+          value="#4582B5" style="width:3rem;height:2rem;padding:2px;">
+        <button class="btn btn-outline-primary btn-sm" id="btnApplyHeaderColor">
+          <i class="bi bi-palette me-1"></i>適用
+        </button>
+        <span id="headerColorMsg" class="form-text mb-0"></span>
       </div>
     </div>
   </div>`;
@@ -261,22 +272,24 @@ const SettingsView = (() => {
 
     if (!App.isAdmin()) return;
 
-    // 会社名の読み込みと保存
-    try {
-      const companyName = await Sheets.readSetting('B2');
-      if (el.querySelector('#inputCompanyNameEdit')) {
-        el.querySelector('#inputCompanyNameEdit').value = companyName || '';
-      }
-    } catch (_) {}
+    // 会社名の読み込みと保存（ssId がある場合のみ。新規作成時は作成ボタンで使用される）
+    const ssId = localStorage.getItem('keihi_sheet_id');
+    if (ssId) {
+      try {
+        const companyName = await Sheets.readSetting('B2');
+        if (el.querySelector('#inputCompanyName')) {
+          el.querySelector('#inputCompanyName').value = companyName || '';
+        }
+      } catch (_) {}
+    }
 
     el.querySelector('#btnSaveCompanyName')?.addEventListener('click', async () => {
-      const name = el.querySelector('#inputCompanyNameEdit').value.trim();
+      const name = el.querySelector('#inputCompanyName').value.trim();
       const msg  = el.querySelector('#companyNameMsg');
       try {
         await Sheets.update('設定!B2', [[name]]);
         msg.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>保存しました</span>';
         App.showToast('会社名を保存しました', 'success');
-        // ナビバーのタイトルを即時更新
         const titleEl = document.getElementById('navAppTitle');
         if (titleEl) titleEl.textContent = name ? `経費ログ - ${name}` : '経費ログ';
       } catch (err) {
@@ -316,6 +329,64 @@ const SettingsView = (() => {
     el.querySelector('#btnAddMember')?.addEventListener('click', () => _showMemberForm(el, null));
     el.querySelector('#btnAddCategory')?.addEventListener('click', () => _showInlineAdd(el, 'category'));
     el.querySelector('#btnAddPaySource')?.addEventListener('click', () => _showInlineAdd(el, 'paySource'));
+
+    // ヘッダー色：設定シートから読み込み
+    try {
+      const savedColor = await Sheets.readSetting('B8');
+      if (savedColor && el.querySelector('#inputHeaderColor')) {
+        el.querySelector('#inputHeaderColor').value = savedColor;
+      }
+    } catch (_) {}
+
+    el.querySelector('#btnApplyHeaderColor')?.addEventListener('click', async () => {
+      const color = el.querySelector('#inputHeaderColor').value;
+      const msg   = el.querySelector('#headerColorMsg');
+      const btn   = el.querySelector('#btnApplyHeaderColor');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>適用中...';
+      try {
+        await _applyHeaderColorToAllSheets(color);
+        msg.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>適用しました</span>';
+        App.showToast('ヘッダー色を変更しました', 'success');
+      } catch (err) {
+        msg.innerHTML = `<span class="text-danger">${_escape(err.message)}</span>`;
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-palette me-1"></i>適用';
+      }
+    });
+  }
+
+  async function _applyHeaderColorToAllSheets(hexColor) {
+    const ssId = localStorage.getItem('keihi_sheet_id');
+    if (!ssId) throw new Error('スプレッドシートが設定されていません');
+
+    const r = parseInt(hexColor.slice(1, 3), 16) / 255;
+    const g = parseInt(hexColor.slice(3, 5), 16) / 255;
+    const b = parseInt(hexColor.slice(5, 7), 16) / 255;
+
+    const resp = await Auth.authFetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${ssId}?fields=sheets.properties`
+    );
+    if (!resp.ok) throw new Error(`シート情報取得エラー: ${resp.status}`);
+    const data = await resp.json();
+
+    const requests = data.sheets.map(s => ({
+      repeatCell: {
+        range: { sheetId: s.properties.sheetId, startRowIndex: 0, endRowIndex: 1 },
+        cell: {
+          userEnteredFormat: {
+            backgroundColor: { red: r, green: g, blue: b },
+            textFormat: { bold: true, foregroundColor: { red: 1, green: 1, blue: 1 } },
+            horizontalAlignment: 'CENTER',
+          }
+        },
+        fields: 'userEnteredFormat(backgroundColor,textFormat,horizontalAlignment)'
+      }
+    }));
+
+    await Sheets.batchUpdate(requests, ssId);
+    await Sheets.update('設定!B8', [[hexColor]], ssId);
   }
 
   function _renderMembers(el) {
