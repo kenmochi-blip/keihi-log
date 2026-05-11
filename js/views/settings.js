@@ -37,17 +37,17 @@ const SettingsView = (() => {
     </div>
   </div>
 
-  <!-- 初期設定（シート未設定時は自動展開・バッジ表示） -->
+  <!-- 初期設定 -->
   <div class="accordion mb-3" id="initSettingsAcc">
     <div class="accordion-item">
       <h2 class="accordion-header">
-        <button class="accordion-button ${ssId ? 'collapsed' : ''} py-2" type="button"
+        <button class="accordion-button collapsed py-2" type="button"
           data-bs-toggle="collapse" data-bs-target="#initSettingsBody">
           <i class="bi bi-sliders me-2 text-primary"></i>初期設定
           ${!ssId ? '<span class="badge bg-danger ms-2" style="font-size:0.65rem;">要設定</span>' : ''}
         </button>
       </h2>
-      <div id="initSettingsBody" class="accordion-collapse ${ssId ? 'collapse' : ''}">
+      <div id="initSettingsBody" class="accordion-collapse collapse">
         <div class="accordion-body px-3 py-2">
 
           <!-- ① スプレッドシート -->
@@ -56,7 +56,7 @@ const SettingsView = (() => {
           ${isAdmin ? `
           <!-- 会社名（新規作成時は必須・既存シート時は随時変更可） -->
           <div class="mb-2">
-            <label class="form-label small fw-semibold">会社名・団体名・屋号${!ssId ? ' <span class="text-danger">*</span>' : ''}</label>
+            <label class="form-label small fw-semibold">会社名・団体名・屋号等${!ssId ? ' <span class="text-danger">*</span>' : ''}<span class="text-muted fw-normal ms-1" style="font-size:0.75rem;">（ヘッダー名に使用されます、変更可）</span></label>
             <div class="${ssId ? 'input-group' : ''}">
               <input type="text" class="form-control form-control-sm" id="inputCompanyName"
                 placeholder="例：〇〇株式会社、NPO法人〇〇、屋号など">
