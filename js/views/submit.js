@@ -220,7 +220,7 @@ const SubmitView = (() => {
   <!-- 申請ボタン -->
   <div class="d-grid mt-3 mb-4 no-print">
     <button class="btn btn-primary btn-lg rounded-3" id="btnSubmit">
-      <i class="bi bi-send me-2"></i>申請する
+      <i class="bi bi-send me-2"></i>登録する
     </button>
   </div>
 
@@ -1090,7 +1090,7 @@ const SubmitView = (() => {
     _editId = null;
     el.querySelector('#editBanner')?.classList.add('d-none');
     const btn = el.querySelector('#btnSubmit');
-    if (btn) { btn.innerHTML = '<i class="bi bi-send me-2"></i>申請する'; btn.className = 'btn btn-primary btn-lg rounded-3'; }
+    if (btn) { btn.innerHTML = '<i class="bi bi-send me-2"></i>登録する'; btn.className = 'btn btn-primary btn-lg rounded-3'; }
     TYPES.forEach(t => el.querySelector(`#previewArea-${t}`)?.replaceChildren());
     el.querySelector('#receiptFields')?.classList.add('d-none');
     // 領収書パネルのリセット時は申請ボタンを非表示
