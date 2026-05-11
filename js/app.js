@@ -90,6 +90,13 @@ const App = (() => {
   }
 
   function _setupUI(initialView = 'submit') {
+    // 保存済みナビカラーを適用
+    const savedNavColor = localStorage.getItem('keihi_nav_color');
+    if (savedNavColor) {
+      const navbar = document.querySelector('nav.navbar.sticky-top');
+      if (navbar) navbar.style.backgroundColor = savedNavColor;
+    }
+
     // ナビゲーションにユーザーEmail表示
     const nav = document.getElementById('navUserEmail');
     if (nav) nav.textContent = Auth.getUserEmail();
