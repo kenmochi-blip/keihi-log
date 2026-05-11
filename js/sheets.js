@@ -14,6 +14,16 @@ const Sheets = (() => {
 
   /** 範囲を読み込む。値の2次元配列を返す。 */
   async function read(range, ssId) {
+    if (typeof Demo !== 'undefined' && Demo.isActive()) {
+      // デモ：経費一覧の単一行リクエスト（修正履歴の旧データ取得など）はEXPENSESから再構築
+      const m = range.match(/^経費一覧!A(\d+):R\1$/);
+      if (m) {
+        const idx = Number(m[1]) - 2; // ヘッダー行ぶん -2
+        const e = Demo.EXPENSES[idx];
+        if (e) return [expenseToRow(e)];
+      }
+      return [];
+    }
     ssId = ssId || _ssId();
     const resp = await Auth.authFetch(
       `${BASE}/${ssId}/values/${encodeURIComponent(range)}?valueRenderOption=UNFORMATTED_VALUE`
