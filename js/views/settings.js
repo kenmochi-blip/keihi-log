@@ -168,11 +168,11 @@ const SettingsView = (() => {
   <!-- ヘッダー色（管理者のみ） -->
   <div class="card mb-3">
     <div class="card-body">
-      <div class="settings-section-title">スプレッドシートのヘッダー色</div>
-      <p class="text-muted small mb-2">全シートのヘッダー行の背景色を変更します。</p>
+      <div class="settings-section-title">アプリのヘッダーカラー</div>
+      <p class="text-muted small mb-2">「経費ログ」と表示されている上部ナビバーの背景色を変更します。</p>
       <div class="d-flex align-items-center gap-2 mb-1">
         <input type="color" class="form-control form-control-color" id="inputHeaderColor"
-          value="#4582B5" style="width:3rem;height:2rem;padding:2px;">
+          value="#0d6efd" style="width:3rem;height:2rem;padding:2px;">
         <button class="btn btn-outline-primary btn-sm" id="btnApplyHeaderColor">
           <i class="bi bi-palette me-1"></i>適用
         </button>
@@ -367,63 +367,40 @@ const SettingsView = (() => {
       }
     });
 
-    // ヘッダー色：設定シートから読み込み
-    try {
-      const savedColor = await Sheets.readSetting('B8');
-      if (savedColor && el.querySelector('#inputHeaderColor')) {
-        el.querySelector('#inputHeaderColor').value = savedColor;
-      }
-    } catch (_) {}
+    // ヘッダー色：localStorageから読み込み
+    const colorInput = el.querySelector('#inputHeaderColor');
+    if (colorInput) {
+      const saved = localStorage.getItem('keihi_nav_color');
+      if (saved) colorInput.value = saved;
+      // リアルタイムプレビュー
+      colorInput.addEventListener('input', () => _applyNavColor(colorInput.value));
+    }
 
-    el.querySelector('#btnApplyHeaderColor')?.addEventListener('click', async () => {
+    el.querySelector('#btnApplyHeaderColor')?.addEventListener('click', () => {
       const color = el.querySelector('#inputHeaderColor').value;
       const msg   = el.querySelector('#headerColorMsg');
-      const btn   = el.querySelector('#btnApplyHeaderColor');
-      btn.disabled = true;
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>適用中...';
-      try {
-        await _applyHeaderColorToAllSheets(color);
-        msg.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>適用しました</span>';
-        App.showToast('ヘッダー色を変更しました', 'success');
-      } catch (err) {
-        msg.innerHTML = `<span class="text-danger">${_escape(err.message)}</span>`;
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-palette me-1"></i>適用';
-      }
+      localStorage.setItem('keihi_nav_color', color);
+      _applyNavColor(color);
+      msg.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>適用しました</span>';
+      App.showToast('ヘッダーカラーを変更しました', 'success');
+      setTimeout(() => { msg.innerHTML = ''; }, 3000);
     });
   }
 
-  async function _applyHeaderColorToAllSheets(hexColor) {
-    const ssId = localStorage.getItem('keihi_sheet_id');
-    if (!ssId) throw new Error('スプレッドシートが設定されていません');
-
-    const r = parseInt(hexColor.slice(1, 3), 16) / 255;
-    const g = parseInt(hexColor.slice(3, 5), 16) / 255;
-    const b = parseInt(hexColor.slice(5, 7), 16) / 255;
-
-    const resp = await Auth.authFetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${ssId}?fields=sheets.properties`
-    );
-    if (!resp.ok) throw new Error(`シート情報取得エラー: ${resp.status}`);
-    const data = await resp.json();
-
-    const requests = data.sheets.map(s => ({
-      repeatCell: {
-        range: { sheetId: s.properties.sheetId, startRowIndex: 0, endRowIndex: 1 },
-        cell: {
-          userEnteredFormat: {
-            backgroundColor: { red: r, green: g, blue: b },
-            textFormat: { bold: true, foregroundColor: { red: 1, green: 1, blue: 1 } },
-            horizontalAlignment: 'CENTER',
-          }
-        },
-        fields: 'userEnteredFormat(backgroundColor,textFormat,horizontalAlignment)'
-      }
-    }));
-
-    await Sheets.batchUpdate(requests, ssId);
-    await Sheets.update('設定!B8', [[hexColor]], ssId);
+  function _applyNavColor(hexColor) {
+    const navbar = document.querySelector('nav.navbar.sticky-top');
+    if (!navbar) return;
+    navbar.style.backgroundColor = hexColor;
+    // 明度を計算して文字色を白/黒に自動切替
+    const r = parseInt(hexColor.slice(1, 3), 16);
+    const g = parseInt(hexColor.slice(3, 5), 16);
+    const b = parseInt(hexColor.slice(5, 7), 16);
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    const textColor = luminance > 0.55 ? '#212529' : '#ffffff';
+    navbar.querySelectorAll('.navbar-brand, .text-white-50, .btn-outline-light').forEach(el => {
+      el.style.color = textColor;
+    });
+    navbar.querySelector('.btn-outline-light')?.style.setProperty('border-color', textColor);
   }
 
   function _renderMembers(el) {
