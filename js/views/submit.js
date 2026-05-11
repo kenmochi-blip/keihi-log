@@ -544,7 +544,7 @@ const SubmitView = (() => {
         calcTotal();
 
         if (resultDiv) {
-          const transfers = data.transfers?.length ? data.transfers.join('・') : null;
+          const transfers = data.transfers?.length ? data.transfers.join(' → ') : null;
           const routeText = transfers ? `${from} → ${transfers} → ${to}` : `${from} → ${to}`;
           const timeText  = data.minutes ? `（約${data.minutes}分）` : '';
           el.querySelector('#transitResultRoute').textContent = `${routeText}${timeText}`;
