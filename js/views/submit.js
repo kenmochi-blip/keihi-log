@@ -847,15 +847,19 @@ const SubmitView = (() => {
     if (_currentType === '交通費') {
       const from = el.querySelector('#txtFrom')?.value.trim();
       const to   = el.querySelector('#txtTo')?.value.trim();
-      place = [from, to].filter(Boolean).join(' → ');
+      if (!from) { App.showToast('出発駅・バス停を入力してください', 'danger'); return null; }
+      if (!to)   { App.showToast('到着駅・バス停を入力してください', 'danger'); return null; }
+      place = `${from} → ${to}`;
     } else if (_currentType === '自家用車') {
       place = el.querySelector('#txtCarRoute')?.value.trim() || '';
+      if (!place) { App.showToast('案件・経路名を入力してください', 'danger'); return null; }
     } else {
       place = pnl.querySelector('#inputPlace')?.value?.trim() || '';
+      const placeLabel = _currentType === '領収書なし' ? '支払先・目的' : '支払先（店名・会社名）';
+      if (!place) { App.showToast(`${placeLabel}を入力してください`, 'danger'); return null; }
     }
 
-    if (!date)  { App.showToast('日付を入力してください', 'danger'); return null; }
-    if (!place) { App.showToast('支払先・経路を入力してください', 'danger'); return null; }
+    if (!date) { App.showToast('日付を入力してください', 'danger'); return null; }
 
     let amount = 0, category = '', note = '';
 
@@ -866,14 +870,14 @@ const SubmitView = (() => {
       amount   = fare * round;
       category = el.querySelector('#selCatTransit')?.value || '';
       note     = pnl.querySelector('#inputNote')?.value?.trim() || '';
-      if (amount === 0) { App.showToast('運賃を入力してください', 'danger'); return null; }
+      if (amount === 0) { App.showToast('片道運賃（円）を入力してください', 'danger'); return null; }
     } else if (_currentType === '自家用車') {
       const km   = Number(el.querySelector('#numCarKm')?.value)  || 0;
       const rate = Number(el.querySelector('#numCarRate')?.value) || 20;
       amount   = Math.ceil(km * rate);
       category = el.querySelector('#selCatCar')?.value || '';
       note     = pnl.querySelector('#inputNote')?.value?.trim() || '';
-      if (amount === 0) { App.showToast('距離を入力してください', 'danger'); return null; }
+      if (km === 0) { App.showToast('距離（km）を入力してください', 'danger'); return null; }
     } else {
       const isSplit = !pnl.querySelector('#splitLines')?.classList.contains('d-none');
       if (isSplit) {
