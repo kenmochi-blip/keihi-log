@@ -72,7 +72,7 @@ const SettingsView = (() => {
             管理者の方はまずスプレッドシートを新規作成してください。作成後にURLをメンバーに共有します。
           </div>
           <div class="mb-2">
-            <label class="form-label small fw-semibold">保存先フォルダ（任意）</label>
+            <label class="form-label small fw-semibold">スプレッドシート保存先フォルダ（任意）</label>
             <input type="text" class="form-control form-control-sm" id="inputFolderUrl"
               placeholder="Google Drive フォルダのURL（空欄 = マイドライブのルート）">
             <div class="form-text">Driveで保存先フォルダを開き、URLを貼り付けると指定フォルダに作成されます</div>
@@ -87,7 +87,21 @@ const SettingsView = (() => {
             class="btn btn-outline-secondary btn-sm w-100 mb-3">
             <i class="bi bi-table me-1"></i>スプレッドシートを開く</a>` : ''}
 
-          <!-- ② ライセンス -->
+          <!-- ② 証票保存フォルダ（管理者のみ） -->
+          ${isAdmin ? `
+          <div class="settings-section-title">証票保存フォルダ</div>
+          ${ssId ? `
+          <div id="folderCurrentLink" class="mb-1"></div>
+          <div class="input-group mb-1">
+            <input type="text" class="form-control form-control-sm" id="inputReceiptFolderUrl"
+              placeholder="Google Drive フォルダのURL">
+            <button class="btn btn-outline-primary btn-sm" id="btnSaveReceiptFolder">変更</button>
+          </div>
+          <div id="receiptFolderMsg" class="form-text mb-2"></div>
+          ` : `<p class="text-muted small mb-2">スプレッドシート作成時に自動作成されます。</p>`}
+          ` : ''}
+
+          <!-- ③ ライセンス -->
           <div class="settings-section-title">ライセンス</div>
           <div id="licenseStatus" class="mb-2"></div>
           <div class="input-group mb-1">
