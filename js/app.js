@@ -159,6 +159,17 @@ const App = (() => {
         }
       }
       _confirmModal?.show();
+      // 別モーダルが開いている場合に最前面に表示されるようz-indexを強制設定
+      const modalEl2 = document.getElementById('confirmModal');
+      if (modalEl2) {
+        modalEl2.style.zIndex = '1070';
+        setTimeout(() => {
+          const backdrops = document.querySelectorAll('.modal-backdrop');
+          if (backdrops.length > 0) {
+            backdrops[backdrops.length - 1].style.zIndex = '1065';
+          }
+        }, 0);
+      }
     });
   }
 
