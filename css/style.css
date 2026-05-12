@@ -273,6 +273,11 @@ body { font-size: 0.9rem; }
 }
 
 /* 設定画面 */
+.master-item-name {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
 .settings-section-title {
   font-size: 0.95rem;
   font-weight: 700;
