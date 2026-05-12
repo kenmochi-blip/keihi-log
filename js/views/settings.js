@@ -54,7 +54,7 @@ const SettingsView = (() => {
           <!-- ① 社名（管理者のみ） -->
           ${isAdmin ? `
           <div class="settings-step-title">① 社名・団体名・屋号等${!ssId ? ' <span class="text-danger" style="font-size:0.8rem;">*</span>' : ''}</div>
-          <div class="settings-step-hint">ヘッダー名に使用されます（後から変更可）</div>
+          <div class="settings-step-hint">ヘッダー名及びスプレッドシートタイトルに使用されます（後から変更可）</div>
           <div class="${ssId ? 'input-group' : ''} mb-3">
             <input type="text" class="form-control form-control-sm" id="inputCompanyName"
               placeholder="例：〇〇株式会社、NPO法人〇〇、屋号など">
@@ -75,14 +75,9 @@ const SettingsView = (() => {
           </button>
           <div id="createSheetMsg" class="form-text mb-3"></div>
           ` : `
-          <a href="https://docs.google.com/spreadsheets/d/${ssId}" target="_blank"
-            class="btn btn-outline-secondary btn-sm w-100 mb-2">
-            <i class="bi bi-table me-1"></i>スプレッドシートを開く</a>
-          <div class="settings-step-hint" style="margin-top:0.25rem;">証票画像の保存先フォルダを変更する場合</div>
-          <div id="folderCurrentLink" class="mb-1"></div>
           <div class="input-group mb-1">
             <input type="text" class="form-control form-control-sm" id="inputReceiptFolderUrl"
-              placeholder="Google Drive フォルダのURL">
+              placeholder="Google Drive フォルダのURL" id="inputReceiptFolderUrl">
             <button class="btn btn-outline-primary btn-sm" id="btnSaveReceiptFolder">変更</button>
           </div>
           <div id="receiptFolderMsg" class="form-text mb-3"></div>
@@ -92,6 +87,7 @@ const SettingsView = (() => {
           <!-- ③ ライセンスキー -->
           <div class="settings-step-title">${isAdmin ? '③ ' : ''}ライセンスキー</div>
           <div id="licenseStatus" class="mb-2"></div>
+          ${!licKey ? `<div class="settings-step-hint mb-2">メールにて通知されたライセンスキーを入力してください<br>例：<code>KL-XXXXXXXXXXXXXXXXXXXX</code></div>` : ''}
           <div class="input-group mb-1">
             <input type="password" class="form-control form-control-sm" id="inputLicenseKey"
               placeholder="KL-XXXXXXXXXXXXXXXXXXXX" value="${_escape(licKey)}">
@@ -359,14 +355,11 @@ const SettingsView = (() => {
     el.querySelector('#btnAddCategory')?.addEventListener('click', () => _showInlineAdd(el, 'category'));
     el.querySelector('#btnAddPaySource')?.addEventListener('click', () => _showInlineAdd(el, 'paySource'));
 
-    // 証票フォルダ：現在値を表示してリンクとURL入力欄を設定
+    // 証票フォルダ：現在値をURLとしてinputに表示
     const currentFolderId = localStorage.getItem('keihi_folder_id') || await Sheets.readSetting('B4').catch(() => '');
-    const folderLinkEl = el.querySelector('#folderCurrentLink');
-    if (folderLinkEl) {
-      folderLinkEl.innerHTML = currentFolderId
-        ? `<a href="https://drive.google.com/drive/folders/${currentFolderId}" target="_blank" class="small">
-             <i class="bi bi-folder-fill me-1 text-warning"></i>現在のフォルダを開く</a>`
-        : '<span class="text-muted small">未設定</span>';
+    const folderInput = el.querySelector('#inputReceiptFolderUrl');
+    if (folderInput && currentFolderId) {
+      folderInput.value = `https://drive.google.com/drive/folders/${currentFolderId}`;
     }
 
     el.querySelector('#btnSaveReceiptFolder')?.addEventListener('click', async () => {
