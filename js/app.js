@@ -185,14 +185,10 @@ const App = (() => {
   function _applyDemoNavVisibility(role) {
     const summaryBtn  = document.querySelector('.nav-item-btn[data-view="summary"]');
     const settingsBtn = document.querySelector('.nav-item-btn[data-view="settings"]');
-    if (role === 'member') {
-      summaryBtn?.classList.add('d-none');
-      settingsBtn?.classList.add('d-none');
-    } else if (role === 'viewer') {
-      summaryBtn?.classList.remove('d-none');
+    summaryBtn?.classList.remove('d-none');
+    if (role === 'member' || role === 'viewer') {
       settingsBtn?.classList.add('d-none');
     } else {
-      summaryBtn?.classList.remove('d-none');
       settingsBtn?.classList.remove('d-none');
     }
   }
@@ -212,9 +208,8 @@ const App = (() => {
 
     _applyDemoNavVisibility(role);
 
-    const hiddenViews = role === 'member' ? ['summary', 'settings'] : role === 'viewer' ? ['settings'] : [];
     const cur = Router.current();
-    Router.navigate(hiddenViews.includes(cur) ? 'submit' : cur);
+    Router.navigate(cur === 'settings' && role !== 'admin' ? 'submit' : cur);
   }
 
   function _insertDemoRoleSwitcher() {
