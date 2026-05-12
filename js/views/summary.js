@@ -72,12 +72,7 @@ const SummaryView = (() => {
   <!-- ③ 未精算一覧 -->
   <div class="card mb-3">
     <div class="card-body">
-      <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
-        <h6 class="fw-bold mb-0 pivot-title"><i class="bi bi-exclamation-triangle-fill me-1 text-warning"></i><span id="titleUnpaid">未精算一覧</span></h6>
-        <button id="btnBatchSettle" class="btn btn-sm btn-success d-none">
-          <i class="bi bi-check2-all me-1"></i>まとめて精算済みにする
-        </button>
-      </div>
+      <h6 class="fw-bold mb-2 pivot-title"><i class="bi bi-exclamation-triangle-fill me-1 text-warning"></i><span id="titleUnpaid">未精算一覧</span></h6>
       <div class="table-responsive" id="wrapUnpaid">
         <div class="text-muted small text-center py-3">読み込み中...</div>
       </div>
@@ -140,25 +135,6 @@ const SummaryView = (() => {
     el.querySelector('#inputFrom')?.addEventListener('change', update);
     el.querySelector('#inputTo')?.addEventListener('change', update);
 
-    el.querySelector('#btnBatchSettle')?.addEventListener('click', async () => {
-      const btn = el.querySelector('#btnBatchSettle');
-      const ids = JSON.parse(btn.dataset.ids || '[]');
-      if (!ids.length) return;
-      const today = new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-');
-      const ok = await App.confirm(`${ids.length}件を精算済みにします（精算日: ${today}）。よろしいですか？`);
-      if (!ok) return;
-      App.showLoading('精算処理中...');
-      try {
-        await Sheets.batchSettle(ids, today);
-        _expenses = await Sheets.readExpenses();
-        update();
-        App.showToast(`${ids.length}件を精算済みにしました`, 'success');
-      } catch (err) {
-        App.showToast('精算処理エラー: ' + err.message, 'danger');
-      } finally {
-        App.hideLoading();
-      }
-    });
     el.querySelector('#btnRefreshSummary')?.addEventListener('click', async () => {
       App.showLoading('更新中...');
       try { _expenses = await Sheets.readExpenses(); } finally { App.hideLoading(); }
@@ -231,16 +207,11 @@ const SummaryView = (() => {
     el.querySelector('#titleUnpaid').textContent = `未精算一覧（${periodLabel}）`;
     el.querySelector('#titleCat').textContent    = `勘定科目一覧（${periodLabel}）`;
 
-    // 管理者のみ「まとめて精算済みにする」ボタンを表示
-    const btnSettle = el.querySelector('#btnBatchSettle');
-    if (btnSettle) {
-      const isAdmin = App.getUserRole() === 'admin';
-      btnSettle.classList.toggle('d-none', !isAdmin || unpaid.length === 0);
-      btnSettle.dataset.ids = JSON.stringify(unpaid.map(e => e.id));
-    }
+    const isAdmin = App.getUserRole() === 'admin';
 
     _renderPivotTable(el.querySelector('#wrapMember'), filtered, months, _memberKey, '申請者');
-    _renderPivotTable(el.querySelector('#wrapUnpaid'), unpaid,   months, _memberKey, '申請者');
+    _renderPivotTable(el.querySelector('#wrapUnpaid'), unpaid,   months, _memberKey, '申請者',
+      isAdmin ? (drillExpenses, onDone) => _batchSettleDrill(drillExpenses, onDone, el) : null);
     _renderPivotTable(el.querySelector('#wrapCat'),    filtered, months, _categoryKey, '勘定科目');
   }
 
@@ -255,8 +226,29 @@ const SummaryView = (() => {
     return parts.map(k => ({ key: k, amount: e.amount / parts.length }));
   }
 
+  // ─── 一括精算処理 ──────────────────────────────────────────
+  async function _batchSettleDrill(expenses, onDone, el) {
+    const ids = expenses.map(e => e.id).filter(Boolean);
+    if (!ids.length) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const ok = await App.confirm(`${ids.length}件を精算済みにします（精算日: ${today}）。よろしいですか？`);
+    if (!ok) return;
+    App.showLoading('精算処理中...');
+    try {
+      await Sheets.batchSettle(ids, today);
+      _expenses = await Sheets.readExpenses();
+      if (el) _renderAll(el);
+      App.showToast(`${ids.length}件を精算済みにしました`, 'success');
+      if (onDone) onDone();
+    } catch (err) {
+      App.showToast('精算処理エラー: ' + err.message, 'danger');
+    } finally {
+      App.hideLoading();
+    }
+  }
+
   // ─── ピボットテーブル描画 ──────────────────────────────────
-  function _renderPivotTable(container, records, months, keyFn, rowLabel) {
+  function _renderPivotTable(container, records, months, keyFn, rowLabel, settleCallback = null) {
     if (!container) return;
 
     // 集計
@@ -335,14 +327,16 @@ const SummaryView = (() => {
     // ドリルダウン：セルクリック
     container.querySelectorAll('.pivot-cell[data-di]').forEach(td => {
       const { key, ym } = drillMap[Number(td.dataset.di)];
-      td.addEventListener('click', () =>
-        _showDrill(`${key} — ${_fmtYM(ym)}`, drillRecords[key]?.[ym] || [])
-      );
+      td.addEventListener('click', () => {
+        const drillExp = drillRecords[key]?.[ym] || [];
+        const settle = settleCallback ? (onDone) => settleCallback(drillExp, onDone) : null;
+        _showDrill(`${key} — ${_fmtYM(ym)}`, drillExp, settle);
+      });
     });
   }
 
   // ─── ドリルダウンモーダル ──────────────────────────────────
-  function _showDrill(title, expenses) {
+  function _showDrill(title, expenses, settleCallback = null) {
     const total = expenses.reduce((s, e) => s + e.amount, 0);
     const sorted = expenses.slice().sort((a, b) => a.date.localeCompare(b.date));
 
@@ -392,6 +386,12 @@ const SummaryView = (() => {
               <button class="btn-close position-absolute end-0 me-3" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-0">
+              ${settleCallback ? `
+              <div class="px-3 pt-3 pb-2">
+                <button class="btn btn-success btn-sm w-100" id="drillBtnSettle">
+                  <i class="bi bi-check2-all me-1"></i>この月をまとめて精算済みにする（${expenses.length}件）
+                </button>
+              </div>` : ''}
               <div class="table-responsive">
                 <table class="table table-sm mb-0">
                   <thead class="table-light">
@@ -432,6 +432,12 @@ const SummaryView = (() => {
     const modal = new bootstrap.Modal(div.querySelector('.modal'));
     modal.show();
     div.querySelector('.modal').addEventListener('hidden.bs.modal', () => div.remove());
+
+    if (settleCallback) {
+      div.querySelector('#drillBtnSettle')?.addEventListener('click', () => {
+        settleCallback(() => modal.hide());
+      });
+    }
   }
 
   // ─── ユーティリティ ───────────────────────────────────────
