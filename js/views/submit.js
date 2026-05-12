@@ -1117,14 +1117,16 @@ const SubmitView = (() => {
            <i class="bi bi-image me-1"></i>証票
          </a>`
       : '';
-    const editBtn = (e.confirmed || e.settlementDate) ? '' :
-      `<button class="btn btn-sm btn-outline-secondary btn-edit-history" data-id="${e.id}">
-         <i class="bi bi-pencil"></i>
-       </button>`;
-    const delBtn = (e.confirmed || e.settlementDate) ? '' :
-      `<button class="btn btn-sm btn-outline-danger btn-del-history" data-id="${e.id}">
-         <i class="bi bi-trash"></i>
-       </button>`;
+    const isAdmin = App.isAdmin();
+    const canEdit = !e.settlementDate && (!e.confirmed || isAdmin);
+    const editBtn = canEdit
+      ? `<button class="btn btn-sm btn-outline-secondary btn-edit-history" data-id="${e.id}">
+           <i class="bi bi-pencil"></i>
+         </button>` : '';
+    const delBtn = canEdit
+      ? `<button class="btn btn-sm btn-outline-danger btn-del-history" data-id="${e.id}">
+           <i class="bi bi-trash"></i>
+         </button>` : '';
 
     return `
     <div class="history-card">
