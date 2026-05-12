@@ -522,8 +522,9 @@ const ListView = (() => {
   function _exportCsv(el) {
     const filtered = _getFiltered(el);
     const header = ['申請日時','申請者名','タイプ','日付','支払先','金額','勘定科目','備考','証票URL','ステータス','インボイス番号','申請者Email','ID','精算日'];
+    const _isoToSlash = s => s ? String(s).replace(/^(\d{4})-(\d{2})-(\d{2}).*/, '$1/$2/$3') : '';
     const rows = filtered.map(e => [
-      e.appliedAt, e.name, e.type, e.date, e.place, e.amount,
+      _isoToSlash(e.appliedAt), e.name, e.type, _isoToSlash(e.date), e.place, e.amount,
       e.category, e.note, e.imageLinks.split(',')[0]?.trim() || '',
       _getStatus(e), e.invoice, e.email, e.id,
       e.settlementDate || ''
