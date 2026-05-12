@@ -84,10 +84,16 @@ const Auth = (() => {
    * sessionStorage に復元済みの場合はポップアップなしで即返す。
    * 期限切れの場合は GIS のサイレントリフレッシュを試みる。
    */
+  function _demoUserInfo() {
+    const email = Demo.getUserEmail();
+    const member = Demo.MASTER.members.find(m => m.email === email);
+    return { email, name: member?.name || 'デモ ユーザー', picture: '' };
+  }
+
   function getToken() {
     return new Promise((resolve, reject) => {
       if (typeof Demo !== 'undefined' && Demo.isActive()) {
-        resolve({ email: 'demo@example.com', name: 'デモ ユーザー' });
+        resolve(_demoUserInfo());
         return;
       }
       if (_accessToken && Date.now() < _tokenExpiry) {
@@ -104,12 +110,11 @@ const Auth = (() => {
 
   function getAccessToken() { return _accessToken; }
   function getUserInfo()    {
-    if (typeof Demo !== 'undefined' && Demo.isActive())
-      return { email: 'demo@example.com', name: 'デモ ユーザー', picture: '' };
+    if (typeof Demo !== 'undefined' && Demo.isActive()) return _demoUserInfo();
     return _userInfo;
   }
   function getUserEmail()   {
-    if (typeof Demo !== 'undefined' && Demo.isActive()) return 'demo@example.com';
+    if (typeof Demo !== 'undefined' && Demo.isActive()) return Demo.getUserEmail();
     return _userInfo?.email || '';
   }
 
