@@ -97,11 +97,52 @@ const Sheets = (() => {
     }], ssId);
   }
 
-  /** 経費一覧シートから全行を読み込んでオブジェクト配列に変換する。 */
+  /** 経費一覧シートから全行を読み込んでオブジェクト配列に変換する。
+   *  spreadsheets.get + hyperlink フィールドを使うことで Insert→Link 形式の
+   *  ハイパーリンクセルも正しくURLを取得できる（values.get では表示テキストしか得られない）。
+   */
   async function readExpenses(ssId) {
     if (typeof Demo !== 'undefined' && Demo.isActive()) return [...Demo.EXPENSES];
-    const rows = await read('経費一覧!A2:R', ssId);
-    return rows.map(_rowToExpense).filter(e => e.id); // IDがない行はスキップ
+    ssId = ssId || _ssId();
+    const range  = encodeURIComponent('経費一覧!A2:R');
+    const fields = encodeURIComponent('sheets.data.rowData.values(effectiveValue,hyperlink)');
+    const resp = await Auth.authFetch(`${BASE}/${ssId}?ranges=${range}&fields=${fields}`);
+    if (!resp.ok) throw new Error(`Sheets readExpenses error: ${resp.status}`);
+    const data = await resp.json();
+    const rowDataList = data.sheets?.[0]?.data?.[0]?.rowData || [];
+    return rowDataList.map(rowData => {
+      const cells = rowData.values || [];
+      const row = cells.map((cell, i) => {
+        // I列（index 8）: Insert→Link / =HYPERLINK() どちらもhyperlinkフィールドでURL取得
+        if (i === 8 && cell?.hyperlink) return cell.hyperlink;
+        const ev = cell?.effectiveValue;
+        if (!ev) return '';
+        if ('boolValue'   in ev) return ev.boolValue;
+        if ('numberValue' in ev) return ev.numberValue;
+        if ('stringValue' in ev) return ev.stringValue;
+        return '';
+      });
+      return _rowToExpense(row);
+    }).filter(e => e.id);
+  }
+
+  /** =HYPERLINK("url","text") 式からURLを取り出す。プレーンURLはそのまま返す。 */
+  function _extractUrl(val) {
+    if (!val) return '';
+    const s = String(val);
+    const m = s.match(/^=HYPERLINK\(["']([^"']+)["']/i);
+    return m ? m[1] : s;
+  }
+
+  /** URLをHYPERLINK式に変換してSS上でクリック可能にする。複数URLはそのまま。 */
+  function _toHyperlink(links) {
+    if (!links) return '';
+    const s = String(links);
+    if (s.startsWith('=HYPERLINK(')) return s;
+    const urls = s.split(',').map(u => u.trim()).filter(Boolean);
+    if (urls.length === 0) return '';
+    if (urls.length === 1) return `=HYPERLINK("${urls[0]}","証票")`;
+    return links; // 複数URLはプレーンテキストのまま（アプリ側で複数ボタン表示）
   }
 
   /** =HYPERLINK("url","text") 式からURLを取り出す。プレーンURLはそのまま返す。 */
