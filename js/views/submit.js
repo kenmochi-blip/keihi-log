@@ -674,12 +674,16 @@ const SubmitView = (() => {
     const results = [];
     for (const url of _existingUrls.filter(Boolean)) {
       const fileId = url.match(/\/d\/([^/?]+)/)?.[1];
-      if (!fileId) continue;
+      if (!fileId) { console.warn('[download existing] fileId not found in URL:', url); continue; }
       try {
         const resp = await Auth.authFetch(
           `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`
         );
-        if (!resp.ok) continue;
+        if (!resp.ok) {
+          const errText = await resp.text().catch(() => '');
+          console.warn(`[download existing] ${resp.status} ${resp.statusText}`, errText);
+          continue;
+        }
         const blob = await resp.blob();
         const base64 = await new Promise(resolve => {
           const reader = new FileReader();
