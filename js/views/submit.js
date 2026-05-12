@@ -905,7 +905,7 @@ const SubmitView = (() => {
         category:       data.category,
         note:           data.note,
         imageLinks:     uploadedUrls.join(', '),
-        confirmed:      false,
+        confirmed:      App.isAdmin(),
         aiAudit,
         settlementDate: data.corpPay ? `会社払い（${data.paySource}）` : '',
         invoice:        data.invoice,
