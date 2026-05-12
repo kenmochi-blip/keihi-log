@@ -125,7 +125,7 @@ const AdminView = (() => {
     container.innerHTML = _master.members.map((m, i) => `
       <div class="d-flex align-items-center gap-2 py-2 border-bottom member-row" data-index="${i}">
         <div class="flex-grow-1">
-          <div class="fw-semibold small">${_escape(m.name)}</div>
+          <div class="fw-semibold">${_escape(m.name)}</div>
           <div class="text-muted" style="font-size:0.72rem;">${_escape(m.email)} ${m.dept ? '/ ' + _escape(m.dept) : ''}
             ${m.role === 'admin' ? '<span class="badge bg-primary ms-1" style="font-size:0.6rem;">管理者</span>' : ''}
           </div>
@@ -152,7 +152,7 @@ const AdminView = (() => {
     }
     container.innerHTML = items.map((item, i) => `
       <div class="d-flex align-items-center gap-2 py-1 border-bottom">
-        <span class="flex-grow-1 small">${_escape(item)}</span>
+        <span class="flex-grow-1">${_escape(item)}</span>
         <button class="btn btn-outline-danger btn-sm btn-del-item" data-type="${type}" data-index="${i}">
           <i class="bi bi-trash"></i>
         </button>
