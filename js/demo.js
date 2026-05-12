@@ -4,10 +4,15 @@
  */
 const Demo = (() => {
   const KEY = 'keihi_demo_mode';
+  const ROLE_KEY = 'keihi_demo_role';
+
+  let _role = sessionStorage.getItem(ROLE_KEY) || 'admin';
 
   function enable()   { sessionStorage.setItem(KEY, '1'); }
-  function disable()  { sessionStorage.removeItem(KEY); }
+  function disable()  { sessionStorage.removeItem(KEY); sessionStorage.removeItem(ROLE_KEY); _role = 'admin'; }
   function isActive() { return sessionStorage.getItem(KEY) === '1'; }
+  function getRole()  { return _role; }
+  function setRole(r) { _role = r; sessionStorage.setItem(ROLE_KEY, r); }
 
   const MASTER = {
     members: [
@@ -144,5 +149,5 @@ const Demo = (() => {
   // デモ用スプレッドシートID（「リンクを知っている全員が閲覧可」のシートIDを入力）
   const SHEET_ID = '18wDzX43PgeUAXm_Wri-vPogEkkhWNeUhk5F_R1OyFi4';
 
-  return { enable, disable, isActive, MASTER, EXPENSES, SHEET_ID, COMPANY_NAME };
+  return { enable, disable, isActive, getRole, setRole, MASTER, EXPENSES, SHEET_ID, COMPANY_NAME };
 })();

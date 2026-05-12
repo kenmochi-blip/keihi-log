@@ -14,11 +14,13 @@ const App = (() => {
     // デモモード：認証・ライセンス・シート確認をスキップ
     if (typeof Demo !== 'undefined' && Demo.isActive()) {
       _masterCache = Demo.MASTER;
-      _isAdmin = true;
-      _userRole = 'admin';
+      const demoRole = Demo.getRole();
+      _userRole = demoRole;
+      _isAdmin = demoRole === 'admin';
       _setupUI('submit');
       const titleEl = document.getElementById('navAppTitle');
       if (titleEl) titleEl.textContent = `経費ログ - ${Demo.COMPANY_NAME}`;
+      _insertDemoRoleSwitcher();
       showToast('デモモード：サンプルデータで動作中', 'info');
       return;
     }
@@ -176,6 +178,50 @@ const App = (() => {
   function clearMasterCache() { _masterCache = null; }
   function isAdmin() { return _isAdmin; }
   function getUserRole() { return _userRole; }
+
+  function _switchDemoRole(role) {
+    Demo.setRole(role);
+    _userRole = role;
+    _isAdmin = role === 'admin';
+    document.querySelectorAll('.demo-role-btn').forEach(btn => {
+      btn.classList.remove('btn-dark', 'btn-outline-dark');
+      btn.classList.add(btn.dataset.role === role ? 'btn-dark' : 'btn-outline-dark');
+    });
+    const cur = Router.current();
+    if (cur) Router.navigate(cur);
+  }
+
+  function _insertDemoRoleSwitcher() {
+    const existing = document.getElementById('demoRoleSwitcher');
+    if (existing) existing.remove();
+
+    const panel = document.createElement('div');
+    panel.id = 'demoRoleSwitcher';
+    panel.style.cssText = [
+      'position:fixed', 'bottom:68px', 'left:50%', 'transform:translateX(-50%)',
+      'z-index:9000', 'background:rgba(255,193,7,0.95)', 'border-radius:20px',
+      'padding:4px 10px', 'box-shadow:0 2px 8px rgba(0,0,0,0.25)',
+      'display:flex', 'align-items:center', 'gap:4px',
+      'font-size:0.72rem', 'white-space:nowrap'
+    ].join(';');
+
+    const label = document.createElement('span');
+    label.style.cssText = 'color:#212529;font-weight:600;margin-right:2px;';
+    label.textContent = 'デモ:';
+    panel.appendChild(label);
+
+    [{ key: 'admin', label: '管理者' }, { key: 'viewer', label: '閲覧者' }, { key: 'member', label: '一般' }].forEach(({ key, label: lbl }) => {
+      const btn = document.createElement('button');
+      btn.className = `demo-role-btn btn btn-sm ${key === _userRole ? 'btn-dark' : 'btn-outline-dark'}`;
+      btn.dataset.role = key;
+      btn.textContent = lbl;
+      btn.style.cssText = 'padding:2px 8px;font-size:0.7rem;border-radius:12px;line-height:1.4;';
+      btn.addEventListener('click', () => _switchDemoRole(key));
+      panel.appendChild(btn);
+    });
+
+    document.body.appendChild(panel);
+  }
 
   /** ローディングオーバーレイを表示 */
   function showLoading(msg = '処理中...') {
