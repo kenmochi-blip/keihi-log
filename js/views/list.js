@@ -100,13 +100,14 @@ const ListView = (() => {
           <th class="text-center">金額</th>
           <th class="text-center">科目</th>
           <th class="text-center">備考</th>
+          <th class="text-center">証票</th>
           <th class="text-center">状態</th>
           <th class="text-center">精算日</th>
           <th class="no-print text-center">操作</th>
         </tr>
       </thead>
       <tbody id="listTbodyPc">
-        <tr><td colspan="8" class="text-center text-muted py-3">読み込み中...</td></tr>
+        <tr><td colspan="10" class="text-center text-muted py-3">読み込み中...</td></tr>
       </tbody>
     </table>
   </div>
@@ -155,7 +156,7 @@ const ListView = (() => {
       _showAll  = _userRole === 'admin' || _userRole === 'viewer';
       _expenses = await Sheets.readExpenses();
     } catch (err) {
-      el.querySelector('#listTbodyPc').innerHTML = `<tr><td colspan="8" class="text-danger text-center">${err.message}</td></tr>`;
+      el.querySelector('#listTbodyPc').innerHTML = `<tr><td colspan="10" class="text-danger text-center">${err.message}</td></tr>`;
       el.querySelector('#listCardsSp').innerHTML = `<div class="text-danger text-center py-3">${err.message}</div>`;
       return;
     }
@@ -332,7 +333,7 @@ const ListView = (() => {
     const visible  = filtered.slice(0, _shownCount);
 
     if (filtered.length === 0) {
-      tbodyPc.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">該当する申請がありません</td></tr>';
+      tbodyPc.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-3">該当する申請がありません</td></tr>';
       cardsSp.innerHTML = '<div class="text-center text-muted py-3">該当する申請がありません</div>';
       loadMore?.classList.add('d-none');
       return;
@@ -375,8 +376,7 @@ const ListView = (() => {
          </a>`
       ).join('');
 
-      // PC行（8列）+ 金額クリックで開く詳細行
-      const hasDetail = e.note || imgUrls.length > 0;
+      // PC行（9列）
       rowsPc.push(`<tr>
         <td class="list-date">${e.date}</td>
         <td class="list-place">
@@ -384,22 +384,14 @@ const ListView = (() => {
           <div class="text-muted" style="font-size:0.7rem;">${_escape(e.name)}</div>
         </td>
         <td class="list-type-cell">${_escape(e.type)}</td>
-        <td class="text-end list-amount${hasDetail ? ' list-amount-toggle' : ''}" data-detail="${e.id}"
-          ${hasDetail ? `title="クリックして備考・証票を表示"` : ''}>
-          ¥${e.amount.toLocaleString()}
-        </td>
+        <td class="text-end list-amount">¥${e.amount.toLocaleString()}</td>
         <td class="list-cat">${_escape(e.category)}</td>
         <td class="list-note-cell text-muted">${_escape(e.note || '')}</td>
+        <td class="text-center"><div class="d-flex flex-wrap gap-1 justify-content-center">${receiptBtns}</div></td>
         <td>${statusBadge}</td>
         <td class="text-center" style="font-size:0.75rem;white-space:nowrap;">${_escape(e.settlementDate || '')}</td>
         <td class="no-print">${ops}</td>
-      </tr>
-      ${hasDetail ? `<tr class="list-detail-row d-none" data-detail-row="${e.id}">
-        <td colspan="9" class="px-3 py-2">
-          ${e.note ? `<div class="text-muted mb-1"><i class="bi bi-chat-text me-1 text-secondary"></i>${_escape(e.note)}</div>` : ''}
-          ${receiptBtns ? `<div class="d-flex flex-wrap gap-1">${receiptBtns}</div>` : ''}
-        </td>
-      </tr>` : ''}`);
+      </tr>`);
 
       // SPカード
       const hasExtra = e.note || imgUrls.length > 0;
