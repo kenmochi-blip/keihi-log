@@ -452,7 +452,7 @@ const SettingsView = (() => {
       return `
       <div class="d-flex align-items-center gap-2 py-2 border-bottom">
         <div class="flex-grow-1">
-          <div class="fw-semibold small">${_escape(m.name)}</div>
+          <div class="master-item-name">${_escape(m.name)}</div>
           <div class="text-muted" style="font-size:0.72rem;">${_escape(m.email)}${m.dept ? ' / ' + _escape(m.dept) : ''}
             ${roleBadge}
           </div>
@@ -488,7 +488,7 @@ const SettingsView = (() => {
     if (!items?.length) { container.innerHTML = '<div class="text-muted small">登録がありません</div>'; return; }
     container.innerHTML = items.map((item, i) => `
       <div class="d-flex align-items-center gap-2 py-1 border-bottom">
-        <span class="flex-grow-1 small">${_escape(item)}</span>
+        <span class="flex-grow-1 master-item-name">${_escape(item)}</span>
         <button class="btn btn-outline-danger btn-sm btn-del-item" data-type="${type}" data-index="${i}">
           <i class="bi bi-trash"></i>
         </button>
