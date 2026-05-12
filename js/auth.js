@@ -39,9 +39,16 @@ const Auth = (() => {
       }
     } catch (_) {}
 
+    // 前回ログインしたアカウントのヒントを使い、アカウント選択画面をスキップ
+    const _hint = localStorage.getItem('keihi_user_email') || '';
     _tokenClient = google.accounts.oauth2.initTokenClient({
       client_id: CLIENT_ID,
       scope: SCOPES,
+      hint: _hint,
+      error_callback: (err) => {
+        _pendingResolves.forEach(({ reject }) => reject(new Error(err?.type || 'auth_error')));
+        _pendingResolves = [];
+      },
       callback: _handleTokenResponse,
     });
   }
@@ -58,6 +65,8 @@ const Auth = (() => {
 
     // ユーザー情報を取得してから sessionStorage に保存
     _fetchUserInfo().then(() => {
+      // 次回の自動ログインヒント用にメールアドレスを保存
+      if (_userInfo?.email) localStorage.setItem('keihi_user_email', _userInfo.email);
       sessionStorage.setItem(SESSION_KEY, JSON.stringify({
         access_token: _accessToken,
         expiry: _tokenExpiry,
@@ -132,6 +141,7 @@ const Auth = (() => {
     _userInfo    = null;
     _tokenExpiry = 0;
     sessionStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem('keihi_user_email');
     gapi.client.setToken(null);
     window.location.href = 'index.html';
   }
@@ -164,14 +174,36 @@ function initLogin() {
 
   Auth.init();
 
+  const _showLoginBtn = (errMsg) => {
+    document.getElementById('loadingArea').classList.add('d-none');
+    document.getElementById('loginArea').classList.remove('d-none');
+    if (errMsg) {
+      document.getElementById('loginError').textContent = errMsg;
+      document.getElementById('loginError').classList.remove('d-none');
+    }
+  };
+
   // ボタンクリックから直接OAuthポップアップを開く（ブラウザのポップアップブロック回避）
   document.getElementById('signInBtn').addEventListener('click', () => {
     document.getElementById('loginError').classList.add('d-none');
     Auth.getToken().then(() => {
       window.location.href = 'app.html';
     }).catch(err => {
-      document.getElementById('loginError').textContent = 'ログインに失敗しました: ' + err.message;
-      document.getElementById('loginError').classList.remove('d-none');
+      _showLoginBtn('ログインに失敗しました: ' + err.message);
     });
   });
+
+  // 前回ログインしたアカウントが保存されていれば自動ログインを試みる
+  const savedEmail = localStorage.getItem('keihi_user_email');
+  if (savedEmail) {
+    document.getElementById('loginArea').classList.add('d-none');
+    document.getElementById('loadingArea').classList.remove('d-none');
+    document.querySelector('#loadingArea p').textContent = `${savedEmail} でログイン中...`;
+    Auth.getToken().then(() => {
+      window.location.href = 'app.html';
+    }).catch(() => {
+      // サイレントログイン失敗（同意期限切れ等）→ ログインボタンを表示
+      _showLoginBtn(null);
+    });
+  }
 }
