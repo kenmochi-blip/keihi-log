@@ -100,6 +100,7 @@ const ListView = (() => {
           <th class="text-center">科目</th>
           <th class="text-center">備考</th>
           <th class="text-center">状態</th>
+          <th class="text-center">精算日</th>
           <th class="no-print text-center">操作</th>
         </tr>
       </thead>
@@ -388,10 +389,11 @@ const ListView = (() => {
         <td class="list-cat">${_escape(e.category)}</td>
         <td class="list-note-cell text-muted">${_escape(e.note || '')}</td>
         <td>${statusBadge}</td>
+        <td class="text-center" style="font-size:0.75rem;white-space:nowrap;">${_escape(e.settlementDate || '')}</td>
         <td class="no-print">${ops}</td>
       </tr>
       ${hasDetail ? `<tr class="list-detail-row d-none" data-detail-row="${e.id}">
-        <td colspan="8" class="px-3 py-2">
+        <td colspan="9" class="px-3 py-2">
           ${e.note ? `<div class="text-muted mb-1"><i class="bi bi-chat-text me-1 text-secondary"></i>${_escape(e.note)}</div>` : ''}
           ${receiptBtns ? `<div class="d-flex flex-wrap gap-1">${receiptBtns}</div>` : ''}
         </td>
@@ -505,11 +507,12 @@ const ListView = (() => {
 
   function _exportCsv(el) {
     const filtered = _getFiltered(el);
-    const header = ['申請日時','申請者名','タイプ','日付','支払先','金額','勘定科目','備考','証票URL','承認状態','インボイス番号','申請者Email','ID'];
+    const header = ['申請日時','申請者名','タイプ','日付','支払先','金額','勘定科目','備考','証票URL','承認状態','インボイス番号','申請者Email','ID','精算日'];
     const rows = filtered.map(e => [
       e.appliedAt, e.name, e.type, e.date, e.place, e.amount,
       e.category, e.note, e.imageLinks.split(',')[0]?.trim() || '',
-      e.confirmed ? '承認済' : '未確認', e.invoice, e.email, e.id
+      e.confirmed ? '承認済' : '未確認', e.invoice, e.email, e.id,
+      e.settlementDate || ''
     ]);
     const csv = [header, ...rows].map(r =>
       r.map(v => `"${String(v || '').replace(/"/g, '""')}"`).join(',')

@@ -72,7 +72,12 @@ const SummaryView = (() => {
   <!-- ③ 未精算一覧 -->
   <div class="card mb-3">
     <div class="card-body">
-      <h6 class="fw-bold mb-2 pivot-title"><i class="bi bi-exclamation-triangle-fill me-1 text-warning"></i><span id="titleUnpaid">未精算一覧</span></h6>
+      <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
+        <h6 class="fw-bold mb-0 pivot-title"><i class="bi bi-exclamation-triangle-fill me-1 text-warning"></i><span id="titleUnpaid">未精算一覧</span></h6>
+        <button id="btnBatchSettle" class="btn btn-sm btn-success d-none">
+          <i class="bi bi-check2-all me-1"></i>まとめて精算済みにする
+        </button>
+      </div>
       <div class="table-responsive" id="wrapUnpaid">
         <div class="text-muted small text-center py-3">読み込み中...</div>
       </div>
@@ -134,6 +139,26 @@ const SummaryView = (() => {
 
     el.querySelector('#inputFrom')?.addEventListener('change', update);
     el.querySelector('#inputTo')?.addEventListener('change', update);
+
+    el.querySelector('#btnBatchSettle')?.addEventListener('click', async () => {
+      const btn = el.querySelector('#btnBatchSettle');
+      const ids = JSON.parse(btn.dataset.ids || '[]');
+      if (!ids.length) return;
+      const today = new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-');
+      const ok = await App.confirm(`${ids.length}件を精算済みにします（精算日: ${today}）。よろしいですか？`);
+      if (!ok) return;
+      App.showLoading('精算処理中...');
+      try {
+        await Sheets.batchSettle(ids, today);
+        _expenses = await Sheets.readExpenses();
+        update();
+        App.showToast(`${ids.length}件を精算済みにしました`, 'success');
+      } catch (err) {
+        App.showToast('精算処理エラー: ' + err.message, 'danger');
+      } finally {
+        App.hideLoading();
+      }
+    });
     el.querySelector('#btnRefreshSummary')?.addEventListener('click', async () => {
       App.showLoading('更新中...');
       try { _expenses = await Sheets.readExpenses(); } finally { App.hideLoading(); }
@@ -198,12 +223,21 @@ const SummaryView = (() => {
       if (role === 'member' && e.email !== userEmail) return false;
       return true;
     });
-    const unpaid = filtered.filter(e => !e.confirmed);
+    // 精算日が空のものを未精算とする（会社払いは申請時に「会社払い」が入るため除外される）
+    const unpaid = filtered.filter(e => !e.settlementDate);
 
     const periodLabel = `直近${months.length}ヶ月間`;
     el.querySelector('#titleMember').textContent = `メンバー別（${periodLabel}）`;
     el.querySelector('#titleUnpaid').textContent = `未精算一覧（${periodLabel}）`;
     el.querySelector('#titleCat').textContent    = `勘定科目一覧（${periodLabel}）`;
+
+    // 管理者のみ「まとめて精算済みにする」ボタンを表示
+    const btnSettle = el.querySelector('#btnBatchSettle');
+    if (btnSettle) {
+      const isAdmin = App.getUserRole() === 'admin';
+      btnSettle.classList.toggle('d-none', !isAdmin || unpaid.length === 0);
+      btnSettle.dataset.ids = JSON.stringify(unpaid.map(e => e.id));
+    }
 
     _renderPivotTable(el.querySelector('#wrapMember'), filtered, months, _memberKey, '申請者');
     _renderPivotTable(el.querySelector('#wrapUnpaid'), unpaid,   months, _memberKey, '申請者');

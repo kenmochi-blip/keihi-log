@@ -104,7 +104,7 @@ const Sheets = (() => {
   async function readExpenses(ssId) {
     if (typeof Demo !== 'undefined' && Demo.isActive()) return [...Demo.EXPENSES];
     ssId = ssId || _ssId();
-    const range  = encodeURIComponent('経費一覧!A2:R');
+    const range  = encodeURIComponent('経費一覧!A2:S');
     const fields = encodeURIComponent('sheets.data.rowData.values(effectiveValue,hyperlink)');
     const resp = await Auth.authFetch(`${BASE}/${ssId}?ranges=${range}&fields=${fields}`);
     if (!resp.ok) throw new Error(`Sheets readExpenses error: ${resp.status}`);
@@ -148,24 +148,25 @@ const Sheets = (() => {
   /** 行配列 → 経費オブジェクト */
   function _rowToExpense(row) {
     return {
-      appliedAt:   row[0]  || '',
-      name:        row[1]  || '',
-      type:        row[2]  || '',
-      date:        _parseSheetDate(row[3]),
-      place:       row[4]  || '',
-      amount:      Number(row[5]) || 0,
-      category:    row[6]  || '',
-      note:        row[7]  || '',
-      imageLinks:  _extractUrl(row[8] || ''),
-      confirmed:   row[9]  === true || row[9] === 'TRUE',
-      aiAudit:     row[10] || '',
-      payment:     row[11] || '',
-      invoice:     row[12] || '',
-      aiAmount:    Number(row[13]) || 0,
-      imageHash:   row[14] || '',
-      email:       row[15] || '',
-      id:          row[16] || '',
-      device:      row[17] || '',
+      appliedAt:      row[0]  || '',
+      name:           row[1]  || '',
+      type:           row[2]  || '',
+      date:           _parseSheetDate(row[3]),
+      place:          row[4]  || '',
+      amount:         Number(row[5]) || 0,
+      category:       row[6]  || '',
+      note:           row[7]  || '',
+      imageLinks:     _extractUrl(row[8] || ''),
+      confirmed:      row[9]  === true || row[9] === 'TRUE',
+      aiAudit:        row[10] || '',
+      payment:        row[11] || '',
+      invoice:        row[12] || '',
+      aiAmount:       Number(row[13]) || 0,
+      imageHash:      row[14] || '',
+      email:          row[15] || '',
+      id:             row[16] || '',
+      device:         row[17] || '',
+      settlementDate: row[18] || '',  // S列：精算日（会社払い or YYYY-MM-DD or 空）
     };
   }
 
@@ -184,27 +185,28 @@ const Sheets = (() => {
     return String(val);
   }
 
-  /** 経費オブジェクト → 行配列（18列）*/
+  /** 経費オブジェクト → 行配列（19列）*/
   function expenseToRow(e) {
     return [
-      e.appliedAt,   // A
-      e.name,        // B
-      e.type,        // C
-      e.date,        // D
-      e.place,       // E
-      e.amount,      // F
-      e.category,    // G
-      e.note,        // H
-      _toHyperlink(e.imageLinks),  // I（SS上でクリック可能なHYPERLINK式）
-      e.confirmed ? true : false, // J
-      e.aiAudit,     // K
-      e.payment,     // L
-      e.invoice,     // M
-      e.aiAmount,    // N
-      e.imageHash,   // O
-      e.email,       // P
-      e.id,          // Q
-      e.device,      // R
+      e.appliedAt,                 // A
+      e.name,                      // B
+      e.type,                      // C
+      e.date,                      // D
+      e.place,                     // E
+      e.amount,                    // F
+      e.category,                  // G
+      e.note,                      // H
+      _toHyperlink(e.imageLinks),  // I
+      e.confirmed ? true : false,  // J
+      e.aiAudit,                   // K
+      e.payment,                   // L
+      e.invoice,                   // M
+      e.aiAmount,                  // N
+      e.imageHash,                 // O
+      e.email,                     // P
+      e.id,                        // Q
+      e.device,                    // R
+      e.settlementDate || '',      // S：精算日
     ];
   }
 
@@ -344,6 +346,27 @@ const Sheets = (() => {
   }
 
   /**
+   * 指定IDの経費を一括精算済みにする（S列に精算日を書き込む）
+   * @param {string[]} ids  精算対象の expense ID 配列
+   * @param {string}   dateStr  精算日文字列（例: '2026-05-12'）
+   */
+  async function batchSettle(ids, dateStr, ssId) {
+    if (typeof Demo !== 'undefined' && Demo.isActive()) return {};
+    if (!ids.length) return {};
+    ssId = ssId || _ssId();
+    const qRows = await read('経費一覧!Q2:Q', ssId);
+    const updates = [];
+    ids.forEach(id => {
+      const idx = qRows.findIndex(r => r[0] === id);
+      if (idx !== -1) {
+        updates.push({ range: `経費一覧!S${idx + 2}`, values: [[dateStr]] });
+      }
+    });
+    if (!updates.length) return {};
+    return batchUpdateValues(updates, ssId);
+  }
+
+  /**
    * 経費一覧の先頭（ヘッダー直下の2行目）に新規行を挿入する。
    * append と異なり最新データが常に先頭に並ぶ。
    */
@@ -382,6 +405,7 @@ const Sheets = (() => {
     findRowById,
     formatExpenseRow,
     prependExpense,
+    batchSettle,
     readSetting,
     readMaster,
     _rowToExpense,
