@@ -26,7 +26,7 @@ const Sheets = (() => {
     }
     ssId = ssId || _ssId();
     const resp = await Auth.authFetch(
-      `${BASE}/${ssId}/values/${encodeURIComponent(range)}?valueRenderOption=FORMULA`
+      `${BASE}/${ssId}/values/${encodeURIComponent(range)}?valueRenderOption=UNFORMATTED_VALUE`
     );
     if (!resp.ok) throw new Error(`Sheets read error: ${resp.status}`);
     const data = await resp.json();
@@ -124,25 +124,6 @@ const Sheets = (() => {
       });
       return _rowToExpense(row);
     }).filter(e => e.id);
-  }
-
-  /** =HYPERLINK("url","text") 式からURLを取り出す。プレーンURLはそのまま返す。 */
-  function _extractUrl(val) {
-    if (!val) return '';
-    const s = String(val);
-    const m = s.match(/^=HYPERLINK\(["']([^"']+)["']/i);
-    return m ? m[1] : s;
-  }
-
-  /** URLをHYPERLINK式に変換してSS上でクリック可能にする。複数URLはそのまま。 */
-  function _toHyperlink(links) {
-    if (!links) return '';
-    const s = String(links);
-    if (s.startsWith('=HYPERLINK(')) return s;
-    const urls = s.split(',').map(u => u.trim()).filter(Boolean);
-    if (urls.length === 0) return '';
-    if (urls.length === 1) return `=HYPERLINK("${urls[0]}","証票")`;
-    return links; // 複数URLはプレーンテキストのまま（アプリ側で複数ボタン表示）
   }
 
   /** =HYPERLINK("url","text") 式からURLを取り出す。プレーンURLはそのまま返す。 */
