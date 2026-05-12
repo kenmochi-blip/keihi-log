@@ -993,7 +993,7 @@ const SubmitView = (() => {
         category = pnl.querySelector('#selCategory')?.value || '';
       }
       note = pnl.querySelector('#inputNote')?.value?.trim() || '';
-      if (amount === 0) { App.showToast('金額を入力してください', 'danger'); return null; }
+      if (!Number.isInteger(amount) || amount < 1) { App.showToast('金額は1以上の整数を入力してください', 'danger'); return null; }
     }
 
     // 勘定科目は必須
