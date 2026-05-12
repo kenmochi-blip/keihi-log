@@ -299,8 +299,11 @@ const SettingsView = (() => {
     if (!App.isAdmin()) return;
 
     // 会社名の読み込みと保存（ssId がある場合のみ。新規作成時は作成ボタンで使用される）
+    const isDemo = typeof Demo !== 'undefined' && Demo.isActive();
     const ssId = localStorage.getItem('keihi_sheet_id');
-    if (ssId) {
+    if (isDemo) {
+      if (el.querySelector('#inputCompanyName')) el.querySelector('#inputCompanyName').value = Demo.COMPANY_NAME;
+    } else if (ssId) {
       try {
         const companyName = await Sheets.readSetting('B2');
         if (el.querySelector('#inputCompanyName')) {

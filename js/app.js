@@ -17,6 +17,8 @@ const App = (() => {
       _isAdmin = true;
       _userRole = 'admin';
       _setupUI('submit');
+      const titleEl = document.getElementById('navAppTitle');
+      if (titleEl) titleEl.textContent = `経費ログ - ${Demo.COMPANY_NAME}`;
       showToast('デモモード：サンプルデータで動作中', 'info');
       return;
     }
