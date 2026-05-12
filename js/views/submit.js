@@ -687,7 +687,7 @@ const SubmitView = (() => {
           reader.readAsDataURL(blob);
         });
         results.push({ base64, mimeType: blob.type, name: fileId });
-      } catch (_) { /* skip */ }
+      } catch (e) { console.warn('[download existing]', e); }
     }
     return results;
   }
@@ -696,12 +696,20 @@ const SubmitView = (() => {
     let files = _selectedFiles.filter(Boolean);
     const btn = el.querySelector('#btnAnalyze');
 
-    if (files.length === 0 && _editId && _existingUrls.filter(Boolean).length > 0) {
+    if (files.length === 0 && _existingUrls.filter(Boolean).length > 0) {
       btn.disabled = true;
       btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>ダウンロード中...';
       try {
         files = await _downloadExistingForAnalysis();
+        if (files.length === 0) {
+          App.showToast('証票ファイルのダウンロードに失敗しました', 'danger');
+          return;
+        }
+      } catch (dlErr) {
+        App.showToast('証票ダウンロードエラー: ' + dlErr.message, 'danger');
+        return;
       } finally {
+        btn.disabled = false;
         btn.innerHTML = '<i class="bi bi-stars me-2"></i>AIで読み取る';
       }
     }
