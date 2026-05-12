@@ -98,9 +98,9 @@ body { font-size: 0.9rem; }
 .history-card .h-place { font-weight: 700; font-size: 0.95rem; }
 .history-card .h-amount { font-weight: 700; font-size: 0.95rem; }
 .history-card .h-meta { font-size: 0.78rem; color: #6c757d; }
-.badge-pending  { background: #e9ecef; color: #495057; font-weight: 600; }
-.badge-confirmed { background: #d1e7dd; color: #0f5132; font-weight: 600; }
-.badge-duplicate { background: #f8d7da; color: #842029; font-weight: 600; }
+.badge-pending   { background: #e67e22; color: #fff; font-weight: 600; }  /* 申請済：オレンジ */
+.badge-confirmed { background: #2980b9; color: #fff; font-weight: 600; }  /* 登録済：ブルー */
+.badge-duplicate { background: #e74c3c; color: #fff; font-weight: 600; }
 
 /* カード */
 .expense-card {
@@ -112,10 +112,7 @@ body { font-size: 0.9rem; }
 .expense-card.confirmed { border-left-color: #198754; }
 .expense-card.edit-mode { border-left-color: #ffc107; }
 
-/* バッジ */
-.badge-confirmed  { background-color: #198754; }
-.badge-pending    { background-color: #6c757d; }
-.badge-duplicate  { background-color: #dc3545; }
+/* バッジ（print用上書き不要 — 上の定義で統一） */
 
 /* ファイルプレビュー */
 .file-preview-item {
