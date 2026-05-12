@@ -278,6 +278,14 @@ body { font-size: 0.9rem; }
   font-weight: 600;
 }
 
+/* メンバー/勘定科目/支払元リストの項目名サイズを強制上書き */
+#memberList .fw-semibold,
+#categoryList .flex-grow-1,
+#paySourceList .flex-grow-1 {
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+}
+
 .settings-section-title {
   font-size: 0.95rem;
   font-weight: 700;
