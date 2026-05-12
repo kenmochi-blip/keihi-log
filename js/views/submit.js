@@ -458,20 +458,16 @@ const SubmitView = (() => {
       const div = document.createElement('div');
       div.className = 'file-preview-item';
       div.dataset.existingIdx = i;
-      const fileId = url.match(/\/d\/([^/]+)\//)?.[1];
-      const inner = fileId
-        ? `<a href="${url}" target="_blank" rel="noopener">
-             <img src="https://drive.google.com/thumbnail?id=${fileId}&sz=w120-h120-c"
-               alt="証票" style="width:80px;height:80px;object-fit:cover;border-radius:4px;"
-               onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-             <div class="file-icon d-flex align-items-center justify-content-center bg-light d-none" style="width:80px;height:80px;border-radius:4px;">
-               <i class="bi bi-file-earmark-image" style="font-size:1.5rem;"></i></div>
-           </a>`
-        : `<a href="${url}" target="_blank" rel="noopener"
-             class="file-icon d-flex align-items-center justify-content-center bg-light"
-             style="width:80px;height:80px;border-radius:4px;">
-             <i class="bi bi-file-earmark-image" style="font-size:1.5rem;"></i></a>`;
-      div.innerHTML = inner + `<button class="remove-btn" data-existing-idx="${i}">✕</button>`;
+      // サムネイル取得はCORSで失敗するためアイコン+リンクで表示
+      div.innerHTML =
+        `<a href="${url}" target="_blank" rel="noopener"
+            style="display:flex;align-items:center;justify-content:center;
+                   width:80px;height:80px;border-radius:4px;background:#f0f4ff;
+                   border:1px solid #c8d8f8;text-decoration:none;flex-direction:column;gap:4px;">
+           <i class="bi bi-file-earmark-image" style="font-size:1.8rem;color:#4a90d9;"></i>
+           <span style="font-size:0.6rem;color:#555;">証票を開く</span>
+         </a>
+         <button class="remove-btn" data-existing-idx="${i}">✕</button>`;
       div.querySelector('.remove-btn').addEventListener('click', () => {
         _existingUrls[i] = null;
         div.remove();
