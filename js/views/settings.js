@@ -438,10 +438,10 @@ const SettingsView = (() => {
     }
     container.innerHTML = _master.members.map((m, i) => {
       const roleBadge = m.role === 'admin'
-        ? '<span class="badge bg-primary ms-1" style="font-size:0.6rem;"><i class="bi bi-shield-fill-check me-1"></i>管理者</span>'
+        ? '<span class="badge bg-primary ms-1" style="font-size:0.6rem;cursor:pointer;" data-bs-toggle="tooltip" data-bs-placement="top" title="全操作・メンバー管理・設定変更が可能"><i class="bi bi-shield-fill-check me-1"></i>管理者</span>'
         : m.role === 'viewer'
-          ? '<span class="badge bg-info text-dark ms-1" style="font-size:0.6rem;"><i class="bi bi-eye-fill me-1"></i>閲覧者</span>'
-          : '<span class="badge bg-secondary ms-1" style="font-size:0.6rem;"><i class="bi bi-person-fill me-1"></i>一般</span>';
+          ? '<span class="badge bg-info text-dark ms-1" style="font-size:0.6rem;cursor:pointer;" data-bs-toggle="tooltip" data-bs-placement="top" title="申請＋全体の一覧・集計の閲覧が可能"><i class="bi bi-eye-fill me-1"></i>閲覧者</span>'
+          : '<span class="badge bg-secondary ms-1" style="font-size:0.6rem;cursor:pointer;" data-bs-toggle="tooltip" data-bs-placement="top" title="自分の経費申請のみ可能"><i class="bi bi-person-fill me-1"></i>一般</span>';
       return `
       <div class="d-flex align-items-center gap-2 py-2 border-bottom">
         <div class="flex-grow-1">
@@ -458,6 +458,10 @@ const SettingsView = (() => {
       btn.addEventListener('click', () => _showMemberForm(el, Number(btn.dataset.index))));
     container.querySelectorAll('.btn-del-member').forEach(btn =>
       btn.addEventListener('click', () => _deleteMember(el, Number(btn.dataset.index))));
+    // ロールバッジのツールチップ初期化（タップでも表示）
+    container.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+      new bootstrap.Tooltip(el, { trigger: 'hover focus click' });
+    });
   }
 
   function _renderSimpleList(el, containerId, items, type) {
