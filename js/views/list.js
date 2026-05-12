@@ -413,9 +413,12 @@ const ListView = (() => {
               </div>
               <div class="list-sp-name">${_escape(e.name)}</div>
             </div>
-            <div class="list-sp-amount flex-shrink-0${hasExtra ? ' expandable' : ''}">
-              ¥${e.amount.toLocaleString()}
-              ${hasExtra ? '<i class="bi bi-chevron-down chevron"></i>' : ''}
+            <div class="flex-shrink-0 text-end">
+              <div class="list-sp-amount${e.note ? ' expandable' : ''}" style="${e.note ? '' : ''}">
+                ¥${e.amount.toLocaleString()}
+                ${e.note ? '<i class="bi bi-chevron-down chevron"></i>' : ''}
+              </div>
+              ${receiptBtns ? `<div class="d-flex flex-wrap gap-1 justify-content-end mt-1">${receiptBtns}</div>` : ''}
             </div>
           </div>
           <div class="d-flex justify-content-between align-items-center mt-1 gap-2">
@@ -426,10 +429,9 @@ const ListView = (() => {
             </div>
             <div class="no-print flex-shrink-0">${ops}</div>
           </div>
-          ${hasExtra ? `
+          ${e.note ? `
           <div class="list-sp-extra d-none">
-            ${e.note ? `<div class="list-sp-extra-note"><i class="bi bi-chat-text me-1 text-secondary"></i>${_escape(e.note)}</div>` : ''}
-            ${receiptBtns ? `<div class="d-flex flex-wrap gap-1">${receiptBtns}</div>` : ''}
+            <div class="list-sp-extra-note"><i class="bi bi-chat-text me-1 text-secondary"></i>${_escape(e.note)}</div>
           </div>` : ''}
         </div>`);
     });
