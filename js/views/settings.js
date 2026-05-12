@@ -438,10 +438,10 @@ const SettingsView = (() => {
     }
     container.innerHTML = _master.members.map((m, i) => {
       const roleBadge = m.role === 'admin'
-        ? '<span class="badge bg-primary ms-1" style="font-size:0.6rem;">管理者</span>'
+        ? '<span class="badge bg-primary ms-1" style="font-size:0.6rem;"><i class="bi bi-shield-fill-check me-1"></i>管理者</span>'
         : m.role === 'viewer'
-          ? '<span class="badge bg-info text-dark ms-1" style="font-size:0.6rem;">閲覧者</span>'
-          : '';
+          ? '<span class="badge bg-info text-dark ms-1" style="font-size:0.6rem;"><i class="bi bi-eye-fill me-1"></i>閲覧者</span>'
+          : '<span class="badge bg-secondary ms-1" style="font-size:0.6rem;"><i class="bi bi-person-fill me-1"></i>一般</span>';
       return `
       <div class="d-flex align-items-center gap-2 py-2 border-bottom">
         <div class="flex-grow-1">
