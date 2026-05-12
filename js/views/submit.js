@@ -1121,7 +1121,7 @@ const SubmitView = (() => {
       `<button class="btn btn-sm btn-outline-secondary btn-edit-history" data-id="${e.id}">
          <i class="bi bi-pencil"></i>
        </button>`;
-    const delBtn = e.confirmed ? '' :
+    const delBtn = (e.confirmed || e.settlementDate) ? '' :
       `<button class="btn btn-sm btn-outline-danger btn-del-history" data-id="${e.id}">
          <i class="bi bi-trash"></i>
        </button>`;
