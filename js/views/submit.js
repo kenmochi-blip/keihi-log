@@ -781,7 +781,7 @@ const SubmitView = (() => {
           // 外貨：複数APIを順に試して換算
           const rate = await _fetchExchangeRate(result.fx_currency, 'JPY');
           if (rate) {
-            const jpy = Math.ceil(Number(result.fx_amount) * rate);
+            const jpy = Math.floor(Number(result.fx_amount) * rate);
             const amtInput = el.querySelector('#inputAmount');
             if (amtInput) amtInput.value = jpy.toLocaleString('ja-JP');
             // 備考欄に換算内訳を自動入力
