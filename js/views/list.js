@@ -309,7 +309,13 @@ const ListView = (() => {
       if (status === 'pending'   &&  e.confirmed)  return false;
       if (keyword && ![e.place, e.note, e.category].join(' ').toLowerCase().includes(keyword)) return false;
       return true;
-    }).sort((a, b) => b.date.localeCompare(a.date));
+    }).sort((a, b) => {
+      // 申請日時（新しい順）→ 日付（新しい順）の優先順でソート
+      const aKey = String(a.appliedAt || a.date || '');
+      const bKey = String(b.appliedAt || b.date || '');
+      if (bKey !== aKey) return bKey.localeCompare(aKey);
+      return String(b.date || '').localeCompare(String(a.date || ''));
+    });
   }
 
   function _renderTable(el) {

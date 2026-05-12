@@ -301,6 +301,10 @@ const Sheets = (() => {
 
     const rowRange = { sheetId, startRowIndex: rowIdx, endRowIndex: rowIdx + 1 };
     const amountCols = [5, 13]; // F列（金額）・N列（AI解析額）
+    const dateFmts = [
+      { col: 0, pattern: 'yyyy-mm-dd hh:mm:ss' }, // A列（申請日時）
+      { col: 3, pattern: 'yyyy-mm-dd' },           // D列（日付）
+    ];
 
     await batchUpdate([
       // 行全体の書式をリセット（ヘッダー色の引き継ぎを除去）
@@ -322,6 +326,18 @@ const Sheets = (() => {
             }
           },
           fields: 'userEnteredFormat(numberFormat,horizontalAlignment)',
+        }
+      })),
+      // 日付列に日付フォーマットを適用（USER_ENTEREDでシリアル値変換されても正しく表示）
+      ...dateFmts.map(({ col, pattern }) => ({
+        repeatCell: {
+          range: { ...rowRange, startColumnIndex: col, endColumnIndex: col + 1 },
+          cell: {
+            userEnteredFormat: {
+              numberFormat: { type: 'DATE_TIME', pattern },
+            }
+          },
+          fields: 'userEnteredFormat(numberFormat)',
         }
       })),
     ], ssId);

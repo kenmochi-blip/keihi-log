@@ -448,6 +448,38 @@ const SubmitView = (() => {
     area.appendChild(div);
   }
 
+  /** 編集モード開始時に既存証票URLをプレビューエリアに表示する */
+  function _renderExistingUrlPreviews(el, type) {
+    const area = el.querySelector(`#previewArea-${type}`);
+    if (!area) return;
+    area.replaceChildren();
+    _existingUrls.forEach((url, i) => {
+      if (!url) return;
+      const div = document.createElement('div');
+      div.className = 'file-preview-item';
+      div.dataset.existingIdx = i;
+      const fileId = url.match(/\/d\/([^/]+)\//)?.[1];
+      const inner = fileId
+        ? `<a href="${url}" target="_blank" rel="noopener">
+             <img src="https://drive.google.com/thumbnail?id=${fileId}&sz=w120-h120-c"
+               alt="証票" style="width:80px;height:80px;object-fit:cover;border-radius:4px;"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+             <div class="file-icon d-flex align-items-center justify-content-center bg-light d-none" style="width:80px;height:80px;border-radius:4px;">
+               <i class="bi bi-file-earmark-image" style="font-size:1.5rem;"></i></div>
+           </a>`
+        : `<a href="${url}" target="_blank" rel="noopener"
+             class="file-icon d-flex align-items-center justify-content-center bg-light"
+             style="width:80px;height:80px;border-radius:4px;">
+             <i class="bi bi-file-earmark-image" style="font-size:1.5rem;"></i></a>`;
+      div.innerHTML = inner + `<button class="remove-btn" data-existing-idx="${i}">✕</button>`;
+      div.querySelector('.remove-btn').addEventListener('click', () => {
+        _existingUrls[i] = null;
+        div.remove();
+      });
+      area.appendChild(div);
+    });
+  }
+
   function _bindSplitToggle(el) {
     // querySelectorAll で全パネルのトグルボタンにバインド
     el.querySelectorAll('#btnToggleSplit').forEach(btn => {
@@ -782,7 +814,7 @@ const SubmitView = (() => {
 
       // 2. ファイルアップロード + SHA-256ハッシュ計算
       const activeFiles = _selectedFiles.filter(Boolean);
-      const uploadedUrls = [..._existingUrls];
+      const uploadedUrls = _existingUrls.filter(Boolean);
       const hashes = _existingHash ? [_existingHash] : [];
 
       const master = await App.getMaster();
@@ -1089,6 +1121,9 @@ const SubmitView = (() => {
         const selC = el.querySelector('#selCatCar');
         if (selC) [...selC.options].forEach(o => o.selected = o.value === e.category);
       }
+
+      // 既存証票をプレビューエリアに表示
+      _renderExistingUrlPreviews(el, e.type);
 
       el.querySelector('#editBanner')?.classList.remove('d-none');
       const btn = el.querySelector('#btnSubmit');
