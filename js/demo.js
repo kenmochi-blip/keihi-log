@@ -13,7 +13,7 @@ const Demo = (() => {
     members: [
       { name: 'デモ ユーザー', email: 'demo@example.com',   dept: '管理部', role: 'admin' },
       { name: '田中 太郎',     email: 'tanaka@example.com', dept: '営業部', role: '' },
-      { name: '鈴木 花子',     email: 'suzuki@example.com', dept: '総務部', role: '' },
+      { name: '鈴木 花子',     email: 'suzuki@example.com', dept: '総務部', role: 'viewer' },
       { name: '佐藤 次郎',     email: 'sato@example.com',   dept: '開発部', role: '' },
     ],
     categories: ['会議費', '旅費交通費', '消耗品費', '接待交際費', '通信費', '研修費', '新聞図書費', '福利厚生費'],
