@@ -159,7 +159,7 @@ const Sheets = (() => {
       imageLinks:     _extractUrl(row[8] || ''),
       confirmed:      row[9]  === true || row[9] === 'TRUE',
       aiAudit:        row[10] || '',
-      settlementDate: row[11] || '',  // L列：精算日（会社払い or YYYY-MM-DD or 空）
+      settlementDate: row[11] != null && row[11] !== '' ? String(row[11]) : '',  // L列：精算日
       invoice:        row[12] || '',
       aiAmount:       Number(row[13]) || 0,
       imageHash:      row[14] || '',
