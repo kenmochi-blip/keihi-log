@@ -1105,16 +1105,19 @@ const SubmitView = (() => {
   }
 
   function _renderHistoryCard(e) {
-    const statusClass = e.confirmed ? 'badge-confirmed'
+    const statusClass = e.settlementDate ? ''
+      : e.confirmed ? 'badge-confirmed'
       : e.aiAudit?.startsWith('⛔') ? 'badge-duplicate' : 'badge-pending';
-    const statusText = e.confirmed ? '承認済' : e.aiAudit?.startsWith('⛔') ? '要確認' : '未確認';
+    const statusText = e.settlementDate ? '精算済'
+      : e.confirmed ? '登録済'
+      : e.aiAudit?.startsWith('⛔') ? '要確認' : '申請済';
 
     const imageBtn = e.imageLinks
       ? `<a href="${e.imageLinks.split(',')[0].trim()}" target="_blank" class="btn btn-sm btn-outline-primary">
            <i class="bi bi-image me-1"></i>証票
          </a>`
       : '';
-    const editBtn = e.confirmed ? '' :
+    const editBtn = (e.confirmed || e.settlementDate) ? '' :
       `<button class="btn btn-sm btn-outline-secondary btn-edit-history" data-id="${e.id}">
          <i class="bi bi-pencil"></i>
        </button>`;
@@ -1126,12 +1129,13 @@ const SubmitView = (() => {
     return `
     <div class="history-card">
       <div class="d-flex justify-content-between align-items-start">
-        <span class="h-place">${e.payment ? '🏢 ' : ''}${_escape(e.place)}</span>
+        <span class="h-place">${e.settlementDate?.startsWith('会社払い') ? '🏢 ' : ''}${_escape(e.place)}</span>
         <span class="h-amount">¥${e.amount.toLocaleString()}</span>
       </div>
       <div class="d-flex justify-content-between align-items-center mt-1">
         <span class="h-meta">${e.date} / ${_escape(e.category)} (${e.type})</span>
-        <span class="badge ${statusClass} rounded-pill px-2">${statusText}</span>
+        <span class="badge ${statusClass} rounded-pill px-2"
+          ${e.settlementDate ? 'style="background:#6c757d;color:#fff;"' : ''}>${statusText}</span>
       </div>
       <div class="d-flex gap-2 mt-2 align-items-center">
         ${imageBtn}
