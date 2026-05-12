@@ -144,7 +144,7 @@ const SettingsView = (() => {
     <div class="card-body">
       <div class="settings-section-title">経費ログWebアプリURL</div>
       <div class="settings-step-hint mb-2">
-        上のメンバー管理に氏名・メールアドレス・権限を登録してから、このURLをメンバーに連絡してください。メンバーがアクセスすると、このスプレッドシートがアプリに自動で設定されます。
+        上のメンバー管理に氏名・メールアドレス・権限を登録してから、このURLをメンバーに連絡してください。
       </div>
       <div class="input-group input-group-sm">
         <input type="text" class="form-control form-control-sm" id="shareUrlDisplay"
