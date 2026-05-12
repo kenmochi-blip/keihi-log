@@ -262,7 +262,7 @@ const App = (() => {
    * @param {string} message
    * @param {'success'|'danger'|'warning'|'info'} type
    */
-  function showToast(message, type = 'info') {
+  function showToast(message, type = 'info', duration = 3000) {
     const container = document.getElementById('toastContainer');
     if (!container) return;
 
@@ -270,9 +270,14 @@ const App = (() => {
     const div = document.createElement('div');
     div.className = `toast-item alert ${colorMap[type] || 'bg-info'} text-white shadow py-2 px-3`;
     div.style.cssText = 'animation: fadeIn 0.2s ease;';
-    div.textContent = message;
+    // HTML タグが含まれる場合は innerHTML で描画（リンクなど）
+    if (/<[a-z][\s\S]*>/i.test(message)) {
+      div.innerHTML = message;
+    } else {
+      div.textContent = message;
+    }
     container.appendChild(div);
-    setTimeout(() => { div.style.opacity = '0'; div.style.transition = 'opacity 0.3s'; setTimeout(() => div.remove(), 300); }, 3000);
+    setTimeout(() => { div.style.opacity = '0'; div.style.transition = 'opacity 0.3s'; setTimeout(() => div.remove(), 300); }, duration);
   }
 
   return {

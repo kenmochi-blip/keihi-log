@@ -705,16 +705,19 @@ const SubmitView = (() => {
       btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>ダウンロード中...';
       try {
         files = await _downloadExistingForAnalysis();
-        if (files.length === 0) {
-          App.showToast('証票ファイルのダウンロードに失敗しました', 'danger');
-          return;
-        }
-      } catch (dlErr) {
-        App.showToast('証票ダウンロードエラー: ' + dlErr.message, 'danger');
-        return;
       } finally {
         btn.disabled = false;
         btn.innerHTML = '<i class="bi bi-stars me-2"></i>AIで読み取る';
+      }
+      if (files.length === 0) {
+        // Drive API でアクセスできない場合（drive.file スコープ制限）
+        // 証票リンクを開いて手動で再選択するよう案内する
+        const existingUrl = _existingUrls.filter(Boolean)[0];
+        const msg = existingUrl
+          ? `証票ファイルに直接アクセスできません。<a href="${existingUrl}" target="_blank" rel="noopener" style="color:#fff;text-decoration:underline;">証票を開いてダウンロード</a>後、「ファイル」から再選択してください。`
+          : '証票ファイルにアクセスできません。ファイルを再選択してください。';
+        App.showToast(msg, 'warning', 8000);
+        return;
       }
     }
 
