@@ -361,9 +361,11 @@ const SummaryView = (() => {
         <td class="text-muted">${_escape(e.name)}</td>
         <td class="text-muted" style="font-size:0.75rem;">${_escape(e.category)}</td>
         <td>
-          ${e.confirmed
-            ? '<span class="badge badge-confirmed rounded-pill px-2">承認済</span>'
-            : '<span class="badge badge-pending rounded-pill px-2">未確認</span>'}
+          ${e.settlementDate
+            ? '<span class="badge rounded-pill px-2" style="background:#6c757d;">精算済</span>'
+            : e.confirmed
+              ? '<span class="badge badge-confirmed rounded-pill px-2">登録済</span>'
+              : '<span class="badge badge-pending rounded-pill px-2">申請済</span>'}
         </td>
       </tr>
       ${hasExtra ? `<tr class="drill-detail-row d-none" data-row="${i}">

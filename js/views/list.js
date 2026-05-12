@@ -59,9 +59,10 @@ const ListView = (() => {
         </div>
         <div class="col-6 col-md-3">
           <select class="form-select form-select-sm" id="filterStatus">
-            <option value="">承認状態（全て）</option>
-            <option value="confirmed">承認済</option>
-            <option value="pending">未確認</option>
+          <option value="">ステータス（全て）</option>
+            <option value="申請済">申請済</option>
+            <option value="登録済">登録済</option>
+            <option value="精算済">精算済</option>
           </select>
         </div>
         <div class="col-6 col-md-3" id="filterMemberWrap" style="display:none;">
@@ -306,8 +307,7 @@ const ListView = (() => {
       if (fromDate && e.date < fromDate) return false;
       if (toDate   && e.date > toDate)   return false;
       if (type && e.type !== type) return false;
-      if (status === 'confirmed' && !e.confirmed)  return false;
-      if (status === 'pending'   &&  e.confirmed)  return false;
+      if (status && _getStatus(e) !== status) return false;
       if (keyword && ![e.place, e.note, e.category].join(' ').toLowerCase().includes(keyword)) return false;
       return true;
     }).sort((a, b) => {
@@ -355,12 +355,14 @@ const ListView = (() => {
     const rowsPc = [], cardHtmls = [];
 
     visible.forEach(e => {
-      const statusBadge = e.confirmed
-        ? `<span class="badge badge-confirmed" style="font-size:0.65rem;">承認済</span>`
-        : `<span class="badge badge-pending" style="font-size:0.65rem;">未確認</span>`;
-      const canEdit = !e.confirmed && e.email === email;
-      const approveBtn = _isAdmin && !e.confirmed
-        ? `<button class="btn btn-outline-success btn-sm py-0 px-1 btn-approve" data-id="${e.id}"><i class="bi bi-check"></i></button>` : '';
+      const status = _getStatus(e);
+      const statusBadge = _statusBadge(status);
+      // 編集可否：精算済は全員不可、申請済は本人のみ、登録済は管理者本人のみ
+      const canEdit = status !== '精算済' && e.email === email &&
+        (status === '申請済' || (_isAdmin && status === '登録済'));
+      // 承認ボタン（申請済→登録済）：管理者のみ
+      const approveBtn = _isAdmin && status === '申請済'
+        ? `<button class="btn btn-outline-success btn-sm py-0 px-1 btn-approve" data-id="${e.id}" title="登録済にする"><i class="bi bi-check"></i></button>` : '';
       const editBtn = canEdit
         ? `<button class="btn btn-outline-secondary btn-sm py-0 px-1 btn-edit-list" data-id="${e.id}"><i class="bi bi-pencil"></i></button>` : '';
       const ops = `<div class="d-flex gap-1">${approveBtn}${editBtn}</div>`;
@@ -487,7 +489,7 @@ const ListView = (() => {
            <i class="bi bi-stars me-1"></i><strong>AI監査：</strong>${_escape(aiAudit)}
          </div>`
       : '';
-    const ok = await App.confirm('この申請を承認しますか？', detailHtml);
+    const ok = await App.confirm('この申請を登録済にしますか？', detailHtml);
     if (!ok) return;
     App.showLoading('承認中...');
     try {
@@ -497,7 +499,7 @@ const ListView = (() => {
       const e = _expenses.find(x => x.id === id);
       if (e) e.confirmed = true;
       _renderTable(el);
-      App.showToast('承認しました', 'success');
+      App.showToast('登録済にしました', 'success');
     } catch (err) {
       App.showToast('承認エラー: ' + err.message, 'danger');
     } finally {
@@ -505,13 +507,25 @@ const ListView = (() => {
     }
   }
 
+  function _getStatus(e) {
+    if (e.settlementDate) return '精算済';
+    if (e.confirmed)      return '登録済';
+    return '申請済';
+  }
+
+  function _statusBadge(status) {
+    if (status === '精算済') return `<span class="badge" style="background:#6c757d;font-size:0.65rem;">精算済</span>`;
+    if (status === '登録済') return `<span class="badge badge-confirmed" style="font-size:0.65rem;">登録済</span>`;
+    return `<span class="badge badge-pending" style="font-size:0.65rem;">申請済</span>`;
+  }
+
   function _exportCsv(el) {
     const filtered = _getFiltered(el);
-    const header = ['申請日時','申請者名','タイプ','日付','支払先','金額','勘定科目','備考','証票URL','承認状態','インボイス番号','申請者Email','ID','精算日'];
+    const header = ['申請日時','申請者名','タイプ','日付','支払先','金額','勘定科目','備考','証票URL','ステータス','インボイス番号','申請者Email','ID','精算日'];
     const rows = filtered.map(e => [
       e.appliedAt, e.name, e.type, e.date, e.place, e.amount,
       e.category, e.note, e.imageLinks.split(',')[0]?.trim() || '',
-      e.confirmed ? '承認済' : '未確認', e.invoice, e.email, e.id,
+      _getStatus(e), e.invoice, e.email, e.id,
       e.settlementDate || ''
     ]);
     const csv = [header, ...rows].map(r =>
