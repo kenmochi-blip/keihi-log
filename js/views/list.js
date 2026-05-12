@@ -20,9 +20,18 @@ const ListView = (() => {
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h5 class="fw-bold mb-0"><i class="bi bi-list-ul me-2 text-primary"></i>一覧表</h5>
     <div class="d-flex gap-2">
-      <button class="btn btn-outline-secondary btn-sm no-print" id="btnExportCsv">
-        <i class="bi bi-download me-1"></i>CSV
-      </button>
+      <div class="btn-group no-print">
+        <button class="btn btn-outline-secondary btn-sm" id="btnExportCsv">
+          <i class="bi bi-download me-1"></i>CSV
+        </button>
+        <button class="btn btn-outline-secondary btn-sm dropdown-toggle dropdown-toggle-split px-2"
+          data-bs-toggle="dropdown" aria-expanded="false"></button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><h6 class="dropdown-header" style="font-size:0.7rem;">会計ソフト形式</h6></li>
+          <li><a class="dropdown-item small" href="#" id="btnExportFreee">freee 経費精算</a></li>
+          <li><a class="dropdown-item small" href="#" id="btnExportYayoi">弥生 仕訳日記帳</a></li>
+        </ul>
+      </div>
       <button class="btn btn-outline-secondary btn-sm no-print" id="btnRefreshList">
         <i class="bi bi-arrow-clockwise"></i>
       </button>
@@ -222,6 +231,8 @@ const ListView = (() => {
     });
 
     el.querySelector('#btnExportCsv')?.addEventListener('click', () => _exportCsv(el));
+    el.querySelector('#btnExportFreee')?.addEventListener('click', e => { e.preventDefault(); _exportFreee(el); });
+    el.querySelector('#btnExportYayoi')?.addEventListener('click', e => { e.preventDefault(); _exportYayoi(el); });
 
     _renderTable(el);
     requestAnimationFrame(() => _initResizableColumns(el.querySelector('.list-table-pc')));
@@ -526,15 +537,56 @@ const ListView = (() => {
     const csv = [header, ...rows].map(r =>
       r.map(v => `"${String(v || '').replace(/"/g, '""')}"`).join(',')
     ).join('\n');
+    _downloadCsv(csv, `経費一覧_${new Date().toISOString().split('T')[0]}.csv`);
+  }
 
-    const bom = '﻿'; // Excel用BOM
+  function _downloadCsv(csv, filename) {
+    const bom = '﻿';
     const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
-    a.href = url;
-    a.download = `経費一覧_${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
+    a.href = url; a.download = filename; a.click();
     URL.revokeObjectURL(url);
+  }
+
+  function _exportFreee(el) {
+    const filtered = _getFiltered(el);
+    const _isoToSlash = s => s ? String(s).replace(/^(\d{4})-(\d{2})-(\d{2}).*/, '$1/$2/$3') : '';
+    const header = ['発生日','勘定科目','税区分','金額(税込)','税額','摘要','支払方法','申請者','備考'];
+    const rows = filtered.map(e => {
+      const amount = Number(e.amount) || 0;
+      const tax = Math.floor(amount * 10 / 110);
+      return [
+        _isoToSlash(e.date), e.category, '課対仕入10%', amount, tax,
+        e.place, e.paySource || (e.companyCost ? '会社払い' : '現金等'),
+        e.name, e.note
+      ];
+    });
+    const csv = [header, ...rows].map(r =>
+      r.map(v => `"${String(v || '').replace(/"/g, '""')}"`).join(',')
+    ).join('\n');
+    _downloadCsv(csv, `freee経費_${new Date().toISOString().split('T')[0]}.csv`);
+  }
+
+  function _exportYayoi(el) {
+    const filtered = _getFiltered(el);
+    const _isoToSlash = s => s ? String(s).replace(/^(\d{4})-(\d{2})-(\d{2}).*/, '$1/$2/$3') : '';
+    const header = ['伝票No.','決算','取引日','借方勘定科目','借方補助科目','借方税区分','借方金額','借方消費税額','貸方勘定科目','貸方補助科目','貸方税区分','貸方金額','貸方消費税額','摘要','番号'];
+    const rows = filtered.map((e, i) => {
+      const amount = Number(e.amount) || 0;
+      const tax = Math.floor(amount * 10 / 110);
+      const credit = e.paySource || (e.companyCost ? '未払金' : '現金');
+      return [
+        i + 1, '', _isoToSlash(e.date),
+        e.category, '', '課対仕入10%', amount, tax,
+        credit, '', '', amount, '',
+        `${e.place}${e.note ? ' ' + e.note : ''}`, e.id
+      ];
+    });
+    const csv = [header, ...rows].map(r =>
+      r.map(v => `"${String(v || '').replace(/"/g, '""')}"`).join(',')
+    ).join('\n');
+    _downloadCsv(csv, `弥生仕訳_${new Date().toISOString().split('T')[0]}.csv`);
   }
 
   function _escape(s) {

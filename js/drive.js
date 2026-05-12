@@ -75,16 +75,39 @@ const Drive = (() => {
   async function uploadReceiptFile(base64, mimeType, filename) {
     let warn = null;
 
-    // 画像の場合のみ解像度チェック（200万画素以上 = 2,000,000px）
     if (mimeType.startsWith('image/')) {
-      warn = await _checkResolution(base64);
+      warn = await _checkResolution(base64);           // 元画像で解像度チェック
+      const hash = await _sha256(base64);              // 元画像でハッシュ（重複検知用）
+      base64   = await _compressForUpload(base64);     // 圧縮+EXIF回転してアップロード
+      mimeType = 'image/jpeg';
+      filename = filename.replace(/\.[^.]+$/, '.jpg');
+      const { webViewLink } = await uploadFile(base64, mimeType, filename);
+      return { url: webViewLink, hash, warn };
     }
 
-    // SHA-256ハッシュ計算
     const hash = await _sha256(base64);
-
     const { webViewLink } = await uploadFile(base64, mimeType, filename);
     return { url: webViewLink, hash, warn };
+  }
+
+  /** 画像を長辺2000px・quality 0.85 に圧縮しつつEXIF回転を補正して返す */
+  function _compressForUpload(base64, maxPx = 2000, quality = 0.85) {
+    return new Promise(resolve => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        const ratio = Math.min(1, maxPx / Math.max(w, h));
+        w = Math.round(w * ratio);
+        h = Math.round(h * ratio);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        // drawImage はブラウザのEXIF自動補正を経由するため回転も矯正される
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = () => resolve(base64);
+      img.src = base64.startsWith('data:') ? base64 : `data:image/jpeg;base64,${base64}`;
+    });
   }
 
   /** 画像の解像度を確認して200万画素未満なら警告文を返す */
