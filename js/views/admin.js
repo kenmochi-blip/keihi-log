@@ -217,9 +217,20 @@ const AdminView = (() => {
         role:  modal.querySelector('#mRole').value,
       };
       if (!updated.name || !updated.email) return App.showToast('氏名・メールは必須です', 'danger');
+      const oldEmail = isNew ? null : (_master.members[idx]?.email || null);
       if (isNew) _master.members.push(updated);
       else       _master.members[idx] = updated;
       await _saveMasterToSheet(el);
+      // Drive編集権限を付与（メール変更時は旧メールの権限を剥奪）
+      const ssId = localStorage.getItem('keihi_sheet_id');
+      if (ssId && updated.email) {
+        if (oldEmail && oldEmail !== updated.email) {
+          Drive.revokeAccess(oldEmail, ssId).catch(() => {});
+        }
+        Drive.grantEditorAccess(updated.email, ssId)
+          .then(() => App.showToast(`${updated.name} にSSの編集権限を付与しました`, 'success'))
+          .catch(() => App.showToast('権限付与に失敗しました（Drive権限を確認してください）', 'warning'));
+      }
       bsModal.hide();
     });
     modal.addEventListener('hidden.bs.modal', () => modal.remove());
@@ -248,9 +259,17 @@ const AdminView = (() => {
   }
 
   async function _deleteMember(el, idx) {
-    if (!confirm(`${_master.members[idx].name} を削除しますか？`)) return;
+    const member = _master.members[idx];
+    if (!confirm(`${member.name} を削除しますか？`)) return;
     _master.members.splice(idx, 1);
     await _saveMasterToSheet(el);
+    // Drive編集権限を剥奪
+    const ssId = localStorage.getItem('keihi_sheet_id');
+    if (ssId && member.email) {
+      Drive.revokeAccess(member.email, ssId)
+        .then(() => App.showToast(`${member.name} のSS編集権限を削除しました`, 'success'))
+        .catch(() => App.showToast('権限削除に失敗しました（Drive権限を確認してください）', 'warning'));
+    }
   }
 
   async function _deleteSimpleItem(el, type, idx) {
