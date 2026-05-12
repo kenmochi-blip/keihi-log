@@ -264,7 +264,7 @@ const SubmitView = (() => {
       if (!reg?.confirmedAt) return '';
       const text = SettingsView.buildRegulationText(reg);
       return `
-  <div class="accordion mt-3" id="regulationAcc">
+  <div class="accordion mt-3 mb-4" id="regulationAcc">
     <div class="accordion-item border">
       <h2 class="accordion-header">
         <button class="accordion-button collapsed py-2 small" type="button"

@@ -104,7 +104,8 @@ const SettingsView = (() => {
             <input type="password" class="form-control form-control-sm" id="inputGeminiKey" placeholder="AIzaSy...">
             <button class="btn btn-outline-primary btn-sm" id="btnSaveGeminiKey">保存</button>
           </div>
-          <div id="geminiKeyMsg" class="form-text"></div>` : ''}
+          <div id="geminiKeyMsg" class="form-text"></div>
+          ${_renderRegulationInitStep()}` : ''}
 
         </div>
       </div>
@@ -207,16 +208,41 @@ const SettingsView = (() => {
       <div class="settings-section-title">電帳法 訂正・削除防止規程</div>
       ${(() => {
         const reg = _loadRegulation();
+        const previewReg = {
+          orgName: reg?.orgName || '〇〇株式会社',
+          repName: reg?.repName || '代表者氏名',
+          address: reg?.address || '所在地',
+          confirmedAt: reg?.confirmedAt || '〇〇年〇〇月〇〇日'
+        };
+        const previewText = buildRegulationText(previewReg).replace(/</g, '&lt;');
+        const preview = `<div class="accordion mb-2" id="regMasterPreviewAcc">
+          <div class="accordion-item border rounded" style="background:#f8f9fa;">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed py-1" type="button"
+                data-bs-toggle="collapse" data-bs-target="#regMasterPreviewBody"
+                style="background:#f8f9fa;font-size:0.78rem;color:#555;">
+                <i class="bi bi-eye me-1 text-primary"></i>規程ひな型を確認する
+              </button>
+            </h2>
+            <div id="regMasterPreviewBody" class="accordion-collapse collapse">
+              <div class="accordion-body px-2 py-2">
+                <pre style="font-size:0.65rem;white-space:pre-wrap;font-family:inherit;color:#555;max-height:200px;overflow-y:auto;">${previewText}</pre>
+              </div>
+            </div>
+          </div>
+        </div>`;
         if (reg?.confirmedAt) {
           return `<div class="alert alert-success py-2 mb-2 small">
             <i class="bi bi-check-circle me-1"></i>確定済み（${reg.confirmedAt}）
             <button class="btn btn-link btn-sm p-0 ms-2 text-secondary" id="btnEditRegulation">編集</button>
           </div>
+          ${preview}
           <div id="regulationForm" class="d-none">`;
         }
         return `<div class="settings-step-hint mb-2">
           スキャナ保存で紙の原本を廃棄するために必要な社内規程です。入力・確定することで登録画面に表示されます。
         </div>
+        ${preview}
         <div id="regulationForm">`;
       })()}
         <div class="mb-2">
@@ -265,6 +291,26 @@ const SettingsView = (() => {
     });
     el.querySelector('#btnEditRegulation')?.addEventListener('click', () => {
       el.querySelector('#regulationForm')?.classList.remove('d-none');
+    });
+
+    // 訂正・削除防止規程（初期設定⑤版）
+    el.querySelector('#btnConfirmRegulationInit')?.addEventListener('click', () => {
+      const orgName = el.querySelector('#regInitOrgName')?.value.trim();
+      const repName = el.querySelector('#regInitRepName')?.value.trim();
+      const address = el.querySelector('#regInitAddress')?.value.trim();
+      const msg = el.querySelector('#regulationInitMsg');
+      if (!orgName || !repName || !address) {
+        msg.innerHTML = '<span class="text-danger">すべての項目を入力してください</span>';
+        return;
+      }
+      const today = new Date();
+      const confirmedAt = `${today.getFullYear()}年${today.getMonth()+1}月${today.getDate()}日`;
+      _saveRegulation({ orgName, repName, address, confirmedAt });
+      App.showToast('訂正・削除防止規程を確定しました', 'success');
+      Router.navigate('settings');
+    });
+    el.querySelector('#btnEditRegulationInit')?.addEventListener('click', () => {
+      el.querySelector('#regulationInitForm')?.classList.remove('d-none');
     });
 
     // ライセンス確認
@@ -746,6 +792,63 @@ const SettingsView = (() => {
     }).catch(() => {});
   }
 
+  function _renderRegulationInitStep() {
+    const reg = _loadRegulation();
+    const previewReg = {
+      orgName: reg?.orgName || '〇〇株式会社',
+      repName: reg?.repName || '代表者氏名',
+      address: reg?.address || '所在地',
+      confirmedAt: reg?.confirmedAt || '〇〇年〇〇月〇〇日'
+    };
+    const previewText = buildRegulationText(previewReg).replace(/</g, '&lt;');
+    const confirmedBadge = reg?.confirmedAt
+      ? `<div class="alert alert-success py-1 mb-2 small"><i class="bi bi-check-circle me-1"></i>確定済み（${reg.confirmedAt}）<button class="btn btn-link btn-sm p-0 ms-2 text-secondary" id="btnEditRegulationInit">再編集</button></div>`
+      : '';
+    return `
+          <hr class="my-3">
+          <div class="settings-step-title">⑤ 訂正・削除防止規程（電帳法）</div>
+          <div class="settings-step-hint mb-2">スキャナ保存で紙の原本を廃棄可能にするために必要な社内規程です。確定するとアプリ内に表示されます。</div>
+          ${confirmedBadge}
+          <div class="accordion mb-2" id="regPreviewAcc">
+            <div class="accordion-item border rounded" style="background:#f8f9fa;">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed py-1" type="button"
+                  data-bs-toggle="collapse" data-bs-target="#regPreviewBody"
+                  style="background:#f8f9fa;font-size:0.78rem;color:#555;">
+                  <i class="bi bi-eye me-1 text-primary"></i>規程ひな型を確認する
+                </button>
+              </h2>
+              <div id="regPreviewBody" class="accordion-collapse collapse">
+                <div class="accordion-body px-2 py-2">
+                  <pre style="font-size:0.65rem;white-space:pre-wrap;font-family:inherit;color:#555;max-height:200px;overflow-y:auto;">${previewText}</pre>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div id="regulationInitForm"${reg?.confirmedAt ? ' class="d-none"' : ''}>
+            <div class="mb-2">
+              <label class="form-label small mb-1">団体名（会社名・屋号等）</label>
+              <input type="text" class="form-control form-control-sm" id="regInitOrgName"
+                value="${_escape(reg?.orgName || localStorage.getItem('keihi_company_name') || '')}"
+                placeholder="例：〇〇株式会社">
+            </div>
+            <div class="mb-2">
+              <label class="form-label small mb-1">代表者名</label>
+              <input type="text" class="form-control form-control-sm" id="regInitRepName"
+                value="${_escape(reg?.repName || '')}" placeholder="例：山田 太郎">
+            </div>
+            <div class="mb-2">
+              <label class="form-label small mb-1">所在地</label>
+              <input type="text" class="form-control form-control-sm" id="regInitAddress"
+                value="${_escape(reg?.address || '')}" placeholder="例：東京都千代田区〇〇1-2-3">
+            </div>
+            <button class="btn btn-primary btn-sm w-100" id="btnConfirmRegulationInit">
+              <i class="bi bi-check-circle me-1"></i>確定して規程を作成する
+            </button>
+            <div id="regulationInitMsg" class="form-text mt-1"></div>
+          </div>`;
+  }
+
   function _loadRegulation() {
     try { return JSON.parse(localStorage.getItem('keihi_regulation') || 'null'); }
     catch (_) { return null; }
@@ -762,7 +865,7 @@ const SettingsView = (() => {
 本規程は、電子帳簿保存法第4条第3項に規定するスキャナ保存を行うにあたり、国税関係書類の電磁的記録の訂正・削除を防止するための事務処理手続を定めることを目的とする。
 
 第2条（適用範囲）
-本規程は、${reg.orgName}（以下「当社」という）が電子帳簿保存法に基づきスキャナ保存する一切の国税関係書類に適用する。
+本規程は、${reg.orgName}が電子帳簿保存法に基づきスキャナ保存する一切の国税関係書類に適用する。
 
 第3条（責任者）
 スキャナ保存に関する事務処理の責任者は、${reg.repName}とする。
