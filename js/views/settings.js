@@ -458,9 +458,20 @@ const SettingsView = (() => {
       btn.addEventListener('click', () => _showMemberForm(el, Number(btn.dataset.index))));
     container.querySelectorAll('.btn-del-member').forEach(btn =>
       btn.addEventListener('click', () => _deleteMember(el, Number(btn.dataset.index))));
-    // ロールバッジのツールチップ初期化（タップでも表示）
-    container.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
-      new bootstrap.Tooltip(el, { trigger: 'hover focus click' });
+    // ロールバッジのツールチップ初期化
+    container.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(tipEl => {
+      const tooltip = new bootstrap.Tooltip(tipEl, { trigger: 'manual' });
+      let _hideTimer = null;
+      // PC：ホバーで表示・離れたら消去
+      tipEl.addEventListener('mouseenter', () => { clearTimeout(_hideTimer); tooltip.show(); });
+      tipEl.addEventListener('mouseleave', () => { _hideTimer = setTimeout(() => tooltip.hide(), 150); });
+      // モバイル：タップで表示・2秒後に自動消去
+      tipEl.addEventListener('touchstart', e => {
+        e.preventDefault();
+        clearTimeout(_hideTimer);
+        tooltip.show();
+        _hideTimer = setTimeout(() => tooltip.hide(), 2000);
+      }, { passive: false });
     });
   }
 
