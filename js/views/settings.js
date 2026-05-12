@@ -201,97 +201,11 @@ const SettingsView = (() => {
       </div>
     </div>
   </div>
-
-  <!-- 訂正・削除防止規程 -->
-  <div class="card mb-3">
-    <div class="card-body">
-      <div class="settings-section-title">電帳法 訂正・削除防止規程</div>
-      ${(() => {
-        const reg = _loadRegulation();
-        const previewReg = {
-          orgName: '〇〇株式会社',
-          repName: '代表者氏名',
-          address: '所在地',
-          confirmedAt: '〇〇年〇〇月〇〇日'
-        };
-        const previewText = buildRegulationText(previewReg).replace(/</g, '&lt;');
-        const preview = `<div class="accordion mb-2" id="regMasterPreviewAcc">
-          <div class="accordion-item border rounded" style="background:#f8f9fa;">
-            <h2 class="accordion-header">
-              <button class="accordion-button collapsed py-1" type="button"
-                data-bs-toggle="collapse" data-bs-target="#regMasterPreviewBody"
-                style="background:#f8f9fa;font-size:0.78rem;color:#555;">
-                <i class="bi bi-eye me-1 text-primary"></i>規程ひな型を確認する
-              </button>
-            </h2>
-            <div id="regMasterPreviewBody" class="accordion-collapse collapse">
-              <div class="accordion-body px-2 py-2">
-                <pre style="font-size:0.65rem;white-space:pre-wrap;font-family:inherit;color:#555;max-height:200px;overflow-y:auto;">${previewText}</pre>
-              </div>
-            </div>
-          </div>
-        </div>`;
-        if (reg?.confirmedAt) {
-          return `<div class="alert alert-success py-2 mb-2 small">
-            <i class="bi bi-check-circle me-1"></i>確定済み（${reg.confirmedAt}）
-            <button class="btn btn-link btn-sm p-0 ms-2 text-secondary" id="btnEditRegulation">編集</button>
-          </div>
-          ${preview}
-          <div id="regulationForm" class="d-none">`;
-        }
-        return `<div class="settings-step-hint mb-2">
-          スキャナ保存で紙の原本を廃棄するために必要な社内規程です。入力・確定することで登録画面に表示されます。
-        </div>
-        ${preview}
-        <div id="regulationForm">`;
-      })()}
-        <div class="mb-2">
-          <label class="form-label small mb-1">団体名（会社名・屋号等）</label>
-          <input type="text" class="form-control form-control-sm" id="regOrgName"
-            value="${_escape(_loadRegulation()?.orgName || localStorage.getItem('keihi_company_name') || '')}"
-            placeholder="例：〇〇株式会社">
-        </div>
-        <div class="mb-2">
-          <label class="form-label small mb-1">代表者名</label>
-          <input type="text" class="form-control form-control-sm" id="regRepName"
-            value="${_escape(_loadRegulation()?.repName || '')}" placeholder="例：山田 太郎">
-        </div>
-        <div class="mb-2">
-          <label class="form-label small mb-1">所在地</label>
-          <input type="text" class="form-control form-control-sm" id="regAddress"
-            value="${_escape(_loadRegulation()?.address || '')}" placeholder="例：東京都千代田区〇〇1-2-3">
-        </div>
-        <button class="btn btn-primary btn-sm w-100" id="btnConfirmRegulation">
-          <i class="bi bi-check-circle me-1"></i>確定して規程を作成する
-        </button>
-        <div id="regulationMsg" class="form-text mt-1"></div>
-      </div>
-    </div>
-  </div>`;
+`;
   }
 
   async function bindEvents(el) {
     el.querySelector('#btnLogoutSettings')?.addEventListener('click', () => Auth.signOut());
-
-    // 訂正・削除防止規程
-    el.querySelector('#btnConfirmRegulation')?.addEventListener('click', () => {
-      const orgName = el.querySelector('#regOrgName')?.value.trim();
-      const repName = el.querySelector('#regRepName')?.value.trim();
-      const address = el.querySelector('#regAddress')?.value.trim();
-      const msg = el.querySelector('#regulationMsg');
-      if (!orgName || !repName || !address) {
-        msg.innerHTML = '<span class="text-danger">すべての項目を入力してください</span>';
-        return;
-      }
-      const today = new Date();
-      const confirmedAt = `${today.getFullYear()}年${today.getMonth()+1}月${today.getDate()}日`;
-      _saveRegulation({ orgName, repName, address, confirmedAt });
-      App.showToast('訂正・削除防止規程を確定しました', 'success');
-      Router.navigate('settings');
-    });
-    el.querySelector('#btnEditRegulation')?.addEventListener('click', () => {
-      el.querySelector('#regulationForm')?.classList.remove('d-none');
-    });
 
     // 訂正・削除防止規程（初期設定⑤版）
     el.querySelector('#btnConfirmRegulationInit')?.addEventListener('click', () => {
