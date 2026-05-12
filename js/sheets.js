@@ -343,6 +343,33 @@ const Sheets = (() => {
     ], ssId);
   }
 
+  /**
+   * 経費一覧の先頭（ヘッダー直下の2行目）に新規行を挿入する。
+   * append と異なり最新データが常に先頭に並ぶ。
+   */
+  async function prependExpense(row, ssId) {
+    if (typeof Demo !== 'undefined' && Demo.isActive()) {
+      return { updates: { updatedRange: '経費一覧!A2:R2' } };
+    }
+    ssId = ssId || _ssId();
+    const sheetId = await _getSheetId('経費一覧', ssId);
+    if (sheetId === null) throw new Error('経費一覧シートが見つかりません');
+
+    // ヘッダー行(index 0)の直下に空行を挿入
+    await batchUpdate([{
+      insertDimension: {
+        range: { sheetId, dimension: 'ROWS', startIndex: 1, endIndex: 2 },
+        inheritFromBefore: false,
+      }
+    }], ssId);
+
+    // 挿入した行にデータを書き込む
+    await update('経費一覧!A2:R2', [row], ssId);
+
+    await formatExpenseRow('経費一覧!A2:R2', ssId);
+    return { updates: { updatedRange: '経費一覧!A2:R2' } };
+  }
+
   return {
     read,
     append,
@@ -354,6 +381,7 @@ const Sheets = (() => {
     expenseToRow,
     findRowById,
     formatExpenseRow,
+    prependExpense,
     readSetting,
     readMaster,
     _rowToExpense,
