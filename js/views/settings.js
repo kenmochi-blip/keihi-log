@@ -199,11 +199,73 @@ const SettingsView = (() => {
         <span id="headerColorMsg" class="form-text mb-0"></span>
       </div>
     </div>
+  </div>
+
+  <!-- 訂正・削除防止規程 -->
+  <div class="card mb-3">
+    <div class="card-body">
+      <div class="settings-section-title">電帳法 訂正・削除防止規程</div>
+      ${(() => {
+        const reg = _loadRegulation();
+        if (reg?.confirmedAt) {
+          return `<div class="alert alert-success py-2 mb-2 small">
+            <i class="bi bi-check-circle me-1"></i>確定済み（${reg.confirmedAt}）
+            <button class="btn btn-link btn-sm p-0 ms-2 text-secondary" id="btnEditRegulation">編集</button>
+          </div>
+          <div id="regulationForm" class="d-none">`;
+        }
+        return `<div class="settings-step-hint mb-2">
+          スキャナ保存で紙の原本を廃棄するために必要な社内規程です。入力・確定することで登録画面に表示されます。
+        </div>
+        <div id="regulationForm">`;
+      })()}
+        <div class="mb-2">
+          <label class="form-label small mb-1">団体名（会社名・屋号等）</label>
+          <input type="text" class="form-control form-control-sm" id="regOrgName"
+            value="${_escape(_loadRegulation()?.orgName || localStorage.getItem('keihi_company_name') || '')}"
+            placeholder="例：〇〇株式会社">
+        </div>
+        <div class="mb-2">
+          <label class="form-label small mb-1">代表者名</label>
+          <input type="text" class="form-control form-control-sm" id="regRepName"
+            value="${_escape(_loadRegulation()?.repName || '')}" placeholder="例：山田 太郎">
+        </div>
+        <div class="mb-2">
+          <label class="form-label small mb-1">所在地</label>
+          <input type="text" class="form-control form-control-sm" id="regAddress"
+            value="${_escape(_loadRegulation()?.address || '')}" placeholder="例：東京都千代田区〇〇1-2-3">
+        </div>
+        <button class="btn btn-primary btn-sm w-100" id="btnConfirmRegulation">
+          <i class="bi bi-check-circle me-1"></i>確定して規程を作成する
+        </button>
+        <div id="regulationMsg" class="form-text mt-1"></div>
+      </div>
+    </div>
   </div>`;
   }
 
   async function bindEvents(el) {
     el.querySelector('#btnLogoutSettings')?.addEventListener('click', () => Auth.signOut());
+
+    // 訂正・削除防止規程
+    el.querySelector('#btnConfirmRegulation')?.addEventListener('click', () => {
+      const orgName = el.querySelector('#regOrgName')?.value.trim();
+      const repName = el.querySelector('#regRepName')?.value.trim();
+      const address = el.querySelector('#regAddress')?.value.trim();
+      const msg = el.querySelector('#regulationMsg');
+      if (!orgName || !repName || !address) {
+        msg.innerHTML = '<span class="text-danger">すべての項目を入力してください</span>';
+        return;
+      }
+      const today = new Date();
+      const confirmedAt = `${today.getFullYear()}年${today.getMonth()+1}月${today.getDate()}日`;
+      _saveRegulation({ orgName, repName, address, confirmedAt });
+      App.showToast('訂正・削除防止規程を確定しました', 'success');
+      Router.navigate('settings');
+    });
+    el.querySelector('#btnEditRegulation')?.addEventListener('click', () => {
+      el.querySelector('#regulationForm')?.classList.remove('d-none');
+    });
 
     // ライセンス確認
     el.querySelector('#btnVerifyLicense')?.addEventListener('click', async () => {
@@ -684,5 +746,53 @@ const SettingsView = (() => {
     }).catch(() => {});
   }
 
-  return { render, bindEvents };
+  function _loadRegulation() {
+    try { return JSON.parse(localStorage.getItem('keihi_regulation') || 'null'); }
+    catch (_) { return null; }
+  }
+
+  function _saveRegulation(data) {
+    localStorage.setItem('keihi_regulation', JSON.stringify(data));
+  }
+
+  function buildRegulationText(reg) {
+    return `国税関係書類に係るスキャナ保存 訂正・削除防止規程
+
+第1条（目的）
+本規程は、電子帳簿保存法第4条第3項に規定するスキャナ保存を行うにあたり、国税関係書類の電磁的記録の訂正・削除を防止するための事務処理手続を定めることを目的とする。
+
+第2条（適用範囲）
+本規程は、${reg.orgName}（以下「当社」という）が電子帳簿保存法に基づきスキャナ保存する一切の国税関係書類に適用する。
+
+第3条（責任者）
+スキャナ保存に関する事務処理の責任者は、${reg.repName}とする。
+
+第4条（スキャナ保存の手続）
+1. 国税関係書類の受領後、速やかに（原則として受領日から2ヶ月以内に）スキャンを行い、所定の経費管理システムに入力する。
+2. 入力画像の解像度は200万画素以上、カラーで保存する。
+
+第5条（訂正・削除の禁止）
+1. 保存した電磁的記録は、原則として訂正・削除を行わない。
+2. やむを得ず訂正・削除を行う場合は、必ず経費管理システムの所定の機能（修正・削除機能）を使用し、その事実・内容・理由を記録する。
+3. スプレッドシートへの直接編集は禁止する。
+
+第6条（検索機能の確保）
+保存した電磁的記録は、取引年月日・取引金額・取引先で検索できる状態を維持する。
+
+第7条（原本の廃棄）
+スキャナ保存の要件を満たした電磁的記録が適正に保存されたことを確認した後、紙の原本を廃棄することができる。
+
+第8条（保存期間）
+電磁的記録は、法令の定める期間（原則7年間）保存する。
+
+第9条（規程の遵守）
+役員・従業員は本規程を遵守しなければならない。
+
+制定日：${reg.confirmedAt}
+所在地：${reg.address}
+${reg.orgName}
+代表者：${reg.repName}`;
+  }
+
+  return { render, bindEvents, buildRegulationText, _loadRegulation };
 })();

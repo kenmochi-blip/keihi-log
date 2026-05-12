@@ -257,6 +257,32 @@ const SubmitView = (() => {
     <div id="historyList"><div class="text-muted small text-center py-3">読み込み中...</div></div>
   </div>
 
+  <!-- 訂正・削除防止規程（確定済みの場合のみ表示） -->
+  ${(() => {
+    try {
+      const reg = JSON.parse(localStorage.getItem('keihi_regulation') || 'null');
+      if (!reg?.confirmedAt) return '';
+      const text = SettingsView.buildRegulationText(reg);
+      return `
+  <div class="accordion mt-3" id="regulationAcc">
+    <div class="accordion-item border">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed py-2 small" type="button"
+          data-bs-toggle="collapse" data-bs-target="#regulationBody">
+          <i class="bi bi-file-text me-2 text-success"></i>
+          訂正・削除防止規程（電帳法）— 確定済み ${reg.confirmedAt}
+        </button>
+      </h2>
+      <div id="regulationBody" class="accordion-collapse collapse">
+        <div class="accordion-body p-3">
+          <pre style="font-size:0.72rem;white-space:pre-wrap;font-family:inherit;color:#333;">${text.replace(/</g,'&lt;')}</pre>
+        </div>
+      </div>
+    </div>
+  </div>`;
+    } catch (_) { return ''; }
+  })()}
+
 </div>`;
   }
 
