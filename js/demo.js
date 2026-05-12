@@ -13,6 +13,11 @@ const Demo = (() => {
   function isActive() { return sessionStorage.getItem(KEY) === '1'; }
   function getRole()  { return _role; }
   function setRole(r) { _role = r; sessionStorage.setItem(ROLE_KEY, r); }
+  function getUserEmail() {
+    if (_role === 'viewer') return 'suzuki@example.com';
+    if (_role === 'member') return 'tanaka@example.com';
+    return 'demo@example.com';
+  }
 
   const MASTER = {
     members: [
@@ -149,5 +154,5 @@ const Demo = (() => {
   // デモ用スプレッドシートID（「リンクを知っている全員が閲覧可」のシートIDを入力）
   const SHEET_ID = '18wDzX43PgeUAXm_Wri-vPogEkkhWNeUhk5F_R1OyFi4';
 
-  return { enable, disable, isActive, getRole, setRole, MASTER, EXPENSES, SHEET_ID, COMPANY_NAME };
+  return { enable, disable, isActive, getRole, setRole, getUserEmail, MASTER, EXPENSES, SHEET_ID, COMPANY_NAME };
 })();

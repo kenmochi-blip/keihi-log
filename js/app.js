@@ -20,6 +20,9 @@ const App = (() => {
       _setupUI('submit');
       const titleEl = document.getElementById('navAppTitle');
       if (titleEl) titleEl.textContent = `経費ログ - ${Demo.COMPANY_NAME}`;
+      const navEmail = document.getElementById('navUserEmail');
+      if (navEmail) navEmail.textContent = Demo.getUserEmail();
+      _applyDemoNavVisibility(demoRole);
       _insertDemoRoleSwitcher();
       showToast('デモモード：サンプルデータで動作中', 'info');
       return;
@@ -179,16 +182,39 @@ const App = (() => {
   function isAdmin() { return _isAdmin; }
   function getUserRole() { return _userRole; }
 
+  function _applyDemoNavVisibility(role) {
+    const summaryBtn  = document.querySelector('.nav-item-btn[data-view="summary"]');
+    const settingsBtn = document.querySelector('.nav-item-btn[data-view="settings"]');
+    if (role === 'member') {
+      summaryBtn?.classList.add('d-none');
+      settingsBtn?.classList.add('d-none');
+    } else if (role === 'viewer') {
+      summaryBtn?.classList.remove('d-none');
+      settingsBtn?.classList.add('d-none');
+    } else {
+      summaryBtn?.classList.remove('d-none');
+      settingsBtn?.classList.remove('d-none');
+    }
+  }
+
   function _switchDemoRole(role) {
     Demo.setRole(role);
     _userRole = role;
     _isAdmin = role === 'admin';
+
+    const navEmail = document.getElementById('navUserEmail');
+    if (navEmail) navEmail.textContent = Demo.getUserEmail();
+
     document.querySelectorAll('.demo-role-btn').forEach(btn => {
       btn.classList.remove('btn-dark', 'btn-outline-dark');
       btn.classList.add(btn.dataset.role === role ? 'btn-dark' : 'btn-outline-dark');
     });
+
+    _applyDemoNavVisibility(role);
+
+    const hiddenViews = role === 'member' ? ['summary', 'settings'] : role === 'viewer' ? ['settings'] : [];
     const cur = Router.current();
-    if (cur) Router.navigate(cur);
+    Router.navigate(hiddenViews.includes(cur) ? 'submit' : cur);
   }
 
   function _insertDemoRoleSwitcher() {
