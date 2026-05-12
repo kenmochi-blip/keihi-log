@@ -158,14 +158,16 @@ const ListView = (() => {
       return;
     }
 
-    // 管理者用UI
-    if (_isAdmin) {
+    // 管理者・閲覧者：メンバー選択ボックスを表示
+    if (_isAdmin || _userRole === 'viewer') {
       el.querySelector('#filterMemberWrap').style.display = '';
       const sel = el.querySelector('#filterMember');
       _master.members.forEach(m => {
         sel.innerHTML += `<option value="${m.email}">${m.name}</option>`;
       });
-      // スプレッドシートリンク（管理者のみ）
+    }
+    // スプレッドシートリンク（管理者のみ）
+    if (_isAdmin) {
       const ssId = localStorage.getItem('keihi_sheet_id');
       if (ssId) {
         el.querySelector('#sheetLinkArea').classList.remove('d-none');
@@ -298,7 +300,7 @@ const ListView = (() => {
       // 表示対象：admin/viewer は全員分、member は自分のみ
       if (!_showAll) {
         if (e.email !== email) return false;
-      } else if (_isAdmin && member && e.email !== member) return false;
+      } else if (member && e.email !== member) return false;
 
       if (fromDate && e.date < fromDate) return false;
       if (toDate   && e.date > toDate)   return false;
