@@ -907,23 +907,22 @@ const SubmitView = (() => {
         imageLinks:     uploadedUrls.join(', '),
         confirmed:      false,
         aiAudit,
-        payment:        data.corpPay ? `会社払い（${data.paySource}）` : '',
+        settlementDate: data.corpPay ? `会社払い（${data.paySource}）` : '',
         invoice:        data.invoice,
         aiAmount:       0,
         imageHash:      hashes.join(','),
         email:          Auth.getUserEmail(),
         id:             _editId || crypto.randomUUID(),
         device:         navigator.userAgent,
-        settlementDate: data.corpPay ? '会社払い' : '',
       });
 
       // 6. 編集の場合は修正履歴に旧データを保存してから更新
       if (_editId) {
         const rowNum = await Sheets.findRowById(_editId);
         if (rowNum > 0) {
-          const oldRows = await Sheets.read(`経費一覧!A${rowNum}:S${rowNum}`);
+          const oldRows = await Sheets.read(`経費一覧!A${rowNum}:R${rowNum}`);
           await Sheets.append('修正履歴', [appliedAt, Auth.getUserEmail(), JSON.stringify(oldRows[0])]);
-          await Sheets.update(`経費一覧!A${rowNum}:S${rowNum}`, [row]);
+          await Sheets.update(`経費一覧!A${rowNum}:R${rowNum}`, [row]);
         }
       } else {
         await Sheets.prependExpense(row);

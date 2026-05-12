@@ -104,7 +104,7 @@ const Sheets = (() => {
   async function readExpenses(ssId) {
     if (typeof Demo !== 'undefined' && Demo.isActive()) return [...Demo.EXPENSES];
     ssId = ssId || _ssId();
-    const range  = encodeURIComponent('経費一覧!A2:S');
+    const range  = encodeURIComponent('経費一覧!A2:R');
     const fields = encodeURIComponent('sheets.data.rowData.values(effectiveValue,hyperlink)');
     const resp = await Auth.authFetch(`${BASE}/${ssId}?ranges=${range}&fields=${fields}`);
     if (!resp.ok) throw new Error(`Sheets readExpenses error: ${resp.status}`);
@@ -159,14 +159,13 @@ const Sheets = (() => {
       imageLinks:     _extractUrl(row[8] || ''),
       confirmed:      row[9]  === true || row[9] === 'TRUE',
       aiAudit:        row[10] || '',
-      payment:        row[11] || '',
+      settlementDate: row[11] || '',  // L列：精算日（会社払い or YYYY-MM-DD or 空）
       invoice:        row[12] || '',
       aiAmount:       Number(row[13]) || 0,
       imageHash:      row[14] || '',
       email:          row[15] || '',
       id:             row[16] || '',
       device:         row[17] || '',
-      settlementDate: row[18] || '',  // S列：精算日（会社払い or YYYY-MM-DD or 空）
     };
   }
 
@@ -185,7 +184,7 @@ const Sheets = (() => {
     return String(val);
   }
 
-  /** 経費オブジェクト → 行配列（19列）*/
+  /** 経費オブジェクト → 行配列（18列）*/
   function expenseToRow(e) {
     return [
       e.appliedAt,                 // A
@@ -199,14 +198,13 @@ const Sheets = (() => {
       _toHyperlink(e.imageLinks),  // I
       e.confirmed ? true : false,  // J
       e.aiAudit,                   // K
-      e.payment,                   // L
+      e.settlementDate || '',      // L：精算日
       e.invoice,                   // M
       e.aiAmount,                  // N
       e.imageHash,                 // O
       e.email,                     // P
       e.id,                        // Q
       e.device,                    // R
-      e.settlementDate || '',      // S：精算日
     ];
   }
 
@@ -359,7 +357,7 @@ const Sheets = (() => {
     ids.forEach(id => {
       const idx = qRows.findIndex(r => r[0] === id);
       if (idx !== -1) {
-        updates.push({ range: `経費一覧!S${idx + 2}`, values: [[dateStr]] });
+        updates.push({ range: `経費一覧!L${idx + 2}`, values: [[dateStr]] });
       }
     });
     if (!updates.length) return {};

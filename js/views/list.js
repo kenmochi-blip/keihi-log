@@ -378,7 +378,7 @@ const ListView = (() => {
       rowsPc.push(`<tr>
         <td class="list-date">${e.date}</td>
         <td class="list-place">
-          <div>${e.payment ? '🏢 ' : ''}${_escape(e.place)}</div>
+          <div>${e.settlementDate?.startsWith('会社払い') ? '🏢 ' : ''}${_escape(e.place)}</div>
           <div class="text-muted" style="font-size:0.7rem;">${_escape(e.name)}</div>
         </td>
         <td class="list-type-cell">${_escape(e.type)}</td>
@@ -407,7 +407,7 @@ const ListView = (() => {
             <div class="flex-grow-1" style="min-width:0;">
               <div class="d-flex align-items-baseline gap-1">
                 <span class="list-sp-date">${_fmtDateShort(e.date)}</span>
-                <span class="list-sp-place">${e.payment ? '🏢 ' : ''}${_escape(e.place)}</span>
+                <span class="list-sp-place">${e.settlementDate?.startsWith('会社払い') ? '🏢 ' : ''}${_escape(e.place)}</span>
               </div>
               <div class="list-sp-name">${_escape(e.name)}</div>
             </div>
