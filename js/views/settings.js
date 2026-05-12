@@ -209,10 +209,10 @@ const SettingsView = (() => {
       ${(() => {
         const reg = _loadRegulation();
         const previewReg = {
-          orgName: reg?.orgName || '〇〇株式会社',
-          repName: reg?.repName || '代表者氏名',
-          address: reg?.address || '所在地',
-          confirmedAt: reg?.confirmedAt || '〇〇年〇〇月〇〇日'
+          orgName: '〇〇株式会社',
+          repName: '代表者氏名',
+          address: '所在地',
+          confirmedAt: '〇〇年〇〇月〇〇日'
         };
         const previewText = buildRegulationText(previewReg).replace(/</g, '&lt;');
         const preview = `<div class="accordion mb-2" id="regMasterPreviewAcc">
@@ -795,10 +795,10 @@ const SettingsView = (() => {
   function _renderRegulationInitStep() {
     const reg = _loadRegulation();
     const previewReg = {
-      orgName: reg?.orgName || '〇〇株式会社',
-      repName: reg?.repName || '代表者氏名',
-      address: reg?.address || '所在地',
-      confirmedAt: reg?.confirmedAt || '〇〇年〇〇月〇〇日'
+      orgName: '〇〇株式会社',
+      repName: '代表者氏名',
+      address: '所在地',
+      confirmedAt: '〇〇年〇〇月〇〇日'
     };
     const previewText = buildRegulationText(previewReg).replace(/</g, '&lt;');
     const confirmedBadge = reg?.confirmedAt
