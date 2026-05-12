@@ -63,9 +63,9 @@ const SettingsView = (() => {
           <div id="companyNameMsg" class="form-text" style="margin-top:-0.75rem;"></div>
           ` : ''}
 
-          <!-- ② 保存先フォルダ（管理者のみ） -->
+          <!-- ② 証票データ・スプレッドシート保存先フォルダ（管理者のみ） -->
           ${isAdmin ? `
-          <div class="settings-step-title">② 保存先フォルダ</div>
+          <div class="settings-step-title">② 証票データ・スプレッドシート保存先フォルダ</div>
           ${!ssId ? `
           <div class="settings-step-hint">スプレッドシートと証票画像の保存先（空欄でマイドライブのルートに作成）</div>
           <input type="text" class="form-control form-control-sm mb-2" id="inputFolderUrl"
@@ -77,10 +77,11 @@ const SettingsView = (() => {
           ` : `
           <div class="input-group mb-1">
             <input type="text" class="form-control form-control-sm" id="inputReceiptFolderUrl"
-              placeholder="Google Drive フォルダのURL" id="inputReceiptFolderUrl">
+              placeholder="Google Drive フォルダのURL">
             <button class="btn btn-outline-primary btn-sm" id="btnSaveReceiptFolder">変更</button>
           </div>
-          <div id="receiptFolderMsg" class="form-text mb-3"></div>
+          <div id="receiptFolderMsg" class="form-text mb-1"></div>
+          <div id="folderOpenLinkWrap" class="mb-3"></div>
           `}
           ` : ''}
 
@@ -124,25 +125,6 @@ const SettingsView = (() => {
     const ssId = isDemo ? '' : (localStorage.getItem('keihi_sheet_id') || '');
     const shareUrl = ssId ? `${location.origin}/${ssId}` : '';
     return `
-  <!-- メンバー招待URL（管理者のみ） -->
-  ${ssId ? `
-  <div class="card mb-3">
-    <div class="card-body">
-      <div class="settings-section-title">メンバー招待URL</div>
-      <div class="settings-step-hint">
-        手順：① 下のメンバー管理でメンバーを追加 → ② DriveでSSを「リンクを知っている全員が編集可」に設定 → ③ このURLをメンバーに連絡<br>
-        メンバーがURLにアクセスすると、アプリにスプレッドシートが自動で設定されます。
-      </div>
-      <div class="input-group input-group-sm">
-        <input type="text" class="form-control form-control-sm" id="shareUrlDisplay"
-          value="${_escape(shareUrl)}" readonly>
-        <button class="btn btn-outline-secondary btn-sm" id="btnCopyShareUrl">
-          <i class="bi bi-clipboard"></i>
-        </button>
-      </div>
-    </div>
-  </div>
-  ` : ''}
   <!-- メンバー管理（管理者のみ） -->
   <div class="card mb-3">
     <div class="card-body">
@@ -155,6 +137,26 @@ const SettingsView = (() => {
       </div>
     </div>
   </div>
+
+  <!-- メンバー招待URL（管理者のみ・メンバー管理の下） -->
+  ${ssId ? `
+  <div class="card mb-3">
+    <div class="card-body">
+      <div class="settings-section-title">メンバー招待URL</div>
+      <div class="settings-step-hint mb-2">
+        メンバー管理に追加後、このURLをメンバーに連絡してください。<br>
+        アクセスするとアプリにスプレッドシートが自動で設定されます。
+      </div>
+      <div class="input-group input-group-sm">
+        <input type="text" class="form-control form-control-sm" id="shareUrlDisplay"
+          value="${_escape(shareUrl)}" readonly>
+        <button class="btn btn-outline-secondary btn-sm" id="btnCopyShareUrl">
+          <i class="bi bi-clipboard"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+  ` : ''}
 
   <!-- 勘定科目（管理者のみ） -->
   <div class="card mb-3">
@@ -358,12 +360,22 @@ const SettingsView = (() => {
     el.querySelector('#btnAddCategory')?.addEventListener('click', () => _showInlineAdd(el, 'category'));
     el.querySelector('#btnAddPaySource')?.addEventListener('click', () => _showInlineAdd(el, 'paySource'));
 
-    // 証票フォルダ：現在値をURLとしてinputに表示
+    // 証票フォルダ：現在値をURLとしてinputに表示＋フォルダを開くリンクを生成
     const currentFolderId = localStorage.getItem('keihi_folder_id') || await Sheets.readSetting('B4').catch(() => '');
     const folderInput = el.querySelector('#inputReceiptFolderUrl');
+    const folderOpenWrap = el.querySelector('#folderOpenLinkWrap');
+    const _setFolderLink = fid => {
+      if (!folderOpenWrap) return;
+      folderOpenWrap.innerHTML = fid
+        ? `<a href="https://drive.google.com/drive/folders/${fid}" target="_blank" class="btn btn-outline-secondary btn-sm w-100">
+             <i class="bi bi-folder-fill me-1 text-warning"></i>フォルダを開く
+           </a>`
+        : '';
+    };
     if (folderInput && currentFolderId) {
       folderInput.value = `https://drive.google.com/drive/folders/${currentFolderId}`;
     }
+    _setFolderLink(currentFolderId);
 
     el.querySelector('#btnSaveReceiptFolder')?.addEventListener('click', async () => {
       const raw = el.querySelector('#inputReceiptFolderUrl').value.trim();
@@ -382,10 +394,7 @@ const SettingsView = (() => {
           folderId,
         }).catch(() => {});
         msg.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>保存しました</span>';
-        if (folderLinkEl) {
-          folderLinkEl.innerHTML = `<a href="https://drive.google.com/drive/folders/${folderId}" target="_blank" class="small">
-            <i class="bi bi-folder-fill me-1 text-warning"></i>現在のフォルダを開く</a>`;
-        }
+        _setFolderLink(folderId);
         App.showToast('証票フォルダを変更しました', 'success');
       } catch (err) {
         msg.innerHTML = `<span class="text-danger">${_escape(err.message)}</span>`;
