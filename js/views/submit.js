@@ -921,7 +921,18 @@ const SubmitView = (() => {
         const rowNum = await Sheets.findRowById(_editId);
         if (rowNum > 0) {
           const oldRows = await Sheets.read(`経費一覧!A${rowNum}:R${rowNum}`);
-          await Sheets.append('修正履歴', [appliedAt, Auth.getUserEmail(), JSON.stringify(oldRows[0])]);
+          const r = oldRows[0] || [];
+          const oldSummary = [
+            `日付: ${r[3] || ''}`,
+            `支払先: ${r[4] || ''}`,
+            `金額: ${r[5] || ''}`,
+            `科目: ${r[6] || ''}`,
+            `タイプ: ${r[2] || ''}`,
+            `備考: ${r[7] || ''}`,
+            `精算日: ${r[11] || ''}`,
+            `インボイス: ${r[12] || ''}`,
+          ].filter(s => !s.endsWith(': ')).join(' / ');
+          await Sheets.prependRow('修正履歴', [appliedAt, Auth.getUserEmail(), oldSummary]);
           await Sheets.update(`経費一覧!A${rowNum}:R${rowNum}`, [row]);
         }
       } else {
@@ -1219,7 +1230,7 @@ const SubmitView = (() => {
       // 削除一覧に移動
       const timeResp = await fetch(`${window.APP_CONFIG?.apiBase || ''}/api/time`);
       const { jst: deletedAt } = await timeResp.json();
-      await Sheets.append('削除一覧', [deletedAt, Auth.getUserEmail(), ...Sheets.expenseToRow(e)]);
+      await Sheets.prependRow('削除一覧', [deletedAt, Auth.getUserEmail(), ...Sheets.expenseToRow(e)]);
 
       // 元の行を削除（sheetIdが必要なのでbatchUpdateを使う）
       // 簡略化：行の内容を空白で上書きしてフィルタリングする方式

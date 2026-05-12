@@ -368,7 +368,22 @@ const Sheets = (() => {
    * 経費一覧の先頭（ヘッダー直下の2行目）に新規行を挿入する。
    * append と異なり最新データが常に先頭に並ぶ。
    */
-  async function prependExpense(row, ssId) {
+  async function prependRow(sheetName, values, ssId) {
+    if (typeof Demo !== 'undefined' && Demo.isActive()) return {};
+    ssId = ssId || _ssId();
+    const sheetId = await _getSheetId(sheetName, ssId);
+    if (sheetId === null) throw new Error(`${sheetName}シートが見つかりません`);
+    // ヘッダー直下に書式を引き継がない空行を挿入
+    await batchUpdate([{
+      insertDimension: {
+        range: { sheetId, dimension: 'ROWS', startIndex: 1, endIndex: 2 },
+        inheritFromBefore: false,
+      }
+    }], ssId);
+    await update(`${sheetName}!A2`, [values], ssId);
+  }
+
+
     if (typeof Demo !== 'undefined' && Demo.isActive()) {
       return { updates: { updatedRange: '経費一覧!A2:R2' } };
     }
@@ -403,6 +418,7 @@ const Sheets = (() => {
     findRowById,
     formatExpenseRow,
     prependExpense,
+    prependRow,
     batchSettle,
     readSetting,
     readMaster,
