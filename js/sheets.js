@@ -26,7 +26,7 @@ const Sheets = (() => {
     }
     ssId = ssId || _ssId();
     const resp = await Auth.authFetch(
-      `${BASE}/${ssId}/values/${encodeURIComponent(range)}?valueRenderOption=UNFORMATTED_VALUE`
+      `${BASE}/${ssId}/values/${encodeURIComponent(range)}?valueRenderOption=FORMULA`
     );
     if (!resp.ok) throw new Error(`Sheets read error: ${resp.status}`);
     const data = await resp.json();
@@ -104,6 +104,25 @@ const Sheets = (() => {
     return rows.map(_rowToExpense).filter(e => e.id); // IDがない行はスキップ
   }
 
+  /** =HYPERLINK("url","text") 式からURLを取り出す。プレーンURLはそのまま返す。 */
+  function _extractUrl(val) {
+    if (!val) return '';
+    const s = String(val);
+    const m = s.match(/^=HYPERLINK\(["']([^"']+)["']/i);
+    return m ? m[1] : s;
+  }
+
+  /** URLをHYPERLINK式に変換してSS上でクリック可能にする。複数URLはそのまま。 */
+  function _toHyperlink(links) {
+    if (!links) return '';
+    const s = String(links);
+    if (s.startsWith('=HYPERLINK(')) return s;
+    const urls = s.split(',').map(u => u.trim()).filter(Boolean);
+    if (urls.length === 0) return '';
+    if (urls.length === 1) return `=HYPERLINK("${urls[0]}","証票")`;
+    return links; // 複数URLはプレーンテキストのまま（アプリ側で複数ボタン表示）
+  }
+
   /** 行配列 → 経費オブジェクト */
   function _rowToExpense(row) {
     return {
@@ -115,7 +134,7 @@ const Sheets = (() => {
       amount:      Number(row[5]) || 0,
       category:    row[6]  || '',
       note:        row[7]  || '',
-      imageLinks:  row[8]  || '',
+      imageLinks:  _extractUrl(row[8] || ''),
       confirmed:   row[9]  === true || row[9] === 'TRUE',
       aiAudit:     row[10] || '',
       payment:     row[11] || '',
@@ -154,7 +173,7 @@ const Sheets = (() => {
       e.amount,      // F
       e.category,    // G
       e.note,        // H
-      e.imageLinks,  // I
+      _toHyperlink(e.imageLinks),  // I（SS上でクリック可能なHYPERLINK式）
       e.confirmed ? true : false, // J
       e.aiAudit,     // K
       e.payment,     // L
