@@ -129,7 +129,10 @@ const SettingsView = (() => {
   <div class="card mb-3">
     <div class="card-body">
       <div class="settings-section-title">メンバー招待URL</div>
-      <div class="settings-step-hint">このURLをメンバーに共有すると、スプレッドシートが自動設定されます</div>
+      <div class="settings-step-hint">
+        手順：① 下のメンバー管理でメンバーを追加 → ② DriveでSSを「リンクを知っている全員が編集可」に設定 → ③ このURLをメンバーに連絡<br>
+        メンバーがURLにアクセスすると、アプリにスプレッドシートが自動で設定されます。
+      </div>
       <div class="input-group input-group-sm">
         <input type="text" class="form-control form-control-sm" id="shareUrlDisplay"
           value="${_escape(shareUrl)}" readonly>

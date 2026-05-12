@@ -384,7 +384,7 @@ const Sheets = (() => {
     await update(`${sheetName}!A2`, [values], ssId);
   }
 
-
+  async function prependExpense(row, ssId) {
     if (typeof Demo !== 'undefined' && Demo.isActive()) {
       return { updates: { updatedRange: '経費一覧!A2:R2' } };
     }
