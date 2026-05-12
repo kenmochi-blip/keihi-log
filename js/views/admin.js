@@ -267,7 +267,8 @@ const AdminView = (() => {
       const m = _master.members[i]    || {};
       const c = _master.categories[i] || '';
       const p = _master.paySources[i] || '';
-      rows.push([m.name || '', m.email || '', m.dept || '', p, c, m.role || '', '']);
+      // A:氏名 B:メール C:所属 D:権限 E:備考 F:会社払い支払元 G:勘定科目
+      rows.push([m.name || '', m.email || '', m.dept || '', m.role || '', '', p, c]);
     }
     // ヘッダーを保持しながら2行目以降を上書き
     await Sheets.update(`マスタ表!A2:G${rows.length + 1}`, rows);

@@ -243,10 +243,11 @@ const Sheets = (() => {
     const viewers    = [];
 
     rows.forEach(r => {
-      if (r[0] || r[1]) members.push({ name: r[0] || '', email: r[1] || '', dept: r[2] || '', role: r[5] || '' });
-      if (r[3]) paySources.push(r[3]);
-      if (r[4]) categories.push(r[4]);
-      const role = (r[5] || '').toLowerCase();
+      // A:氏名 B:メール C:所属 D:権限 E:備考 F:会社払い支払元 G:勘定科目
+      if (r[0] || r[1]) members.push({ name: r[0] || '', email: r[1] || '', dept: r[2] || '', role: r[3] || '' });
+      if (r[5]) paySources.push(r[5]);
+      if (r[6]) categories.push(r[6]);
+      const role = (r[3] || '').toLowerCase();
       if (role === 'admin' && r[1]) admins.push(r[1].toLowerCase());
       if (role === 'viewer' && r[1]) viewers.push(r[1].toLowerCase());
     });
