@@ -971,7 +971,7 @@ const SubmitView = (() => {
       _historyExpenses = all;
       _historyAll = all
         .filter(e => e.email === Auth.getUserEmail())
-        .sort((a, b) => (b.appliedAt || b.date).localeCompare(a.appliedAt || a.date));
+        .sort((a, b) => String(b.appliedAt || b.date || '').localeCompare(String(a.appliedAt || a.date || '')));
       _historyShown = _HIST_PAGE;
       _renderHistory(el);
     } catch (err) {
