@@ -209,10 +209,10 @@ const SummaryView = (() => {
 
     const isAdmin = App.getUserRole() === 'admin';
 
-    _renderPivotTable(el.querySelector('#wrapMember'), filtered, months, _memberKey, '申請者');
-    _renderPivotTable(el.querySelector('#wrapUnpaid'), unpaid,   months, _memberKey, '申請者',
-      isAdmin ? (drillExpenses, onDone) => _batchSettleDrill(drillExpenses, onDone, el) : null);
-    _renderPivotTable(el.querySelector('#wrapCat'),    filtered, months, _categoryKey, '勘定科目');
+    _renderPivotTable(el.querySelector('#wrapMember'), filtered, months, _memberKey,   '申請者', null, false);
+    _renderPivotTable(el.querySelector('#wrapUnpaid'), unpaid,   months, _memberKey,   '申請者',
+      isAdmin ? (drillExpenses, onDone) => _batchSettleDrill(drillExpenses, onDone, el) : null, false);
+    _renderPivotTable(el.querySelector('#wrapCat'),    filtered, months, _categoryKey, '勘定科目', null, true);
   }
 
   // ─── キー関数 ──────────────────────────────────────────────
@@ -248,7 +248,7 @@ const SummaryView = (() => {
   }
 
   // ─── ピボットテーブル描画 ──────────────────────────────────
-  function _renderPivotTable(container, records, months, keyFn, rowLabel, settleCallback = null) {
+  function _renderPivotTable(container, records, months, keyFn, rowLabel, settleCallback = null, showName = true) {
     if (!container) return;
 
     // 集計
@@ -330,15 +330,17 @@ const SummaryView = (() => {
       td.addEventListener('click', () => {
         const drillExp = drillRecords[key]?.[ym] || [];
         const settle = settleCallback ? (onDone) => settleCallback(drillExp, onDone) : null;
-        _showDrill(`${key} — ${_fmtYM(ym)}`, drillExp, settle);
+        _showDrill(`${key} — ${_fmtYM(ym)}`, drillExp, settle, showName);
       });
     });
   }
 
   // ─── ドリルダウンモーダル ──────────────────────────────────
-  function _showDrill(title, expenses, settleCallback = null) {
+  function _showDrill(title, expenses, settleCallback = null, showName = true) {
     const total = expenses.reduce((s, e) => s + e.amount, 0);
     const sorted = expenses.slice().sort((a, b) => a.date.localeCompare(b.date));
+    // 列数：日付・支払先・金額・状態 (4) + 申請者 (showName時+1)
+    const colCount = showName ? 5 : 4;
 
     const rows = sorted.map((e, i) => {
       const imgUrls = (e.imageLinks || '').split(',').map(s => s.trim()).filter(Boolean);
@@ -349,17 +351,18 @@ const SummaryView = (() => {
            <i class="bi bi-image me-1"></i>証票${imgUrls.length > 1 ? j + 1 : ''}
          </a>`
       ).join('');
+      // 日付を M/D 形式に短縮（例: 2026-04-18 → 4/18）
+      const shortDate = e.date ? e.date.replace(/^\d{4}-0?(\d+)-0?(\d+)$/, '$1/$2') : e.date;
 
       return `<tr>
-        <td style="white-space:nowrap;">${e.date}</td>
+        <td style="white-space:nowrap;">${shortDate}</td>
         <td>${_escape(e.place)}</td>
         <td class="text-end${hasExtra ? ' drill-amount-toggle' : ''}" data-row="${i}"
             style="${hasExtra ? 'cursor:pointer;' : ''}">
           ¥${e.amount.toLocaleString()}
           ${hasExtra ? '<i class="bi bi-chevron-down" style="font-size:0.6rem;opacity:0.55;margin-left:2px;vertical-align:middle;"></i>' : ''}
         </td>
-        <td class="text-muted">${_escape(e.name)}</td>
-        <td class="text-muted" style="font-size:0.75rem;">${_escape(e.category)}</td>
+        ${showName ? `<td class="text-muted" style="font-size:0.8rem;white-space:nowrap;">${_escape(e.name)}</td>` : ''}
         <td>
           ${e.settlementDate
             ? '<span class="badge rounded-pill px-2" style="background:#6c757d;">精算済</span>'
@@ -369,7 +372,7 @@ const SummaryView = (() => {
         </td>
       </tr>
       ${hasExtra ? `<tr class="drill-detail-row d-none" data-row="${i}">
-        <td colspan="6" style="background:#f8f9fa;border-top:none;padding:0.4rem 0.75rem 0.5rem;">
+        <td colspan="${colCount}" style="background:#f8f9fa;border-top:none;padding:0.4rem 0.75rem 0.5rem;">
           ${e.note ? `<div style="font-size:0.78rem;color:#495057;white-space:pre-wrap;word-break:break-all;margin-bottom:${imgUrls.length ? '0.3rem' : '0'};">
             <i class="bi bi-chat-text me-1 text-secondary"></i>${_escape(e.note)}
           </div>` : ''}
@@ -397,14 +400,18 @@ const SummaryView = (() => {
               <div class="table-responsive">
                 <table class="table table-sm mb-0">
                   <thead class="table-light">
-                    <tr><th class="text-center">日付</th><th class="text-center">支払先</th><th class="text-center">金額</th><th class="text-center">申請者</th><th class="text-center">科目</th><th class="text-center">状態</th></tr>
+                    <tr>
+                      <th>日付</th><th>支払先</th><th class="text-end">金額</th>
+                      ${showName ? '<th>申請者</th>' : ''}
+                      <th>状態</th>
+                    </tr>
                   </thead>
                   <tbody>${rows}</tbody>
                   <tfoot class="table-light">
                     <tr>
                       <td colspan="2" class="fw-bold">合計 ${expenses.length}件</td>
                       <td class="text-end fw-bold">¥${total.toLocaleString()}</td>
-                      <td colspan="3"></td>
+                      <td colspan="${colCount - 3}"></td>
                     </tr>
                   </tfoot>
                 </table>
