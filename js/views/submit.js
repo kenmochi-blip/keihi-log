@@ -244,11 +244,6 @@ const SubmitView = (() => {
     <div class="d-flex justify-content-between align-items-center mb-2">
       <h6 class="fw-bold mb-0">直近の自分の履歴</h6>
       <div class="d-flex gap-2 align-items-center">
-        ${App.isAdmin() && localStorage.getItem('keihi_sheet_id') ? `
-        <a href="https://docs.google.com/spreadsheets/d/${localStorage.getItem('keihi_sheet_id')}" target="_blank" rel="noopener"
-           class="btn btn-link btn-sm text-decoration-none text-secondary p-0" style="font-size:0.8rem;">
-          <i class="bi bi-table me-1"></i>シートを開く
-        </a>` : ''}
         <button class="btn btn-link btn-sm text-decoration-none text-secondary p-0" id="btnRefreshHistory">
           <i class="bi bi-arrow-clockwise me-1"></i>更新
         </button>

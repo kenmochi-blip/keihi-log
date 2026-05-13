@@ -114,8 +114,17 @@ const SettingsView = (() => {
 
   ${isAdmin ? _renderMasterSections() : ''}
 
+  <!-- スプレッドシートを直接開く（管理者のみ・最下部） -->
+  ${isAdmin && ssId ? `
+  <div class="text-center mt-3 mb-2">
+    <a href="https://docs.google.com/spreadsheets/d/${ssId}" target="_blank" rel="noopener"
+      class="btn btn-link btn-sm text-decoration-none text-secondary" style="font-size:0.78rem;">
+      <i class="bi bi-table me-1"></i>スプレッドシートを直接開く
+    </a>
+  </div>` : ''}
+
   <!-- バージョン情報 -->
-  <div class="text-center text-muted mt-4 mb-2" style="font-size:0.7rem;">
+  <div class="text-center text-muted mt-2 mb-2" style="font-size:0.7rem;">
     経費ログ v2.0.0 — <span class="badge-denchou">電帳法対応</span>
   </div>
 </div>`;

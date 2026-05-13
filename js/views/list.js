@@ -133,12 +133,6 @@ const ListView = (() => {
     </button>
   </div>
 
-  <!-- スプレッドシートリンク（管理者のみ） -->
-  <div id="sheetLinkArea" class="mt-3 d-none no-print">
-    <a id="sheetDirectLink" href="#" target="_blank" class="btn btn-outline-secondary btn-sm w-100">
-      <i class="bi bi-table me-1"></i>スプレッドシートで開く（会計ソフト連携・詳細編集）
-    </a>
-  </div>
 </div>`;
   }
 
@@ -178,13 +172,9 @@ const ListView = (() => {
         sel.innerHTML += `<option value="${m.email}">${m.name}</option>`;
       });
     }
-    // スプレッドシートリンク（管理者のみ）
     if (_isAdmin) {
       const ssId = localStorage.getItem('keihi_sheet_id');
       if (ssId) {
-        el.querySelector('#sheetLinkArea').classList.remove('d-none');
-        el.querySelector('#sheetDirectLink').href = `https://docs.google.com/spreadsheets/d/${ssId}`;
-      }
     }
 
     // 期間プリセットボタン
