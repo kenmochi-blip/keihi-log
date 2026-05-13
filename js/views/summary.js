@@ -392,7 +392,7 @@ const SummaryView = (() => {
     const div = document.createElement('div');
     div.innerHTML = `
       <div class="modal fade" tabindex="-1">
-        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered">
           <div class="modal-content">
             <div class="modal-header py-2 justify-content-center position-relative">
               <h6 class="modal-title text-center w-100">${_escape(title)}</h6>
