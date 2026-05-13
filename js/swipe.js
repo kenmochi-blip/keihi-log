@@ -1,6 +1,7 @@
 /**
  * 横スワイプビュー遷移
- * position:fixed のオーバーレイで3パネルを構築し、ビューポートで確実にクリップ
+ * - オーバーレイ z-index:499 → 実ナビバー(z:1020)・ボトムナビ(z:1030)が上に残る
+ * - スクロール位置は transform:translateY で再現（scrollTop の非同期問題を回避）
  */
 const SwipeNav = (() => {
   const ORDER = ['submit', 'list', 'summary', 'settings'];
@@ -35,11 +36,9 @@ const SwipeNav = (() => {
   }
 
   function _onMove(e) {
-    // スライド中：指に追従
     if (_overlay && _isHoriz) {
       e.preventDefault();
-      const dx = e.touches[0].clientX - _sx;
-      _track.style.transform = `translateX(${-_W + dx}px)`;
+      _track.style.transform = `translateX(${-_W + (e.touches[0].clientX - _sx)}px)`;
       return;
     }
     if (_decided) return;
@@ -53,7 +52,6 @@ const SwipeNav = (() => {
     if (_isHoriz) {
       e.preventDefault();
       _build();
-      // 初動のdxをすぐ反映
       _track.style.transform = `translateX(${-_W + dx}px)`;
     }
   }
@@ -67,7 +65,7 @@ const SwipeNav = (() => {
     if (_overlay) _snapBack();
   }
 
-  // ── パネル構築（position:fixed で確実にクリップ）─────────────
+  // ── パネル構築 ─────────────────────────────────────────────
 
   function _build() {
     const main = document.getElementById('appMain');
@@ -77,25 +75,24 @@ const SwipeNav = (() => {
 
     _W = window.innerWidth;
 
+    // スワイプ開始時のスクロール位置
+    const scrollY = window.scrollY;
+
+    // ナビバーの実際の高さを取得
+    const navH = document.querySelector('nav.navbar.sticky-top')?.offsetHeight || 56;
+
     const views    = _views();
     const prevName = ORDER[(idx + ORDER.length - 1) % ORDER.length];
     const nextName = ORDER[(idx + 1) % ORDER.length];
 
-    // ナビバー・ボトムナビのHTMLを複製（スワイプ中も画面全体がスライドして見える）
-    const navbarHTML    = document.querySelector('nav.navbar.sticky-top')?.outerHTML  || '';
-    const bottomNavHTML = document.querySelector('nav.navbar.fixed-bottom')?.outerHTML || '';
-
-    // スワイプ開始時のスクロール位置を記録（ページ全体がスクロールするため window.scrollY を使用）
-    const scrollTop = window.scrollY;
-
-    // スワイプ中は元のコンテンツを隠す（透過による残像を防ぐ）
+    // 元コンテンツを隠す
     main.style.visibility = 'hidden';
 
-    // fixed オーバーレイ（ビューポートに固定 → 必ずクリップされる）
+    // オーバーレイ：z-index 499 にすることで
+    // 実ナビバー(Bootstrap z-index:1020)とボトムナビ(1030)が上に浮いたままになる
     _overlay = document.createElement('div');
-    _overlay.style.cssText = 'position:fixed;inset:0;z-index:500;overflow:hidden;background:#f8f9fa;';
+    _overlay.style.cssText = 'position:fixed;inset:0;z-index:499;overflow:hidden;background:#f8f9fa;';
 
-    // トラック（3パネル横並び）
     _track = document.createElement('div');
     _track.style.cssText =
       `position:absolute;top:0;left:0;height:100%;` +
@@ -106,34 +103,26 @@ const SwipeNav = (() => {
       panel.style.cssText =
         `position:absolute;top:0;left:${pos * _W}px;width:${_W}px;height:100%;` +
         `background:#f8f9fa;overflow:hidden;` +
-        (pos !== 1 ? 'opacity:0.65;' : '');
+        (pos !== 1 ? 'opacity:0.6;' : '');
 
-      // ナビバー
-      panel.insertAdjacentHTML('beforeend', navbarHTML);
-
-      // コンテンツ
       const inner = document.createElement('div');
-      inner.style.cssText = 'max-width:480px;margin:0 auto;padding-bottom:80px;overflow-y:auto;height:calc(100vh - 56px - 65px);';
+      inner.style.cssText = 'max-width:480px;margin:0 auto;padding-bottom:80px;';
+
       try {
-        inner.innerHTML = pos === 1
-          ? main.innerHTML
-          : (views[name]?.render() || '');
-      } catch (_) { /* 隣パネルのrenderに失敗しても続行 */ }
+        inner.innerHTML = pos === 1 ? main.innerHTML : (views[name]?.render() || '');
+      } catch (_) {}
+
+      // スクロール位置を transform で再現
+      // translateY(navH - scrollY) → ナビバー直下から scrollY 分スクロール済みの位置を表示
+      const offsetY = navH - (pos === 1 ? scrollY : 0);
+      inner.style.transform = `translateY(${offsetY}px)`;
+
       panel.appendChild(inner);
-      if (pos === 1) inner.setAttribute('data-cur-inner', '1');
-
-      // ボトムナビ
-      panel.insertAdjacentHTML('beforeend', bottomNavHTML);
-
       _track.appendChild(panel);
     });
 
     _overlay.appendChild(_track);
     document.body.appendChild(_overlay);
-
-    // DOM挿入後にスクロール位置を復元
-    const curInner = _track.querySelector('[data-cur-inner]');
-    if (curInner) curInner.scrollTop = scrollTop;
   }
 
   // ── スナップ ───────────────────────────────────────────────
