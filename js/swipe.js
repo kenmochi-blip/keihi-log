@@ -1,10 +1,10 @@
 /**
  * 横スワイプビュー遷移
- * 指に追従してリアルタイムにスライド、離した瞬間にスナップ
+ * position:fixed のオーバーレイで3パネルを構築し、ビューポートで確実にクリップ
  */
 const SwipeNav = (() => {
   const ORDER = ['submit', 'list', 'summary', 'settings'];
-  const COMMIT_RATIO = 0.28; // 画面幅の28%以上でコミット
+  const COMMIT_RATIO = 0.28;
 
   const _views = () => ({
     submit:   typeof SubmitView   !== 'undefined' ? SubmitView   : null,
@@ -14,11 +14,9 @@ const SwipeNav = (() => {
   });
 
   let _sx = 0, _sy = 0;
-  let _decided = false;   // horizontal/vertical の判定済みフラグ
-  let _isHoriz = false;
-  let _wrapper = null;
-  let _savedHTML = '';
-  let _W = 0;
+  let _decided = false, _isHoriz = false;
+  let _overlay = null, _track = null;
+  let _W = 0, _cur = '';
 
   function init() {
     const el = document.getElementById('appMain');
@@ -29,119 +27,139 @@ const SwipeNav = (() => {
   }
 
   function _onStart(e) {
-    _sx      = e.touches[0].clientX;
-    _sy      = e.touches[0].clientY;
+    if (_overlay) return;
+    _sx = e.touches[0].clientX;
+    _sy = e.touches[0].clientY;
     _decided = false;
     _isHoriz = false;
   }
 
   function _onMove(e) {
+    // スライド中：指に追従
+    if (_overlay && _isHoriz) {
+      e.preventDefault();
+      const dx = e.touches[0].clientX - _sx;
+      _track.style.transform = `translateX(${-_W + dx}px)`;
+      return;
+    }
+    if (_decided) return;
+
     const dx = e.touches[0].clientX - _sx;
     const dy = e.touches[0].clientY - _sy;
+    if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
 
-    // 方向未確定：8px 動いたら判定
-    if (!_decided) {
-      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-      _decided = true;
-      _isHoriz = Math.abs(dx) > Math.abs(dy);
-      if (_isHoriz) _initPanels();
+    _decided = true;
+    _isHoriz = Math.abs(dx) > Math.abs(dy);
+    if (_isHoriz) {
+      e.preventDefault();
+      _build();
+      // 初動のdxをすぐ反映
+      _track.style.transform = `translateX(${-_W + dx}px)`;
     }
-
-    if (!_isHoriz || !_wrapper) return;
-    e.preventDefault(); // 縦スクロールを止める
-
-    _wrapper.style.transform = `translateX(${-_W + dx}px)`;
   }
 
   function _onEnd(e) {
-    if (!_isHoriz || !_wrapper) return;
-    const dx = e.changedTouches[0].clientX - _sx;
-    _snap(dx);
+    if (!_overlay || !_isHoriz) return;
+    _snap(e.changedTouches[0].clientX - _sx);
   }
 
   function _onCancel() {
-    if (!_wrapper) return;
-    _restore();
+    if (_overlay) _snapBack();
   }
 
-  // ── パネル構築 ─────────────────────────────────────────────
+  // ── パネル構築（position:fixed で確実にクリップ）─────────────
 
-  function _initPanels() {
+  function _build() {
     const main = document.getElementById('appMain');
-    const cur  = Router.current();
-    const idx  = ORDER.indexOf(cur);
+    _cur = Router.current();
+    const idx = ORDER.indexOf(_cur);
     if (idx === -1) { _isHoriz = false; return; }
 
-    _W = main.offsetWidth;
-    _savedHTML = main.innerHTML;
+    _W = window.innerWidth;
 
-    const views   = _views();
-    const prev    = ORDER[(idx + ORDER.length - 1) % ORDER.length];
-    const next    = ORDER[(idx + 1) % ORDER.length];
+    const views    = _views();
+    const prevName = ORDER[(idx + ORDER.length - 1) % ORDER.length];
+    const nextName = ORDER[(idx + 1) % ORDER.length];
 
-    _wrapper = document.createElement('div');
-    _wrapper.style.cssText =
-      `display:flex;width:${_W * 3}px;transform:translateX(${-_W}px);will-change:transform;`;
+    // ナビバー・ボトムナビのHTMLを複製（スワイプ中も画面全体がスライドして見える）
+    const navbarHTML    = document.querySelector('nav.navbar.sticky-top')?.outerHTML  || '';
+    const bottomNavHTML = document.querySelector('nav.navbar.fixed-bottom')?.outerHTML || '';
 
-    [prev, cur, next].forEach((name, i) => {
+    // fixed オーバーレイ（ビューポートに固定 → 必ずクリップされる）
+    _overlay = document.createElement('div');
+    _overlay.style.cssText = 'position:fixed;inset:0;z-index:500;overflow:hidden;';
+
+    // トラック（3パネル横並び）
+    _track = document.createElement('div');
+    _track.style.cssText =
+      `position:absolute;top:0;left:0;height:100%;` +
+      `width:${_W * 3}px;transform:translateX(${-_W}px);will-change:transform;`;
+
+    [[prevName, 0], [_cur, 1], [nextName, 2]].forEach(([name, pos]) => {
       const panel = document.createElement('div');
       panel.style.cssText =
-        `width:${_W}px;flex-shrink:0;overflow:hidden;` +
-        (i !== 1 ? 'opacity:0.6;pointer-events:none;' : '');
+        `position:absolute;top:0;left:${pos * _W}px;width:${_W}px;height:100%;` +
+        `background:#f8f9fa;overflow:hidden;` +
+        (pos !== 1 ? 'opacity:0.65;' : '');
+
+      // ナビバー
+      panel.insertAdjacentHTML('beforeend', navbarHTML);
+
+      // コンテンツ
+      const inner = document.createElement('div');
+      inner.style.cssText = 'max-width:480px;margin:0 auto;padding-bottom:80px;overflow-y:auto;height:calc(100vh - 56px - 65px);';
       try {
-        panel.innerHTML = i === 1 ? _savedHTML : (views[name]?.render() || '');
-      } catch (_) { panel.innerHTML = ''; }
-      _wrapper.appendChild(panel);
+        inner.innerHTML = pos === 1
+          ? main.innerHTML
+          : (views[name]?.render() || '');
+      } catch (_) { /* 隣パネルのrenderに失敗しても続行 */ }
+      panel.appendChild(inner);
+
+      // ボトムナビ
+      panel.insertAdjacentHTML('beforeend', bottomNavHTML);
+
+      _track.appendChild(panel);
     });
 
-    main.style.overflow = 'hidden';
-    main.innerHTML = '';
-    main.appendChild(_wrapper);
+    _overlay.appendChild(_track);
+    document.body.appendChild(_overlay);
   }
 
   // ── スナップ ───────────────────────────────────────────────
 
   function _snap(dx) {
-    if (!_wrapper) return;
-    const cur   = Router.current();
-    const idx   = ORDER.indexOf(cur);
     const threshold = _W * COMMIT_RATIO;
-
-    let targetX, targetView;
+    const idx = ORDER.indexOf(_cur);
     if (dx < -threshold) {
-      targetX    = -_W * 2;
-      targetView = ORDER[(idx + 1) % ORDER.length];
+      _animate(-_W * 2, ORDER[(idx + 1) % ORDER.length]);
     } else if (dx > threshold) {
-      targetX    = 0;
-      targetView = ORDER[(idx + ORDER.length - 1) % ORDER.length];
+      _animate(0, ORDER[(idx + ORDER.length - 1) % ORDER.length]);
     } else {
-      _restore();
-      return;
+      _snapBack();
     }
+  }
 
-    _wrapper.style.transition = 'transform 0.22s cubic-bezier(0.25,0.46,0.45,0.94)';
-    _wrapper.style.transform  = `translateX(${targetX}px)`;
-    _wrapper.addEventListener('transitionend', () => {
-      _wrapper = null;
-      const main = document.getElementById('appMain');
-      main.style.overflow = '';
+  function _animate(targetX, targetView) {
+    _track.style.transition = 'transform 0.22s cubic-bezier(0.25,0.46,0.45,0.94)';
+    _track.style.transform  = `translateX(${targetX}px)`;
+    _track.addEventListener('transitionend', () => {
+      _cleanup();
       Router.navigate(targetView);
     }, { once: true });
   }
 
-  // スナップバック（キャンセル or 距離不足）
-  function _restore() {
-    if (!_wrapper) return;
-    _wrapper.style.transition = 'transform 0.2s cubic-bezier(0.25,0.46,0.45,0.94)';
-    _wrapper.style.transform  = `translateX(${-_W}px)`;
-    _wrapper.addEventListener('transitionend', () => {
-      _wrapper = null;
-      const main = document.getElementById('appMain');
-      main.style.overflow = '';
-      main.innerHTML = _savedHTML;
-      const cur = Router.current();
-      try { _views()[cur]?.bindEvents(main); } catch (_) {}
-    }, { once: true });
+  function _snapBack() {
+    _track.style.transition = 'transform 0.2s cubic-bezier(0.25,0.46,0.45,0.94)';
+    _track.style.transform  = `translateX(${-_W}px)`;
+    _track.addEventListener('transitionend', () => _cleanup(), { once: true });
+  }
+
+  function _cleanup() {
+    _overlay?.remove();
+    _overlay = null;
+    _track   = null;
+    _isHoriz = false;
+    _decided = false;
   }
 
   return { init };
