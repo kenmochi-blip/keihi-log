@@ -85,8 +85,8 @@ const SwipeNav = (() => {
     const navbarHTML    = document.querySelector('nav.navbar.sticky-top')?.outerHTML  || '';
     const bottomNavHTML = document.querySelector('nav.navbar.fixed-bottom')?.outerHTML || '';
 
-    // スワイプ開始時のスクロール位置を記録
-    const scrollTop = main.scrollTop;
+    // スワイプ開始時のスクロール位置を記録（ページ全体がスクロールするため window.scrollY を使用）
+    const scrollTop = window.scrollY;
 
     // スワイプ中は元のコンテンツを隠す（透過による残像を防ぐ）
     main.style.visibility = 'hidden';
