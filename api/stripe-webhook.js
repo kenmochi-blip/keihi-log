@@ -70,8 +70,8 @@ async function _issueNewLicense(session) {
   // KV に保存
   await kv.set(`license:${licenseKey}`, licenseData);
 
-  // セッションIDからキーを引けるインデックス（サンクスページ用・7日TTL）
-  await kv.set(`session:${session.id}`, licenseKey, { ex: 60 * 60 * 24 * 7 });
+  // セッションIDからキーを引けるインデックス（サンクスページ用・3日TTL）
+  await kv.set(`session:${session.id}`, licenseKey, { ex: 60 * 60 * 24 * 3 });
 
   // メールアドレスからキーを逆引きできるインデックスも保存
   await kv.set(`email_to_license:${customerEmail}`, licenseKey);
