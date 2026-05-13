@@ -149,6 +149,7 @@ const SwipeNav = (() => {
     _track.style.transform  = `translateX(${targetX}px)`;
     _track.addEventListener('transitionend', () => {
       _cleanup();
+      window.scrollTo(0, 0);
       Router.navigate(targetView);
     }, { once: true });
   }
