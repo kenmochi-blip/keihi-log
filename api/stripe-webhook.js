@@ -26,8 +26,8 @@ export default async function handler(req, res) {
 
   let event;
   try {
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-    event = stripe.webhooks.constructEvent(rawBody, sig, process.env.STRIPE_WEBHOOK_SECRET);
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY?.trim());
+    event = stripe.webhooks.constructEvent(rawBody, sig, process.env.STRIPE_WEBHOOK_SECRET?.trim());
   } catch (err) {
     console.error('Webhook signature error:', err.message);
     return res.status(400).json({ error: 'Invalid signature' });
