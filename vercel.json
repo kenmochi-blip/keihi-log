@@ -7,7 +7,8 @@
     { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/success", "destination": "/success.html" },
     { "source": "/licenses", "destination": "/licenses.html" },
-    { "source": "/((?!js/|css/|api/|privacy\\.html|privacy|success\\.html|success|licenses\\.html|licenses|demo/).*)", "destination": "/index.html" }
+    { "source": "/faq", "destination": "/faq.html" },
+    { "source": "/((?!js/|css/|api/|privacy\\.html|privacy|success\\.html|success|licenses\\.html|licenses|faq\\.html|faq|demo/).*)", "destination": "/index.html" }
   ],
   "headers": [
     {

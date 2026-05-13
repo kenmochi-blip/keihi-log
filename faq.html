@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>よくある質問（FAQ）｜経費ログ</title>
+  <meta name="description" content="経費ログのよくある質問（FAQ）ページです。初期設定・経費申請・AI解析・電帳法対応・エラー対処法などをまとめています。">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
+      line-height: 1.8;
+      color: #333;
+      background: #f8f9fa;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background: #0d6efd;
+      color: #fff;
+      padding: 28px 24px 24px;
+      text-align: center;
+    }
+    header h1 {
+      margin: 0 0 4px;
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+    header p {
+      margin: 0;
+      font-size: 0.9rem;
+      opacity: 0.85;
+    }
+    .back-link {
+      display: inline-block;
+      margin-bottom: 12px;
+      color: rgba(255,255,255,0.85);
+      text-decoration: none;
+      font-size: 0.85rem;
+    }
+    .back-link:hover { color: #fff; }
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 32px 20px 80px;
+    }
+    .toc {
+      background: #fff;
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-bottom: 32px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    .toc h2 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin: 0 0 12px;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .toc ol {
+      margin: 0;
+      padding-left: 1.4em;
+    }
+    .toc li {
+      font-size: 0.9rem;
+      margin-bottom: 4px;
+    }
+    .toc a {
+      color: #0d6efd;
+      text-decoration: none;
+    }
+    .toc a:hover { text-decoration: underline; }
+    .section {
+      margin-bottom: 36px;
+    }
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #0d6efd;
+      border-left: 4px solid #0d6efd;
+      padding-left: 12px;
+      margin: 0 0 16px;
+    }
+    details {
+      background: #fff;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+      overflow: hidden;
+    }
+    details[open] {
+      box-shadow: 0 2px 8px rgba(13,110,253,0.1);
+    }
+    summary {
+      font-size: 0.95rem;
+      font-weight: 600;
+      padding: 14px 18px;
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      user-select: none;
+    }
+    summary::-webkit-details-marker { display: none; }
+    summary::before {
+      content: "Q";
+      flex-shrink: 0;
+      display: inline-block;
+      background: #0d6efd;
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: 700;
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      text-align: center;
+      line-height: 20px;
+      margin-top: 1px;
+    }
+    summary .arrow {
+      flex-shrink: 0;
+      margin-left: auto;
+      transition: transform 0.2s;
+      color: #999;
+      font-size: 0.8rem;
+      margin-top: 3px;
+    }
+    details[open] summary .arrow {
+      transform: rotate(180deg);
+    }
+    .answer {
+      padding: 4px 18px 16px 48px;
+      font-size: 0.9rem;
+      border-top: 1px solid #f0f0f0;
+      color: #444;
+    }
+    .answer p { margin: 8px 0 0; }
+    .answer p:first-child { margin-top: 10px; }
+    .answer ul, .answer ol {
+      padding-left: 1.4em;
+      margin: 8px 0;
+    }
+    .answer li { margin-bottom: 4px; }
+    .answer code {
+      background: #f0f4ff;
+      color: #0d6efd;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 0.88em;
+      font-family: monospace;
+    }
+    .answer .note {
+      background: #fff8e1;
+      border-left: 3px solid #ffc107;
+      padding: 8px 12px;
+      border-radius: 0 6px 6px 0;
+      margin-top: 10px;
+      font-size: 0.87rem;
+      color: #666;
+    }
+    .answer .tip {
+      background: #e8f5e9;
+      border-left: 3px solid #4caf50;
+      padding: 8px 12px;
+      border-radius: 0 6px 6px 0;
+      margin-top: 10px;
+      font-size: 0.87rem;
+      color: #444;
+    }
+    .answer table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0;
+      font-size: 0.88rem;
+    }
+    .answer th, .answer td {
+      border: 1px solid #e0e0e0;
+      padding: 7px 10px;
+      text-align: left;
+    }
+    .answer th {
+      background: #f0f4ff;
+      font-weight: 600;
+    }
+    footer {
+      margin-top: 3rem;
+      font-size: 0.82rem;
+      color: #999;
+      border-top: 1px solid #e0e0e0;
+      padding-top: 16px;
+      text-align: center;
+    }
+    footer a { color: #0d6efd; text-decoration: none; }
+    @media (max-width: 600px) {
+      .answer { padding-left: 18px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="/" class="back-link">← 経費ログ トップに戻る</a>
+  <h1>よくある質問（FAQ）</h1>
+  <p>初期設定・使い方・エラー対処など、よくある疑問をまとめました</p>
+</header>
+
+<div class="container">
+
+  <!-- 目次 -->
+  <div class="toc">
+    <h2>目次</h2>
+    <ol>
+      <li><a href="#section-start">はじめに・初期設定</a></li>
+      <li><a href="#section-login">Googleログイン・権限について</a></li>
+      <li><a href="#section-submit">経費の申請方法</a></li>
+      <li><a href="#section-ai">AI領収書解析</a></li>
+      <li><a href="#section-file">証票（領収書）の添付</a></li>
+      <li><a href="#section-status">申請ステータスについて</a></li>
+      <li><a href="#section-list">一覧表・集計表の使い方</a></li>
+      <li><a href="#section-law">電子帳簿保存法への対応</a></li>
+      <li><a href="#section-error">よくあるエラーと対処法</a></li>
+      <li><a href="#section-license">ライセンスについて</a></li>
+    </ol>
+  </div>
+
+  <!-- 1. はじめに・初期設定 -->
+  <div class="section" id="section-start">
+    <h2 class="section-title">1. はじめに・初期設定</h2>
+
+    <details>
+      <summary>経費ログを使い始めるにはどうすればいいですか？<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>利用開始は「管理者」と「メンバー」で手順が異なります。</p>
+        <p><strong>管理者（スプレッドシートを新規作成する方）：</strong></p>
+        <ol>
+          <li>アプリにGoogleアカウントでログイン</li>
+          <li>設定画面を開き、①〜⑤の初期設定を順番に実施</li>
+          <li>「スプレッドシートを新規作成」でシートを自動作成</li>
+          <li>作成されたスプレッドシートのURLをメンバーに共有（Google DriveでリンクのURLを取得）</li>
+          <li>Gemini APIキー・ライセンスキーを入力して完了</li>
+        </ol>
+        <p><strong>メンバー（管理者からURLを受け取った方）：</strong></p>
+        <ol>
+          <li>アプリにGoogleアカウントでログイン</li>
+          <li>設定画面でスプレッドシートのURL（管理者から共有されたもの）を貼り付け</li>
+          <li>ライセンスキーを入力して完了</li>
+        </ol>
+        <div class="tip">メンバーはGemini APIキーの個人取得・入力は不要です。管理者が設定したキーをチーム全員で共用します。</div>
+      </div>
+    </details>
+
+    <details>
+      <summary>スプレッドシートはどのように作成されますか？<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>設定画面の「スプレッドシートを新規作成」ボタンを押すと、アプリが自動でGoogleスプレッドシートを作成します。作成されるシート構成は以下の通りです：</p>
+        <ul>
+          <li><strong>経費一覧</strong>：申請データのメインシート</li>
+          <li><strong>設定</strong>：会社名・GeminiAPIキーなどの設定値</li>
+          <li><strong>マスタ表</strong>：メンバー情報・勘定科目・支払元リスト</li>
+          <li><strong>修正履歴</strong>：申請の修正操作の記録（電帳法対応）</li>
+          <li><strong>削除一覧</strong>：削除済み申請の記録（電帳法対応）</li>
+        </ul>
+        <p>スプレッドシート作成後、Google Driveの共有設定で「リンクを知っている全員（または社内ドメイン）が編集可」に設定し、URLをメンバーに共有してください。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>管理者とメンバーの違いは何ですか？<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>マスタ表に「権限=admin」として登録されているGoogleアカウントが管理者として扱われます。</p>
+        <table>
+          <tr><th>機能</th><th>管理者</th><th>メンバー</th></tr>
+          <tr><td>経費申請</td><td>○</td><td>○</td></tr>
+          <tr><td>自分の申請を確認・修正・削除</td><td>○</td><td>○（未承認のみ）</td></tr>
+          <tr><td>全員の申請を一覧で見る</td><td>○</td><td>自分のみ</td></tr>
+          <tr><td>承認操作</td><td>○</td><td>×</td></tr>
+          <tr><td>マスタ管理（メンバー・科目追加等）</td><td>○</td><td>×</td></tr>
+          <tr><td>Gemini APIキー設定</td><td>○</td><td>×</td></tr>
+        </table>
+        <p>スプレッドシート新規作成時は、作成者が自動的に管理者として登録されます。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>会社払い（法人カード）の支払元はどこで追加しますか？<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>管理者アカウントでログインし、設定画面の「マスタ管理」→「会社払い支払元」で追加・削除できます。追加した支払元は申請フォームの「会社払いトグル」をONにしたときに選択肢として表示されます。</p>
+      </div>
+    </details>
+  </div>
+
+  <!-- 2. Googleログイン・権限 -->
+  <div class="section" id="section-login">
+    <h2 class="section-title">2. Googleログイン・権限について</h2>
+
+    <details>
+      <summary>ログイン時に求められる権限は何ですか？<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>初回ログイン時に以下の権限をGoogleアカウントに求めます：</p>
+        <table>
+          <tr><th>権限</th><th>用途</th></tr>
+          <tr><td>メールアドレスの参照</td><td>ユーザー識別・管理者判定</td></tr>
+          <tr><td>Googleスプレッドシート（指定シートのみ）</td><td>経費データの読み書き</td></tr>
+          <tr><td>Google Drive（アプリ作成ファイルのみ）</td><td>領収書画像のアップロード・取得</td></tr>
+        </table>
+        <div class="note">アプリが作成・指定したファイル以外のGoogle DriveやGmailにはアクセスしません。経費データ・領収書画像がアプリ開発者のサーバーに送信されることもありません。</div>
+      </div>
+    </details>
+
+    <details>
+      <summary>「このアプリはGoogleによって確認されていません」と表示されます<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>Google OAuth同意画面の審査中に表示される警告です。「詳細」→「（アプリ名）に移動（安全ではないページ）」をクリックして続行できます。</p>
+        <div class="note">この警告はGoogleによるアプリ審査が完了次第、表示されなくなります。アプリ自体の安全性に問題はありません。</div>
+      </div>
+    </details>
+
+    <details>
+      <summary>ログアウトするにはどうすればいいですか？<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>画面右上のアカウントアイコンをタップ（またはクリック）すると「ログアウト」ボタンが表示されます。ログアウトすると、ブラウザ上のアクセストークンが破棄されます。</p>
+        <p>完全に権限を取り消したい場合は、Googleアカウントの「セキュリティ」→「サードパーティのアクセス」から「経費ログ」のアクセスを削除してください。</p>
+      </div>
+    </details>
+  </div>
+
+  <!-- 3. 経費申請 -->
+  <div class="section" id="section-submit">
+    <h2 class="section-title">3. 経費の申請方法</h2>
+
+    <details>
+      <summary>申請できる経費のタイプは何種類ありますか？<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>4種類のタイプに対応しています：</p>
+        <table>
+          <tr><th>タイプ</th><th>概要</th><th>主な入力項目</th></tr>
+          <tr><td>一般</td><td>物品・飲食・消耗品など</td><td>日付・支払先・金額・勘定科目・証票</td></tr>
+          <tr><td>交通費</td><td>電車・バス・タクシーなど</td><td>日付・区間・手段・金額・往復区分</td></tr>
+          <tr><td>宿泊</td><td>出張時の宿泊費</td><td>日付・施設名・金額・チェックイン〜アウト日</td></tr>
+          <tr><td>その他</td><td>上記に当てはまらない経費</td><td>日付・摘要・金額</td></tr>
+        </table>
+        <p>各タイプは申請フォーム上部のタブで切り替えられます。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>複数の明細をまとめて申請できますか？（明細分割）<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>はい、「明細を追加」ボタンで最大10件まで明細を分割入力できます。1回の申請に複数の品目が含まれるレシート（懇親会の料理代＋飲み物代など）を勘定科目ごとに分けて登録できます。</p>
+        <p>各明細に金額・勘定科目・摘要を入力してください。証票（レシート画像）は申請全体で1枚紐付けられます。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>外貨建て経費（海外出張など）はどう入力しますか？<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>金額入力欄の「外貨換算」ボタンを押すと、通貨と外貨金額を入力するダイアログが表示されます。Frankfurter APIを使って当日の為替レートで日本円に自動換算します（インターネット接続が必要です）。</p>
+        <div class="tip">換算後の円金額・換算レートは摘要欄に自動で補記されます。</div>
+      </div>
+    </details>
+
+    <details>
+      <summary>交通費の乗り換え経路はどこで調べられますか？<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>申請フォームの交通費タブに「Yahoo!乗換案内で調べる」リンクがあります。タップするとYahoo!乗換案内が開き、経路と料金を確認できます。確認した金額を申請フォームに手入力してください。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>会社払い（法人カード）で立替がない経費はどう申請しますか？<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>申請フォームの「会社払い」トグルをONにしてください。ONにすると支払元（法人カード名や銀行口座名）を選択する欄が表示されます。会社払いの経費は精算対象外として区別されます。</p>
+        <p>支払元の選択肢は管理者が「マスタ管理」→「会社払い支払元」で追加・管理します。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>2ヶ月以上前の日付で申請するとどうなりますか？<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>申請日から2ヶ月以上過去の日付を入力すると「申請日から2ヶ月以上経過しています。申請を続けますか？」という確認アラートが表示されます。問題なければそのまま申請できます。</p>
+        <div class="note">電子帳簿保存法では、経費発生から一定期間内の記録が求められています。遅延申請の場合は上長への報告・確認を推奨します。</div>
+      </div>
+    </details>
+  </div>
+
+  <!-- 4. AI領収書解析 -->
+  <div class="section" id="section-ai">
+    <h2 class="section-title">4. AI領収書解析</h2>
+
+    <details>
+      <summary>AI解析で何が自動入力されますか？<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>領収書・レシートの画像をアップロードすると、Gemini AIが以下の項目を自動で読み取り・入力します：</p>
+        <ul>
+          <li>日付</li>
+          <li>支払先・店名</li>
+          <li>金額（明細ありの場合は各品目の内訳も）</li>
+          <li>インボイス番号（適格請求書発行事業者の登録番号 T+13桁）</li>
+          <li>摘要・品目</li>
+        </ul>
+        <div class="tip">画像がぼやけていたり傾いていたりすると読み取り精度が下がります。なるべく明るく、文字がはっきり写るように撮影してください。</div>
+      </div>
+    </details>
+
+    <details>
+      <summary>AI解析はいつでも無料で使えますか？<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>AI解析にはGemini APIを使用します。APIキーはチームの管理者が設定・管理します。Gemini APIには無料枠があり、小規模チームであれば無料枠内で利用できることがほとんどです。使用量が増えた場合はGoogleのAPI料金が発生することがあります。詳細はGoogle AI Studioの料金ページをご確認ください。</p>
+        <p>メンバー個人でAPIキーを用意・入力する必要はありません。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>「同じ領収書が既に登録されている可能性があります」と表示されました<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>アップロードした画像のSHA-256ハッシュ値を過去の申請と照合し、同一の画像ファイルが既に登録されている場合に警告します。</p>
+        <p>これは二重申請を防ぐための電帳法対応機能です。別の経費であることが明らかな場合は「このまま申請する」を選択して続行できます。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>「同じ日付・金額・支払先の申請が既にあります」と表示されました<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>申請内容（日付・金額・支払先）が既存の申請と一致する場合に警告します。意図しない二重申請がないかご確認ください。別の申請であれば「このまま申請する」で続行できます。</p>
+      </div>
+    </details>
+  </div>
+
+  <!-- 5. ファイル添付 -->
+  <div class="section" id="section-file">
+    <h2 class="section-title">5. 証票（領収書）の添付</h2>
+
+    <details>
+      <summary>添付できるファイルの種類・サイズ制限は？<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <table>
+          <tr><th>項目</th><th>制限</th></tr>
+          <tr><td>対応形式</td><td>JPEG、PNG、GIF、PDF、HEIC など</td></tr>
+          <tr><td>最大ファイルサイズ</td><td>10MB</td></tr>
+          <tr><td>推奨解像度</td><td>200万画素以上（約1400×1400px以上）</td></tr>
+        </table>
+        <p>画像は自動的に最大2000px・JPEG形式に圧縮してからGoogle Driveにアップロードされます。元画像の向き（EXIF情報）は自動補正されます。</p>
+        <div class="note">電子帳簿保存法では解像度200万画素以上が推奨されています。それ未満の場合は警告が表示されますが、申請は続行可能です。</div>
+      </div>
+    </details>
+
+    <details>
+      <summary>領収書の画像はどこに保存されますか？<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>アップロードされた領収書画像は、申請者自身のGoogle Driveに保存されます（アプリが管理するフォルダ「経費証票」の下）。アプリ開発者のサーバーには一切保存されません。</p>
+        <p>Driveのフォルダは設定画面で確認・変更できます。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>PDFの領収書も添付できますか？<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>はい、PDF形式も添付できます。PDFの場合はAI自動解析（Gemini）の対象外となります（読み取り項目は手動入力してください）。</p>
+      </div>
+    </details>
+  </div>
+
+  <!-- 6. ステータス -->
+  <div class="section" id="section-status">
+    <h2 class="section-title">6. 申請ステータスについて</h2>
+
+    <details>
+      <summary>申請ステータスの「申請済」「登録済」「精算済」の違いは何ですか？<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <table>
+          <tr><th>ステータス</th><th>意味</th><th>編集・削除</th></tr>
+          <tr><td>申請済</td><td>申請が提出され、承認待ちの状態</td><td>メンバー・管理者ともに可</td></tr>
+          <tr><td>登録済</td><td>管理者が承認済みの状態</td><td>メンバーは不可・管理者は自分の申請のみ可</td></tr>
+          <tr><td>精算済</td><td>支払・精算が完了した状態</td><td>不可</td></tr>
+        </table>
+        <p>承認はWebアプリの一覧画面から管理者が操作できます（スプレッドシートを直接操作する必要はありません）。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>申請を修正したいのですが、編集ボタンが表示されません<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>編集・削除ボタンは以下の条件を満たす場合のみ表示されます：</p>
+        <ul>
+          <li>申請者本人のレコードであること</li>
+          <li>ステータスが「申請済」であること（「登録済」「精算済」は不可。ただし管理者は自分が登録した「登録済」も可）</li>
+        </ul>
+        <p>承認済み（登録済・精算済）の申請を修正したい場合は、管理者に承認を一度取り消してもらってから再申請してください。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>申請を削除するとデータはどうなりますか？<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>削除したレコードは「削除一覧」シートに移動され、完全には消えません。これは電子帳簿保存法の「訂正・削除の防止規程」に対応するためです。管理者はスプレッドシートの「削除一覧」シートで過去の削除記録を確認できます。</p>
+      </div>
+    </details>
+  </div>
+
+  <!-- 7. 一覧・集計 -->
+  <div class="section" id="section-list">
+    <h2 class="section-title">7. 一覧表・集計表の使い方</h2>
+
+    <details>
+      <summary>一覧表のフィルター機能はどんな絞り込みができますか？<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>以下の条件で絞り込みができます：</p>
+        <ul>
+          <li>期間（開始日〜終了日）</li>
+          <li>タイプ（一般・交通費・宿泊・その他）</li>
+          <li>勘定科目</li>
+          <li>承認ステータス（申請済・登録済・精算済）</li>
+          <li>申請者名（管理者のみ全員表示、メンバーは自分のみ）</li>
+          <li>キーワード検索（支払先・摘要など）</li>
+        </ul>
+      </div>
+    </details>
+
+    <details>
+      <summary>CSVエクスポートはどんな形式で出力できますか？<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>3種類の形式でエクスポートできます：</p>
+        <table>
+          <tr><th>形式</th><th>用途</th></tr>
+          <tr><td>標準CSV</td><td>一般的なスプレッドシートへの取り込み</td></tr>
+          <tr><td>freee 経費精算形式</td><td>freeeへの一括インポート</td></tr>
+          <tr><td>弥生 仕訳日記帳形式</td><td>弥生会計・弥生青色申告へのインポート</td></tr>
+        </table>
+        <p>一覧画面の「CSVエクスポート」ボタン横の▼をクリックすると形式を選べます。現在の絞り込み条件に該当するデータのみエクスポートされます。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>集計表の期間（3ヶ月・6ヶ月・12ヶ月）はどこで変更しますか？<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>集計画面の上部にある「3ヶ月」「6ヶ月」「12ヶ月」のタブで切り替えられます。表示を切り替えると、各テーブルが右端（最新月・合計列）にスクロールした状態で表示されます。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>集計表のグラフで特定の月の内訳を確認できますか？<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>はい、集計表の金額セルをタップ（クリック）すると、その月・その科目の内訳をポップアップで確認できます。内訳には申請者・支払先・金額が一覧表示されます。</p>
+      </div>
+    </details>
+  </div>
+
+  <!-- 8. 電帳法 -->
+  <div class="section" id="section-law">
+    <h2 class="section-title">8. 電子帳簿保存法への対応</h2>
+
+    <details>
+      <summary>電子帳簿保存法にはどの程度対応していますか？<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>以下の要件に対応しています：</p>
+        <table>
+          <tr><th>要件</th><th>対応内容</th></tr>
+          <tr><td>申請日時の信頼性</td><td>サーバー側で取得した時刻を記録（クライアント時刻は使用しない）</td></tr>
+          <tr><td>修正・削除の証跡</td><td>修正履歴シート・削除一覧シートに全操作を自動記録</td></tr>
+          <tr><td>画像の改ざん検知</td><td>SHA-256ハッシュをシートに記録し、再アップ時に照合</td></tr>
+          <tr><td>解像度要件</td><td>200万画素未満の場合に警告表示</td></tr>
+          <tr><td>検索機能</td><td>日付・取引先・金額・インボイス番号で検索可能</td></tr>
+          <tr><td>可視性</td><td>一覧・集計画面は印刷対応レイアウト</td></tr>
+          <tr><td>相互関連性</td><td>UUIDで領収書画像と経費記録を紐付け</td></tr>
+          <tr><td>インボイス確認</td><td>AIがT+13桁の登録番号を自動抽出・記録</td></tr>
+        </table>
+        <div class="note">電帳法への完全対応には「訂正・削除防止規程」の社内策定が必要です。本アプリは規程テンプレートを設定画面で提供しています。社内で採用・承認してご利用ください。</div>
+      </div>
+    </details>
+
+    <details>
+      <summary>「事務処理規程」のテンプレートはどこにありますか？<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>設定画面の初期設定ステップ⑤に「電子取引データの訂正・削除防止に関する規程」のひな型が用意されています。内容を確認し、自社情報（組織名・代表者名・所在地・施行日）を入力して「この規程を採用する」ボタンを押すと確定できます。</p>
+        <p>確定後は法的な文書として保管・運用してください。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>タイムスタンプサービスへの加入は必要ですか？<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>経費精算・電子取引データの保存においては、「訂正・削除防止規程」を策定・運用することでタイムスタンプサービス（月額数万円）の代替として認められています（国税庁のガイドラインに基づく）。本アプリの規程テンプレートはこの方式に対応しています。</p>
+        <div class="note">ご不明な点は税理士・顧問会計士にご確認ください。</div>
+      </div>
+    </details>
+  </div>
+
+  <!-- 9. エラーと対処法 -->
+  <div class="section" id="section-error">
+    <h2 class="section-title">9. よくあるエラーと対処法</h2>
+
+    <details>
+      <summary>「スプレッドシートにアクセスできません」と表示される<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>以下を順番に確認してください：</p>
+        <ol>
+          <li>設定画面のスプレッドシートURLが正しく入力されているか確認する</li>
+          <li>そのスプレッドシートに自分のGoogleアカウントがアクセスできるか（Driveで開けるか）確認する</li>
+          <li>管理者にスプレッドシートの共有設定（「リンクを知っている全員が編集可」など）を確認してもらう</li>
+          <li>一度ログアウトし、再ログインしてアクセストークンを更新する</li>
+        </ol>
+      </div>
+    </details>
+
+    <details>
+      <summary>「AI解析に失敗しました」と表示される<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>以下の原因が考えられます：</p>
+        <ul>
+          <li>管理者がGemini APIキーを設定していない（設定画面→マスタ管理で確認）</li>
+          <li>APIキーが無効・期限切れ（管理者がGemini APIキーを再取得・再設定する）</li>
+          <li>無料枠の上限に達している（Google AI Studioの利用状況を確認）</li>
+          <li>インターネット接続が不安定</li>
+        </ul>
+        <p>AI解析は失敗してもフォームへの手動入力で申請は続行できます。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>「ライセンスキーが無効です」と表示される<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>以下を確認してください：</p>
+        <ul>
+          <li>ライセンスキーに余分なスペースや改行が含まれていないか（コピペ時に注意）</li>
+          <li>ライセンスの有効期限が切れていないか</li>
+          <li>入力したライセンスキーが正しいか（購入時のメールを再確認）</li>
+        </ul>
+        <p>問題が解決しない場合はサポート（<a href="mailto:support@smartandsmooth.com">support@smartandsmooth.com</a>）にお問い合わせください。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>申請後、スプレッドシートにデータが反映されない<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>以下を確認してください：</p>
+        <ol>
+          <li>申請完了のトースト通知（「申請しました」）が表示されたか確認する。表示されていない場合はエラーが発生しています。</li>
+          <li>ブラウザのデベロッパーツール（F12）→コンソールタブでエラーメッセージを確認する</li>
+          <li>スプレッドシートURLが設定画面に正しく入力されているか確認する</li>
+          <li>ログアウト→再ログインしてから再度申請する</li>
+        </ol>
+      </div>
+    </details>
+
+    <details>
+      <summary>画像をアップロードしてもDriveに保存されない<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>Google Driveへのアクセス権限が有効かどうかを確認してください。設定画面のDriveフォルダ設定が空の場合は「フォルダを自動作成」ボタンを押してフォルダを再作成してください。それでも解決しない場合はログアウト→再ログインをお試しください。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>アプリの画面が古いまま更新されない（変更が反映されない）<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>ブラウザのキャッシュが原因の場合があります。以下をお試しください：</p>
+        <ul>
+          <li>ブラウザのハードリロード（Windows: <code>Ctrl+Shift+R</code>、Mac: <code>Cmd+Shift+R</code>）</li>
+          <li>スマートフォンの場合：ブラウザのキャッシュをクリアしてからページを再読み込み</li>
+          <li>PWA（ホーム画面追加版）の場合：アプリを一度終了してから再起動</li>
+        </ul>
+      </div>
+    </details>
+  </div>
+
+  <!-- 10. ライセンス -->
+  <div class="section" id="section-license">
+    <h2 class="section-title">10. ライセンスについて</h2>
+
+    <details>
+      <summary>ライセンスはどこで購入できますか？<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>アプリのトップページまたは設定画面の「ライセンスを購入する」リンクから購入ページにアクセスできます。購入完了後、登録メールアドレス宛にライセンスキーが自動送信されます。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>ライセンスは何名で使えますか？<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>ライセンスはチーム単位です。1ライセンスで同じスプレッドシートを利用するチーム全員が使用できます。チームメンバー全員が同じライセンスキーを設定画面に入力してください。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>ライセンスキーのメールが届かない場合は？<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>以下をご確認ください：</p>
+        <ul>
+          <li>迷惑メールフォルダに振り分けられていないか確認する</li>
+          <li>購入時に入力したメールアドレスが正しいか確認する</li>
+          <li>購入後、数分お待ちいただく（決済処理に最大5分程度かかる場合があります）</li>
+        </ul>
+        <p>それでも届かない場合は <a href="mailto:support@smartandsmooth.com">support@smartandsmooth.com</a> にご連絡ください。購入時のStripe決済ID（メールに記載）をお知らせいただくと対応がスムーズです。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>ライセンスの有効期限はいつですか？<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>ライセンスキー送付メールに有効期限が記載されています。有効期限が近づいた場合は更新をお願いします。有効期限切れのライセンスキーは設定画面で警告が表示されます。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>テスト環境で発行したライセンスキーは本番でも使えますか？<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>はい、ライセンスキーはテスト・本番に関わらず同一のシステムで管理されているため、テスト環境で発行されたキーは本番環境でもそのまま有効です。</p>
+      </div>
+    </details>
+  </div>
+
+  <footer>
+    <p>お問い合わせ：<a href="mailto:support@smartandsmooth.com">support@smartandsmooth.com</a>　｜　<a href="/privacy">プライバシーポリシー</a></p>
+    <p style="margin-top:6px;">© 2025 合同会社Smart&amp;Smooth</p>
+  </footer>
+
+</div>
+
+<script>
+  // ページ内リンクでアコーディオンを自動で開く
+  window.addEventListener('hashchange', openFromHash);
+  function openFromHash() {
+    const hash = location.hash.replace('#', '');
+    if (!hash) return;
+    const target = document.getElementById(hash);
+    if (target && target.tagName === 'DETAILS') {
+      target.open = true;
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+  document.addEventListener('DOMContentLoaded', openFromHash);
+</script>
+
+</body>
+</html>
