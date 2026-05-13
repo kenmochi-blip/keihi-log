@@ -120,6 +120,7 @@ const App = (() => {
 
     // ボトムナビのボタンにイベントリスナーを登録（常に実行）
     Router.init(initialView);
+    SwipeNav.init();
 
     // 確認モーダル初期化
     const modalEl = document.getElementById('confirmModal');
