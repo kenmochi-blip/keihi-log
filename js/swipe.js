@@ -85,9 +85,12 @@ const SwipeNav = (() => {
     const navbarHTML    = document.querySelector('nav.navbar.sticky-top')?.outerHTML  || '';
     const bottomNavHTML = document.querySelector('nav.navbar.fixed-bottom')?.outerHTML || '';
 
+    // スワイプ中は元のコンテンツを隠す（透過による残像を防ぐ）
+    main.style.visibility = 'hidden';
+
     // fixed オーバーレイ（ビューポートに固定 → 必ずクリップされる）
     _overlay = document.createElement('div');
-    _overlay.style.cssText = 'position:fixed;inset:0;z-index:500;overflow:hidden;';
+    _overlay.style.cssText = 'position:fixed;inset:0;z-index:500;overflow:hidden;background:#f8f9fa;';
 
     // トラック（3パネル横並び）
     _track = document.createElement('div');
@@ -160,6 +163,8 @@ const SwipeNav = (() => {
     _track   = null;
     _isHoriz = false;
     _decided = false;
+    const main = document.getElementById('appMain');
+    if (main) main.style.visibility = '';
   }
 
   return { init };
