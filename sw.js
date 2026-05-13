@@ -1,4 +1,4 @@
-const CACHE = 'keihi-v1';
+const CACHE = 'keihi-v2';
 const STATIC = [
   '/',
   '/index.html',
