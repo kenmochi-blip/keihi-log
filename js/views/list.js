@@ -172,10 +172,6 @@ const ListView = (() => {
         sel.innerHTML += `<option value="${m.email}">${m.name}</option>`;
       });
     }
-    if (_isAdmin) {
-      const ssId = localStorage.getItem('keihi_sheet_id');
-      if (ssId) {
-    }
 
     // 期間プリセットボタン
     el.querySelectorAll('#listPresetBtns [data-months]').forEach(btn => {
