@@ -118,6 +118,33 @@
   <script src="js/views/admin.js"></script>
   <script src="js/router.js"></script>
   <script src="js/app.js"></script>
+  <script>
+    // 横スワイプでビュー切り替え
+    (function() {
+      const ORDER = ['submit', 'list', 'summary', 'settings'];
+      const MIN_X = 50;  // 最低スワイプ距離(px)
+      const MAX_Y = 80;  // 縦ズレの許容量(px)
+      let _sx = 0, _sy = 0;
+
+      document.getElementById('appMain').addEventListener('touchstart', e => {
+        _sx = e.touches[0].clientX;
+        _sy = e.touches[0].clientY;
+      }, { passive: true });
+
+      document.getElementById('appMain').addEventListener('touchend', e => {
+        const dx = e.changedTouches[0].clientX - _sx;
+        const dy = Math.abs(e.changedTouches[0].clientY - _sy);
+        if (Math.abs(dx) < MIN_X || dy > MAX_Y) return;
+        const cur = Router.current();
+        const idx = ORDER.indexOf(cur);
+        if (idx === -1) return;
+        const next = dx < 0
+          ? ORDER[(idx + 1) % ORDER.length]       // 左スワイプ → 次
+          : ORDER[(idx + ORDER.length - 1) % ORDER.length]; // 右スワイプ → 前
+        Router.navigate(next);
+      }, { passive: true });
+    })();
+  </script>
   <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');</script>
 </body>
 </html>
