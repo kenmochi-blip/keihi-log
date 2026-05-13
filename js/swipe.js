@@ -7,6 +7,9 @@ const SwipeNav = (() => {
   const ORDER = ['submit', 'list', 'summary', 'settings'];
   const COMMIT_RATIO = 0.28;
 
+  // 各ビューの最終レンダリング結果をキャッシュ
+  const _cache = {};
+
   const _views = () => ({
     submit:   typeof SubmitView   !== 'undefined' ? SubmitView   : null,
     list:     typeof ListView     !== 'undefined' ? ListView     : null,
@@ -33,6 +36,10 @@ const SwipeNav = (() => {
     _sy = e.touches[0].clientY;
     _decided = false;
     _isHoriz = false;
+    // タッチ開始時に現在ビューの HTML をキャッシュ（データ読み込み済みの状態を保存）
+    const cur = Router.current();
+    const main = document.getElementById('appMain');
+    if (cur && main) _cache[cur] = main.innerHTML;
   }
 
   function _onMove(e) {
@@ -114,7 +121,10 @@ const SwipeNav = (() => {
       inner.style.cssText = mainStyleStr;
 
       try {
-        inner.innerHTML = pos === 1 ? main.innerHTML : (views[name]?.render() || '');
+        // 隣パネル：キャッシュ済みHTML（データ読み込み済）→ 新規render() の順で使用
+        inner.innerHTML = pos === 1
+          ? main.innerHTML
+          : (_cache[name] || views[name]?.render() || '');
       } catch (_) {}
 
       // スクロール位置を transform で再現
