@@ -18,14 +18,9 @@ const SummaryView = (() => {
 <div class="pt-3">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h5 class="fw-bold mb-0"><i class="bi bi-bar-chart-fill me-2 text-primary"></i>集計表</h5>
-    <div class="d-flex gap-2 no-print">
-      <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">
-        <i class="bi bi-printer me-1"></i>印刷
-      </button>
-      <button class="btn btn-outline-secondary btn-sm" id="btnRefreshSummary">
-        <i class="bi bi-arrow-clockwise"></i>
-      </button>
-    </div>
+    <button class="btn btn-outline-secondary btn-sm no-print" id="btnRefreshSummary">
+      <i class="bi bi-arrow-clockwise"></i>
+    </button>
   </div>
 
   <!-- フィルター -->
