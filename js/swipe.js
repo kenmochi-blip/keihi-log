@@ -106,16 +106,18 @@ const SwipeNav = (() => {
         (pos !== 1 ? 'opacity:0.6;' : '');
 
       const inner = document.createElement('div');
-      inner.style.cssText = 'max-width:480px;margin:0 auto;padding-bottom:80px;';
+      // appMain と同じクラス・スタイルを継承してレイアウトを一致させる
+      inner.className = main.className;
+      inner.style.cssText = main.getAttribute('style') || '';
 
       try {
         inner.innerHTML = pos === 1 ? main.innerHTML : (views[name]?.render() || '');
       } catch (_) {}
 
       // スクロール位置を transform で再現
-      // translateY(navH - scrollY) → ナビバー直下から scrollY 分スクロール済みの位置を表示
       const offsetY = navH - (pos === 1 ? scrollY : 0);
       inner.style.transform = `translateY(${offsetY}px)`;
+      inner.style.paddingBottom = '80px';
 
       panel.appendChild(inner);
       _track.appendChild(panel);
