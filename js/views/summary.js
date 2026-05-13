@@ -214,13 +214,13 @@ const SummaryView = (() => {
       isAdmin ? (drillExpenses, onDone) => _batchSettleDrill(drillExpenses, onDone, el) : null, false);
     _renderPivotTable(el.querySelector('#wrapCat'),    filtered, months, _categoryKey, '勘定科目', null, true);
 
-    // 直近月と合計が見えるよう右端にスクロール
-    requestAnimationFrame(() => {
+    // 直近月と合計が見えるよう右端にスクロール（ダブルrAFでレイアウト確定後に実行）
+    requestAnimationFrame(() => requestAnimationFrame(() => {
       ['#wrapCat', '#wrapMember', '#wrapUnpaid'].forEach(id => {
         const w = el.querySelector(id);
         if (w) w.scrollLeft = w.scrollWidth;
       });
-    });
+    }));
   }
 
   // ─── キー関数 ──────────────────────────────────────────────
