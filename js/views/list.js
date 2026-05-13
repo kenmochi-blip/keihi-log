@@ -377,7 +377,11 @@ const ListView = (() => {
         ? `<button class="btn btn-outline-success btn-sm py-0 px-1 btn-approve" data-id="${e.id}" title="登録済にする"><i class="bi bi-check"></i></button>` : '';
       const editBtn = canEdit
         ? `<button class="btn btn-outline-secondary btn-sm py-0 px-1 btn-edit-list" data-id="${e.id}"><i class="bi bi-pencil"></i></button>` : '';
-      const ops = `<div class="d-flex gap-1">${approveBtn}${editBtn}</div>`;
+      // 削除可否：管理者かつ自分の登録済レコード（精算済は不可）
+      const canDelete = canEdit;
+      const deleteBtn = canDelete
+        ? `<button class="btn btn-outline-danger btn-sm py-0 px-1 btn-del-list" data-id="${e.id}" title="削除"><i class="bi bi-trash"></i></button>` : '';
+      const ops = `<div class="d-flex gap-1">${approveBtn}${editBtn}${deleteBtn}</div>`;
 
       // 証票リンク（複数対応）
       const imgUrls = e.imageLinks ? e.imageLinks.split(',').map(s => s.trim()).filter(Boolean) : [];
@@ -452,6 +456,9 @@ const ListView = (() => {
           SubmitView.queueEdit(btn.dataset.id, _expenses);
           Router.navigate('submit');
         });
+      });
+      container.querySelectorAll('.btn-del-list').forEach(btn => {
+        btn.addEventListener('click', () => _deleteExpense(btn.dataset.id, el));
       });
     });
 
@@ -538,6 +545,29 @@ const ListView = (() => {
       r.map(v => `"${String(v || '').replace(/"/g, '""')}"`).join(',')
     ).join('\n');
     _downloadCsv(csv, `経費一覧_${new Date().toISOString().split('T')[0]}.csv`);
+  }
+
+  async function _deleteExpense(id, el) {
+    const ok = await App.confirm('この申請を削除しますか？削除後は元に戻せません。');
+    if (!ok) return;
+    App.showLoading('削除中...');
+    try {
+      const e = _expenses.find(x => x.id === id);
+      if (!e) throw new Error('レコードが見つかりません');
+      const ssId = localStorage.getItem('keihi_sheet_id');
+      const timeResp = await fetch('/api/time');
+      const { jst: deletedAt } = await timeResp.json();
+      await Sheets.prependRow('削除一覧', [deletedAt, Auth.getUserEmail(), ...Sheets.expenseToRow(e)], ssId);
+      const rowIndex = await Sheets.findRowById(id, ssId);
+      if (rowIndex > 0) await Sheets.deleteRow('経費一覧', rowIndex, ssId);
+      _expenses = _expenses.filter(x => x.id !== id);
+      _renderTable(el);
+      App.showToast('削除しました', 'success');
+    } catch (err) {
+      App.showToast('削除エラー: ' + err.message, 'danger');
+    } finally {
+      App.hideLoading();
+    }
   }
 
   function _downloadCsv(csv, filename) {
