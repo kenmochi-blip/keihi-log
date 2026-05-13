@@ -85,6 +85,9 @@ const SwipeNav = (() => {
     const navbarHTML    = document.querySelector('nav.navbar.sticky-top')?.outerHTML  || '';
     const bottomNavHTML = document.querySelector('nav.navbar.fixed-bottom')?.outerHTML || '';
 
+    // スワイプ開始時のスクロール位置を記録
+    const scrollTop = main.scrollTop;
+
     // スワイプ中は元のコンテンツを隠す（透過による残像を防ぐ）
     main.style.visibility = 'hidden';
 
@@ -117,6 +120,7 @@ const SwipeNav = (() => {
           : (views[name]?.render() || '');
       } catch (_) { /* 隣パネルのrenderに失敗しても続行 */ }
       panel.appendChild(inner);
+      if (pos === 1) inner.setAttribute('data-cur-inner', '1');
 
       // ボトムナビ
       panel.insertAdjacentHTML('beforeend', bottomNavHTML);
@@ -126,6 +130,10 @@ const SwipeNav = (() => {
 
     _overlay.appendChild(_track);
     document.body.appendChild(_overlay);
+
+    // DOM挿入後にスクロール位置を復元
+    const curInner = _track.querySelector('[data-cur-inner]');
+    if (curInner) curInner.scrollTop = scrollTop;
   }
 
   // ── スナップ ───────────────────────────────────────────────
