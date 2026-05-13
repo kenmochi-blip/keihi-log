@@ -85,6 +85,10 @@ const SwipeNav = (() => {
     const prevName = ORDER[(idx + ORDER.length - 1) % ORDER.length];
     const nextName = ORDER[(idx + 1) % ORDER.length];
 
+    // 非表示にする前にクラスとスタイルを取得（visibility:hidden が混入するのを防ぐ）
+    const mainClassName = main.className;
+    const mainStyleStr  = main.getAttribute('style') || '';
+
     // 元コンテンツを隠す
     main.style.visibility = 'hidden';
 
@@ -106,9 +110,8 @@ const SwipeNav = (() => {
         (pos !== 1 ? 'opacity:0.6;' : '');
 
       const inner = document.createElement('div');
-      // appMain と同じクラス・スタイルを継承してレイアウトを一致させる
-      inner.className = main.className;
-      inner.style.cssText = main.getAttribute('style') || '';
+      inner.className = mainClassName;
+      inner.style.cssText = mainStyleStr;
 
       try {
         inner.innerHTML = pos === 1 ? main.innerHTML : (views[name]?.render() || '');
