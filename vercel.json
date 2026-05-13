@@ -6,7 +6,8 @@
     { "source": "/api/:path*", "destination": "/api/:path*" },
     { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/success", "destination": "/success.html" },
-    { "source": "/((?!js/|css/|api/|privacy\\.html|privacy|success\\.html|success|demo/).*)", "destination": "/index.html" }
+    { "source": "/licenses", "destination": "/licenses.html" },
+    { "source": "/((?!js/|css/|api/|privacy\\.html|privacy|success\\.html|success|licenses\\.html|licenses|demo/).*)", "destination": "/index.html" }
   ],
   "headers": [
     {
