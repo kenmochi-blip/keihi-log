@@ -587,15 +587,13 @@ const ListView = (() => {
     const _isoToSlash = s => s ? String(s).replace(/^(\d{4})-(\d{2})-(\d{2}).*/, '$1/$2/$3') : '';
     const header = ['発生日','勘定科目','税区分','金額(税込)','税額','摘要','支払方法','申請者','備考'];
     const rows = filtered.map(e => {
-      const amount   = Number(e.amount) || 0;
-      const corpSrc  = _corpPaySource(e);
+      const amount  = Number(e.amount) || 0;
+      const corpSrc = _corpPaySource(e);
       const { tax, freeeKbn } = _taxInfo(amount, e.taxRate);
-      // 会社払いの場合は「立替金（支払元）」、個人立替は「現金等」
-      const payMethod = corpSrc ? `立替金（${corpSrc}）` : '現金等';
-      const summary   = corpSrc ? `${e.place}【会社払い:${corpSrc}】` : e.place;
+      const payMethod = corpSrc ? '未払金（会社）' : '未払金（個人）';
       return [
         _isoToSlash(e.date), e.category, freeeKbn, amount, tax,
-        summary, payMethod, e.name, e.note
+        e.place, payMethod, e.name, e.note
       ];
     });
     const csv = [header, ...rows].map(r =>
@@ -612,14 +610,12 @@ const ListView = (() => {
       const amount  = Number(e.amount) || 0;
       const corpSrc = _corpPaySource(e);
       const { tax, yayoiKbn } = _taxInfo(amount, e.taxRate);
-      // 会社払いは貸方「立替金」＋補助科目に支払元、個人立替は「現金」
-      const creditAcct = corpSrc ? '立替金' : '現金';
-      const creditSub  = corpSrc || '';
-      const summary    = `${e.place}${e.note ? ' ' + e.note : ''}${corpSrc ? '【会社払い:' + corpSrc + '】' : ''}`;
+      const creditSub = corpSrc ? '会社' : '個人';
+      const summary   = `${e.place}${e.note ? ' ' + e.note : ''}`;
       return [
         i + 1, '', _isoToSlash(e.date),
         e.category, '', yayoiKbn, amount, tax,
-        creditAcct, creditSub, '', amount, '',
+        '未払金', creditSub, '', amount, '',
         summary, e.id
       ];
     });
