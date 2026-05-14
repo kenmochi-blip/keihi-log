@@ -54,10 +54,11 @@ export default async function handler(req, res) {
 }
 
 async function _issueNewLicense(session) {
-  // 冪等チェック：同じセッションIDで既に発行済みならスキップ（Stripeのリトライ対策）
-  const existingKey = await kv.get(`session:${session.id}`);
-  if (existingKey) {
-    console.log(`License already issued for session ${session.id}: ${existingKey}`);
+  // SET NX でアトミックにロックを取得（同一セッションへの同時リクエスト・リトライを完全排除）
+  // NX = "Not eXists" のときのみセット。複数の呼び出しが同時到達しても1つだけ 'OK' を返す。
+  const locked = await kv.set(`session:${session.id}`, 'issuing', { nx: true });
+  if (!locked) {
+    console.log(`Duplicate session ${session.id}, skipping`);
     return;
   }
 
@@ -85,7 +86,7 @@ async function _issueNewLicense(session) {
   // KV に保存
   await kv.set(`license:${licenseKey}`, licenseData);
 
-  // セッションIDからキーを引けるインデックス（TTLなし：リトライ重複チェック用）
+  // ロックキーを発行済みキーで上書き（以降の参照でキーが分かるように）
   await kv.set(`session:${session.id}`, licenseKey);
 
   // メールアドレスからキーを逆引きできるインデックスも保存
