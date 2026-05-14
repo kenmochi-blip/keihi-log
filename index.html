@@ -89,19 +89,15 @@
 
     <!-- 無料トライアル -->
     <div class="card shadow-sm mb-3 border-0" style="background:#f0f7ff;">
-      <div class="card-body p-4">
-        <p class="fw-bold mb-1 text-center" style="font-size:0.95rem;">
+      <div class="card-body p-4 text-center">
+        <p class="fw-bold mb-1" style="font-size:0.95rem;">
           <i class="bi bi-gift text-primary me-1"></i>2週間無料でお試しいただけます
         </p>
-        <p class="text-muted small text-center mb-3">メールアドレスを入力するとライセンスキーをお送りします</p>
-        <div id="trialForm">
-          <div class="input-group mb-2">
-            <input type="email" id="trialEmail" class="form-control" placeholder="メールアドレス" autocomplete="email">
-            <button class="btn btn-primary" id="trialBtn">送信</button>
-          </div>
-          <div id="trialMsg" class="small text-center d-none"></div>
-        </div>
-        <p class="text-muted text-center mb-0" style="font-size:0.7rem;">※ 同一メールアドレスでのトライアルは1回限りです</p>
+        <p class="text-muted small mb-3">クレジットカード登録後、2週間は無料。<br>そのまま継続しない場合はいつでも解約できます。</p>
+        <a href="https://buy.stripe.com/test_cNi5kD4T39jT7LRc4Dc7u03" class="btn btn-primary w-100 mb-1">
+          <i class="bi bi-credit-card me-2"></i>2週間無料で始める
+        </a>
+        <p class="text-muted mb-0" style="font-size:0.7rem;">無料期間終了後は月額300円（税込）</p>
       </div>
     </div>
 
@@ -137,41 +133,6 @@
         window.location.replace('app.html');
       }
     }
-
-    // 無料トライアル申込
-    document.getElementById('trialBtn').addEventListener('click', async () => {
-      const email = document.getElementById('trialEmail').value.trim();
-      const msg   = document.getElementById('trialMsg');
-      const btn   = document.getElementById('trialBtn');
-      if (!email) return;
-      btn.disabled = true;
-      btn.textContent = '送信中...';
-      msg.className = 'small text-center';
-      try {
-        const resp = await fetch('/api/trial', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email }),
-        });
-        if (resp.ok) {
-          msg.textContent = 'ライセンスキーをメールでお送りしました。設定画面で入力してください。';
-          msg.classList.add('text-success');
-          document.getElementById('trialEmail').value = '';
-        } else if (resp.status === 409) {
-          msg.textContent = 'このメールアドレスは既にトライアルを利用済みです。';
-          msg.classList.add('text-danger');
-        } else {
-          msg.textContent = '送信に失敗しました。メールアドレスを確認してください。';
-          msg.classList.add('text-danger');
-        }
-      } catch {
-        msg.textContent = '通信エラーが発生しました。しばらくしてから再試行してください。';
-        msg.classList.add('text-danger');
-      }
-      msg.classList.remove('d-none');
-      btn.disabled = false;
-      btn.textContent = '送信';
-    });
 
     // デモボタン（Google APIの読み込みを待たずに即動作）
     document.getElementById('demoBtn').addEventListener('click', () => {
