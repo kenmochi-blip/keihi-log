@@ -97,6 +97,10 @@ async function _issueNewLicense(session) {
   // RESEND_API_KEY が設定されていればメール送信
   if (process.env.RESEND_API_KEY) {
     await _sendLicenseEmail(customerEmail, customerName, licenseKey, licenseData.expiresAt);
+    // 管理者通知
+    if (process.env.ADMIN_NOTIFY_EMAIL) {
+      await _sendAdminNotifyEmail(customerEmail, customerName, licenseKey, licenseData.expiresAt);
+    }
   }
 }
 
@@ -128,6 +132,32 @@ async function _sendLicenseEmail(to, name, licenseKey, expiresAt) {
     body: JSON.stringify(body),
   });
   if (!resp.ok) console.error('Resend error:', await resp.text());
+}
+
+async function _sendAdminNotifyEmail(customerEmail, customerName, licenseKey, expiresAt) {
+  const body = {
+    from: process.env.RESEND_FROM_EMAIL || 'noreply@' + (process.env.VERCEL_PROJECT_PRODUCTION_URL || 'example.com'),
+    to: process.env.ADMIN_NOTIFY_EMAIL,
+    subject: `【経費ログ】ライセンス発行通知 — ${customerName}`,
+    html: `
+<p>新しいライセンスが発行されました。</p>
+<table style="border-collapse:collapse;font-size:14px;">
+  <tr><td style="padding:4px 12px 4px 0;color:#666;">購入者名</td><td>${customerName}</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;color:#666;">メールアドレス</td><td>${customerEmail}</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;color:#666;">ライセンスキー</td><td style="font-family:monospace;">${licenseKey}</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;color:#666;">有効期限</td><td>${expiresAt}</td></tr>
+</table>
+    `.trim(),
+  };
+  const resp = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+  if (!resp.ok) console.error('Admin notify error:', await resp.text());
 }
 
 async function _renewLicense(invoice) {
