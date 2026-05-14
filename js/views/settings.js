@@ -85,8 +85,21 @@ const SettingsView = (() => {
           `}
           ` : ''}
 
+          <!-- 一般ユーザー：スプレッドシートURL入力 -->
+          ${!isAdmin ? `
+          <div class="settings-step-title">① スプレッドシートURL</div>
+          <div class="settings-step-hint">管理者から共有されたスプレッドシートのURLを入力してください</div>
+          <div class="input-group mb-1">
+            <input type="text" class="form-control form-control-sm" id="inputSheetUrl"
+              placeholder="https://docs.google.com/spreadsheets/d/..."
+              value="${ssId ? `https://docs.google.com/spreadsheets/d/${ssId}` : ''}">
+            <button class="btn btn-outline-primary btn-sm" id="btnSaveSheetUrl">保存</button>
+          </div>
+          <div id="sheetUrlMsg" class="form-text mb-2"></div>
+          ` : ''}
+
           <!-- ③ ライセンスキー -->
-          <div class="settings-step-title">${isAdmin ? '③ ' : ''}ライセンスキー</div>
+          <div class="settings-step-title">${isAdmin ? '③ ' : '② '}ライセンスキー</div>
           <div id="licenseStatus" class="mb-2"></div>
           ${!licKey ? `<div class="settings-step-hint mb-2">メールにて通知されたライセンスキーを入力してください<br>例：<code>KL-XXXXXXXXXXXXXXXXXXXX</code></div>` : ''}
           <div class="input-group mb-1">
@@ -234,6 +247,20 @@ const SettingsView = (() => {
     });
     el.querySelector('#btnEditRegulationInit')?.addEventListener('click', () => {
       el.querySelector('#regulationInitForm')?.classList.remove('d-none');
+    });
+
+    // 一般ユーザー：スプレッドシートURL保存
+    el.querySelector('#btnSaveSheetUrl')?.addEventListener('click', () => {
+      const val = el.querySelector('#inputSheetUrl')?.value.trim() || '';
+      const msg = el.querySelector('#sheetUrlMsg');
+      const m = val.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]{20,})/);
+      if (!m) {
+        msg.innerHTML = '<span class="text-danger">正しいスプレッドシートURLを入力してください</span>';
+        return;
+      }
+      localStorage.setItem('keihi_sheet_id', m[1]);
+      msg.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>保存しました</span>';
+      setTimeout(() => { msg.innerHTML = ''; }, 3000);
     });
 
     // ライセンス確認

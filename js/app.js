@@ -105,8 +105,8 @@ const App = (() => {
       }
     }
 
-    // 保存済みナビカラーを適用（デモは青、通常はオリーブをデフォルトに）
-    const _defaultNavColor = (typeof Demo !== 'undefined' && Demo.isActive()) ? '#0d6efd' : '#808000';
+    // 保存済みナビカラーを適用
+    const _defaultNavColor = '#0d6efd';
     const savedNavColor = localStorage.getItem('keihi_nav_color') || _defaultNavColor;
     const navbar = document.querySelector('nav.navbar.sticky-top');
     if (navbar) navbar.style.setProperty('background-color', savedNavColor, 'important');
