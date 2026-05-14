@@ -120,7 +120,7 @@
     // ?demo パラメータで直接デモ起動
     if (new URLSearchParams(location.search).has('demo')) {
       Demo.enable();
-      window.location.replace('app.html');
+      window.location.replace('app.html?demo');
     }
 
     // パスからスプレッドシートIDを取得（例: keihi-log.vercel.app/SHEET_ID）
