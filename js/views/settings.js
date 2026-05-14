@@ -172,10 +172,7 @@ const SettingsView = (() => {
     <div class="card-body">
       <div class="settings-section-title d-flex justify-content-between align-items-center">
         <span>勘定科目</span>
-        <div class="d-flex gap-1">
-          <button class="btn btn-outline-secondary btn-sm" id="btnAddDefaultCategories" title="よく使う科目を一括追加">デフォルト追加</button>
-          <button class="btn btn-outline-primary btn-sm" id="btnAddCategory"><i class="bi bi-plus me-1"></i>追加</button>
-        </div>
+        <button class="btn btn-outline-primary btn-sm" id="btnAddCategory"><i class="bi bi-plus me-1"></i>追加</button>
       </div>
       <div id="categoryList" class="mt-2">
         <div class="text-muted small text-center py-2">読み込み中...</div>
@@ -400,15 +397,6 @@ const SettingsView = (() => {
     el.querySelector('#btnAddMember')?.addEventListener('click', () => _showMemberForm(el, null));
     el.querySelector('#btnAddCategory')?.addEventListener('click', () => _showInlineAdd(el, 'category'));
 
-    el.querySelector('#btnAddDefaultCategories')?.addEventListener('click', async () => {
-      const defaults = ['消耗品費','旅費交通費','会議費','交際費','通信費','新聞図書費','水道光熱費','賃借料','租税公課','支払手数料','雑費'];
-      const toAdd = defaults.filter(d => !_master.categories.includes(d));
-      if (toAdd.length === 0) { App.showToast('すでにすべて登録済みです', 'info'); return; }
-      toAdd.forEach(d => _master.categories.push(d));
-      await _saveMasterToSheet(el);
-      _renderSimpleList(el, 'categoryList', _master.categories, 'category');
-      App.showToast(`${toAdd.length}件の勘定科目を追加しました`, 'success');
-    });
     el.querySelector('#btnAddPaySource')?.addEventListener('click', () => _showInlineAdd(el, 'paySource'));
 
     // 証票フォルダ：現在値をURLとしてinputに表示＋フォルダを開くリンクを生成

@@ -237,7 +237,7 @@ const Sheets = (() => {
   /** マスタ表を読んでメンバー・カテゴリ・支払元を返す */
   async function readMaster(ssId) {
     if (typeof Demo !== 'undefined' && Demo.isActive()) return Demo.MASTER;
-    const rows = await read('マスタ表!A2:G', ssId);
+    const rows = await read('マスタ表!A2:E', ssId);
     const members    = [];
     const categories = [];
     const paySources = [];
@@ -245,11 +245,11 @@ const Sheets = (() => {
     const viewers    = [];
 
     rows.forEach(r => {
-      // A:氏名 B:メール C:所属 D:権限 E:備考 F:会社払い支払元 G:勘定科目
-      if (r[0] || r[1]) members.push({ name: r[0] || '', email: r[1] || '', dept: r[2] || '', role: r[3] || '' });
-      if (r[5]) paySources.push(r[5]);
-      if (r[6]) categories.push(r[6]);
-      const role = (r[3] || '').toLowerCase();
+      // A:氏名 B:メール C:会社払い支払元 D:勘定科目 E:権限
+      if (r[0] || r[1]) members.push({ name: r[0] || '', email: r[1] || '', role: r[4] || '' });
+      if (r[2]) paySources.push(r[2]);
+      if (r[3]) categories.push(r[3]);
+      const role = (r[4] || '').toLowerCase();
       if (role === 'admin' && r[1]) admins.push(r[1].toLowerCase());
       if (role === 'viewer' && r[1]) viewers.push(r[1].toLowerCase());
     });
