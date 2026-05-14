@@ -62,8 +62,10 @@ const App = (() => {
     try {
       _masterCache = await Sheets.readMaster();
       const email  = Auth.getUserEmail().toLowerCase();
+      // ライセンス購入者（ownerEmail）は常に管理者
+      const isLicenseOwner = lic.ownerEmail && lic.ownerEmail === email;
       // 管理者が誰も登録されていない場合（初期状態）は現ユーザーを管理者扱い
-      if (_masterCache.admins.length === 0 || _masterCache.admins.includes(email)) {
+      if (isLicenseOwner || _masterCache.admins.length === 0 || _masterCache.admins.includes(email)) {
         _userRole = 'admin';
       } else if (_masterCache.viewers && _masterCache.viewers.includes(email)) {
         _userRole = 'viewer';

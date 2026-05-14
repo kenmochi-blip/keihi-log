@@ -50,6 +50,7 @@ export default async function handler(req, res) {
       company:   data.company   || '',
       plan:      data.plan      || 'standard',
       expiresAt: data.expiresAt || null,
+      ownerEmail: (data.email   || '').toLowerCase(),
     });
 
   } catch (err) {
