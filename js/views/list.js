@@ -566,17 +566,36 @@ const ListView = (() => {
     URL.revokeObjectURL(url);
   }
 
+  // "会社払い（◯◯）" から支払元名を抽出。会社払いでなければ空文字。
+  function _corpPaySource(e) {
+    const m = (e.settlementDate || '').match(/^会社払い（(.+)）$/);
+    return m ? m[1] : '';
+  }
+
+  // taxRate に応じた消費税額と freee/弥生 用の税区分文字列を返す
+  function _taxInfo(amount, taxRate) {
+    const r = taxRate || '課税10%';
+    if (r === '課税8%') return { tax: Math.floor(amount * 8 / 108),  freeeKbn: '課対仕入8%軽減', yayoiKbn: '課対仕入8%' };
+    if (r === '非課税')  return { tax: 0, freeeKbn: '非課税仕入',    yayoiKbn: '非課税' };
+    if (r === '不課税')  return { tax: 0, freeeKbn: '対象外',        yayoiKbn: '対象外' };
+    // 課税10%・混在はどちらも10%で処理
+    return { tax: Math.floor(amount * 10 / 110), freeeKbn: '課対仕入10%', yayoiKbn: '課対仕入10%' };
+  }
+
   function _exportFreee(el) {
     const filtered = _getFiltered(el);
     const _isoToSlash = s => s ? String(s).replace(/^(\d{4})-(\d{2})-(\d{2}).*/, '$1/$2/$3') : '';
     const header = ['発生日','勘定科目','税区分','金額(税込)','税額','摘要','支払方法','申請者','備考'];
     const rows = filtered.map(e => {
-      const amount = Number(e.amount) || 0;
-      const tax = Math.floor(amount * 10 / 110);
+      const amount   = Number(e.amount) || 0;
+      const corpSrc  = _corpPaySource(e);
+      const { tax, freeeKbn } = _taxInfo(amount, e.taxRate);
+      // 会社払いの場合は「立替金（支払元）」、個人立替は「現金等」
+      const payMethod = corpSrc ? `立替金（${corpSrc}）` : '現金等';
+      const summary   = corpSrc ? `${e.place}【会社払い:${corpSrc}】` : e.place;
       return [
-        _isoToSlash(e.date), e.category, '課対仕入10%', amount, tax,
-        e.place, e.paySource || (e.companyCost ? '会社払い' : '現金等'),
-        e.name, e.note
+        _isoToSlash(e.date), e.category, freeeKbn, amount, tax,
+        summary, payMethod, e.name, e.note
       ];
     });
     const csv = [header, ...rows].map(r =>
@@ -590,14 +609,18 @@ const ListView = (() => {
     const _isoToSlash = s => s ? String(s).replace(/^(\d{4})-(\d{2})-(\d{2}).*/, '$1/$2/$3') : '';
     const header = ['伝票No.','決算','取引日','借方勘定科目','借方補助科目','借方税区分','借方金額','借方消費税額','貸方勘定科目','貸方補助科目','貸方税区分','貸方金額','貸方消費税額','摘要','番号'];
     const rows = filtered.map((e, i) => {
-      const amount = Number(e.amount) || 0;
-      const tax = Math.floor(amount * 10 / 110);
-      const credit = e.paySource || (e.companyCost ? '未払金' : '現金');
+      const amount  = Number(e.amount) || 0;
+      const corpSrc = _corpPaySource(e);
+      const { tax, yayoiKbn } = _taxInfo(amount, e.taxRate);
+      // 会社払いは貸方「立替金」＋補助科目に支払元、個人立替は「現金」
+      const creditAcct = corpSrc ? '立替金' : '現金';
+      const creditSub  = corpSrc || '';
+      const summary    = `${e.place}${e.note ? ' ' + e.note : ''}${corpSrc ? '【会社払い:' + corpSrc + '】' : ''}`;
       return [
         i + 1, '', _isoToSlash(e.date),
-        e.category, '', '課対仕入10%', amount, tax,
-        credit, '', '', amount, '',
-        `${e.place}${e.note ? ' ' + e.note : ''}`, e.id
+        e.category, '', yayoiKbn, amount, tax,
+        creditAcct, creditSub, '', amount, '',
+        summary, e.id
       ];
     });
     const csv = [header, ...rows].map(r =>
