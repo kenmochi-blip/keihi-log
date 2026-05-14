@@ -386,7 +386,7 @@ const ListView = (() => {
         </td>
         <td class="list-type-cell">${_escape(e.type)}</td>
         <td class="text-end list-amount">¥${e.amount.toLocaleString()}</td>
-        <td class="list-cat">${_escape(e.category)}</td>
+        <td class="list-cat">${_escape(e.category)}${e.taxRate && e.taxRate !== '課税10%' ? `<br><span class="badge text-bg-light border" style="font-size:0.65rem;font-weight:normal;">${_escape(e.taxRate)}</span>` : ''}</td>
         <td class="list-note-cell text-muted">${_escape(e.note || '')}</td>
         <td class="text-center"><div class="d-flex flex-wrap gap-1 justify-content-center">${receiptBtns}</div></td>
         <td>${statusBadge}</td>
@@ -418,6 +418,7 @@ const ListView = (() => {
             <div class="d-flex align-items-center gap-1 flex-wrap" style="min-width:0;">
               ${statusBadge}
               <span class="list-sp-cat">${_escape(e.category)}</span>
+              ${e.taxRate && e.taxRate !== '課税10%' ? `<span class="badge text-bg-light border" style="font-size:0.65rem;font-weight:normal;">${_escape(e.taxRate)}</span>` : ''}
               ${e.note ? `<span class="list-sp-note">${_escape(e.note)}</span>` : ''}
             </div>
             <div class="no-print flex-shrink-0">${ops}</div>
@@ -519,13 +520,13 @@ const ListView = (() => {
 
   function _exportCsv(el) {
     const filtered = _getFiltered(el);
-    const header = ['申請日時','申請者名','タイプ','日付','支払先','金額','勘定科目','備考','証票URL','ステータス','インボイス番号','申請者Email','ID','精算日'];
+    const header = ['申請日時','申請者名','タイプ','日付','支払先','金額','勘定科目','備考','証票URL','ステータス','インボイス番号','申請者Email','ID','精算日','税区分'];
     const _isoToSlash = s => s ? String(s).replace(/^(\d{4})-(\d{2})-(\d{2}).*/, '$1/$2/$3') : '';
     const rows = filtered.map(e => [
       _isoToSlash(e.appliedAt), e.name, e.type, _isoToSlash(e.date), e.place, e.amount,
       e.category, e.note, e.imageLinks.split(',')[0]?.trim() || '',
       _getStatus(e), e.invoice, e.email, e.id,
-      e.settlementDate || ''
+      e.settlementDate || '', e.taxRate || '課税10%'
     ]);
     const csv = [header, ...rows].map(r =>
       r.map(v => `"${String(v || '').replace(/"/g, '""')}"`).join(',')

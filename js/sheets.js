@@ -16,7 +16,7 @@ const Sheets = (() => {
   async function read(range, ssId) {
     if (typeof Demo !== 'undefined' && Demo.isActive()) {
       // デモ：経費一覧の単一行リクエスト（修正履歴の旧データ取得など）はEXPENSESから再構築
-      const m = range.match(/^経費一覧!A(\d+):R\1$/);
+      const m = range.match(/^経費一覧!A(\d+):S\1$/);
       if (m) {
         const idx = Number(m[1]) - 2; // ヘッダー行ぶん -2
         const e = Demo.EXPENSES[idx];
@@ -104,7 +104,7 @@ const Sheets = (() => {
   async function readExpenses(ssId) {
     if (typeof Demo !== 'undefined' && Demo.isActive()) return [...Demo.EXPENSES];
     ssId = ssId || _ssId();
-    const range  = encodeURIComponent('経費一覧!A2:R');
+    const range  = encodeURIComponent('経費一覧!A2:S');
     const fields = encodeURIComponent('sheets.data.rowData.values(effectiveValue,hyperlink)');
     const resp = await Auth.authFetch(`${BASE}/${ssId}?ranges=${range}&fields=${fields}`);
     if (!resp.ok) throw new Error(`Sheets readExpenses error: ${resp.status}`);
@@ -166,6 +166,7 @@ const Sheets = (() => {
       email:          row[15] || '',
       id:             row[16] || '',
       device:         row[17] || '',
+      taxRate:        row[18] || '',
     };
   }
 
@@ -184,7 +185,7 @@ const Sheets = (() => {
     return String(val);
   }
 
-  /** 経費オブジェクト → 行配列（18列）*/
+  /** 経費オブジェクト → 行配列（19列）*/
   function expenseToRow(e) {
     return [
       e.appliedAt,                 // A
@@ -205,6 +206,7 @@ const Sheets = (() => {
       e.email,                     // P
       e.id,                        // Q
       e.device,                    // R
+      e.taxRate || '課税10%',      // S：税区分
     ];
   }
 
@@ -386,7 +388,7 @@ const Sheets = (() => {
 
   async function prependExpense(row, ssId) {
     if (typeof Demo !== 'undefined' && Demo.isActive()) {
-      return { updates: { updatedRange: '経費一覧!A2:R2' } };
+      return { updates: { updatedRange: '経費一覧!A2:S2' } };
     }
     ssId = ssId || _ssId();
     const sheetId = await _getSheetId('経費一覧', ssId);
@@ -401,10 +403,10 @@ const Sheets = (() => {
     }], ssId);
 
     // 挿入した行にデータを書き込む
-    await update('経費一覧!A2:R2', [row], ssId);
+    await update('経費一覧!A2:S2', [row], ssId);
 
-    await formatExpenseRow('経費一覧!A2:R2', ssId);
-    return { updates: { updatedRange: '経費一覧!A2:R2' } };
+    await formatExpenseRow('経費一覧!A2:S2', ssId);
+    return { updates: { updatedRange: '経費一覧!A2:S2' } };
   }
 
   return {

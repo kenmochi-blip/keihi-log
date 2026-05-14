@@ -324,6 +324,21 @@ const SubmitView = (() => {
       </div>
       <div id="splitLines" class="d-none"></div>
       <div id="splitTotal" class="text-end text-muted small d-none">合計: <span id="lblSplitTotal">0</span>円</div>
+      <div class="d-flex align-items-center gap-1 mt-1">
+        <span class="text-muted" style="font-size:0.72rem;">税区分:</span>
+        <div class="dropdown d-inline-block">
+          <button class="btn btn-outline-secondary py-0 px-2 dropdown-toggle" id="btnTaxRate"
+            data-bs-toggle="dropdown" data-tax-rate="課税10%"
+            style="font-size:0.72rem;line-height:1.6;">課税10%</button>
+          <ul class="dropdown-menu" style="min-width:0;">
+            <li><a class="dropdown-item small py-1" href="#" data-tax="課税10%">課税10%</a></li>
+            <li><a class="dropdown-item small py-1" href="#" data-tax="課税8%">課税8%（軽減税率）</a></li>
+            <li><a class="dropdown-item small py-1" href="#" data-tax="混在">混在（複数税率）</a></li>
+            <li><a class="dropdown-item small py-1" href="#" data-tax="非課税">非課税</a></li>
+            <li><a class="dropdown-item small py-1" href="#" data-tax="不課税">不課税</a></li>
+          </ul>
+        </div>
+      </div>
     </div>`;
   }
 
@@ -337,6 +352,7 @@ const SubmitView = (() => {
 
     _populateSelects(el);
     _bindAmountInputs(el);
+    _bindTaxRate(el);
     _bindTypeButtons(el);
     _bindFileInputs(el);
     _bindSplitToggle(el);
@@ -392,6 +408,19 @@ const SubmitView = (() => {
     // 既存の入力欄にバインド（動的に追加される split-amount は _addSplitRowTo 内でバインド）
     el.querySelectorAll('.amount-input').forEach(inp => {
       inp.addEventListener('input', () => fmt(inp));
+    });
+  }
+
+  function _bindTaxRate(el) {
+    const btn = el.querySelector('#btnTaxRate');
+    if (!btn) return;
+    btn.closest('.dropdown')?.querySelectorAll('[data-tax]').forEach(item => {
+      item.addEventListener('click', e => {
+        e.preventDefault();
+        const tax = item.dataset.tax;
+        btn.textContent = tax;
+        btn.dataset.taxRate = tax;
+      });
     });
   }
 
@@ -830,6 +859,12 @@ const SubmitView = (() => {
         }
       }
 
+      // 税区分バッジを更新
+      if (result.tax_rate) {
+        const taxBtn = el.querySelector('#btnTaxRate');
+        if (taxBtn) { taxBtn.textContent = result.tax_rate; taxBtn.dataset.taxRate = result.tax_rate; }
+      }
+
       // 解析完了後、フォームを画面内にスクロール
       el.querySelector('#receiptFields')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
@@ -935,13 +970,14 @@ const SubmitView = (() => {
         email:          Auth.getUserEmail(),
         id:             _editId || crypto.randomUUID(),
         device:         navigator.userAgent,
+        taxRate:        data.taxRate,
       });
 
       // 6. 編集の場合は修正履歴に旧データを保存してから更新
       if (_editId) {
         const rowNum = await Sheets.findRowById(_editId);
         if (rowNum > 0) {
-          const oldRows = await Sheets.read(`経費一覧!A${rowNum}:R${rowNum}`);
+          const oldRows = await Sheets.read(`経費一覧!A${rowNum}:S${rowNum}`);
           const r = oldRows[0] || [];
           const oldSummary = [
             `日付: ${r[3] || ''}`,
@@ -952,9 +988,10 @@ const SubmitView = (() => {
             `備考: ${r[7] || ''}`,
             `精算日: ${r[11] || ''}`,
             `インボイス: ${r[12] || ''}`,
+            `税区分: ${r[18] || ''}`,
           ].filter(s => !s.endsWith(': ')).join(' / ');
           await Sheets.prependRow('修正履歴', [appliedAt, Auth.getUserEmail(), oldSummary]);
-          await Sheets.update(`経費一覧!A${rowNum}:R${rowNum}`, [row]);
+          await Sheets.update(`経費一覧!A${rowNum}:S${rowNum}`, [row]);
         }
       } else {
         await Sheets.prependExpense(row);
@@ -1045,6 +1082,7 @@ const SubmitView = (() => {
     return {
       date, place, amount, category, note,
       invoice:   pnl.querySelector('#inputInvoice')?.value?.trim() || '',
+      taxRate:   el.querySelector('#btnTaxRate')?.dataset.taxRate || '課税10%',
       corpPay, paySource,
     };
   }
@@ -1209,6 +1247,8 @@ const SubmitView = (() => {
         if (amtInput) amtInput.value = Number(e.amount).toLocaleString('ja-JP');
         const sel = pnl.querySelector('#selCategory');
         if (sel) [...sel.options].forEach(o => o.selected = o.value === e.category);
+        const taxBtn = el.querySelector('#btnTaxRate');
+        if (taxBtn && e.taxRate) { taxBtn.textContent = e.taxRate; taxBtn.dataset.taxRate = e.taxRate; }
       } else if (e.type === '交通費') {
         const parts = (e.place || '').split(' → ');
         const fromInput = el.querySelector('#txtFrom');
@@ -1255,7 +1295,7 @@ const SubmitView = (() => {
 
       // 元の行を削除（sheetIdが必要なのでbatchUpdateを使う）
       // 簡略化：行の内容を空白で上書きしてフィルタリングする方式
-      await Sheets.update(`経費一覧!A${rowNum}:R${rowNum}`, [new Array(18).fill('')]);
+      await Sheets.update(`経費一覧!A${rowNum}:S${rowNum}`, [new Array(19).fill('')]);
 
       App.showToast('削除しました', 'success');
       _loadHistory(el);
