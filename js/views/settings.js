@@ -202,7 +202,7 @@ const SettingsView = (() => {
       <p class="text-muted small mb-2">「経費ログ」と表示されている上部ナビバーの背景色を変更します。</p>
       <div class="d-flex align-items-center gap-2 mb-1">
         <input type="color" class="form-control form-control-color" id="inputHeaderColor"
-          value="#808000" style="width:3rem;height:2rem;padding:2px;">
+          value="#0d6efd" style="width:3rem;height:2rem;padding:2px;">
         <button class="btn btn-outline-primary btn-sm" id="btnApplyHeaderColor">
           <i class="bi bi-palette me-1"></i>適用
         </button>
@@ -443,7 +443,7 @@ const SettingsView = (() => {
     const colorInput = el.querySelector('#inputHeaderColor');
     if (colorInput) {
       const saved = localStorage.getItem('keihi_nav_color');
-      if (saved) colorInput.value = saved;
+      colorInput.value = saved || '#0d6efd';
       // リアルタイムプレビュー
       colorInput.addEventListener('input', () => _applyNavColor(colorInput.value));
     }
