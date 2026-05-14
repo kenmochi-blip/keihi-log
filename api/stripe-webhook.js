@@ -33,9 +33,17 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid signature' });
   }
 
-  if (event.type === 'checkout.session.completed' ||
-      event.type === 'invoice.paid') {
+  if (event.type === 'checkout.session.completed') {
     await _issueNewLicense(event.data.object);
+  }
+
+  // invoice.paid は更新時（subscription_cycle）のみ有効期限を延長する
+  // subscription_create はcheckout.session.completedで処理済みのためスキップ
+  if (event.type === 'invoice.paid') {
+    const inv = event.data.object;
+    if (inv.billing_reason !== 'subscription_create') {
+      await _renewLicense(inv);
+    }
   }
 
   if (event.type === 'customer.subscription.deleted') {
@@ -112,6 +120,20 @@ async function _sendLicenseEmail(to, name, licenseKey, expiresAt) {
     body: JSON.stringify(body),
   });
   if (!resp.ok) console.error('Resend error:', await resp.text());
+}
+
+async function _renewLicense(invoice) {
+  const email = invoice.customer_email || '';
+  if (!email) return;
+  const key = await kv.get(`email_to_license:${email}`);
+  if (!key) return;
+  const data = await kv.get(`license:${key}`);
+  if (!data) return;
+  // 有効期限を1年延長
+  const newExpiry = new Date(data.expiresAt);
+  newExpiry.setFullYear(newExpiry.getFullYear() + 1);
+  await kv.set(`license:${key}`, { ...data, expiresAt: newExpiry.toISOString().split('T')[0] });
+  console.log(`License renewed: ${key} for ${email} until ${newExpiry.toISOString().split('T')[0]}`);
 }
 
 async function _suspendLicense(subscription) {
