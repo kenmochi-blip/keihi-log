@@ -1,14 +1,12 @@
 {
-  "redirects": [
-    { "source": "/demo", "destination": "/app.html?demo", "permanent": false }
-  ],
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api/:path*" },
     { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/success", "destination": "/success.html" },
     { "source": "/licenses", "destination": "/licenses.html" },
     { "source": "/faq", "destination": "/faq.html" },
-    { "source": "/((?!js/|css/|api/|privacy\\.html|privacy|success\\.html|success|licenses\\.html|licenses|faq\\.html|faq|demo/).*)", "destination": "/index.html" }
+    { "source": "/demo", "destination": "/demo.html" },
+    { "source": "/((?!js/|css/|api/|privacy\\.html|privacy|success\\.html|success|licenses\\.html|licenses|faq\\.html|faq|demo\\.html|demo/).*)", "destination": "/index.html" }
   ],
   "headers": [
     {
