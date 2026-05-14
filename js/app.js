@@ -193,6 +193,30 @@ const App = (() => {
   }
 
   function clearMasterCache() { _masterCache = null; }
+
+  /** ライセンス確認後に管理者権限を即時反映するためマスターを再読み込みする */
+  async function reloadMaster() {
+    _masterCache = null;
+    const licKey = localStorage.getItem('keihi_license_key') || '';
+    const lic = licKey ? await License.verify(licKey) : { valid: false };
+    if (!lic.valid) return;
+    try {
+      _masterCache = await Sheets.readMaster();
+    } catch (_) {
+      _masterCache = { members: [], categories: [], paySources: [], admins: [], viewers: [] };
+    }
+    const email = Auth.getUserEmail().toLowerCase();
+    const isLicenseOwner = lic.ownerEmail && lic.ownerEmail === email;
+    if (isLicenseOwner || _masterCache.admins.length === 0 || _masterCache.admins.includes(email)) {
+      _userRole = 'admin';
+    } else if (_masterCache.viewers?.includes(email)) {
+      _userRole = 'viewer';
+    } else {
+      _userRole = 'member';
+    }
+    _isAdmin = _userRole === 'admin';
+  }
+
   function isAdmin() { return _isAdmin; }
   function getUserRole() { return _userRole; }
 
@@ -299,6 +323,7 @@ const App = (() => {
     confirm,
     getMaster,
     clearMasterCache,
+    reloadMaster,
     isAdmin,
     getUserRole,
     showLoading,

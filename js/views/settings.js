@@ -250,6 +250,12 @@ const SettingsView = (() => {
         localStorage.setItem('keihi_license_key', key);
         msg.innerHTML = `<span class="text-success"><i class="bi bi-check-circle me-1"></i>有効（${result.company || ''}）${result.expiresAt ? ' 期限: ' + result.expiresAt.split('T')[0] : ''}</span>`;
         App.showToast('ライセンスを確認しました', 'success');
+        // 購入者メールが一致する場合は管理者に昇格して画面を再描画
+        if (result.ownerEmail && result.ownerEmail === Auth.getUserEmail().toLowerCase()) {
+          await App.reloadMaster();
+          Router.navigate('settings');
+          return;
+        }
         _syncSettingsToDrive();
       } else {
         msg.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle me-1"></i>無効なライセンスキーです（${result.reason || ''}）</span>`;
