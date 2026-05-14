@@ -6,7 +6,7 @@
     { "source": "/licenses", "destination": "/licenses.html" },
     { "source": "/faq", "destination": "/faq.html" },
     { "source": "/demo", "destination": "/demo.html" },
-    { "source": "/((?!js/|css/|api/|privacy\\.html|privacy|success\\.html|success|licenses\\.html|licenses|faq\\.html|faq|demo\\.html|demo/).*)", "destination": "/index.html" }
+    { "source": "/((?!js/|css/|api/|app\\.html|privacy\\.html|privacy|success\\.html|success|licenses\\.html|licenses|faq\\.html|faq|demo\\.html|demo/).*)", "destination": "/index.html" }
   ],
   "headers": [
     {
