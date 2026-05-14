@@ -412,15 +412,13 @@ const SubmitView = (() => {
   }
 
   function _bindTaxRate(el) {
-    const btn = el.querySelector('#btnTaxRate');
-    if (!btn) return;
-    btn.closest('.dropdown')?.querySelectorAll('[data-tax]').forEach(item => {
-      item.addEventListener('click', e => {
-        e.preventDefault();
-        const tax = item.dataset.tax;
-        btn.textContent = tax;
-        btn.dataset.taxRate = tax;
-      });
+    el.addEventListener('click', e => {
+      const item = e.target.closest('[data-tax]');
+      if (!item) return;
+      e.preventDefault();
+      const tax = item.dataset.tax;
+      const btn = el.querySelector('#btnTaxRate');
+      if (btn) { btn.textContent = tax; btn.dataset.taxRate = tax; }
     });
   }
 
