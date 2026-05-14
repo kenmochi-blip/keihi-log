@@ -85,6 +85,7 @@
                 <th style="font-size:0.78rem;">ライセンスキー</th>
                 <th style="font-size:0.78rem;">有効期限</th>
                 <th style="font-size:0.78rem;">ステータス</th>
+                <th style="font-size:0.78rem;"></th>
               </tr>
             </thead>
             <tbody id="licenseTable"></tbody>
@@ -146,15 +147,20 @@
       tbody.innerHTML = filtered.map(l => {
         const st = getStatus(l);
         const date = l.createdAt ? l.createdAt.split('T')[0] : '—';
-        return `<tr>
+        return `<tr data-key="${esc(l.key)}">
           <td style="font-size:0.78rem;">${date}</td>
           <td style="font-size:0.78rem;">${esc(l.company || '')}</td>
           <td style="font-size:0.78rem;">${esc(l.email || '')}</td>
           <td style="font-size:0.72rem;font-family:monospace;">${esc(l.key)}</td>
           <td style="font-size:0.78rem;">${l.expiresAt || '—'}</td>
           <td><span class="badge bg-${statusBadge[st]}" style="font-size:0.65rem;">${statusLabel[st]}</span></td>
+          <td><button class="btn btn-outline-danger btn-sm py-0 px-1 btn-delete" data-key="${esc(l.key)}" title="削除"><i class="bi bi-trash"></i></button></td>
         </tr>`;
       }).join('');
+
+      tbody.querySelectorAll('.btn-delete').forEach(btn => {
+        btn.addEventListener('click', () => deleteLicense(btn.dataset.key));
+      });
 
       document.getElementById('noResult').classList.toggle('d-none', filtered.length > 0);
     }
@@ -171,6 +177,15 @@
       a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' }));
       a.download = `licenses_${new Date().toISOString().split('T')[0]}.csv`;
       a.click();
+    }
+
+    async function deleteLicense(key) {
+      if (!confirm(`削除しますか？\n${key}\n\nこの操作は取り消せません。`)) return;
+      const resp = await fetch(`/api/admin-licenses?secret=${encodeURIComponent(_secret)}&key=${encodeURIComponent(key)}`, { method: 'DELETE' });
+      if (!resp.ok) { alert('削除に失敗しました'); return; }
+      _all = _all.filter(l => l.key !== key);
+      updateStats();
+      render();
     }
 
     function esc(s) {

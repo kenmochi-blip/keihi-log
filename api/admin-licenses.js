@@ -10,6 +10,18 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
+  // DELETE: ライセンス削除
+  if (req.method === 'DELETE') {
+    const { key } = req.query;
+    if (!key) return res.status(400).json({ error: 'key required' });
+    const data = await kv.get(`license:${key}`).catch(() => null);
+    await kv.del(`license:${key}`);
+    if (data?.email) await kv.del(`email_to_license:${data.email}`).catch(() => {});
+    if (data?.stripeSessionId) await kv.del(`session:${data.stripeSessionId}`).catch(() => {});
+    console.log(`License deleted: ${key}`);
+    return res.status(200).json({ deleted: true });
+  }
+
   try {
     // KV から license:* キーを全スキャン
     const keys = [];
