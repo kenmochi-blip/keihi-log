@@ -123,16 +123,34 @@
       window.location.replace('app.html?demo');
     }
 
-    // パスからスプレッドシートIDを取得（例: keihi-log.vercel.app/SHEET_ID）
-    const _pathMatch = location.pathname.match(/^\/([a-zA-Z0-9_-]{20,})$/);
-    if (_pathMatch) {
-      localStorage.setItem('keihi_sheet_id', _pathMatch[1]);
+    // パスからエイリアスまたはスプレッドシートIDを取得
+    (async () => {
+      const _pathMatch = location.pathname.match(/^\/([a-zA-Z0-9_-]{6,})$/);
+      if (!_pathMatch) return;
+      const _token = _pathMatch[1];
+
+      // 短い（44文字未満）→ エイリアスとして解決
+      if (_token.length < 44) {
+        try {
+          const base = (window.APP_CONFIG?.apiBase || '');
+          const r = await fetch(`${base}/api/alias?code=${encodeURIComponent(_token)}`);
+          if (r.ok) {
+            const { sheetId } = await r.json();
+            localStorage.setItem('keihi_sheet_id', sheetId);
+            localStorage.setItem('keihi_alias', _token);
+          }
+        } catch (_) {}
+      } else {
+        // 長い → スプレッドシートID直接指定（後方互換）
+        localStorage.setItem('keihi_sheet_id', _token);
+      }
+
       // セッションが有効なら即 app.html へ（再ログイン不要）
       const _sess = JSON.parse(sessionStorage.getItem('keihi_auth_session') || 'null');
       if (_sess && _sess.expiry > Date.now()) {
         window.location.replace('app.html');
       }
-    }
+    })();
 
     // デモボタン（Google APIの読み込みを待たずに即動作）
     document.getElementById('demoBtn').addEventListener('click', () => {

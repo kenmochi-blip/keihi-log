@@ -56,14 +56,41 @@ const Setup = (() => {
     // 6. フォルダIDを設定シートに保存
     await Sheets.update('設定!B4', [[folderId]], ssId);
 
-    // 7. localStorageとDriveに保存（端末間同期）
+    // 7. エイリアス生成・登録（スプレッドシートIDをURLに露出させない）
+    const alias = _generateAlias();
+    const licenseKey = localStorage.getItem('keihi_license_key') || '';
+    await _registerAlias(alias, ssId, licenseKey).catch(() => {});
+
+    // 8. localStorageとDriveに保存（端末間同期）
     localStorage.setItem('keihi_sheet_id', ssId);
+    localStorage.setItem('keihi_alias', alias);
     localStorage.setItem('keihi_folder_id', folderId);
     Drive.saveSettings({
-      licenseKey: localStorage.getItem('keihi_license_key') || '',
+      licenseKey,
       sheetId:    ssId,
       folderId,
+      alias,
     }).catch(() => {});
+
+    return ssId;
+  }
+
+  function _generateAlias() {
+    const chars = 'abcdefghijkmnpqrstuvwxyz23456789';
+    let s = '';
+    const arr = crypto.getRandomValues(new Uint8Array(10));
+    arr.forEach(b => { s += chars[b % chars.length]; });
+    return s;
+  }
+
+  async function _registerAlias(alias, sheetId, licenseKey) {
+    const base = window.APP_CONFIG?.apiBase || '';
+    await fetch(`${base}/api/alias`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: alias, sheetId, licenseKey }),
+    });
+  }
 
     return ssId;
   }

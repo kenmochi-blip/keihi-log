@@ -128,7 +128,8 @@ const SettingsView = (() => {
   function _renderMasterSections() {
     const isDemo = typeof Demo !== 'undefined' && Demo.isActive();
     const ssId = isDemo ? '' : (localStorage.getItem('keihi_sheet_id') || '');
-    const shareUrl = ssId ? `${location.origin}/${ssId}` : '';
+    const alias = isDemo ? '' : (localStorage.getItem('keihi_alias') || '');
+    const shareUrl = alias ? `${location.origin}/${alias}` : (ssId ? `${location.origin}/${ssId}` : '');
     return `
   <!-- メンバー管理（管理者のみ） -->
   <div class="card mb-3">
@@ -274,7 +275,8 @@ const SettingsView = (() => {
       msg.textContent = '';
       try {
         const ssId    = await Setup.createSpreadsheet(name, parentFolderId);
-        const shareUrl = `${location.origin}/${ssId}`;
+        const alias   = localStorage.getItem('keihi_alias') || '';
+        const shareUrl = alias ? `${location.origin}/${alias}` : `${location.origin}/${ssId}`;
         const qrUrl   = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(shareUrl)}`;
         const mailSubject = encodeURIComponent(`【経費ログ】${name} へのご招待`);
         const mailBody = encodeURIComponent(

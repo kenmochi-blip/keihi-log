@@ -43,6 +43,7 @@ const App = (() => {
         if (saved.licenseKey) localStorage.setItem('keihi_license_key', saved.licenseKey);
         if (saved.sheetId)    localStorage.setItem('keihi_sheet_id',    saved.sheetId);
         if (saved.folderId)   localStorage.setItem('keihi_folder_id',   saved.folderId);
+        if (saved.alias)      localStorage.setItem('keihi_alias',       saved.alias);
       }
     } catch (_) { /* Drive読み込み失敗は無視してlocalStorageで続行 */ }
 
