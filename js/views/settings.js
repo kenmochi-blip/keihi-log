@@ -122,11 +122,6 @@ const SettingsView = (() => {
       <i class="bi bi-table me-1"></i>スプレッドシートを直接開く
     </a>
   </div>` : ''}
-
-  <!-- バージョン情報 -->
-  <div class="text-center text-muted mt-2 mb-2" style="font-size:0.7rem;">
-    経費ログ v2.0.0 — <span class="badge-denchou">電帳法対応</span>
-  </div>
 </div>`;
   }
 

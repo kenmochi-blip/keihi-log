@@ -73,11 +73,6 @@ const SummaryView = (() => {
       </div>
     </div>
   </div>
-
-  <!-- 電帳法バッジ -->
-  <div class="text-center mt-2 mb-3">
-    <span class="badge-denchou">電帳法対応：承認済データは改ざん防止記録あり</span>
-  </div>
 </div>`;
   }
 
