@@ -23,6 +23,10 @@ export default async function handler(req, res) {
   if (!key || typeof key !== 'string' || key.length < 8) {
     return res.status(400).json({ valid: false, reason: 'invalid_key_format' });
   }
+  // このシステムが発行するキーのみ受け付ける（旧システムのSS-プレフィックス等を排除）
+  if (!key.startsWith('KL-') && !key.startsWith('TR-')) {
+    return res.status(200).json({ valid: false, reason: 'not_found' });
+  }
 
   try {
     const data = await kv.get(`license:${key}`);
