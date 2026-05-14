@@ -718,6 +718,7 @@ const SettingsView = (() => {
       licenseKey: localStorage.getItem('keihi_license_key') || '',
       sheetId:    localStorage.getItem('keihi_sheet_id')    || '',
       folderId:   localStorage.getItem('keihi_folder_id')   || '',
+      alias:      localStorage.getItem('keihi_alias')       || '',
     }).catch(() => {});
   }
 
