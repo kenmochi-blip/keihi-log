@@ -326,18 +326,13 @@ const SubmitView = (() => {
       <div id="splitTotal" class="text-end text-muted small d-none">合計: <span id="lblSplitTotal">0</span>円</div>
       <div class="d-flex align-items-center gap-1 mt-1">
         <span class="text-muted" style="font-size:0.72rem;">税区分:</span>
-        <div class="dropdown d-inline-block">
-          <button class="btn btn-outline-secondary py-0 px-2 dropdown-toggle" id="btnTaxRate"
-            data-bs-toggle="dropdown" data-tax-rate="課税10%"
-            style="font-size:0.72rem;line-height:1.6;">課税10%</button>
-          <ul class="dropdown-menu" style="min-width:0;">
-            <li><a class="dropdown-item small py-1" href="#" data-tax="課税10%">課税10%</a></li>
-            <li><a class="dropdown-item small py-1" href="#" data-tax="課税8%">課税8%（軽減税率）</a></li>
-            <li><a class="dropdown-item small py-1" href="#" data-tax="混在">混在（複数税率）</a></li>
-            <li><a class="dropdown-item small py-1" href="#" data-tax="非課税">非課税</a></li>
-            <li><a class="dropdown-item small py-1" href="#" data-tax="不課税">不課税</a></li>
-          </ul>
-        </div>
+        <select id="selTaxRate" class="form-select form-select-sm" style="width:auto;font-size:0.72rem;padding-top:0.1rem;padding-bottom:0.1rem;">
+          <option value="課税10%">課税10%</option>
+          <option value="課税8%">課税8%（軽減税率）</option>
+          <option value="混在">混在（複数税率）</option>
+          <option value="非課税">非課税</option>
+          <option value="不課税">不課税</option>
+        </select>
       </div>
     </div>`;
   }
@@ -352,7 +347,6 @@ const SubmitView = (() => {
 
     _populateSelects(el);
     _bindAmountInputs(el);
-    _bindTaxRate(el);
     _bindTypeButtons(el);
     _bindFileInputs(el);
     _bindSplitToggle(el);
@@ -411,18 +405,7 @@ const SubmitView = (() => {
     });
   }
 
-  function _bindTaxRate(el) {
-    el.addEventListener('click', e => {
-      const item = e.target.closest('[data-tax]');
-      if (!item) return;
-      e.preventDefault();
-      const tax = item.dataset.tax;
-      const btn = el.querySelector('#btnTaxRate');
-      if (btn) { btn.textContent = tax; btn.dataset.taxRate = tax; }
-    });
-  }
-
-  function _bindTypeButtons(el) {
+function _bindTypeButtons(el) {
     el.querySelectorAll('[data-type]').forEach(btn => {
       btn.addEventListener('click', () => {
         _currentType = btn.dataset.type;
@@ -857,10 +840,10 @@ const SubmitView = (() => {
         }
       }
 
-      // 税区分バッジを更新
+      // 税区分を更新
       if (result.tax_rate) {
-        const taxBtn = el.querySelector('#btnTaxRate');
-        if (taxBtn) { taxBtn.textContent = result.tax_rate; taxBtn.dataset.taxRate = result.tax_rate; }
+        const taxSel = el.querySelector('#selTaxRate');
+        if (taxSel) taxSel.value = result.tax_rate;
       }
 
       // 解析完了後、フォームを画面内にスクロール
@@ -1080,7 +1063,7 @@ const SubmitView = (() => {
     return {
       date, place, amount, category, note,
       invoice:   pnl.querySelector('#inputInvoice')?.value?.trim() || '',
-      taxRate:   el.querySelector('#btnTaxRate')?.dataset.taxRate || '課税10%',
+      taxRate:   el.querySelector('#selTaxRate')?.value || '課税10%',
       corpPay, paySource,
     };
   }
@@ -1245,8 +1228,8 @@ const SubmitView = (() => {
         if (amtInput) amtInput.value = Number(e.amount).toLocaleString('ja-JP');
         const sel = pnl.querySelector('#selCategory');
         if (sel) [...sel.options].forEach(o => o.selected = o.value === e.category);
-        const taxBtn = el.querySelector('#btnTaxRate');
-        if (taxBtn && e.taxRate) { taxBtn.textContent = e.taxRate; taxBtn.dataset.taxRate = e.taxRate; }
+        const taxSel = el.querySelector('#selTaxRate');
+        if (taxSel && e.taxRate) taxSel.value = e.taxRate;
       } else if (e.type === '交通費') {
         const parts = (e.place || '').split(' → ');
         const fromInput = el.querySelector('#txtFrom');
