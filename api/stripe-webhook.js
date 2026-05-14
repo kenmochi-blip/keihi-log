@@ -56,7 +56,8 @@ export default async function handler(req, res) {
 async function _issueNewLicense(session) {
   // SET NX でアトミックにロックを取得（同一セッションへの同時リクエスト・リトライを完全排除）
   // NX = "Not eXists" のときのみセット。複数の呼び出しが同時到達しても1つだけ 'OK' を返す。
-  const locked = await kv.set(`session:${session.id}`, 'issuing', { nx: true });
+  const SESSION_TTL = 60 * 60 * 24 * 30; // 30日（Stripeの冪等性ウィンドウを大幅に超える）
+  const locked = await kv.set(`session:${session.id}`, 'issuing', { nx: true, ex: SESSION_TTL });
   if (!locked) {
     console.log(`Duplicate session ${session.id}, skipping`);
     return;
@@ -87,7 +88,7 @@ async function _issueNewLicense(session) {
   await kv.set(`license:${licenseKey}`, licenseData);
 
   // ロックキーを発行済みキーで上書き（以降の参照でキーが分かるように）
-  await kv.set(`session:${session.id}`, licenseKey);
+  await kv.set(`session:${session.id}`, licenseKey, { ex: SESSION_TTL });
 
   // メールアドレスからキーを逆引きできるインデックスも保存
   await kv.set(`email_to_license:${customerEmail}`, licenseKey);

@@ -57,6 +57,11 @@ const Auth = (() => {
     if (resp.error) {
       _pendingResolves.forEach(({ reject }) => reject(new Error(resp.error)));
       _pendingResolves = [];
+      // ユーザーが意図的に閉じた場合以外はログイン画面へ戻す
+      if (resp.error !== 'popup_closed_by_user' && resp.error !== 'access_denied') {
+        sessionStorage.removeItem(SESSION_KEY);
+        window.location.replace('index.html');
+      }
       return;
     }
     _accessToken = resp.access_token;

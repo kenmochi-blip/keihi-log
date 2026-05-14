@@ -83,8 +83,15 @@ const App = (() => {
       }
     } catch (_) {
       _masterCache = { members: [], categories: [], paySources: [], admins: [], viewers: [] };
-      _userRole = 'admin';
-      _isAdmin = true; // マスタ読み込み失敗時も管理者扱いにして設定できるようにする
+      // ライセンスオーナーのみ管理者フォールバック（設定画面で復旧できるように）
+      try {
+        const _cached = JSON.parse(localStorage.getItem('keihi_license_cache') || 'null');
+        const _email  = Auth.getUserEmail().toLowerCase();
+        if (_cached?.result?.ownerEmail && _cached.result.ownerEmail === _email) {
+          _userRole = 'admin';
+          _isAdmin  = true;
+        }
+      } catch (_e) {}
     }
 
     // 会社名をナビタイトルに反映
@@ -102,9 +109,10 @@ const App = (() => {
   function _setupUI(initialView = 'submit') {
     // URLをシートID付きパスに書き換え（例: /app.html → /SHEET_ID）デモ中は除外
     if (!(typeof Demo !== 'undefined' && Demo.isActive())) {
-      const _ssId = localStorage.getItem('keihi_sheet_id');
+      const _ssId  = localStorage.getItem('keihi_sheet_id');
+      const _alias = localStorage.getItem('keihi_alias');
       if (_ssId && location.pathname === '/app.html') {
-        history.replaceState(null, '', '/' + _ssId);
+        history.replaceState(null, '', '/' + (_alias || _ssId));
       }
     }
 
