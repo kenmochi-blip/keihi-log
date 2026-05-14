@@ -305,10 +305,9 @@ const SettingsView = (() => {
               <div class="text-muted" style="font-size:0.7rem;">QRコードをスクリーンショットしてメールなどで共有できます</div>
             </div>
             <div class="d-flex gap-2">
-              <a href="mailto:?subject=${mailSubject}&body=${mailBody}"
-                class="btn btn-outline-primary btn-sm flex-fill">
+              <button class="btn btn-outline-primary btn-sm flex-fill" id="btnSendMail">
                 <i class="bi bi-envelope me-1"></i>メールで送る
-              </a>
+              </button>
               <button class="btn btn-primary btn-sm flex-fill" id="btnReloadAfterCreate">
                 <i class="bi bi-arrow-clockwise me-1"></i>再読み込みして開始
               </button>
@@ -318,6 +317,9 @@ const SettingsView = (() => {
           navigator.clipboard.writeText(shareUrl).then(() => App.showToast('URLをコピーしました', 'success'));
         });
         el.querySelector('#btnReloadAfterCreate')?.addEventListener('click', () => location.reload());
+        el.querySelector('#btnSendMail')?.addEventListener('click', () => {
+          window.location.href = `mailto:?subject=${mailSubject}&body=${mailBody}`;
+        });
         App.showToast('スプレッドシートを作成しました', 'success');
       } catch (err) {
         msg.innerHTML = `<span class="text-danger">${_escape(err.message)}</span>`;
