@@ -107,9 +107,11 @@ const App = (() => {
       }
     }
 
-    // 保存済みナビカラーを適用
+    // 保存済みナビカラーを適用（旧デフォルト#808000は青にリセット）
     const _defaultNavColor = '#0d6efd';
-    const savedNavColor = localStorage.getItem('keihi_nav_color') || _defaultNavColor;
+    const _rawNavColor = localStorage.getItem('keihi_nav_color');
+    if (_rawNavColor === '#808000') localStorage.removeItem('keihi_nav_color');
+    const savedNavColor = (localStorage.getItem('keihi_nav_color')) || _defaultNavColor;
     const navbar = document.querySelector('nav.navbar.sticky-top');
     if (navbar) navbar.style.setProperty('background-color', savedNavColor, 'important');
 
