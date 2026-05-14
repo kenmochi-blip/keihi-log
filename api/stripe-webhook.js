@@ -54,6 +54,13 @@ export default async function handler(req, res) {
 }
 
 async function _issueNewLicense(session) {
+  // 冪等チェック：同じセッションIDで既に発行済みならスキップ（Stripeのリトライ対策）
+  const existingKey = await kv.get(`session:${session.id}`);
+  if (existingKey) {
+    console.log(`License already issued for session ${session.id}: ${existingKey}`);
+    return;
+  }
+
   const customerEmail = session.customer_details?.email || session.customer_email || '';
   const customerName  = session.customer_details?.name  || customerEmail;
   const plan = session.metadata?.plan || 'standard';
@@ -78,8 +85,8 @@ async function _issueNewLicense(session) {
   // KV に保存
   await kv.set(`license:${licenseKey}`, licenseData);
 
-  // セッションIDからキーを引けるインデックス（サンクスページ用・3日TTL）
-  await kv.set(`session:${session.id}`, licenseKey, { ex: 60 * 60 * 24 * 3 });
+  // セッションIDからキーを引けるインデックス（TTLなし：リトライ重複チェック用）
+  await kv.set(`session:${session.id}`, licenseKey);
 
   // メールアドレスからキーを逆引きできるインデックスも保存
   await kv.set(`email_to_license:${customerEmail}`, licenseKey);
