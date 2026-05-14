@@ -131,15 +131,22 @@
 
       // 短い（44文字未満）→ エイリアスとして解決
       if (_token.length < 44) {
-        try {
-          const base = (window.APP_CONFIG?.apiBase || '');
-          const r = await fetch(`${base}/api/alias?code=${encodeURIComponent(_token)}`);
-          if (r.ok) {
-            const { sheetId } = await r.json();
-            localStorage.setItem('keihi_sheet_id', sheetId);
-            localStorage.setItem('keihi_alias', _token);
-          }
-        } catch (_) {}
+        // 同じエイリアスで既にシートIDがキャッシュ済みならAPIコール不要
+        const _cachedAlias = localStorage.getItem('keihi_alias');
+        const _cachedSheet = localStorage.getItem('keihi_sheet_id');
+        if (_cachedAlias === _token && _cachedSheet) {
+          // キャッシュ済み：スキップ
+        } else {
+          try {
+            const base = (window.APP_CONFIG?.apiBase || '');
+            const r = await fetch(`${base}/api/alias?code=${encodeURIComponent(_token)}`);
+            if (r.ok) {
+              const { sheetId } = await r.json();
+              localStorage.setItem('keihi_sheet_id', sheetId);
+              localStorage.setItem('keihi_alias', _token);
+            }
+          } catch (_) {}
+        }
       } else {
         // 長い → スプレッドシートID直接指定（後方互換）
         localStorage.setItem('keihi_sheet_id', _token);
