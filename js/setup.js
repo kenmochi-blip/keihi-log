@@ -42,18 +42,21 @@ const Setup = (() => {
     // 2. ヘッダーと初期データを書き込む
     await _writeInitialData(ssId, sheetIds, companyName);
 
-    // 3. 保存先フォルダが指定されていればスプレッドシートを移動
-    if (parentFolderId) {
-      await Drive.moveToFolder(ssId, parentFolderId).catch(() => {});
+    // 3. 保存先フォルダが未指定なら親フォルダを自動作成
+    if (!parentFolderId) {
+      parentFolderId = await Drive.createFolder(`経費ログ - ${companyName || ''}`.trim(), null);
     }
 
-    // 4. Drive 証票フォルダ作成（保存先フォルダ内 or ルート）
-    const folderId = await Drive.createFolder(`経費証票 - ${companyName || ''}`.trim(), parentFolderId || null);
+    // 4. スプレッドシートをフォルダに移動
+    await Drive.moveToFolder(ssId, parentFolderId).catch(() => {});
 
-    // 5. フォルダIDを設定シートに保存
+    // 5. Drive 証票フォルダ作成（親フォルダ内）
+    const folderId = await Drive.createFolder(`経費証票 - ${companyName || ''}`.trim(), parentFolderId);
+
+    // 6. フォルダIDを設定シートに保存
     await Sheets.update('設定!B4', [[folderId]], ssId);
 
-    // 6. localStorageとDriveに保存（端末間同期）
+    // 7. localStorageとDriveに保存（端末間同期）
     localStorage.setItem('keihi_sheet_id', ssId);
     localStorage.setItem('keihi_folder_id', folderId);
     Drive.saveSettings({
