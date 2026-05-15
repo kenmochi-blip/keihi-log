@@ -92,9 +92,6 @@ const Setup = (() => {
     });
   }
 
-    return ssId;
-  }
-
   async function _writeInitialData(ssId, sheetIds, companyName) {
     const userEmail = Auth.getUserEmail();
     const userName  = Auth.getUserInfo()?.name || userEmail;
