@@ -7,7 +7,8 @@
     { "source": "/faq", "destination": "/faq.html" },
     { "source": "/demo", "destination": "/demo.html" },
     { "source": "/login", "destination": "/login.html" },
-    { "source": "/((?!js/|css/|api/|app\\.html|login\\.html|login|lp\\.html|privacy\\.html|privacy|success\\.html|success|licenses\\.html|licenses|faq\\.html|faq|demo\\.html|demo/).*)", "destination": "/index.html" }
+    { "source": "/tokusho", "destination": "/tokusho.html" },
+    { "source": "/((?!js/|css/|api/|app\\.html|login\\.html|login|lp\\.html|tokusho\\.html|tokusho|privacy\\.html|privacy|success\\.html|success|licenses\\.html|licenses|faq\\.html|faq|demo\\.html|demo/).*)", "destination": "/index.html" }
   ],
   "headers": [
     {
