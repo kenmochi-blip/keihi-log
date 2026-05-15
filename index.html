@@ -15,11 +15,14 @@
     --bs-primary: #0d6efd;
     --bs-primary-rgb: 13, 110, 253;
   }
+  html, body {
+    overflow-x: hidden;
+    max-width: 100%;
+  }
   body {
     font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     color: #212529;
     -webkit-font-smoothing: antialiased;
-    overflow-x: hidden;
   }
 
   /* ===== Logo ===== */
@@ -122,6 +125,7 @@
     position: relative;
     max-width: 480px;
     margin: 0 auto;
+    overflow: hidden;
     filter: drop-shadow(0 20px 40px rgba(0,0,0,0.25));
   }
   .mockup-window {
@@ -251,7 +255,7 @@
   .floating-receipt {
     position: absolute;
     top: 30px;
-    right: -30px;
+    right: 0;
     background: #fff;
     color: #212529;
     border-radius: 12px;
