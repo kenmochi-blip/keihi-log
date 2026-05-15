@@ -621,14 +621,26 @@
   /* ===== Hero Carousel ===== */
   .hero-carousel {
     width: 240px;
-    padding-bottom: 40px;
+    padding-bottom: 44px;
+  }
+  .hero-screen-frame {
+    width: 240px;
+    height: 420px;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.3);
+    background: #f0f2f5;
+    margin: 0 auto;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
   }
   .hero-screen-img {
-    width: 240px;
-    border-radius: 20px;
-    box-shadow: 0 16px 48px rgba(0,0,0,0.3);
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top;
     display: block;
-    margin: 0 auto;
   }
   .hero-screen-label {
     text-align: center;
@@ -637,9 +649,25 @@
     margin-top: 10px;
     margin-bottom: 0;
   }
+  .hero-carousel .carousel-indicators {
+    bottom: 0;
+    margin-bottom: 0;
+  }
+  .hero-carousel .carousel-indicators button {
+    width: 8px !important;
+    height: 8px !important;
+    border-radius: 50% !important;
+    border: none !important;
+    opacity: 0.5;
+    padding: 0 !important;
+    flex: none !important;
+  }
+  .hero-carousel .carousel-indicators button.active {
+    opacity: 1;
+  }
   @media (min-width: 992px) {
     .hero-carousel { width: 280px; }
-    .hero-screen-img { width: 280px; }
+    .hero-screen-frame { width: 280px; height: 490px; }
   }
 
   @media (max-width: 768px) {
@@ -758,22 +786,35 @@
         <div id="heroCarousel" class="carousel slide hero-carousel" data-bs-ride="carousel" data-bs-interval="3000">
           <div class="carousel-inner">
             <div class="carousel-item active">
-              <img src="/img/demo-submit.png" class="hero-screen-img" alt="申請画面">
+              <div class="hero-screen-frame">
+                <img src="/img/demo-submit.png" class="hero-screen-img" alt="申請画面">
+              </div>
               <p class="hero-screen-label">申請画面</p>
             </div>
             <div class="carousel-item">
-              <img src="/img/demo-list.png" class="hero-screen-img" alt="一覧表">
+              <div class="hero-screen-frame">
+                <img src="/img/demo-form.png" class="hero-screen-img" alt="入力フォーム">
+              </div>
+              <p class="hero-screen-label">入力フォーム</p>
+            </div>
+            <div class="carousel-item">
+              <div class="hero-screen-frame">
+                <img src="/img/demo-list.png" class="hero-screen-img" alt="一覧表">
+              </div>
               <p class="hero-screen-label">一覧表</p>
             </div>
             <div class="carousel-item">
-              <img src="/img/demo-summary.png" class="hero-screen-img" alt="集計表">
+              <div class="hero-screen-frame">
+                <img src="/img/demo-summary.png" class="hero-screen-img" alt="集計表">
+              </div>
               <p class="hero-screen-label">集計表</p>
             </div>
           </div>
-          <div class="carousel-indicators" style="bottom:-28px;">
-            <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="0" class="active" style="background:#fff;width:8px;height:8px;border-radius:50%;"></button>
-            <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="1" style="background:rgba(255,255,255,0.5);width:8px;height:8px;border-radius:50%;"></button>
-            <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="2" style="background:rgba(255,255,255,0.5);width:8px;height:8px;border-radius:50%;"></button>
+          <div class="carousel-indicators">
+            <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="0" class="active"></button>
+            <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="1"></button>
+            <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="2"></button>
+            <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="3"></button>
           </div>
         </div>
       </div>
