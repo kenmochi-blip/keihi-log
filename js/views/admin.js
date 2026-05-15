@@ -217,6 +217,14 @@ const AdminView = (() => {
         role:  modal.querySelector('#mRole').value,
       };
       if (!updated.name || !updated.email) return App.showToast('氏名・メールは必須です', 'danger');
+      // 既存管理者を降格させる場合、最後の管理者なら不可
+      if (!isNew && _master.members[idx]?.role === 'admin' && updated.role !== 'admin') {
+        const adminCount = _master.members.filter(m => m.role === 'admin').length;
+        if (adminCount <= 1) {
+          App.showToast('管理者が1人のため降格できません。先に他のメンバーを管理者に設定してください。', 'danger');
+          return;
+        }
+      }
       const oldEmail = isNew ? null : (_master.members[idx]?.email || null);
       if (isNew) _master.members.push(updated);
       else       _master.members[idx] = updated;
@@ -260,6 +268,14 @@ const AdminView = (() => {
 
   async function _deleteMember(el, idx) {
     const member = _master.members[idx];
+    // 最後の管理者は削除不可
+    if (member.role === 'admin') {
+      const adminCount = _master.members.filter(m => m.role === 'admin').length;
+      if (adminCount <= 1) {
+        App.showToast('管理者が1人のため削除できません。先に他のメンバーを管理者に設定してください。', 'danger');
+        return;
+      }
+    }
     if (!confirm(`${member.name} を削除しますか？`)) return;
     _master.members.splice(idx, 1);
     await _saveMasterToSheet(el);

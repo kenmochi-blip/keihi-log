@@ -63,10 +63,9 @@ const App = (() => {
     try {
       _masterCache = await Sheets.readMaster();
       const email  = Auth.getUserEmail().toLowerCase();
-      // ライセンス購入者（ownerEmail）は常に管理者
-      const isLicenseOwner = lic.ownerEmail && lic.ownerEmail === email;
-      // 管理者が誰も登録されていない場合（初期状態）は現ユーザーを管理者扱い
-      if (isLicenseOwner || _masterCache.admins.length === 0 || _masterCache.admins.includes(email)) {
+      // 管理者未登録のときは全員管理者扱い（初期設定の保険）
+      // 管理者登録後はマスタ表の権限のみで判定（ライセンスオーナーも例外なし）
+      if (_masterCache.admins.length === 0 || _masterCache.admins.includes(email)) {
         _userRole = 'admin';
       } else if (_masterCache.viewers && _masterCache.viewers.includes(email)) {
         _userRole = 'viewer';
@@ -217,8 +216,7 @@ const App = (() => {
       _masterCache = { members: [], categories: [], paySources: [], admins: [], viewers: [] };
     }
     const email = Auth.getUserEmail().toLowerCase();
-    const isLicenseOwner = lic.ownerEmail && lic.ownerEmail === email;
-    if (isLicenseOwner || _masterCache.admins.length === 0 || _masterCache.admins.includes(email)) {
+    if (_masterCache.admins.length === 0 || _masterCache.admins.includes(email)) {
       _userRole = 'admin';
     } else if (_masterCache.viewers?.includes(email)) {
       _userRole = 'viewer';
