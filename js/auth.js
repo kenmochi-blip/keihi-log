@@ -60,7 +60,7 @@ const Auth = (() => {
       // ユーザーが意図的に閉じた場合以外はログイン画面へ戻す
       if (resp.error !== 'popup_closed_by_user' && resp.error !== 'access_denied') {
         sessionStorage.removeItem(SESSION_KEY);
-        window.location.replace('index.html');
+        window.location.replace('login.html');
       }
       return;
     }
@@ -136,7 +136,7 @@ const Auth = (() => {
     if (typeof Demo !== 'undefined' && Demo.isActive()) {
       Demo.disable();
       sessionStorage.removeItem(SESSION_KEY);
-      window.location.href = 'index.html';
+      window.location.href = 'login.html';
       return;
     }
     if (_accessToken) {
@@ -148,7 +148,7 @@ const Auth = (() => {
     sessionStorage.removeItem(SESSION_KEY);
     localStorage.removeItem('keihi_user_email');
     gapi.client.setToken(null);
-    window.location.href = 'index.html';
+    window.location.href = 'login.html';
   }
 
   /** Bearer ヘッダー付きのfetch */

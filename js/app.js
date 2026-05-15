@@ -32,7 +32,7 @@ const App = (() => {
     try {
       await Auth.getToken();
     } catch (_) {
-      window.location.href = 'index.html';
+      window.location.href = 'login.html';
       return;
     }
 
