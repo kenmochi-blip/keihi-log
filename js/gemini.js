@@ -43,15 +43,33 @@ const Gemini = (() => {
     throw new Error('Gemini APIキーが設定されていません。管理者に設定シートへのキー入力を依頼してください。');
   }
 
+  /** APIキーをプリフェッチしてキャッシュに乗せる（呼び出し元はawait不要） */
+  function warmup() {
+    _getApiKey().catch(() => {});
+  }
+
+  /**
+   * 画像を事前圧縮してキャッシュ用に返す（ファイル選択直後に呼び出す）
+   * @param {Array<{base64: string, mimeType: string, name: string}>} files
+   */
+  async function precompress(files) {
+    return Promise.all(files.map(async f => ({
+      ...f,
+      base64: await _compressImage(f.base64, f.mimeType, 2000, 0.85),
+      mimeType: f.mimeType.startsWith('image/') ? 'image/jpeg' : f.mimeType,
+    })));
+  }
+
   /**
    * 領収書画像を解析してJSON情報を返す
    * @param {Array<{base64: string, mimeType: string}>} files
    * @param {string[]} categories 勘定科目リスト
+   * @param {boolean} alreadyCompressed 圧縮済みの場合はtrueで圧縮をスキップ
    */
-  async function analyzeReceipt(files, categories) {
+  async function analyzeReceipt(files, categories, alreadyCompressed = false) {
     // 電帳法要件（200万画素以上）を満たしつつ圧縮（2000px長辺・quality 0.85）
-    // 2000×1500=300万画素で要件をクリア。全モードで適用。
-    const processedFiles = await Promise.all(files.map(async f => ({
+    // precompress済みの場合はスキップ
+    const processedFiles = alreadyCompressed ? files : await Promise.all(files.map(async f => ({
       ...f,
       base64: await _compressImage(f.base64, f.mimeType, 2000, 0.85),
       mimeType: f.mimeType.startsWith('image/') ? 'image/jpeg' : f.mimeType,
@@ -132,5 +150,5 @@ const Gemini = (() => {
   /** キャッシュをクリアする（APIキーが変更された場合など） */
   function clearApiKey() { _apiKey = ''; }
 
-  return { analyzeReceipt, clearApiKey };
+  return { analyzeReceipt, precompress, warmup, clearApiKey };
 })();

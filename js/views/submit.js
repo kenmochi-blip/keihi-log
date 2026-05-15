@@ -6,13 +6,15 @@
 const SubmitView = (() => {
 
   // フォーム状態
-  let _selectedFiles = []; // [{base64, mimeType, name}]
-  let _existingUrls  = []; // 編集時の既存証票URL
-  let _existingHash  = '';
-  let _editId        = null;
-  let _currentType   = '領収書';
-  let _cats          = [];
-  let _paySources    = [];
+  let _selectedFiles    = []; // [{base64, mimeType, name}]
+  let _compressedFiles  = []; // 圧縮済みキャッシュ [{base64, mimeType, name}]
+  let _compressPromise  = null; // 圧縮の並列実行プロミス
+  let _existingUrls     = []; // 編集時の既存証票URL
+  let _existingHash     = '';
+  let _editId           = null;
+  let _currentType      = '領収書';
+  let _cats             = [];
+  let _paySources       = [];
   let _pendingEdit   = null; // 一覧表からの編集キュー {id, expenses}
   let _historyAll      = []; // 自分の全履歴（ソート済）
   let _historyExpenses = []; // 全経費データ（編集用）
@@ -409,7 +411,7 @@ function _bindTypeButtons(el) {
     el.querySelectorAll('[data-type]').forEach(btn => {
       btn.addEventListener('click', () => {
         _currentType = btn.dataset.type;
-        _selectedFiles = [];
+        _selectedFiles = []; _compressedFiles = []; _compressPromise = null;
         el.querySelectorAll('[data-type]').forEach(b => {
           b.classList.toggle('active', b.dataset.type === _currentType);
         });
@@ -430,12 +432,24 @@ function _bindTypeButtons(el) {
   function _bindFileInputs(el) {
     const handleFiles = async (el, type, e) => {
       for (const file of e.target.files) {
-        const base64 = await Drive.fileToBase64(file);
         if (file.size > 10 * 1024 * 1024) { App.showToast(`${file.name} は10MBを超えています`, 'warning'); continue; }
+        const base64 = await Drive.fileToBase64(file);
         _selectedFiles.push({ base64, mimeType: file.type, name: file.name });
         _addPreviewItem(el, type, base64, file.type, _selectedFiles.length - 1);
       }
       e.target.value = '';
+
+      // 領収書タイプの場合：圧縮とAPIキー取得を並列でプリフェッチし、自動でAI解析を開始
+      if (type === '領収書' && _selectedFiles.length > 0) {
+        _compressedFiles = [];
+        _compressPromise = Gemini.precompress(_selectedFiles);
+        Gemini.warmup();
+        // プリフェッチ完了後に自動解析
+        _compressPromise.then(compressed => {
+          _compressedFiles = compressed;
+          _runAiAnalysis(el);
+        });
+      }
     };
 
     TYPES.forEach(type => {
@@ -756,7 +770,13 @@ function _bindTypeButtons(el) {
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>解析中...';
     try {
-      const result = await Gemini.analyzeReceipt(files, _cats);
+      // 圧縮済みキャッシュがあればそれを使用（プリフェッチ済みの場合は圧縮時間ゼロ）
+      if (_compressPromise) {
+        _compressedFiles = await _compressPromise;
+        _compressPromise = null;
+      }
+      const filesToAnalyze = _compressedFiles.length > 0 ? _compressedFiles : files;
+      const result = await Gemini.analyzeReceipt(filesToAnalyze, _cats, true);
       console.log('[AI解析結果]', result);
 
       _showReceiptFields(el);
@@ -1295,7 +1315,7 @@ function _bindTypeButtons(el) {
   }
 
   function _resetForm(el) {
-    _selectedFiles = [];
+    _selectedFiles = []; _compressedFiles = []; _compressPromise = null;
     _editId = null;
     el.querySelector('#editBanner')?.classList.add('d-none');
     const btn = el.querySelector('#btnSubmit');
