@@ -49,7 +49,7 @@ const SubmitView = (() => {
   <!-- タイプ選択 2×2グリッド -->
   <div class="type-grid mb-3">
     <button class="type-card active" data-type="領収書">
-      <i class="bi bi-camera-fill"></i>領収書
+      <i class="bi bi-camera-fill"></i>レシート/領収書
     </button>
     <button class="type-card" data-type="領収書なし">
       <i class="bi bi-pencil-square"></i>領収書なし
