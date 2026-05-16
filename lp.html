@@ -41,7 +41,7 @@
 
   /* ===== Hero ===== */
   .hero {
-    background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+    background: linear-gradient(135deg, var(--brand) 0%, hsl(var(--brand-h), var(--brand-s), 42%) 100%);
     color: #fff;
     padding: 6rem 0 5rem;
     position: relative;
@@ -93,7 +93,7 @@
   }
   .btn-cta {
     background-color: #fff;
-    color: #0d6efd;
+    color: var(--brand);
     font-weight: 700;
     padding: 0.85rem 2rem;
     border-radius: 50px;
@@ -104,7 +104,7 @@
   .btn-cta:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(0,0,0,0.2);
-    color: #0a58ca;
+    color: hsl(var(--brand-h), var(--brand-s), 42%);
   }
   .btn-cta-outline {
     background: transparent;
@@ -117,7 +117,7 @@
   }
   .btn-cta-outline:hover {
     background: #fff;
-    color: #0d6efd;
+    color: var(--brand);
   }
 
   /* ===== Hero Mockup ===== */
@@ -200,7 +200,7 @@
     height: 32px;
     border-radius: 8px;
     background: #e7f1ff;
-    color: #0d6efd;
+    color: var(--brand);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -282,7 +282,7 @@
   }
   .floating-receipt .text-block strong {
     font-size: 12px;
-    color: #0d6efd;
+    color: var(--brand);
   }
   @keyframes float {
     0%, 100% { transform: translateY(0); }
@@ -357,7 +357,7 @@
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    background: #0d6efd;
+    background: var(--brand);
     color: #fff;
     font-size: 1rem;
     font-weight: 900;
@@ -371,7 +371,7 @@
     position: absolute;
     top: 60px;
     right: -15px;
-    color: #0d6efd;
+    color: var(--brand);
     font-size: 1.5rem;
     z-index: 1;
   }
@@ -393,7 +393,7 @@
   .feature-card:hover {
     transform: translateY(-4px);
     box-shadow: 0 12px 32px rgba(13,110,253,0.12);
-    border-color: #0d6efd;
+    border-color: var(--brand);
   }
   .feature-illust {
     width: 100px;
@@ -422,7 +422,7 @@
     display: block;
   }
   .price-highlight {
-    color: #0d6efd;
+    color: var(--brand);
     font-weight: 900;
     font-size: 1.3rem;
   }
@@ -469,7 +469,7 @@
     box-shadow: 0 12px 32px rgba(0,0,0,0.1);
   }
   .price-card.featured {
-    border-color: #0d6efd;
+    border-color: var(--brand);
     box-shadow: 0 8px 32px rgba(13,110,253,0.15);
   }
   .featured-badge {
@@ -477,7 +477,7 @@
     top: -14px;
     left: 50%;
     transform: translateX(-50%);
-    background: #0d6efd;
+    background: var(--brand);
     color: #fff;
     padding: 0.35rem 1rem;
     border-radius: 50px;
@@ -493,7 +493,7 @@
   .price-amount {
     font-size: 2.5rem;
     font-weight: 900;
-    color: #0d6efd;
+    color: var(--brand);
   }
   .price-period {
     color: #6c757d;
@@ -501,7 +501,7 @@
   }
   .price-annual {
     background: #e7f1ff;
-    color: #0d6efd;
+    color: var(--brand);
     padding: 0.5rem 0.75rem;
     border-radius: 8px;
     font-size: 0.85rem;
@@ -515,7 +515,7 @@
     box-shadow: 0 4px 16px rgba(0,0,0,0.05);
   }
   .table-pricing thead {
-    background: #0d6efd;
+    background: var(--brand);
     color: #fff;
   }
   .table-pricing th, .table-pricing td {
@@ -526,7 +526,7 @@
   /* ===== FAQ ===== */
   .accordion-button:not(.collapsed) {
     background: #e7f1ff;
-    color: #0d6efd;
+    color: var(--brand);
     box-shadow: none;
   }
   .accordion-button:focus {
@@ -542,7 +542,7 @@
 
   /* ===== Security ===== */
   .security-section {
-    background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+    background: linear-gradient(135deg, var(--brand) 0%, hsl(var(--brand-h), var(--brand-s), 42%) 100%);
     color: #fff;
   }
   .security-section .section-title,
@@ -612,7 +612,7 @@
   }
   .navbar-custom .navbar-brand {
     font-weight: 900;
-    color: #0d6efd;
+    color: var(--brand);
     font-size: 1.35rem;
   }
   .navbar-custom .nav-link {
@@ -620,7 +620,7 @@
     font-weight: 500;
   }
   .navbar-custom .nav-link:hover {
-    color: #0d6efd;
+    color: var(--brand);
   }
 
   @media (max-width: 768px) {
