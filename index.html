@@ -106,6 +106,14 @@
     box-shadow: 0 6px 20px rgba(0,0,0,0.2);
     color: hsl(var(--brand-h), var(--brand-s), 42%);
   }
+  .btn-cta:focus, .btn-cta:focus-visible,
+  .btn-cta:active {
+    background-color: #fff;
+    color: var(--brand);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+    outline: none;
+    transform: none;
+  }
   .btn-cta-outline {
     background: transparent;
     color: #fff;
@@ -118,6 +126,13 @@
   .btn-cta-outline:hover {
     background: #fff;
     color: var(--brand);
+  }
+  .btn-cta-outline:focus, .btn-cta-outline:focus-visible,
+  .btn-cta-outline:active {
+    background: transparent;
+    color: #fff;
+    outline: none;
+    box-shadow: none;
   }
 
   /* ===== Hero Mockup ===== */
