@@ -588,7 +588,12 @@ function _bindTypeButtons(el) {
 
   function _bindCorpPay(el) {
     el.querySelector('#chkCorpPay')?.addEventListener('change', e => {
-      el.querySelector('#corpPayDetails').classList.toggle('d-none', !e.target.checked);
+      const details = el.querySelector('#corpPayDetails');
+      details.classList.toggle('d-none', !e.target.checked);
+      if (e.target.checked) {
+        const sel = el.querySelector('#selPaySource');
+        if (sel && !sel.value && _paySources.length > 0) sel.value = _paySources[0];
+      }
     });
   }
 
