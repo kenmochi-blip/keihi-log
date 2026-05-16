@@ -3,14 +3,21 @@ body { font-size: 0.9rem; }
 
 /* ナビゲーション */
 .nav-item-btn {
-  color: #6c757d;
+  color: #b0b8c1;
+  opacity: 0.55;
   padding: 0.3rem 0.5rem;
   min-width: 56px;
   text-align: center;
-  transition: color 0.15s;
+  transition: color 0.15s, opacity 0.15s;
 }
-.nav-item-btn.active,
-.nav-item-btn:hover { color: #0d6efd; }
+.nav-item-btn.active {
+  color: #0d6efd;
+  opacity: 1;
+}
+.nav-item-btn:hover {
+  color: #0d6efd;
+  opacity: 0.8;
+}
 
 /* タイプ選択グリッド */
 .type-grid {
