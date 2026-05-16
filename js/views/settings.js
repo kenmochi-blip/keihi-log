@@ -99,7 +99,20 @@ const SettingsView = (() => {
           <!-- ④ Gemini APIキー（管理者のみ） -->
           ${isAdmin ? `
           <div class="settings-step-title">④ Gemini APIキー</div>
-          <div class="settings-step-hint">全メンバー共用 — メンバーは個別取得不要。Google AI Studioで取得してください。</div>
+          <div class="settings-step-hint">全メンバー共用 — メンバーは個別取得不要です。</div>
+          <div class="card bg-light border-0 p-2 mb-2" style="font-size:0.82rem;line-height:1.6;">
+            <div class="fw-semibold mb-1"><i class="bi bi-key me-1 text-warning"></i>APIキーの取得手順</div>
+            <ol class="mb-1 ps-3">
+              <li>下のリンクをタップしてGoogle AI Studioを開く</li>
+              <li>「Get API key」→「APIキーを作成」をタップ</li>
+              <li>表示されたキー（AIzaSy...）をコピー</li>
+              <li>このページに戻って下の欄に貼り付けて「保存」</li>
+            </ol>
+            <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener"
+               class="btn btn-warning btn-sm rounded-pill px-3 mt-1">
+              <i class="bi bi-box-arrow-up-right me-1"></i>Google AI Studioでキーを取得する
+            </a>
+          </div>
           <div class="input-group mb-1">
             <input type="password" class="form-control form-control-sm" id="inputGeminiKey" placeholder="AIzaSy...">
             <button class="btn btn-outline-primary btn-sm" id="btnSaveGeminiKey">保存</button>
