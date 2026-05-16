@@ -8,7 +8,17 @@ const Demo = (() => {
 
   let _role = sessionStorage.getItem(ROLE_KEY) || 'admin';
 
-  function enable()   { sessionStorage.setItem(KEY, '1'); }
+  function enable() {
+    sessionStorage.setItem(KEY, '1');
+    // 訂正・削除防止規程のデモデータ（未設定の場合のみ）
+    if (!localStorage.getItem('keihi_regulation')) {
+      localStorage.setItem('keihi_regulation', JSON.stringify({
+        orgName: 'デモCo.',
+        representative: 'デモ ユーザー',
+        confirmedAt: '2026-01-01',
+      }));
+    }
+  }
   function disable()  { sessionStorage.removeItem(KEY); sessionStorage.removeItem(ROLE_KEY); _role = 'admin'; }
   function isActive() { return sessionStorage.getItem(KEY) === '1'; }
   function getRole()  { return _role; }
@@ -137,6 +147,14 @@ const Demo = (() => {
        '領収書', '2025-06-28', 'キンコーズ', 2200, '消耗品費', '資料印刷・製本', true, ''),
     _e('demo-040', '2025-06-15T14:30:00Z', '佐藤 次郎', 'sato@example.com',
        '領収書なし', '2025-06-15', '社内会議用飲み物', 800, '会議費', '自動販売機利用（領収書なし）', true, ''),
+    _e('demo-041', '2025-06-05T09:30:00Z', 'デモ ユーザー', 'demo@example.com',
+       '領収書', '2025-06-05', 'Amazon Business', 4860, '消耗品費', 'USBハブ・ケーブル類', true, 'T3000000000003'),
+    _e('demo-042', '2025-05-20T14:00:00Z', 'デモ ユーザー', 'demo@example.com',
+       '交通費', '2025-05-20', '渋谷→品川（往復）', 560, '旅費交通費', '取引先定例MTG', true, ''),
+    _e('demo-043', '2025-05-10T11:00:00Z', 'デモ ユーザー', 'demo@example.com',
+       '領収書なし', '2025-05-10', 'コインパーキング', 400, '旅費交通費', '客先訪問時駐車代', true, ''),
+    _e('demo-044', '2025-04-25T10:00:00Z', 'デモ ユーザー', 'demo@example.com',
+       '領収書', '2025-04-25', 'ビックカメラ', 12800, '消耗品費', 'ウェブカメラ購入（テレワーク用）', true, 'T4000000000004'),
     // ── 会社払いサンプル ──
     _e('demo-c01', '2026-05-10T10:00:00Z', 'デモ ユーザー', 'demo@example.com',
        '領収書', '2026-05-10', 'AWS（クラウド利用料）', 38500, '通信費', '5月分クラウド費用', true, '', '', '会社払い（三井住友）'),
