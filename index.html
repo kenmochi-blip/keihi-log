@@ -114,8 +114,12 @@
     outline: none !important;
     transform: none !important;
   }
-  /* LP上のすべてのリンクボタンのフォーカスring消去 */
-  a.btn:focus, a.btn:focus-visible {
+  /* LP上のすべてのリンクボタン：タップハイライト消去 + フォーカスring消去 */
+  a.btn, .btn {
+    -webkit-tap-highlight-color: transparent;
+  }
+  a.btn:focus, a.btn:focus-visible,
+  a.btn:active {
     outline: none !important;
     box-shadow: none !important;
   }
@@ -1782,11 +1786,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  // リンクボタンタップ直後にフォーカスを外す（bfcache復帰時にも青くならないように）
-  document.addEventListener('click', function(e) {
-    var btn = e.target.closest('a.btn');
-    if (btn) setTimeout(function() { btn.blur(); }, 50);
-  });
   window.addEventListener('pageshow', function() {
     setTimeout(function() {
       if (document.activeElement && document.activeElement.tagName !== 'BODY') {
