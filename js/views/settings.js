@@ -54,7 +54,7 @@ const SettingsView = (() => {
           <!-- ① 社名（管理者のみ） -->
           ${isAdmin ? `
           <div class="settings-step-title">① 社名・団体名・屋号等${!ssId ? ' <span class="text-danger" style="font-size:0.8rem;">*</span>' : ''}</div>
-          <div class="settings-step-hint">ヘッダー名に使用されます（後から変更可）</div>
+          <div class="settings-step-hint">ヘッダー名及びスプレッドシートタイトルに使用されます（後から変更可）</div>
           <div class="${ssId ? 'input-group' : ''} mb-3">
             <input type="text" class="form-control form-control-sm" id="inputCompanyName"
               placeholder="例：〇〇株式会社、NPO法人〇〇、屋号など">
@@ -63,9 +63,9 @@ const SettingsView = (() => {
           <div id="companyNameMsg" class="form-text" style="margin-top:-0.75rem;"></div>
           ` : ''}
 
-          <!-- ② 保存先フォルダ（管理者のみ） -->
+          <!-- ② 証票データ・スプレッドシート保存先フォルダ（管理者のみ） -->
           ${isAdmin ? `
-          <div class="settings-step-title">② 保存先フォルダ</div>
+          <div class="settings-step-title">② 証票データ・スプレッドシート保存先フォルダ</div>
           ${!ssId ? `
           <div class="settings-step-hint">スプレッドシートと証票画像の保存先（空欄でマイドライブのルートに作成）</div>
           <input type="text" class="form-control form-control-sm mb-2" id="inputFolderUrl"
@@ -75,23 +75,23 @@ const SettingsView = (() => {
           </button>
           <div id="createSheetMsg" class="form-text mb-3"></div>
           ` : `
-          <a href="https://docs.google.com/spreadsheets/d/${ssId}" target="_blank"
-            class="btn btn-outline-secondary btn-sm w-100 mb-2">
-            <i class="bi bi-table me-1"></i>スプレッドシートを開く</a>
-          <div class="settings-step-hint" style="margin-top:0.25rem;">証票画像の保存先フォルダを変更する場合</div>
-          <div id="folderCurrentLink" class="mb-1"></div>
+          <button class="btn btn-primary btn-sm w-100 mb-2" id="btnCreateFolder">
+            <i class="bi bi-folder-plus me-1"></i>証票フォルダを自動作成
+          </button>
           <div class="input-group mb-1">
             <input type="text" class="form-control form-control-sm" id="inputReceiptFolderUrl"
-              placeholder="Google Drive フォルダのURL">
-            <button class="btn btn-outline-primary btn-sm" id="btnSaveReceiptFolder">変更</button>
+              placeholder="Google Drive フォルダのURL（既存フォルダを使う場合）">
+            <button class="btn btn-outline-secondary btn-sm" id="btnSaveReceiptFolder">変更</button>
           </div>
-          <div id="receiptFolderMsg" class="form-text mb-3"></div>
+          <div id="receiptFolderMsg" class="form-text mb-1"></div>
+          <div id="folderOpenLinkWrap" class="mb-3"></div>
           `}
           ` : ''}
 
           <!-- ③ ライセンスキー -->
           <div class="settings-step-title">${isAdmin ? '③ ' : ''}ライセンスキー</div>
           <div id="licenseStatus" class="mb-2"></div>
+          ${!licKey ? `<div class="settings-step-hint mb-2">メールにて通知されたライセンスキーを入力してください<br>例：<code>KL-XXXXXXXXXXXXXXXXXXXX</code></div>` : ''}
           <div class="input-group mb-1">
             <input type="password" class="form-control form-control-sm" id="inputLicenseKey"
               placeholder="KL-XXXXXXXXXXXXXXXXXXXX" value="${_escape(licKey)}">
@@ -102,12 +102,26 @@ const SettingsView = (() => {
           <!-- ④ Gemini APIキー（管理者のみ） -->
           ${isAdmin ? `
           <div class="settings-step-title">④ Gemini APIキー</div>
-          <div class="settings-step-hint">全メンバー共用 — メンバーは個別取得不要。Google AI Studioで取得してください。</div>
+          <div class="settings-step-hint">全メンバー共用 — メンバーは個別取得不要です。</div>
+          <div class="card bg-light border-0 p-2 mb-2" style="font-size:0.82rem;line-height:1.6;">
+            <div class="fw-semibold mb-1"><i class="bi bi-key me-1 text-warning"></i>APIキーの取得手順</div>
+            <ol class="mb-1 ps-3">
+              <li>下のリンクをタップしてGoogle AI Studioを開く</li>
+              <li>「Get API key」→「APIキーを作成」をタップ</li>
+              <li>表示されたキー（AIzaSy...）をコピー</li>
+              <li>このページに戻って下の欄に貼り付けて「保存」</li>
+            </ol>
+            <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener"
+               class="btn btn-warning btn-sm rounded-pill px-3 mt-1">
+              <i class="bi bi-box-arrow-up-right me-1"></i>Google AI Studioでキーを取得する
+            </a>
+          </div>
           <div class="input-group mb-1">
             <input type="password" class="form-control form-control-sm" id="inputGeminiKey" placeholder="AIzaSy...">
             <button class="btn btn-outline-primary btn-sm" id="btnSaveGeminiKey">保存</button>
           </div>
-          <div id="geminiKeyMsg" class="form-text"></div>` : ''}
+          <div id="geminiKeyMsg" class="form-text"></div>
+          ${_renderRegulationInitStep()}` : ''}
 
         </div>
       </div>
@@ -116,34 +130,23 @@ const SettingsView = (() => {
 
   ${isAdmin ? _renderMasterSections() : ''}
 
-  <!-- バージョン情報 -->
-  <div class="text-center text-muted mt-4 mb-2" style="font-size:0.7rem;">
-    経費ログ v2.0.0 — <span class="badge-denchou">電帳法対応</span>
-  </div>
+  <!-- スプレッドシートを直接開く（管理者のみ・最下部） -->
+  ${isAdmin && ssId ? `
+  <div class="text-center mt-3 mb-2">
+    <a href="https://docs.google.com/spreadsheets/d/${ssId}" target="_blank" rel="noopener"
+      class="btn btn-link btn-sm text-decoration-none text-secondary" style="font-size:0.78rem;">
+      <i class="bi bi-table me-1"></i>スプレッドシートを直接開く
+    </a>
+  </div>` : ''}
 </div>`;
   }
 
   function _renderMasterSections() {
     const isDemo = typeof Demo !== 'undefined' && Demo.isActive();
     const ssId = isDemo ? '' : (localStorage.getItem('keihi_sheet_id') || '');
-    const shareUrl = ssId ? `${location.origin}/${ssId}` : '';
+    const alias = isDemo ? '' : (localStorage.getItem('keihi_alias') || '');
+    const shareUrl = alias ? `${location.origin}/${alias}` : (ssId ? `${location.origin}/${ssId}` : '');
     return `
-  <!-- メンバー招待URL（管理者のみ） -->
-  ${ssId ? `
-  <div class="card mb-3">
-    <div class="card-body">
-      <div class="settings-section-title">メンバー招待URL</div>
-      <div class="settings-step-hint">このURLをメンバーに共有すると、スプレッドシートが自動設定されます</div>
-      <div class="input-group input-group-sm">
-        <input type="text" class="form-control form-control-sm" id="shareUrlDisplay"
-          value="${_escape(shareUrl)}" readonly>
-        <button class="btn btn-outline-secondary btn-sm" id="btnCopyShareUrl">
-          <i class="bi bi-clipboard"></i>
-        </button>
-      </div>
-    </div>
-  </div>
-  ` : ''}
   <!-- メンバー管理（管理者のみ） -->
   <div class="card mb-3">
     <div class="card-body">
@@ -156,6 +159,25 @@ const SettingsView = (() => {
       </div>
     </div>
   </div>
+
+  <!-- メンバー招待URL（管理者のみ・メンバー管理の下） -->
+  ${ssId ? `
+  <div class="card mb-3">
+    <div class="card-body">
+      <div class="settings-section-title">経費ログWebアプリURL</div>
+      <div class="settings-step-hint mb-2">
+        上のメンバー管理に氏名・メールアドレス・権限を登録してから、このURLをメンバーに連絡してください。
+      </div>
+      <div class="input-group input-group-sm">
+        <input type="text" class="form-control form-control-sm" id="shareUrlDisplay"
+          value="${_escape(shareUrl)}" readonly>
+        <button class="btn btn-outline-secondary btn-sm" id="btnCopyShareUrl">
+          <i class="bi bi-clipboard"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+  ` : ''}
 
   <!-- 勘定科目（管理者のみ） -->
   <div class="card mb-3">
@@ -192,18 +214,39 @@ const SettingsView = (() => {
       <p class="text-muted small mb-2">「経費ログ」と表示されている上部ナビバーの背景色を変更します。</p>
       <div class="d-flex align-items-center gap-2 mb-1">
         <input type="color" class="form-control form-control-color" id="inputHeaderColor"
-          value="#808000" style="width:3rem;height:2rem;padding:2px;">
+          value="#0d6efd" style="width:3rem;height:2rem;padding:2px;">
         <button class="btn btn-outline-primary btn-sm" id="btnApplyHeaderColor">
           <i class="bi bi-palette me-1"></i>適用
         </button>
         <span id="headerColorMsg" class="form-text mb-0"></span>
       </div>
     </div>
-  </div>`;
+  </div>
+`;
   }
 
   async function bindEvents(el) {
     el.querySelector('#btnLogoutSettings')?.addEventListener('click', () => Auth.signOut());
+
+    // 訂正・削除防止規程（初期設定⑤版）
+    el.querySelector('#btnConfirmRegulationInit')?.addEventListener('click', () => {
+      const orgName = el.querySelector('#regInitOrgName')?.value.trim();
+      const repName = el.querySelector('#regInitRepName')?.value.trim();
+      const address = el.querySelector('#regInitAddress')?.value.trim();
+      const msg = el.querySelector('#regulationInitMsg');
+      if (!orgName || !repName || !address) {
+        msg.innerHTML = '<span class="text-danger">すべての項目を入力してください</span>';
+        return;
+      }
+      const today = new Date();
+      const confirmedAt = `${today.getFullYear()}年${today.getMonth()+1}月${today.getDate()}日`;
+      _saveRegulation({ orgName, repName, address, confirmedAt });
+      App.showToast('訂正・削除防止規程を確定しました', 'success');
+      Router.navigate('settings');
+    });
+    el.querySelector('#btnEditRegulationInit')?.addEventListener('click', () => {
+      el.querySelector('#regulationInitForm')?.classList.remove('d-none');
+    });
 
     // ライセンス確認
     el.querySelector('#btnVerifyLicense')?.addEventListener('click', async () => {
@@ -219,6 +262,12 @@ const SettingsView = (() => {
         localStorage.setItem('keihi_license_key', key);
         msg.innerHTML = `<span class="text-success"><i class="bi bi-check-circle me-1"></i>有効（${result.company || ''}）${result.expiresAt ? ' 期限: ' + result.expiresAt.split('T')[0] : ''}</span>`;
         App.showToast('ライセンスを確認しました', 'success');
+        // 購入者メールが一致する場合は管理者に昇格して画面を再描画
+        if (result.ownerEmail && result.ownerEmail === Auth.getUserEmail().toLowerCase()) {
+          await App.reloadMaster();
+          Router.navigate('settings');
+          return;
+        }
         _syncSettingsToDrive();
       } else {
         msg.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle me-1"></i>無効なライセンスキーです（${result.reason || ''}）</span>`;
@@ -242,7 +291,8 @@ const SettingsView = (() => {
       msg.textContent = '';
       try {
         const ssId    = await Setup.createSpreadsheet(name, parentFolderId);
-        const shareUrl = `${location.origin}/${ssId}`;
+        const alias   = localStorage.getItem('keihi_alias') || '';
+        const shareUrl = alias ? `${location.origin}/${alias}` : `${location.origin}/${ssId}`;
         const qrUrl   = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(shareUrl)}`;
         const mailSubject = encodeURIComponent(`【経費ログ】${name} へのご招待`);
         const mailBody = encodeURIComponent(
@@ -268,10 +318,9 @@ const SettingsView = (() => {
               <div class="text-muted" style="font-size:0.7rem;">QRコードをスクリーンショットしてメールなどで共有できます</div>
             </div>
             <div class="d-flex gap-2">
-              <a href="mailto:?subject=${mailSubject}&body=${mailBody}"
-                class="btn btn-outline-primary btn-sm flex-fill">
+              <button class="btn btn-outline-primary btn-sm flex-fill" id="btnSendMail">
                 <i class="bi bi-envelope me-1"></i>メールで送る
-              </a>
+              </button>
               <button class="btn btn-primary btn-sm flex-fill" id="btnReloadAfterCreate">
                 <i class="bi bi-arrow-clockwise me-1"></i>再読み込みして開始
               </button>
@@ -281,6 +330,9 @@ const SettingsView = (() => {
           navigator.clipboard.writeText(shareUrl).then(() => App.showToast('URLをコピーしました', 'success'));
         });
         el.querySelector('#btnReloadAfterCreate')?.addEventListener('click', () => location.reload());
+        el.querySelector('#btnSendMail')?.addEventListener('click', () => {
+          window.location.href = `mailto:?subject=${mailSubject}&body=${mailBody}`;
+        });
         App.showToast('スプレッドシートを作成しました', 'success');
       } catch (err) {
         msg.innerHTML = `<span class="text-danger">${_escape(err.message)}</span>`;
@@ -357,17 +409,46 @@ const SettingsView = (() => {
 
     el.querySelector('#btnAddMember')?.addEventListener('click', () => _showMemberForm(el, null));
     el.querySelector('#btnAddCategory')?.addEventListener('click', () => _showInlineAdd(el, 'category'));
+
     el.querySelector('#btnAddPaySource')?.addEventListener('click', () => _showInlineAdd(el, 'paySource'));
 
-    // 証票フォルダ：現在値を表示してリンクとURL入力欄を設定
+    // 証票フォルダ：現在値をURLとしてinputに表示＋フォルダを開くリンクを生成
     const currentFolderId = localStorage.getItem('keihi_folder_id') || await Sheets.readSetting('B4').catch(() => '');
-    const folderLinkEl = el.querySelector('#folderCurrentLink');
-    if (folderLinkEl) {
-      folderLinkEl.innerHTML = currentFolderId
-        ? `<a href="https://drive.google.com/drive/folders/${currentFolderId}" target="_blank" class="small">
-             <i class="bi bi-folder-fill me-1 text-warning"></i>現在のフォルダを開く</a>`
-        : '<span class="text-muted small">未設定</span>';
+    const folderInput = el.querySelector('#inputReceiptFolderUrl');
+    const folderOpenWrap = el.querySelector('#folderOpenLinkWrap');
+    const _setFolderLink = fid => {
+      if (!folderOpenWrap) return;
+      folderOpenWrap.innerHTML = fid
+        ? `<a href="https://drive.google.com/drive/folders/${fid}" target="_blank" class="btn btn-outline-secondary btn-sm w-100">
+             <i class="bi bi-folder-fill me-1 text-warning"></i>フォルダを開く
+           </a>`
+        : '';
+    };
+    if (folderInput && currentFolderId) {
+      folderInput.value = `https://drive.google.com/drive/folders/${currentFolderId}`;
     }
+    _setFolderLink(currentFolderId);
+
+    el.querySelector('#btnCreateFolder')?.addEventListener('click', async () => {
+      const btn = el.querySelector('#btnCreateFolder');
+      const msg = el.querySelector('#receiptFolderMsg');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>作成中...';
+      try {
+        const companyName = (await Sheets.readSetting('B2').catch(() => '')) || '';
+        const newFolderId = await Drive.createFolder(`経費証票 - ${companyName}`.trim());
+        await Sheets.update('設定!B4', [[newFolderId]]);
+        localStorage.setItem('keihi_folder_id', newFolderId);
+        if (folderInput) folderInput.value = `https://drive.google.com/drive/folders/${newFolderId}`;
+        _setFolderLink(newFolderId);
+        msg.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>証票フォルダを作成しました</span>';
+        btn.innerHTML = '<i class="bi bi-check-circle me-1"></i>作成済み';
+      } catch (e) {
+        msg.innerHTML = `<span class="text-danger">作成に失敗しました: ${e.message}</span>`;
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-folder-plus me-1"></i>証票フォルダを自動作成';
+      }
+    });
 
     el.querySelector('#btnSaveReceiptFolder')?.addEventListener('click', async () => {
       const raw = el.querySelector('#inputReceiptFolderUrl').value.trim();
@@ -386,10 +467,7 @@ const SettingsView = (() => {
           folderId,
         }).catch(() => {});
         msg.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>保存しました</span>';
-        if (folderLinkEl) {
-          folderLinkEl.innerHTML = `<a href="https://drive.google.com/drive/folders/${folderId}" target="_blank" class="small">
-            <i class="bi bi-folder-fill me-1 text-warning"></i>現在のフォルダを開く</a>`;
-        }
+        _setFolderLink(folderId);
         App.showToast('証票フォルダを変更しました', 'success');
       } catch (err) {
         msg.innerHTML = `<span class="text-danger">${_escape(err.message)}</span>`;
@@ -400,7 +478,7 @@ const SettingsView = (() => {
     const colorInput = el.querySelector('#inputHeaderColor');
     if (colorInput) {
       const saved = localStorage.getItem('keihi_nav_color');
-      if (saved) colorInput.value = saved;
+      colorInput.value = saved || '#0d6efd';
       // リアルタイムプレビュー
       colorInput.addEventListener('input', () => _applyNavColor(colorInput.value));
     }
@@ -448,7 +526,7 @@ const SettingsView = (() => {
       return `
       <div class="d-flex align-items-center gap-2 py-2 border-bottom">
         <div class="flex-grow-1">
-          <div class="fw-semibold small">${_escape(m.name)}</div>
+          <div class="master-item-name">${_escape(m.name)}</div>
           <div class="text-muted" style="font-size:0.72rem;">${_escape(m.email)}${m.dept ? ' / ' + _escape(m.dept) : ''}
             ${roleBadge}
           </div>
@@ -484,7 +562,7 @@ const SettingsView = (() => {
     if (!items?.length) { container.innerHTML = '<div class="text-muted small">登録がありません</div>'; return; }
     container.innerHTML = items.map((item, i) => `
       <div class="d-flex align-items-center gap-2 py-1 border-bottom">
-        <span class="flex-grow-1 small">${_escape(item)}</span>
+        <span class="flex-grow-1 master-item-name">${_escape(item)}</span>
         <button class="btn btn-outline-danger btn-sm btn-del-item" data-type="${type}" data-index="${i}">
           <i class="bi bi-trash"></i>
         </button>
@@ -677,8 +755,114 @@ const SettingsView = (() => {
       licenseKey: localStorage.getItem('keihi_license_key') || '',
       sheetId:    localStorage.getItem('keihi_sheet_id')    || '',
       folderId:   localStorage.getItem('keihi_folder_id')   || '',
+      alias:      localStorage.getItem('keihi_alias')       || '',
     }).catch(() => {});
   }
 
-  return { render, bindEvents };
+  function _renderRegulationInitStep() {
+    const reg = _loadRegulation();
+    const previewReg = {
+      orgName: '〇〇株式会社',
+      repName: '代表者氏名',
+      address: '所在地',
+      confirmedAt: '〇〇年〇〇月〇〇日'
+    };
+    const previewText = buildRegulationText(previewReg).replace(/</g, '&lt;');
+    const confirmedBadge = reg?.confirmedAt
+      ? `<div class="alert alert-success py-1 mb-2 small"><i class="bi bi-check-circle me-1"></i>確定済み（${reg.confirmedAt}）<button class="btn btn-link btn-sm p-0 ms-2 text-secondary" id="btnEditRegulationInit">再編集</button></div>`
+      : '';
+    return `
+          <hr class="my-3">
+          <div class="settings-step-title">⑤ 訂正・削除防止規程（電帳法）</div>
+          <div class="settings-step-hint mb-2">スキャナ保存で紙の原本を廃棄可能にするために必要な社内規程です。確定するとアプリ内に表示されます。</div>
+          ${confirmedBadge}
+          <div class="accordion mb-2" id="regPreviewAcc">
+            <div class="accordion-item border rounded" style="background:#f8f9fa;">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed py-1" type="button"
+                  data-bs-toggle="collapse" data-bs-target="#regPreviewBody"
+                  style="background:#f8f9fa;font-size:0.78rem;color:#555;">
+                  <i class="bi bi-eye me-1 text-primary"></i>規程ひな型を確認する
+                </button>
+              </h2>
+              <div id="regPreviewBody" class="accordion-collapse collapse">
+                <div class="accordion-body px-2 py-2">
+                  <pre style="font-size:0.65rem;white-space:pre-wrap;font-family:inherit;color:#555;max-height:200px;overflow-y:auto;">${previewText}</pre>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div id="regulationInitForm"${reg?.confirmedAt ? ' class="d-none"' : ''}>
+            <div class="mb-2">
+              <label class="form-label small mb-1">団体名（会社名・屋号等）</label>
+              <input type="text" class="form-control form-control-sm" id="regInitOrgName"
+                value="${_escape(reg?.orgName || localStorage.getItem('keihi_company_name') || '')}"
+                placeholder="例：〇〇株式会社">
+            </div>
+            <div class="mb-2">
+              <label class="form-label small mb-1">代表者名</label>
+              <input type="text" class="form-control form-control-sm" id="regInitRepName"
+                value="${_escape(reg?.repName || '')}" placeholder="例：山田 太郎">
+            </div>
+            <div class="mb-2">
+              <label class="form-label small mb-1">所在地</label>
+              <input type="text" class="form-control form-control-sm" id="regInitAddress"
+                value="${_escape(reg?.address || '')}" placeholder="例：東京都千代田区〇〇1-2-3">
+            </div>
+            <button class="btn btn-primary btn-sm w-100" id="btnConfirmRegulationInit">
+              <i class="bi bi-check-circle me-1"></i>確定して規程を作成する
+            </button>
+            <div id="regulationInitMsg" class="form-text mt-1"></div>
+          </div>`;
+  }
+
+  function _loadRegulation() {
+    try { return JSON.parse(localStorage.getItem('keihi_regulation') || 'null'); }
+    catch (_) { return null; }
+  }
+
+  function _saveRegulation(data) {
+    localStorage.setItem('keihi_regulation', JSON.stringify(data));
+  }
+
+  function buildRegulationText(reg) {
+    return `国税関係書類に係るスキャナ保存 訂正・削除防止規程
+
+第1条（目的）
+本規程は、電子帳簿保存法第4条第3項に規定するスキャナ保存を行うにあたり、国税関係書類の電磁的記録の訂正・削除を防止するための事務処理手続を定めることを目的とする。
+
+第2条（適用範囲）
+本規程は、${reg.orgName}が電子帳簿保存法に基づきスキャナ保存する一切の国税関係書類に適用する。
+
+第3条（責任者）
+スキャナ保存に関する事務処理の責任者は、${reg.repName}とする。
+
+第4条（スキャナ保存の手続）
+1. 国税関係書類の受領後、速やかに（原則として受領日から2ヶ月以内に）スキャンを行い、所定の経費管理システムに入力する。
+2. 入力画像の解像度は200万画素以上、カラーで保存する。
+
+第5条（訂正・削除の禁止）
+1. 保存した電磁的記録は、原則として訂正・削除を行わない。
+2. やむを得ず訂正・削除を行う場合は、必ず経費管理システムの所定の機能（修正・削除機能）を使用し、その事実・内容・理由を記録する。
+3. スプレッドシートへの直接編集は禁止する。
+
+第6条（検索機能の確保）
+保存した電磁的記録は、取引年月日・取引金額・取引先で検索できる状態を維持する。
+
+第7条（原本の廃棄）
+スキャナ保存の要件を満たした電磁的記録が適正に保存されたことを確認した後、紙の原本を廃棄することができる。
+
+第8条（保存期間）
+電磁的記録は、法令の定める期間（原則7年間）保存する。
+
+第9条（規程の遵守）
+役員・従業員・関与メンバーは本規程を遵守しなければならない。
+
+制定日：${reg.confirmedAt}
+所在地：${reg.address}
+${reg.orgName}
+代表者：${reg.repName}`;
+  }
+
+  return { render, bindEvents, buildRegulationText, _loadRegulation };
 })();

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ライセンス管理 — 経費ログ</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body class="bg-light">
+  <div class="container py-4" style="max-width:900px;">
+    <h4 class="fw-bold mb-4"><i class="bi bi-key-fill me-2 text-primary"></i>ライセンス管理</h4>
+
+    <!-- 認証フォーム -->
+    <div id="authArea" class="card mb-4">
+      <div class="card-body">
+        <div class="input-group" style="max-width:400px;">
+          <input type="password" class="form-control" id="inputSecret" placeholder="管理シークレット">
+          <button class="btn btn-primary" id="btnLoad">読み込む</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 統計サマリー -->
+    <div id="summary" class="d-none">
+      <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+          <div class="card text-center">
+            <div class="card-body py-3">
+              <div class="h3 fw-bold text-primary mb-0" id="statTotal">—</div>
+              <div class="small text-muted">総発行数</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="card text-center">
+            <div class="card-body py-3">
+              <div class="h3 fw-bold text-success mb-0" id="statActive">—</div>
+              <div class="small text-muted">有効</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="card text-center">
+            <div class="card-body py-3">
+              <div class="h3 fw-bold text-warning mb-0" id="statExpired">—</div>
+              <div class="small text-muted">期限切れ</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="card text-center">
+            <div class="card-body py-3">
+              <div class="h3 fw-bold text-danger mb-0" id="statSuspended">—</div>
+              <div class="small text-muted">停止中</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- フィルター -->
+      <div class="d-flex gap-2 mb-3 flex-wrap">
+        <input type="text" class="form-control form-control-sm" id="filterText"
+          placeholder="メール・会社名で検索" style="max-width:250px;">
+        <select class="form-select form-select-sm" id="filterStatus" style="max-width:150px;">
+          <option value="">全ステータス</option>
+          <option value="active">有効</option>
+          <option value="expired">期限切れ</option>
+          <option value="suspended">停止中</option>
+        </select>
+        <button class="btn btn-outline-secondary btn-sm" id="btnCsvExport">
+          <i class="bi bi-download me-1"></i>CSV
+        </button>
+      </div>
+
+      <!-- テーブル -->
+      <div class="card">
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th style="font-size:0.78rem;">発行日</th>
+                <th style="font-size:0.78rem;">会社名・氏名</th>
+                <th style="font-size:0.78rem;">メール</th>
+                <th style="font-size:0.78rem;">ライセンスキー</th>
+                <th style="font-size:0.78rem;">有効期限</th>
+                <th style="font-size:0.78rem;">ステータス</th>
+                <th style="font-size:0.78rem;"></th>
+              </tr>
+            </thead>
+            <tbody id="licenseTable"></tbody>
+          </table>
+        </div>
+      </div>
+      <div id="noResult" class="text-center text-muted py-3 d-none">該当なし</div>
+    </div>
+  </div>
+
+  <script>
+    let _all = [];
+    let _secret = '';
+
+    document.getElementById('btnLoad').addEventListener('click', load);
+    document.getElementById('inputSecret').addEventListener('keydown', e => { if (e.key === 'Enter') load(); });
+    document.getElementById('filterText').addEventListener('input', render);
+    document.getElementById('filterStatus').addEventListener('change', render);
+    document.getElementById('btnCsvExport').addEventListener('click', exportCsv);
+
+    async function load() {
+      _secret = document.getElementById('inputSecret').value.trim();
+      const resp = await fetch(`/api/admin-licenses?secret=${encodeURIComponent(_secret)}`);
+      if (!resp.ok) { alert('認証に失敗しました'); return; }
+      const data = await resp.json();
+      _all = data.licenses;
+      document.getElementById('authArea').classList.add('d-none');
+      document.getElementById('summary').classList.remove('d-none');
+      updateStats();
+      render();
+    }
+
+    function getStatus(lic) {
+      if (lic.suspended) return 'suspended';
+      if (lic.expiresAt && new Date(lic.expiresAt) < new Date()) return 'expired';
+      return 'active';
+    }
+
+    function updateStats() {
+      document.getElementById('statTotal').textContent = _all.length;
+      document.getElementById('statActive').textContent    = _all.filter(l => getStatus(l) === 'active').length;
+      document.getElementById('statExpired').textContent   = _all.filter(l => getStatus(l) === 'expired').length;
+      document.getElementById('statSuspended').textContent = _all.filter(l => getStatus(l) === 'suspended').length;
+    }
+
+    function render() {
+      const text   = document.getElementById('filterText').value.toLowerCase();
+      const status = document.getElementById('filterStatus').value;
+      const filtered = _all.filter(l => {
+        if (text && !`${l.company}${l.email}`.toLowerCase().includes(text)) return false;
+        if (status && getStatus(l) !== status) return false;
+        return true;
+      });
+
+      const statusBadge = { active: 'success', expired: 'warning', suspended: 'danger' };
+      const statusLabel = { active: '有効', expired: '期限切れ', suspended: '停止中' };
+
+      const tbody = document.getElementById('licenseTable');
+      tbody.innerHTML = filtered.map(l => {
+        const st = getStatus(l);
+        const date = l.createdAt ? l.createdAt.split('T')[0] : '—';
+        return `<tr data-key="${esc(l.key)}">
+          <td style="font-size:0.78rem;">${date}</td>
+          <td style="font-size:0.78rem;">${esc(l.company || '')}</td>
+          <td style="font-size:0.78rem;">${esc(l.email || '')}</td>
+          <td style="font-size:0.72rem;font-family:monospace;">${esc(l.key)}</td>
+          <td style="font-size:0.78rem;">${l.expiresAt || '—'}</td>
+          <td><span class="badge bg-${statusBadge[st]}" style="font-size:0.65rem;">${statusLabel[st]}</span></td>
+          <td><button class="btn btn-outline-danger btn-sm py-0 px-1 btn-delete" data-key="${esc(l.key)}" title="削除"><i class="bi bi-trash"></i></button></td>
+        </tr>`;
+      }).join('');
+
+      tbody.querySelectorAll('.btn-delete').forEach(btn => {
+        btn.addEventListener('click', () => deleteLicense(btn.dataset.key));
+      });
+
+      document.getElementById('noResult').classList.toggle('d-none', filtered.length > 0);
+    }
+
+    function exportCsv() {
+      const header = ['発行日','会社名・氏名','メール','ライセンスキー','有効期限','ステータス'];
+      const statusLabel = { active: '有効', expired: '期限切れ', suspended: '停止中' };
+      const rows = _all.map(l => [
+        l.createdAt?.split('T')[0] || '',
+        l.company || '', l.email || '', l.key, l.expiresAt || '', statusLabel[getStatus(l)]
+      ]);
+      const csv = [header, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' }));
+      a.download = `licenses_${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+    }
+
+    async function deleteLicense(key) {
+      if (!confirm(`削除しますか？\n${key}\n\nこの操作は取り消せません。`)) return;
+      const resp = await fetch(`/api/admin-licenses?secret=${encodeURIComponent(_secret)}&key=${encodeURIComponent(key)}`, { method: 'DELETE' });
+      if (!resp.ok) { alert('削除に失敗しました'); return; }
+      _all = _all.filter(l => l.key !== key);
+      updateStats();
+      render();
+    }
+
+    function esc(s) {
+      return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+  </script>
+</body>
+</html>

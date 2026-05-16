@@ -20,9 +20,18 @@ const ListView = (() => {
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h5 class="fw-bold mb-0"><i class="bi bi-list-ul me-2 text-primary"></i>一覧表</h5>
     <div class="d-flex gap-2">
-      <button class="btn btn-outline-secondary btn-sm no-print" id="btnExportCsv">
-        <i class="bi bi-download me-1"></i>CSV
-      </button>
+      <div class="btn-group no-print">
+        <button class="btn btn-outline-secondary btn-sm" id="btnExportCsv">
+          <i class="bi bi-download me-1"></i>CSV
+        </button>
+        <button class="btn btn-outline-secondary btn-sm dropdown-toggle dropdown-toggle-split px-2"
+          data-bs-toggle="dropdown" aria-expanded="false"></button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><h6 class="dropdown-header" style="font-size:0.7rem;">会計ソフト形式</h6></li>
+          <li><a class="dropdown-item small" href="#" id="btnExportFreee">freee 経費精算</a></li>
+          <li><a class="dropdown-item small" href="#" id="btnExportYayoi">弥生 仕訳日記帳</a></li>
+        </ul>
+      </div>
       <button class="btn btn-outline-secondary btn-sm no-print" id="btnRefreshList">
         <i class="bi bi-arrow-clockwise"></i>
       </button>
@@ -59,9 +68,10 @@ const ListView = (() => {
         </div>
         <div class="col-6 col-md-3">
           <select class="form-select form-select-sm" id="filterStatus">
-            <option value="">承認状態（全て）</option>
-            <option value="confirmed">承認済</option>
-            <option value="pending">未確認</option>
+          <option value="">ステータス（全て）</option>
+            <option value="申請済">申請済</option>
+            <option value="登録済">登録済</option>
+            <option value="精算済">精算済</option>
           </select>
         </div>
         <div class="col-6 col-md-3" id="filterMemberWrap" style="display:none;">
@@ -99,12 +109,14 @@ const ListView = (() => {
           <th class="text-center">金額</th>
           <th class="text-center">科目</th>
           <th class="text-center">備考</th>
+          <th class="text-center">証票</th>
           <th class="text-center">状態</th>
+          <th class="text-center">精算日</th>
           <th class="no-print text-center">操作</th>
         </tr>
       </thead>
       <tbody id="listTbodyPc">
-        <tr><td colspan="8" class="text-center text-muted py-3">読み込み中...</td></tr>
+        <tr><td colspan="10" class="text-center text-muted py-3">読み込み中...</td></tr>
       </tbody>
     </table>
   </div>
@@ -121,12 +133,6 @@ const ListView = (() => {
     </button>
   </div>
 
-  <!-- スプレッドシートリンク（管理者のみ） -->
-  <div id="sheetLinkArea" class="mt-3 d-none no-print">
-    <a id="sheetDirectLink" href="#" target="_blank" class="btn btn-outline-secondary btn-sm w-100">
-      <i class="bi bi-table me-1"></i>スプレッドシートで開く（会計ソフト連携・詳細編集）
-    </a>
-  </div>
 </div>`;
   }
 
@@ -153,7 +159,7 @@ const ListView = (() => {
       _showAll  = _userRole === 'admin' || _userRole === 'viewer';
       _expenses = await Sheets.readExpenses();
     } catch (err) {
-      el.querySelector('#listTbodyPc').innerHTML = `<tr><td colspan="8" class="text-danger text-center">${err.message}</td></tr>`;
+      el.querySelector('#listTbodyPc').innerHTML = `<tr><td colspan="10" class="text-danger text-center">${err.message}</td></tr>`;
       el.querySelector('#listCardsSp').innerHTML = `<div class="text-danger text-center py-3">${err.message}</div>`;
       return;
     }
@@ -165,14 +171,6 @@ const ListView = (() => {
       _master.members.forEach(m => {
         sel.innerHTML += `<option value="${m.email}">${m.name}</option>`;
       });
-    }
-    // スプレッドシートリンク（管理者のみ）
-    if (_isAdmin) {
-      const ssId = localStorage.getItem('keihi_sheet_id');
-      if (ssId) {
-        el.querySelector('#sheetLinkArea').classList.remove('d-none');
-        el.querySelector('#sheetDirectLink').href = `https://docs.google.com/spreadsheets/d/${ssId}`;
-      }
     }
 
     // 期間プリセットボタン
@@ -219,6 +217,8 @@ const ListView = (() => {
     });
 
     el.querySelector('#btnExportCsv')?.addEventListener('click', () => _exportCsv(el));
+    el.querySelector('#btnExportFreee')?.addEventListener('click', e => { e.preventDefault(); _exportFreee(el); });
+    el.querySelector('#btnExportYayoi')?.addEventListener('click', e => { e.preventDefault(); _exportYayoi(el); });
 
     _renderTable(el);
     requestAnimationFrame(() => _initResizableColumns(el.querySelector('.list-table-pc')));
@@ -305,8 +305,7 @@ const ListView = (() => {
       if (fromDate && e.date < fromDate) return false;
       if (toDate   && e.date > toDate)   return false;
       if (type && e.type !== type) return false;
-      if (status === 'confirmed' && !e.confirmed)  return false;
-      if (status === 'pending'   &&  e.confirmed)  return false;
+      if (status && _getStatus(e) !== status) return false;
       if (keyword && ![e.place, e.note, e.category].join(' ').toLowerCase().includes(keyword)) return false;
       return true;
     }).sort((a, b) => {
@@ -331,7 +330,7 @@ const ListView = (() => {
     const visible  = filtered.slice(0, _shownCount);
 
     if (filtered.length === 0) {
-      tbodyPc.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">該当する申請がありません</td></tr>';
+      tbodyPc.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-3">該当する申請がありません</td></tr>';
       cardsSp.innerHTML = '<div class="text-center text-muted py-3">該当する申請がありません</div>';
       loadMore?.classList.add('d-none');
       return;
@@ -354,15 +353,21 @@ const ListView = (() => {
     const rowsPc = [], cardHtmls = [];
 
     visible.forEach(e => {
-      const statusBadge = e.confirmed
-        ? `<span class="badge badge-confirmed" style="font-size:0.65rem;">承認済</span>`
-        : `<span class="badge badge-pending" style="font-size:0.65rem;">未確認</span>`;
-      const canEdit = !e.confirmed && e.email === email;
-      const approveBtn = _isAdmin && !e.confirmed
-        ? `<button class="btn btn-outline-success btn-sm py-0 px-1 btn-approve" data-id="${e.id}"><i class="bi bi-check"></i></button>` : '';
+      const status = _getStatus(e);
+      const statusBadge = _statusBadge(status);
+      // 編集可否：精算済は全員不可、申請済は本人のみ、登録済は管理者本人のみ
+      const canEdit = status !== '精算済' && e.email === email &&
+        (status === '申請済' || (_isAdmin && status === '登録済'));
+      // 承認ボタン（申請済→登録済）：管理者のみ
+      const approveBtn = _isAdmin && status === '申請済'
+        ? `<button class="btn btn-outline-success btn-sm py-0 px-1 btn-approve" data-id="${e.id}" title="登録済にする"><i class="bi bi-check"></i></button>` : '';
       const editBtn = canEdit
         ? `<button class="btn btn-outline-secondary btn-sm py-0 px-1 btn-edit-list" data-id="${e.id}"><i class="bi bi-pencil"></i></button>` : '';
-      const ops = `<div class="d-flex gap-1">${approveBtn}${editBtn}</div>`;
+      // 削除可否：管理者かつ自分の登録済レコード（精算済は不可）
+      const canDelete = canEdit;
+      const deleteBtn = canDelete
+        ? `<button class="btn btn-outline-danger btn-sm py-0 px-1 btn-del-list" data-id="${e.id}" title="削除"><i class="bi bi-trash"></i></button>` : '';
+      const ops = `<div class="d-flex gap-1">${approveBtn}${editBtn}${deleteBtn}</div>`;
 
       // 証票リンク（複数対応）
       const imgUrls = e.imageLinks ? e.imageLinks.split(',').map(s => s.trim()).filter(Boolean) : [];
@@ -372,30 +377,22 @@ const ListView = (() => {
          </a>`
       ).join('');
 
-      // PC行（8列）+ 金額クリックで開く詳細行
-      const hasDetail = e.note || imgUrls.length > 0;
+      // PC行（9列）
       rowsPc.push(`<tr>
         <td class="list-date">${e.date}</td>
         <td class="list-place">
-          <div>${e.payment ? '🏢 ' : ''}${_escape(e.place)}</div>
+          <div>${e.settlementDate?.startsWith('会社払い') ? '🏢 ' : ''}${_escape(e.place)}</div>
           <div class="text-muted" style="font-size:0.7rem;">${_escape(e.name)}</div>
         </td>
         <td class="list-type-cell">${_escape(e.type)}</td>
-        <td class="text-end list-amount${hasDetail ? ' list-amount-toggle' : ''}" data-detail="${e.id}"
-          ${hasDetail ? `title="クリックして備考・証票を表示"` : ''}>
-          ¥${e.amount.toLocaleString()}
-        </td>
-        <td class="list-cat">${_escape(e.category)}</td>
+        <td class="text-end list-amount">¥${e.amount.toLocaleString()}</td>
+        <td class="list-cat">${_escape(e.category)}${e.taxRate && e.taxRate !== '課税10%' ? `<br><span class="badge text-bg-light border" style="font-size:0.65rem;font-weight:normal;">${_escape(e.taxRate)}</span>` : ''}</td>
         <td class="list-note-cell text-muted">${_escape(e.note || '')}</td>
+        <td class="text-center"><div class="d-flex flex-wrap gap-1 justify-content-center">${receiptBtns}</div></td>
         <td>${statusBadge}</td>
+        <td class="text-center" style="font-size:0.75rem;white-space:nowrap;">${_escape(e.settlementDate || '')}</td>
         <td class="no-print">${ops}</td>
-      </tr>
-      ${hasDetail ? `<tr class="list-detail-row d-none" data-detail-row="${e.id}">
-        <td colspan="8" class="px-3 py-2">
-          ${e.note ? `<div class="text-muted mb-1"><i class="bi bi-chat-text me-1 text-secondary"></i>${_escape(e.note)}</div>` : ''}
-          ${receiptBtns ? `<div class="d-flex flex-wrap gap-1">${receiptBtns}</div>` : ''}
-        </td>
-      </tr>` : ''}`);
+      </tr>`);
 
       // SPカード
       const hasExtra = e.note || imgUrls.length > 0;
@@ -405,27 +402,30 @@ const ListView = (() => {
             <div class="flex-grow-1" style="min-width:0;">
               <div class="d-flex align-items-baseline gap-1">
                 <span class="list-sp-date">${_fmtDateShort(e.date)}</span>
-                <span class="list-sp-place">${e.payment ? '🏢 ' : ''}${_escape(e.place)}</span>
+                <span class="list-sp-place">${e.settlementDate?.startsWith('会社払い') ? '🏢 ' : ''}${_escape(e.place)}</span>
               </div>
               <div class="list-sp-name">${_escape(e.name)}</div>
             </div>
-            <div class="list-sp-amount flex-shrink-0${hasExtra ? ' expandable' : ''}">
-              ¥${e.amount.toLocaleString()}
-              ${hasExtra ? '<i class="bi bi-chevron-down chevron"></i>' : ''}
+            <div class="flex-shrink-0 text-end">
+              <div class="list-sp-amount${e.note ? ' expandable' : ''}" style="${e.note ? '' : ''}">
+                ¥${e.amount.toLocaleString()}
+                ${e.note ? '<i class="bi bi-chevron-down chevron"></i>' : ''}
+              </div>
+              ${receiptBtns ? `<div class="d-flex flex-wrap gap-1 justify-content-end mt-1">${receiptBtns}</div>` : ''}
             </div>
           </div>
           <div class="d-flex justify-content-between align-items-center mt-1 gap-2">
             <div class="d-flex align-items-center gap-1 flex-wrap" style="min-width:0;">
               ${statusBadge}
               <span class="list-sp-cat">${_escape(e.category)}</span>
+              ${e.taxRate && e.taxRate !== '課税10%' ? `<span class="badge text-bg-light border" style="font-size:0.65rem;font-weight:normal;">${_escape(e.taxRate)}</span>` : ''}
               ${e.note ? `<span class="list-sp-note">${_escape(e.note)}</span>` : ''}
             </div>
             <div class="no-print flex-shrink-0">${ops}</div>
           </div>
-          ${hasExtra ? `
+          ${e.note ? `
           <div class="list-sp-extra d-none">
-            ${e.note ? `<div class="list-sp-extra-note"><i class="bi bi-chat-text me-1 text-secondary"></i>${_escape(e.note)}</div>` : ''}
-            ${receiptBtns ? `<div class="d-flex flex-wrap gap-1">${receiptBtns}</div>` : ''}
+            <div class="list-sp-extra-note"><i class="bi bi-chat-text me-1 text-secondary"></i>${_escape(e.note)}</div>
           </div>` : ''}
         </div>`);
     });
@@ -443,6 +443,9 @@ const ListView = (() => {
           SubmitView.queueEdit(btn.dataset.id, _expenses);
           Router.navigate('submit');
         });
+      });
+      container.querySelectorAll('.btn-del-list').forEach(btn => {
+        btn.addEventListener('click', () => _deleteExpense(btn.dataset.id, el));
       });
     });
 
@@ -485,7 +488,7 @@ const ListView = (() => {
            <i class="bi bi-stars me-1"></i><strong>AI監査：</strong>${_escape(aiAudit)}
          </div>`
       : '';
-    const ok = await App.confirm('この申請を承認しますか？', detailHtml);
+    const ok = await App.confirm('この申請を登録済にしますか？', detailHtml);
     if (!ok) return;
     App.showLoading('承認中...');
     try {
@@ -495,7 +498,7 @@ const ListView = (() => {
       const e = _expenses.find(x => x.id === id);
       if (e) e.confirmed = true;
       _renderTable(el);
-      App.showToast('承認しました', 'success');
+      App.showToast('登録済にしました', 'success');
     } catch (err) {
       App.showToast('承認エラー: ' + err.message, 'danger');
     } finally {
@@ -503,26 +506,123 @@ const ListView = (() => {
     }
   }
 
+  function _getStatus(e) {
+    if (e.settlementDate) return '精算済';
+    if (e.confirmed)      return '登録済';
+    return '申請済';
+  }
+
+  function _statusBadge(status) {
+    if (status === '精算済') return `<span class="badge" style="background:#6c757d;font-size:0.65rem;">精算済</span>`;
+    if (status === '登録済') return `<span class="badge badge-confirmed" style="font-size:0.65rem;">登録済</span>`;
+    return `<span class="badge badge-pending" style="font-size:0.65rem;">申請済</span>`;
+  }
+
   function _exportCsv(el) {
     const filtered = _getFiltered(el);
-    const header = ['申請日時','申請者名','タイプ','日付','支払先','金額','勘定科目','備考','証票URL','承認状態','インボイス番号','申請者Email','ID'];
+    const header = ['申請日時','申請者名','タイプ','日付','支払先','金額','勘定科目','備考','証票URL','ステータス','インボイス番号','申請者Email','ID','精算日','税区分'];
+    const _isoToSlash = s => s ? String(s).replace(/^(\d{4})-(\d{2})-(\d{2}).*/, '$1/$2/$3') : '';
     const rows = filtered.map(e => [
-      e.appliedAt, e.name, e.type, e.date, e.place, e.amount,
+      _isoToSlash(e.appliedAt), e.name, e.type, _isoToSlash(e.date), e.place, e.amount,
       e.category, e.note, e.imageLinks.split(',')[0]?.trim() || '',
-      e.confirmed ? '承認済' : '未確認', e.invoice, e.email, e.id
+      _getStatus(e), e.invoice, e.email, e.id,
+      e.settlementDate || '', e.taxRate || '課税10%'
     ]);
     const csv = [header, ...rows].map(r =>
       r.map(v => `"${String(v || '').replace(/"/g, '""')}"`).join(',')
     ).join('\n');
+    _downloadCsv(csv, `経費一覧_${new Date().toISOString().split('T')[0]}.csv`);
+  }
 
-    const bom = '﻿'; // Excel用BOM
+  async function _deleteExpense(id, el) {
+    const ok = await App.confirm('この申請を削除しますか？削除後は元に戻せません。');
+    if (!ok) return;
+    App.showLoading('削除中...');
+    try {
+      const e = _expenses.find(x => x.id === id);
+      if (!e) throw new Error('レコードが見つかりません');
+      const ssId = localStorage.getItem('keihi_sheet_id');
+      const timeResp = await fetch('/api/time');
+      const { jst: deletedAt } = await timeResp.json();
+      await Sheets.prependRow('削除一覧', [deletedAt, Auth.getUserEmail(), ...Sheets.expenseToRow(e)], ssId);
+      const rowIndex = await Sheets.findRowById(id, ssId);
+      if (rowIndex > 0) await Sheets.deleteRow('経費一覧', rowIndex, ssId);
+      _expenses = _expenses.filter(x => x.id !== id);
+      _renderTable(el);
+      App.showToast('削除しました', 'success');
+    } catch (err) {
+      App.showToast('削除エラー: ' + err.message, 'danger');
+    } finally {
+      App.hideLoading();
+    }
+  }
+
+  function _downloadCsv(csv, filename) {
+    const bom = '﻿';
     const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
-    a.href = url;
-    a.download = `経費一覧_${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
+    a.href = url; a.download = filename; a.click();
     URL.revokeObjectURL(url);
+  }
+
+  // "会社払い（◯◯）" から支払元名を抽出。会社払いでなければ空文字。
+  function _corpPaySource(e) {
+    const m = (e.settlementDate || '').match(/^会社払い（(.+)）$/);
+    return m ? m[1] : '';
+  }
+
+  // taxRate に応じた消費税額と freee/弥生 用の税区分文字列を返す
+  function _taxInfo(amount, taxRate) {
+    const r = taxRate || '課税10%';
+    if (r === '課税8%') return { tax: Math.floor(amount * 8 / 108),  freeeKbn: '課対仕入8%軽減', yayoiKbn: '課対仕入8%' };
+    if (r === '非課税')  return { tax: 0, freeeKbn: '非課税仕入',    yayoiKbn: '非課税' };
+    if (r === '不課税')  return { tax: 0, freeeKbn: '対象外',        yayoiKbn: '対象外' };
+    // 課税10%・混在はどちらも10%で処理
+    return { tax: Math.floor(amount * 10 / 110), freeeKbn: '課対仕入10%', yayoiKbn: '課対仕入10%' };
+  }
+
+  function _exportFreee(el) {
+    const filtered = _getFiltered(el);
+    const _isoToSlash = s => s ? String(s).replace(/^(\d{4})-(\d{2})-(\d{2}).*/, '$1/$2/$3') : '';
+    const header = ['発生日','勘定科目','税区分','金額(税込)','税額','摘要','支払方法','申請者','備考'];
+    const rows = filtered.map(e => {
+      const amount  = Number(e.amount) || 0;
+      const corpSrc = _corpPaySource(e);
+      const { tax, freeeKbn } = _taxInfo(amount, e.taxRate);
+      const payMethod = corpSrc ? '未払金（会社）' : '未払金（個人）';
+      return [
+        _isoToSlash(e.date), e.category, freeeKbn, amount, tax,
+        e.place, payMethod, e.name, e.note
+      ];
+    });
+    const csv = [header, ...rows].map(r =>
+      r.map(v => `"${String(v || '').replace(/"/g, '""')}"`).join(',')
+    ).join('\n');
+    _downloadCsv(csv, `freee経費_${new Date().toISOString().split('T')[0]}.csv`);
+  }
+
+  function _exportYayoi(el) {
+    const filtered = _getFiltered(el);
+    const _isoToSlash = s => s ? String(s).replace(/^(\d{4})-(\d{2})-(\d{2}).*/, '$1/$2/$3') : '';
+    const header = ['伝票No.','決算','取引日','借方勘定科目','借方補助科目','借方税区分','借方金額','借方消費税額','貸方勘定科目','貸方補助科目','貸方税区分','貸方金額','貸方消費税額','摘要','番号'];
+    const rows = filtered.map((e, i) => {
+      const amount  = Number(e.amount) || 0;
+      const corpSrc = _corpPaySource(e);
+      const { tax, yayoiKbn } = _taxInfo(amount, e.taxRate);
+      const creditSub = corpSrc ? '会社' : '個人';
+      const summary   = `${e.place}${e.note ? ' ' + e.note : ''}`;
+      return [
+        i + 1, '', _isoToSlash(e.date),
+        e.category, '', yayoiKbn, amount, tax,
+        '未払金', creditSub, '', amount, '',
+        summary, e.id
+      ];
+    });
+    const csv = [header, ...rows].map(r =>
+      r.map(v => `"${String(v || '').replace(/"/g, '""')}"`).join(',')
+    ).join('\n');
+    _downloadCsv(csv, `弥生仕訳_${new Date().toISOString().split('T')[0]}.csv`);
   }
 
   function _escape(s) {

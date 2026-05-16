@@ -32,7 +32,7 @@ const App = (() => {
     try {
       await Auth.getToken();
     } catch (_) {
-      window.location.href = 'index.html';
+      window.location.href = 'login.html';
       return;
     }
 
@@ -43,6 +43,7 @@ const App = (() => {
         if (saved.licenseKey) localStorage.setItem('keihi_license_key', saved.licenseKey);
         if (saved.sheetId)    localStorage.setItem('keihi_sheet_id',    saved.sheetId);
         if (saved.folderId)   localStorage.setItem('keihi_folder_id',   saved.folderId);
+        if (saved.alias)      localStorage.setItem('keihi_alias',       saved.alias);
       }
     } catch (_) { /* Drive読み込み失敗は無視してlocalStorageで続行 */ }
 
@@ -62,7 +63,8 @@ const App = (() => {
     try {
       _masterCache = await Sheets.readMaster();
       const email  = Auth.getUserEmail().toLowerCase();
-      // 管理者が誰も登録されていない場合（初期状態）は現ユーザーを管理者扱い
+      // 管理者未登録のときは全員管理者扱い（初期設定の保険）
+      // 管理者登録後はマスタ表の権限のみで判定（ライセンスオーナーも例外なし）
       if (_masterCache.admins.length === 0 || _masterCache.admins.includes(email)) {
         _userRole = 'admin';
       } else if (_masterCache.viewers && _masterCache.viewers.includes(email)) {
@@ -80,8 +82,15 @@ const App = (() => {
       }
     } catch (_) {
       _masterCache = { members: [], categories: [], paySources: [], admins: [], viewers: [] };
-      _userRole = 'admin';
-      _isAdmin = true; // マスタ読み込み失敗時も管理者扱いにして設定できるようにする
+      // ライセンスオーナーのみ管理者フォールバック（設定画面で復旧できるように）
+      try {
+        const _cached = JSON.parse(localStorage.getItem('keihi_license_cache') || 'null');
+        const _email  = Auth.getUserEmail().toLowerCase();
+        if (_cached?.result?.ownerEmail && _cached.result.ownerEmail === _email) {
+          _userRole = 'admin';
+          _isAdmin  = true;
+        }
+      } catch (_e) {}
     }
 
     // 会社名をナビタイトルに反映
@@ -99,15 +108,18 @@ const App = (() => {
   function _setupUI(initialView = 'submit') {
     // URLをシートID付きパスに書き換え（例: /app.html → /SHEET_ID）デモ中は除外
     if (!(typeof Demo !== 'undefined' && Demo.isActive())) {
-      const _ssId = localStorage.getItem('keihi_sheet_id');
+      const _ssId  = localStorage.getItem('keihi_sheet_id');
+      const _alias = localStorage.getItem('keihi_alias');
       if (_ssId && location.pathname === '/app.html') {
-        history.replaceState(null, '', '/' + _ssId);
+        history.replaceState(null, '', '/' + (_alias || _ssId));
       }
     }
 
-    // 保存済みナビカラーを適用（デモは青、通常はオリーブをデフォルトに）
-    const _defaultNavColor = (typeof Demo !== 'undefined' && Demo.isActive()) ? '#0d6efd' : '#808000';
-    const savedNavColor = localStorage.getItem('keihi_nav_color') || _defaultNavColor;
+    // 保存済みナビカラーを適用（旧デフォルト#808000は青にリセット）
+    const _defaultNavColor = '#0d6efd';
+    const _rawNavColor = localStorage.getItem('keihi_nav_color');
+    if (_rawNavColor === '#808000') localStorage.removeItem('keihi_nav_color');
+    const savedNavColor = (localStorage.getItem('keihi_nav_color')) || _defaultNavColor;
     const navbar = document.querySelector('nav.navbar.sticky-top');
     if (navbar) navbar.style.setProperty('background-color', savedNavColor, 'important');
 
@@ -120,6 +132,7 @@ const App = (() => {
 
     // ボトムナビのボタンにイベントリスナーを登録（常に実行）
     Router.init(initialView);
+    SwipeNav.init();
 
     // 確認モーダル初期化
     const modalEl = document.getElementById('confirmModal');
@@ -159,6 +172,17 @@ const App = (() => {
         }
       }
       _confirmModal?.show();
+      // 別モーダルが開いている場合に最前面に表示されるようz-indexを強制設定
+      const modalEl2 = document.getElementById('confirmModal');
+      if (modalEl2) {
+        modalEl2.style.zIndex = '1070';
+        setTimeout(() => {
+          const backdrops = document.querySelectorAll('.modal-backdrop');
+          if (backdrops.length > 0) {
+            backdrops[backdrops.length - 1].style.zIndex = '1065';
+          }
+        }, 0);
+      }
     });
   }
 
@@ -179,6 +203,29 @@ const App = (() => {
   }
 
   function clearMasterCache() { _masterCache = null; }
+
+  /** ライセンス確認後に管理者権限を即時反映するためマスターを再読み込みする */
+  async function reloadMaster() {
+    _masterCache = null;
+    const licKey = localStorage.getItem('keihi_license_key') || '';
+    const lic = licKey ? await License.verify(licKey) : { valid: false };
+    if (!lic.valid) return;
+    try {
+      _masterCache = await Sheets.readMaster();
+    } catch (_) {
+      _masterCache = { members: [], categories: [], paySources: [], admins: [], viewers: [] };
+    }
+    const email = Auth.getUserEmail().toLowerCase();
+    if (_masterCache.admins.length === 0 || _masterCache.admins.includes(email)) {
+      _userRole = 'admin';
+    } else if (_masterCache.viewers?.includes(email)) {
+      _userRole = 'viewer';
+    } else {
+      _userRole = 'member';
+    }
+    _isAdmin = _userRole === 'admin';
+  }
+
   function isAdmin() { return _isAdmin; }
   function getUserRole() { return _userRole; }
 
@@ -262,7 +309,7 @@ const App = (() => {
    * @param {string} message
    * @param {'success'|'danger'|'warning'|'info'} type
    */
-  function showToast(message, type = 'info') {
+  function showToast(message, type = 'info', duration = 3000) {
     const container = document.getElementById('toastContainer');
     if (!container) return;
 
@@ -270,9 +317,14 @@ const App = (() => {
     const div = document.createElement('div');
     div.className = `toast-item alert ${colorMap[type] || 'bg-info'} text-white shadow py-2 px-3`;
     div.style.cssText = 'animation: fadeIn 0.2s ease;';
-    div.textContent = message;
+    // HTML タグが含まれる場合は innerHTML で描画（リンクなど）
+    if (/<[a-z][\s\S]*>/i.test(message)) {
+      div.innerHTML = message;
+    } else {
+      div.textContent = message;
+    }
     container.appendChild(div);
-    setTimeout(() => { div.style.opacity = '0'; div.style.transition = 'opacity 0.3s'; setTimeout(() => div.remove(), 300); }, 3000);
+    setTimeout(() => { div.style.opacity = '0'; div.style.transition = 'opacity 0.3s'; setTimeout(() => div.remove(), 300); }, duration);
   }
 
   return {
@@ -280,6 +332,7 @@ const App = (() => {
     confirm,
     getMaster,
     clearMasterCache,
+    reloadMaster,
     isAdmin,
     getUserRole,
     showLoading,

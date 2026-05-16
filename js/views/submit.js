@@ -6,13 +6,15 @@
 const SubmitView = (() => {
 
   // フォーム状態
-  let _selectedFiles = []; // [{base64, mimeType, name}]
-  let _existingUrls  = []; // 編集時の既存証票URL
-  let _existingHash  = '';
-  let _editId        = null;
-  let _currentType   = '領収書';
-  let _cats          = [];
-  let _paySources    = [];
+  let _selectedFiles    = []; // [{base64, mimeType, name}]
+  let _compressedFiles  = []; // 圧縮済みキャッシュ [{base64, mimeType, name}]
+  let _compressPromise  = null; // 圧縮の並列実行プロミス
+  let _existingUrls     = []; // 編集時の既存証票URL
+  let _existingHash     = '';
+  let _editId           = null;
+  let _currentType      = '領収書';
+  let _cats             = [];
+  let _paySources       = [];
   let _pendingEdit   = null; // 一覧表からの編集キュー {id, expenses}
   let _historyAll      = []; // 自分の全履歴（ソート済）
   let _historyExpenses = []; // 全経費データ（編集用）
@@ -244,11 +246,6 @@ const SubmitView = (() => {
     <div class="d-flex justify-content-between align-items-center mb-2">
       <h6 class="fw-bold mb-0">直近の自分の履歴</h6>
       <div class="d-flex gap-2 align-items-center">
-        ${App.isAdmin() && localStorage.getItem('keihi_sheet_id') ? `
-        <a href="https://docs.google.com/spreadsheets/d/${localStorage.getItem('keihi_sheet_id')}" target="_blank" rel="noopener"
-           class="btn btn-link btn-sm text-decoration-none text-secondary p-0" style="font-size:0.8rem;">
-          <i class="bi bi-table me-1"></i>シートを開く
-        </a>` : ''}
         <button class="btn btn-link btn-sm text-decoration-none text-secondary p-0" id="btnRefreshHistory">
           <i class="bi bi-arrow-clockwise me-1"></i>更新
         </button>
@@ -256,6 +253,32 @@ const SubmitView = (() => {
     </div>
     <div id="historyList"><div class="text-muted small text-center py-3">読み込み中...</div></div>
   </div>
+
+  <!-- 訂正・削除防止規程（確定済みの場合のみ表示） -->
+  ${(() => {
+    try {
+      const reg = JSON.parse(localStorage.getItem('keihi_regulation') || 'null');
+      if (!reg?.confirmedAt) return '';
+      const text = SettingsView.buildRegulationText(reg);
+      return `
+  <div class="accordion mt-3 mb-4" id="regulationAcc">
+    <div class="accordion-item border">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed py-2 small" type="button"
+          data-bs-toggle="collapse" data-bs-target="#regulationBody">
+          <i class="bi bi-file-text me-2 text-success"></i>
+          訂正・削除防止規程（電帳法）— 確定済み ${reg.confirmedAt}
+        </button>
+      </h2>
+      <div id="regulationBody" class="accordion-collapse collapse">
+        <div class="accordion-body p-3">
+          <pre style="font-size:0.72rem;white-space:pre-wrap;font-family:inherit;color:#333;">${text.replace(/</g,'&lt;')}</pre>
+        </div>
+      </div>
+    </div>
+  </div>`;
+    } catch (_) { return ''; }
+  })()}
 
 </div>`;
   }
@@ -303,6 +326,16 @@ const SubmitView = (() => {
       </div>
       <div id="splitLines" class="d-none"></div>
       <div id="splitTotal" class="text-end text-muted small d-none">合計: <span id="lblSplitTotal">0</span>円</div>
+      <div class="d-flex align-items-center gap-1 mt-1">
+        <span class="text-muted" style="font-size:0.72rem;">税区分:</span>
+        <select id="selTaxRate" class="form-select form-select-sm" style="width:auto;font-size:0.72rem;padding-top:0.1rem;padding-bottom:0.1rem;">
+          <option value="課税10%">課税10%</option>
+          <option value="課税8%">課税8%（軽減税率）</option>
+          <option value="混在">混在（複数税率）</option>
+          <option value="非課税">非課税</option>
+          <option value="不課税">不課税</option>
+        </select>
+      </div>
     </div>`;
   }
 
@@ -374,11 +407,11 @@ const SubmitView = (() => {
     });
   }
 
-  function _bindTypeButtons(el) {
+function _bindTypeButtons(el) {
     el.querySelectorAll('[data-type]').forEach(btn => {
       btn.addEventListener('click', () => {
         _currentType = btn.dataset.type;
-        _selectedFiles = [];
+        _selectedFiles = []; _compressedFiles = []; _compressPromise = null;
         el.querySelectorAll('[data-type]').forEach(b => {
           b.classList.toggle('active', b.dataset.type === _currentType);
         });
@@ -399,12 +432,20 @@ const SubmitView = (() => {
   function _bindFileInputs(el) {
     const handleFiles = async (el, type, e) => {
       for (const file of e.target.files) {
-        const base64 = await Drive.fileToBase64(file);
         if (file.size > 10 * 1024 * 1024) { App.showToast(`${file.name} は10MBを超えています`, 'warning'); continue; }
+        const base64 = await Drive.fileToBase64(file);
         _selectedFiles.push({ base64, mimeType: file.type, name: file.name });
         _addPreviewItem(el, type, base64, file.type, _selectedFiles.length - 1);
       }
       e.target.value = '';
+
+      // 領収書タイプの場合：圧縮とAPIキー取得をボタン押下前にバックグラウンドで先読み
+      if (type === '領収書' && _selectedFiles.length > 0) {
+        _compressedFiles = [];
+        _compressPromise = Gemini.precompress(_selectedFiles);
+        Gemini.warmup();
+        _compressPromise.then(compressed => { _compressedFiles = compressed; });
+      }
     };
 
     TYPES.forEach(type => {
@@ -674,12 +715,16 @@ const SubmitView = (() => {
     const results = [];
     for (const url of _existingUrls.filter(Boolean)) {
       const fileId = url.match(/\/d\/([^/?]+)/)?.[1];
-      if (!fileId) continue;
+      if (!fileId) { console.warn('[download existing] fileId not found in URL:', url); continue; }
       try {
         const resp = await Auth.authFetch(
           `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`
         );
-        if (!resp.ok) continue;
+        if (!resp.ok) {
+          const errText = await resp.text().catch(() => '');
+          console.warn(`[download existing] ${resp.status} ${resp.statusText}`, errText);
+          continue;
+        }
         const blob = await resp.blob();
         const base64 = await new Promise(resolve => {
           const reader = new FileReader();
@@ -701,16 +746,19 @@ const SubmitView = (() => {
       btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>ダウンロード中...';
       try {
         files = await _downloadExistingForAnalysis();
-        if (files.length === 0) {
-          App.showToast('証票ファイルのダウンロードに失敗しました', 'danger');
-          return;
-        }
-      } catch (dlErr) {
-        App.showToast('証票ダウンロードエラー: ' + dlErr.message, 'danger');
-        return;
       } finally {
         btn.disabled = false;
         btn.innerHTML = '<i class="bi bi-stars me-2"></i>AIで読み取る';
+      }
+      if (files.length === 0) {
+        // Drive API でアクセスできない場合（drive.file スコープ制限）
+        // 証票リンクを開いて手動で再選択するよう案内する
+        const existingUrl = _existingUrls.filter(Boolean)[0];
+        const msg = existingUrl
+          ? `証票ファイルに直接アクセスできません。<a href="${existingUrl}" target="_blank" rel="noopener" style="color:#fff;text-decoration:underline;">証票を開いてダウンロード</a>後、「ファイル」から再選択してください。`
+          : '証票ファイルにアクセスできません。ファイルを再選択してください。';
+        App.showToast(msg, 'warning', 8000);
+        return;
       }
     }
 
@@ -718,7 +766,13 @@ const SubmitView = (() => {
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>解析中...';
     try {
-      const result = await Gemini.analyzeReceipt(files, _cats);
+      // 圧縮済みキャッシュがあればそれを使用（プリフェッチ済みの場合は圧縮時間ゼロ）
+      if (_compressPromise) {
+        _compressedFiles = await _compressPromise;
+        _compressPromise = null;
+      }
+      const filesToAnalyze = _compressedFiles.length > 0 ? _compressedFiles : files;
+      const result = await Gemini.analyzeReceipt(filesToAnalyze, _cats, true);
       console.log('[AI解析結果]', result);
 
       _showReceiptFields(el);
@@ -774,7 +828,7 @@ const SubmitView = (() => {
           // 外貨：複数APIを順に試して換算
           const rate = await _fetchExchangeRate(result.fx_currency, 'JPY');
           if (rate) {
-            const jpy = Math.ceil(Number(result.fx_amount) * rate);
+            const jpy = Math.floor(Number(result.fx_amount) * rate);
             const amtInput = el.querySelector('#inputAmount');
             if (amtInput) amtInput.value = jpy.toLocaleString('ja-JP');
             // 備考欄に換算内訳を自動入力
@@ -800,6 +854,12 @@ const SubmitView = (() => {
           if (sel) [...sel.options].forEach(o => o.selected = o.value === singleCat);
           filled++;
         }
+      }
+
+      // 税区分を更新
+      if (result.tax_rate) {
+        const taxSel = el.querySelector('#selTaxRate');
+        if (taxSel) taxSel.value = result.tax_rate;
       }
 
       // 解析完了後、フォームを画面内にスクロール
@@ -890,32 +950,45 @@ const SubmitView = (() => {
       // 5. 行データ組み立て
       const row = Sheets.expenseToRow({
         appliedAt,
-        name:       userName,
-        type:       _currentType,
-        date:       data.date,
-        place:      data.place,
-        amount:     data.amount,
-        category:   data.category,
-        note:       data.note,
-        imageLinks: uploadedUrls.join(', '),
-        confirmed:  false,
+        name:           userName,
+        type:           _currentType,
+        date:           data.date,
+        place:          data.place,
+        amount:         data.amount,
+        category:       data.category,
+        note:           data.note,
+        imageLinks:     uploadedUrls.join(', '),
+        confirmed:      App.isAdmin(),
         aiAudit,
-        payment:    data.corpPay ? `会社払い（${data.paySource}）` : '',
-        invoice:    data.invoice,
-        aiAmount:   0,
-        imageHash:  hashes.join(','),
-        email:      Auth.getUserEmail(),
-        id:         _editId || crypto.randomUUID(),
-        device:     navigator.userAgent,
+        settlementDate: data.corpPay ? `会社払い（${data.paySource}）` : '',
+        invoice:        data.invoice,
+        aiAmount:       0,
+        imageHash:      hashes.join(','),
+        email:          Auth.getUserEmail(),
+        id:             _editId || crypto.randomUUID(),
+        device:         navigator.userAgent,
+        taxRate:        data.taxRate,
       });
 
       // 6. 編集の場合は修正履歴に旧データを保存してから更新
       if (_editId) {
         const rowNum = await Sheets.findRowById(_editId);
         if (rowNum > 0) {
-          const oldRows = await Sheets.read(`経費一覧!A${rowNum}:R${rowNum}`);
-          await Sheets.append('修正履歴', [appliedAt, Auth.getUserEmail(), JSON.stringify(oldRows[0])]);
-          await Sheets.update(`経費一覧!A${rowNum}:R${rowNum}`, [row]);
+          const oldRows = await Sheets.read(`経費一覧!A${rowNum}:S${rowNum}`);
+          const r = oldRows[0] || [];
+          const oldSummary = [
+            `日付: ${r[3] || ''}`,
+            `支払先: ${r[4] || ''}`,
+            `金額: ${r[5] || ''}`,
+            `科目: ${r[6] || ''}`,
+            `タイプ: ${r[2] || ''}`,
+            `備考: ${r[7] || ''}`,
+            `精算日: ${r[11] || ''}`,
+            `インボイス: ${r[12] || ''}`,
+            `税区分: ${r[18] || ''}`,
+          ].filter(s => !s.endsWith(': ')).join(' / ');
+          await Sheets.prependRow('修正履歴', [appliedAt, Auth.getUserEmail(), oldSummary]);
+          await Sheets.update(`経費一覧!A${rowNum}:S${rowNum}`, [row]);
         }
       } else {
         await Sheets.prependExpense(row);
@@ -986,7 +1059,7 @@ const SubmitView = (() => {
         category = pnl.querySelector('#selCategory')?.value || '';
       }
       note = pnl.querySelector('#inputNote')?.value?.trim() || '';
-      if (amount === 0) { App.showToast('金額を入力してください', 'danger'); return null; }
+      if (!Number.isInteger(amount) || amount < 1) { App.showToast('金額は1以上の整数を入力してください', 'danger'); return null; }
     }
 
     // 勘定科目は必須
@@ -1006,6 +1079,7 @@ const SubmitView = (() => {
     return {
       date, place, amount, category, note,
       invoice:   pnl.querySelector('#inputInvoice')?.value?.trim() || '',
+      taxRate:   el.querySelector('#selTaxRate')?.value || '課税10%',
       corpPay, paySource,
     };
   }
@@ -1098,33 +1172,39 @@ const SubmitView = (() => {
   }
 
   function _renderHistoryCard(e) {
-    const statusClass = e.confirmed ? 'badge-confirmed'
+    const statusClass = e.settlementDate ? ''
+      : e.confirmed ? 'badge-confirmed'
       : e.aiAudit?.startsWith('⛔') ? 'badge-duplicate' : 'badge-pending';
-    const statusText = e.confirmed ? '承認済' : e.aiAudit?.startsWith('⛔') ? '要確認' : '未確認';
+    const statusText = e.settlementDate ? '精算済'
+      : e.confirmed ? '登録済'
+      : e.aiAudit?.startsWith('⛔') ? '要確認' : '申請済';
 
     const imageBtn = e.imageLinks
       ? `<a href="${e.imageLinks.split(',')[0].trim()}" target="_blank" class="btn btn-sm btn-outline-primary">
            <i class="bi bi-image me-1"></i>証票
          </a>`
       : '';
-    const editBtn = e.confirmed ? '' :
-      `<button class="btn btn-sm btn-outline-secondary btn-edit-history" data-id="${e.id}">
-         <i class="bi bi-pencil"></i>
-       </button>`;
-    const delBtn = e.confirmed ? '' :
-      `<button class="btn btn-sm btn-outline-danger btn-del-history" data-id="${e.id}">
-         <i class="bi bi-trash"></i>
-       </button>`;
+    const isAdmin = App.isAdmin();
+    const canEdit = !e.settlementDate && (!e.confirmed || isAdmin);
+    const editBtn = canEdit
+      ? `<button class="btn btn-sm btn-outline-secondary btn-edit-history" data-id="${e.id}">
+           <i class="bi bi-pencil"></i>
+         </button>` : '';
+    const delBtn = canEdit
+      ? `<button class="btn btn-sm btn-outline-danger btn-del-history" data-id="${e.id}">
+           <i class="bi bi-trash"></i>
+         </button>` : '';
 
     return `
     <div class="history-card">
       <div class="d-flex justify-content-between align-items-start">
-        <span class="h-place">${e.payment ? '🏢 ' : ''}${_escape(e.place)}</span>
+        <span class="h-place">${e.settlementDate?.startsWith('会社払い') ? '🏢 ' : ''}${_escape(e.place)}</span>
         <span class="h-amount">¥${e.amount.toLocaleString()}</span>
       </div>
       <div class="d-flex justify-content-between align-items-center mt-1">
         <span class="h-meta">${e.date} / ${_escape(e.category)} (${e.type})</span>
-        <span class="badge ${statusClass} rounded-pill px-2">${statusText}</span>
+        <span class="badge ${statusClass} rounded-pill px-2"
+          ${e.settlementDate ? 'style="background:#6c757d;color:#fff;"' : ''}>${statusText}</span>
       </div>
       <div class="d-flex gap-2 mt-2 align-items-center">
         ${imageBtn}
@@ -1164,6 +1244,8 @@ const SubmitView = (() => {
         if (amtInput) amtInput.value = Number(e.amount).toLocaleString('ja-JP');
         const sel = pnl.querySelector('#selCategory');
         if (sel) [...sel.options].forEach(o => o.selected = o.value === e.category);
+        const taxSel = el.querySelector('#selTaxRate');
+        if (taxSel && e.taxRate) taxSel.value = e.taxRate;
       } else if (e.type === '交通費') {
         const parts = (e.place || '').split(' → ');
         const fromInput = el.querySelector('#txtFrom');
@@ -1206,11 +1288,11 @@ const SubmitView = (() => {
       // 削除一覧に移動
       const timeResp = await fetch(`${window.APP_CONFIG?.apiBase || ''}/api/time`);
       const { jst: deletedAt } = await timeResp.json();
-      await Sheets.append('削除一覧', [deletedAt, Auth.getUserEmail(), ...Sheets.expenseToRow(e)]);
+      await Sheets.prependRow('削除一覧', [deletedAt, Auth.getUserEmail(), ...Sheets.expenseToRow(e)]);
 
       // 元の行を削除（sheetIdが必要なのでbatchUpdateを使う）
       // 簡略化：行の内容を空白で上書きしてフィルタリングする方式
-      await Sheets.update(`経費一覧!A${rowNum}:R${rowNum}`, [new Array(18).fill('')]);
+      await Sheets.update(`経費一覧!A${rowNum}:S${rowNum}`, [new Array(19).fill('')]);
 
       App.showToast('削除しました', 'success');
       _loadHistory(el);
@@ -1229,7 +1311,7 @@ const SubmitView = (() => {
   }
 
   function _resetForm(el) {
-    _selectedFiles = [];
+    _selectedFiles = []; _compressedFiles = []; _compressPromise = null;
     _editId = null;
     el.querySelector('#editBanner')?.classList.add('d-none');
     const btn = el.querySelector('#btnSubmit');

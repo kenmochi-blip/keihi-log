@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>経費ログ｜AI領収書解析・経費申請システム</title>
+  <meta name="description" content="経費ログは、AI領収書解析・経費申請・承認・集計をブラウザで完結できる経費管理Webアプリです。Googleアカウントで簡単にログインしてご利用いただけます。">
+  <meta name="google-site-verification" content="s1kOFLpIzqB1-Bg6R8GtUB52Q3SieZdI_XBtbBBsN4s">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0d6efd">
+</head>
+<body class="bg-light">
+
+  <!-- アプリ紹介セクション（ログイン不要で閲覧可能） -->
+  <div class="bg-primary text-white py-5">
+    <div class="container text-center" style="max-width:600px;">
+      <i class="bi bi-receipt-cutoff" style="font-size:3.5rem;"></i>
+      <h1 class="h2 fw-bold mt-2 mb-2">経費ログ</h1>
+      <p class="mb-0" style="font-size:1rem;opacity:0.9;">AI領収書解析・経費申請・承認・集計をブラウザで完結</p>
+    </div>
+  </div>
+
+  <div class="container py-4" style="max-width:600px;">
+    <!-- 機能紹介 -->
+    <div class="row g-3 mb-4">
+      <div class="col-6">
+        <div class="card h-100 border-0 shadow-sm">
+          <div class="card-body text-center py-3">
+            <i class="bi bi-camera-fill text-primary" style="font-size:1.8rem;"></i>
+            <p class="small fw-semibold mb-0 mt-2">AI領収書解析</p>
+            <p class="text-muted mb-0" style="font-size:0.75rem;">撮影するだけで自動入力</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-6">
+        <div class="card h-100 border-0 shadow-sm">
+          <div class="card-body text-center py-3">
+            <i class="bi bi-google text-danger" style="font-size:1.8rem;"></i>
+            <p class="small fw-semibold mb-0 mt-2">Googleスプレッドシート</p>
+            <p class="text-muted mb-0" style="font-size:0.75rem;">データはGoogleに安全保管</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-6">
+        <div class="card h-100 border-0 shadow-sm">
+          <div class="card-body text-center py-3">
+            <i class="bi bi-bar-chart-fill text-success" style="font-size:1.8rem;"></i>
+            <p class="small fw-semibold mb-0 mt-2">集計・レポート</p>
+            <p class="text-muted mb-0" style="font-size:0.75rem;">勘定科目別グラフで確認</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-6">
+        <div class="card h-100 border-0 shadow-sm">
+          <div class="card-body text-center py-3">
+            <i class="bi bi-shield-check-fill text-info" style="font-size:1.8rem;"></i>
+            <p class="small fw-semibold mb-0 mt-2">電帳法対応</p>
+            <p class="text-muted mb-0" style="font-size:0.75rem;">タイムスタンプ・ハッシュ管理</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ログインカード -->
+    <div class="card shadow-sm mb-3">
+      <div class="card-body p-4">
+        <div id="loginArea">
+          <p class="text-muted small mb-3 text-center">Googleアカウントでログインして開始してください</p>
+          <button id="signInBtn" class="btn btn-outline-primary w-100 mb-2">
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" class="me-2">Googleでログイン
+          </button>
+          <div id="loginError" class="alert alert-danger small d-none"></div>
+          <hr class="my-3">
+          <button id="demoBtn" class="btn btn-outline-secondary w-100 mb-1">
+            <i class="bi bi-play-circle me-2"></i>デモで試す（ログイン不要）
+          </button>
+          <p class="text-muted mb-0 text-center" style="font-size:0.7rem;">サンプルデータで全機能をお試しいただけます</p>
+        </div>
+
+        <div id="loadingArea" class="d-none text-center">
+          <div class="spinner-border text-primary" role="status"></div>
+          <p class="text-muted small mt-2 mb-0">認証中...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 無料トライアル -->
+    <div class="card shadow-sm mb-3 border-0" style="background:#f0f7ff;">
+      <div class="card-body p-4 text-center">
+        <p class="fw-bold mb-1" style="font-size:0.95rem;">
+          <i class="bi bi-gift text-primary me-1"></i>2週間無料でお試しいただけます
+        </p>
+        <p class="text-muted small mb-3">クレジットカード登録後、2週間は無料。<br>そのまま継続しない場合はいつでも解約できます。</p>
+        <a href="https://buy.stripe.com/test_cNi5kD4T39jT7LRc4Dc7u03" class="btn btn-primary w-100 mb-1">
+          <i class="bi bi-credit-card me-2"></i>2週間無料で始める
+        </a>
+        <p class="text-muted mb-0" style="font-size:0.7rem;">無料期間終了後は月額300円（税込）</p>
+      </div>
+    </div>
+
+    <!-- フッター -->
+    <div class="text-center text-muted" style="font-size:0.72rem;">
+      <p class="mb-1">&copy; 2025 合同会社Smart&amp;Smooth &mdash; 経費ログ</p>
+      <a href="/privacy" class="text-muted">プライバシーポリシー</a>
+      <span class="mx-1">｜</span>
+      <a href="mailto:info@smartandsmooth.com" class="text-muted">お問い合わせ</a>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/demo.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://apis.google.com/js/api.js" async defer></script>
+  <script src="js/auth.js"></script>
+  <script src="js/license.js"></script>
+  <script>
+    // ?demo パラメータで直接デモ起動
+    if (new URLSearchParams(location.search).has('demo')) {
+      Demo.enable();
+      window.location.replace('app.html?demo');
+    }
+
+    // パスからエイリアスまたはスプレッドシートIDを取得
+    (function() {
+      const _pathMatch = location.pathname.match(/^\/([a-zA-Z0-9_-]{6,})$/);
+      if (!_pathMatch) return;
+      const _token = _pathMatch[1];
+
+      function _proceed() {
+        const _sess = JSON.parse(sessionStorage.getItem('keihi_auth_session') || 'null');
+        if (_sess && _sess.expiry > Date.now()) {
+          window.location.replace('app.html');
+        }
+      }
+
+      if (_token.length >= 44) {
+        // 長い → スプレッドシートID直接指定（後方互換）
+        localStorage.setItem('keihi_sheet_id', _token);
+        _proceed();
+        return;
+      }
+
+      // 短い → エイリアスとして解決
+      const _cachedAlias = localStorage.getItem('keihi_alias');
+      const _cachedSheet = localStorage.getItem('keihi_sheet_id');
+      if (_cachedAlias === _token && _cachedSheet) {
+        _proceed();
+        return;
+      }
+
+      // APIで解決
+      const base = (window.APP_CONFIG && window.APP_CONFIG.apiBase) || '';
+      fetch(base + '/api/alias?code=' + encodeURIComponent(_token))
+        .then(function(r) { return r.ok ? r.json() : null; })
+        .then(function(data) {
+          if (data && data.sheetId) {
+            localStorage.setItem('keihi_sheet_id', data.sheetId);
+            localStorage.setItem('keihi_alias', _token);
+          }
+          _proceed();
+        })
+        .catch(function() { _proceed(); });
+    })();
+
+    // デモボタン（Google APIの読み込みを待たずに即動作）
+    document.getElementById('demoBtn').addEventListener('click', () => {
+      Demo.enable();
+      window.location.href = 'app.html';
+    });
+
+    let gapiReady = false, gisReady = false;
+    function checkReady() {
+      if (gapiReady && gisReady) initLogin();
+    }
+
+    document.querySelector('[src*="api.js"]').onload = () => {
+      gapi.load('client', () => {
+        gapi.client.init({
+          discoveryDocs: [
+            'https://sheets.googleapis.com/$discovery/rest?version=v4',
+            'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'
+          ]
+        }).then(() => { gapiReady = true; checkReady(); });
+      });
+    };
+    document.querySelector('[src*="gsi/client"]').onload = () => { gisReady = true; checkReady(); };
+  </script>
+  <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');</script>
+</body>
+</html>

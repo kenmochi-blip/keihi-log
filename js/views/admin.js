@@ -125,7 +125,7 @@ const AdminView = (() => {
     container.innerHTML = _master.members.map((m, i) => `
       <div class="d-flex align-items-center gap-2 py-2 border-bottom member-row" data-index="${i}">
         <div class="flex-grow-1">
-          <div class="fw-semibold small">${_escape(m.name)}</div>
+          <div class="master-item-name">${_escape(m.name)}</div>
           <div class="text-muted" style="font-size:0.72rem;">${_escape(m.email)} ${m.dept ? '/ ' + _escape(m.dept) : ''}
             ${m.role === 'admin' ? '<span class="badge bg-primary ms-1" style="font-size:0.6rem;">管理者</span>' : ''}
           </div>
@@ -152,7 +152,7 @@ const AdminView = (() => {
     }
     container.innerHTML = items.map((item, i) => `
       <div class="d-flex align-items-center gap-2 py-1 border-bottom">
-        <span class="flex-grow-1 small">${_escape(item)}</span>
+        <span class="flex-grow-1 master-item-name">${_escape(item)}</span>
         <button class="btn btn-outline-danger btn-sm btn-del-item" data-type="${type}" data-index="${i}">
           <i class="bi bi-trash"></i>
         </button>
@@ -217,9 +217,28 @@ const AdminView = (() => {
         role:  modal.querySelector('#mRole').value,
       };
       if (!updated.name || !updated.email) return App.showToast('氏名・メールは必須です', 'danger');
+      // 既存管理者を降格させる場合、最後の管理者なら不可
+      if (!isNew && _master.members[idx]?.role === 'admin' && updated.role !== 'admin') {
+        const adminCount = _master.members.filter(m => m.role === 'admin').length;
+        if (adminCount <= 1) {
+          App.showToast('管理者が1人のため降格できません。先に他のメンバーを管理者に設定してください。', 'danger');
+          return;
+        }
+      }
+      const oldEmail = isNew ? null : (_master.members[idx]?.email || null);
       if (isNew) _master.members.push(updated);
       else       _master.members[idx] = updated;
       await _saveMasterToSheet(el);
+      // Drive編集権限を付与（メール変更時は旧メールの権限を剥奪）
+      const ssId = localStorage.getItem('keihi_sheet_id');
+      if (ssId && updated.email) {
+        if (oldEmail && oldEmail !== updated.email) {
+          Drive.revokeAccess(oldEmail, ssId).catch(() => {});
+        }
+        Drive.grantEditorAccess(updated.email, ssId)
+          .then(() => App.showToast(`${updated.name} にSSの編集権限を付与しました`, 'success'))
+          .catch(() => App.showToast('権限付与に失敗しました（Drive権限を確認してください）', 'warning'));
+      }
       bsModal.hide();
     });
     modal.addEventListener('hidden.bs.modal', () => modal.remove());
@@ -248,9 +267,25 @@ const AdminView = (() => {
   }
 
   async function _deleteMember(el, idx) {
-    if (!confirm(`${_master.members[idx].name} を削除しますか？`)) return;
+    const member = _master.members[idx];
+    // 最後の管理者は削除不可
+    if (member.role === 'admin') {
+      const adminCount = _master.members.filter(m => m.role === 'admin').length;
+      if (adminCount <= 1) {
+        App.showToast('管理者が1人のため削除できません。先に他のメンバーを管理者に設定してください。', 'danger');
+        return;
+      }
+    }
+    if (!confirm(`${member.name} を削除しますか？`)) return;
     _master.members.splice(idx, 1);
     await _saveMasterToSheet(el);
+    // Drive編集権限を剥奪
+    const ssId = localStorage.getItem('keihi_sheet_id');
+    if (ssId && member.email) {
+      Drive.revokeAccess(member.email, ssId)
+        .then(() => App.showToast(`${member.name} のSS編集権限を削除しました`, 'success'))
+        .catch(() => App.showToast('権限削除に失敗しました（Drive権限を確認してください）', 'warning'));
+    }
   }
 
   async function _deleteSimpleItem(el, type, idx) {
@@ -267,7 +302,8 @@ const AdminView = (() => {
       const m = _master.members[i]    || {};
       const c = _master.categories[i] || '';
       const p = _master.paySources[i] || '';
-      rows.push([m.name || '', m.email || '', m.dept || '', p, c, m.role || '', '']);
+      // A:氏名 B:メール C:所属 D:権限 E:備考 F:会社払い支払元 G:勘定科目
+      rows.push([m.name || '', m.email || '', m.dept || '', m.role || '', '', p, c]);
     }
     // ヘッダーを保持しながら2行目以降を上書き
     await Sheets.update(`マスタ表!A2:G${rows.length + 1}`, rows);

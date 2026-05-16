@@ -571,31 +571,14 @@
     text-align: center;
   }
 
-  /* ===== Demo CTA Banner ===== */
-  .demo-cta-banner {
-    background: linear-gradient(135deg, var(--brand) 0%, hsl(var(--brand-h), var(--brand-s), 42%) 100%);
-    color: #fff;
-    padding: 2.5rem 0;
-    text-align: center;
-  }
-  .demo-cta-banner h3 {
-    font-weight: 700;
-    font-size: 1.25rem;
-    margin-bottom: 0.5rem;
-  }
-  .demo-cta-banner p {
-    opacity: 0.9;
-    margin-bottom: 1.25rem;
-    font-size: 0.95rem;
-  }
-
   /* ===== Footer ===== */
   .footer {
-    background: #0d2d5a;
-    background: linear-gradient(160deg, #0d2d5a 0%, #163866 100%);
+    background: linear-gradient(160deg,
+      hsl(var(--brand-h), 70%, 15%) 0%,
+      hsl(var(--brand-h), 55%, 19%) 100%);
     color: #adb5bd;
     padding: 3rem 0 1.5rem;
-    border-top: 3px solid rgba(110, 168, 254, 0.5);
+    border-top: 3px solid hsla(var(--brand-h), var(--brand-s), 55%, 0.5);
   }
   .footer a {
     color: #adb5bd;
@@ -603,10 +586,10 @@
     transition: color 0.2s;
   }
   .footer a:hover {
-    color: #6ea8fe;
+    color: hsl(var(--brand-h), 95%, 75%);
   }
   .footer h5 {
-    color: #6ea8fe;
+    color: hsl(var(--brand-h), 95%, 75%);
     font-size: 0.85rem;
     font-weight: 700;
     letter-spacing: 0.08em;
@@ -638,58 +621,6 @@
   }
   .navbar-custom .nav-link:hover {
     color: var(--brand);
-  }
-
-  /* ===== Hero Carousel ===== */
-  .hero-carousel {
-    width: 240px;
-    padding-bottom: 44px;
-  }
-  .hero-screen-frame {
-    width: 240px;
-    height: 420px;
-    border-radius: 20px;
-    overflow: hidden;
-    box-shadow: 0 16px 48px rgba(0,0,0,0.3);
-    background: #f0f2f5;
-    margin: 0 auto;
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-  }
-  .hero-screen-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: top;
-    display: block;
-  }
-  .hero-screen-label {
-    text-align: center;
-    color: rgba(255,255,255,0.7);
-    font-size: 0.8rem;
-    margin-top: 10px;
-    margin-bottom: 0;
-  }
-  .hero-carousel .carousel-indicators {
-    bottom: 0;
-    margin-bottom: 0;
-  }
-  .hero-carousel .carousel-indicators button {
-    width: 8px !important;
-    height: 8px !important;
-    border-radius: 50% !important;
-    border: none !important;
-    opacity: 0.5;
-    padding: 0 !important;
-    flex: none !important;
-  }
-  .hero-carousel .carousel-indicators button.active {
-    opacity: 1;
-  }
-  @media (min-width: 992px) {
-    .hero-carousel { width: 280px; }
-    .hero-screen-frame { width: 280px; height: 490px; }
   }
 
   @media (max-width: 768px) {
@@ -757,8 +688,8 @@
         <li class="nav-item"><a class="nav-link" href="#pricing">料金</a></li>
         <li class="nav-item"><a class="nav-link" href="#faq">FAQ</a></li>
         <li class="nav-item ms-lg-2 mt-2 mt-lg-0">
-          <a class="btn btn-primary rounded-pill px-3" href="https://keihi-log.smartandsmooth.com/app.html?demo">
-            デモ画面を見る
+          <a class="btn btn-primary rounded-pill px-3" href="https://buy.stripe.com/test_28E7sL99j53Dgin7Onc7u05">
+            無料で始める
           </a>
         </li>
       </ul>
@@ -774,7 +705,7 @@
     <div class="row align-items-center">
       <div class="col-lg-6 text-center text-lg-start">
         <span class="badge-hero">
-          <i class="bi bi-stars me-1"></i>2週間無料・クレジットカード不要
+          <i class="bi bi-stars me-1"></i>2週間無料トライアル
         </span>
         <h1>
           撮るだけ、貼るだけ。<br>
@@ -785,54 +716,101 @@
           データはあなたのGoogleスプレッドシートに安全保管。
         </p>
         <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center justify-content-lg-start">
-          <a href="https://keihi-log.smartandsmooth.com/app.html?demo" class="btn btn-cta btn-lg">
-            <i class="bi bi-play-circle me-2"></i>デモ画面を見る（登録不要・無料）
+          <a href="https://buy.stripe.com/test_28E7sL99j53Dgin7Onc7u05" class="btn btn-cta btn-lg">
+            <i class="bi bi-google me-2"></i>Googleで無料スタート
           </a>
           <a href="#features" class="btn btn-cta-outline btn-lg">
             機能を見る <i class="bi bi-arrow-right ms-1"></i>
           </a>
         </div>
-        <div class="mt-4 small opacity-90">
-          <i class="bi bi-check-circle me-1"></i>クレジットカード不要で2週間お試し<br>
-          <i class="bi bi-check-circle me-1"></i>試用期間終了後にStripeへのご登録をご案内します<br>
-          <i class="bi bi-check-circle me-1"></i>同意なく自動課金されることは一切ありません
+        <div class="mt-4 small">
+          <i class="bi bi-check-circle me-1"></i>クレジットカード登録後2週間無料、いつでも解約OK
+          <i class="bi bi-check-circle me-1"></i>電帳法対応可能
+        </div>
+        <div class="mt-3">
+          <a href="https://keihi-log.smartandsmooth.com/app.html?demo" class="text-white-50 small">
+            <i class="bi bi-play-circle me-1"></i>まずデモを試す（登録不要）
+          </a>
         </div>
       </div>
 
-      <!-- Hero Screenshots Carousel -->
-      <div class="col-lg-6 mt-5 mt-lg-0 d-flex align-items-center justify-content-center">
-        <div id="heroCarousel" class="carousel slide hero-carousel" data-bs-ride="carousel" data-bs-interval="3000">
-          <div class="carousel-inner">
-            <div class="carousel-item active">
-              <div class="hero-screen-frame">
-                <img src="/img/demo-submit.png" class="hero-screen-img" alt="申請画面">
-              </div>
-              <p class="hero-screen-label">申請画面</p>
+      <!-- Hero Mockup -->
+      <div class="col-lg-6 mt-5 mt-lg-0">
+        <div class="hero-mockup">
+          <!-- Floating AI badge -->
+          <div class="floating-receipt">
+            <div class="ai-badge">
+              <i class="bi bi-stars"></i>
             </div>
-            <div class="carousel-item">
-              <div class="hero-screen-frame">
-                <img src="/img/demo-form.png" class="hero-screen-img" alt="入力フォーム">
-              </div>
-              <p class="hero-screen-label">入力フォーム</p>
-            </div>
-            <div class="carousel-item">
-              <div class="hero-screen-frame">
-                <img src="/img/demo-list.png" class="hero-screen-img" alt="一覧表">
-              </div>
-              <p class="hero-screen-label">一覧表</p>
-            </div>
-            <div class="carousel-item">
-              <div class="hero-screen-frame">
-                <img src="/img/demo-summary.png" class="hero-screen-img" alt="集計表">
-              </div>
-              <p class="hero-screen-label">集計表</p>
+            <div class="text-block">
+              <strong>AI解析完了</strong><br>
+              ¥3,200 / スターバックス
             </div>
           </div>
-          <div class="carousel-indicators">
-            <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="0" class="active"></button>
-            <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="1"></button>
-            <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="2"></button>
-            <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="3"></button>
+
+          <!-- Browser window -->
+          <div class="mockup-window">
+            <div class="mockup-titlebar">
+              <span class="mockup-dot red"></span>
+              <span class="mockup-dot yellow"></span>
+              <span class="mockup-dot green"></span>
+              <span class="mockup-url">app.keihi-log.jp</span>
+            </div>
+            <div class="mockup-body">
+              <div class="mockup-header">
+                <h6><i class="bi bi-receipt me-1 text-primary"></i>今月の経費</h6>
+                <span class="mockup-pill">承認3 / 申請5</span>
+              </div>
+
+              <div class="receipt-row">
+                <div class="icon"><i class="bi bi-cup-hot"></i></div>
+                <div class="info">
+                  <div class="title">スターバックス 渋谷店</div>
+                  <div class="meta">2026/05/12 ・ 会議費</div>
+                </div>
+                <div>
+                  <span class="amount">¥3,200</span>
+                  <span class="status status-ok">承認</span>
+                </div>
+              </div>
+              <div class="receipt-row">
+                <div class="icon"><i class="bi bi-train-front"></i></div>
+                <div class="info">
+                  <div class="title">JR東日本 ICチャージ</div>
+                  <div class="meta">2026/05/10 ・ 旅費交通費</div>
+                </div>
+                <div>
+                  <span class="amount">¥5,000</span>
+                  <span class="status status-ok">承認</span>
+                </div>
+              </div>
+              <div class="receipt-row">
+                <div class="icon"><i class="bi bi-bag"></i></div>
+                <div class="info">
+                  <div class="title">アスクル 事務用品</div>
+                  <div class="meta">2026/05/08 ・ 消耗品費</div>
+                </div>
+                <div>
+                  <span class="amount">¥8,640</span>
+                  <span class="status status-wait">申請中</span>
+                </div>
+              </div>
+
+              <div class="mockup-chart">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                  <span style="font-size:11px; font-weight:600;">月次推移</span>
+                  <span style="font-size:10px; color:#6c757d;">前月比 +12%</span>
+                </div>
+                <div class="mockup-chart-bars">
+                  <div class="chart-bar" style="height: 40%;"></div>
+                  <div class="chart-bar" style="height: 55%;"></div>
+                  <div class="chart-bar" style="height: 35%;"></div>
+                  <div class="chart-bar" style="height: 70%;"></div>
+                  <div class="chart-bar" style="height: 50%;"></div>
+                  <div class="chart-bar" style="height: 85%;"></div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -917,17 +895,6 @@
         <i class="bi bi-arrow-down-circle-fill me-2"></i>「経費ログ」がすべて解決します
       </p>
     </div>
-  </div>
-</section>
-
-<!-- Demo CTA 1 -->
-<section class="demo-cta-banner">
-  <div class="container">
-    <h3><i class="bi bi-play-circle me-2"></i>まずはデモで触ってみてください</h3>
-    <p>アカウント登録なし・クレジットカード不要。実際の画面をそのまま体験できます。</p>
-    <a href="https://keihi-log.smartandsmooth.com/app.html?demo" class="btn btn-light btn-lg rounded-pill px-4 fw-bold" style="color: var(--brand);">
-      デモ画面を見る（無料・登録不要）
-    </a>
   </div>
 </section>
 
@@ -1043,17 +1010,6 @@
         </div>
       </div>
     </div>
-  </div>
-</section>
-
-<!-- Demo CTA 2 -->
-<section class="demo-cta-banner">
-  <div class="container">
-    <h3><i class="bi bi-play-circle me-2"></i>設定完了後のアプリ画面をデモで確認</h3>
-    <p>申請・一覧・集計まで、稼働後の実際の画面をそのまま体験できます。</p>
-    <a href="https://keihi-log.smartandsmooth.com/app.html?demo" class="btn btn-light btn-lg rounded-pill px-4 fw-bold" style="color: var(--brand);">
-      デモ画面を見る（無料・登録不要）
-    </a>
   </div>
 </section>
 
@@ -1194,17 +1150,6 @@
         </div>
       </div>
     </div>
-  </div>
-</section>
-
-<!-- Demo CTA 3 -->
-<section class="demo-cta-banner">
-  <div class="container">
-    <h3><i class="bi bi-play-circle me-2"></i>実際の操作感をデモで確認</h3>
-    <p>登録なし・カード不要。本番と同じ画面でAI解析も体験できます。</p>
-    <a href="https://keihi-log.smartandsmooth.com/app.html?demo" class="btn btn-light btn-lg rounded-pill px-4 fw-bold" style="color: var(--brand);">
-      デモ画面を見る（無料・登録不要）
-    </a>
   </div>
 </section>
 
@@ -1384,8 +1329,7 @@
 <section id="pricing" class="pricing-section">
   <div class="container">
     <h2 class="section-title">料金プラン</h2>
-    <p class="section-subtitle">2週間無料・クレジットカード不要でお試しいただけます</p>
-    <p class="text-center text-muted small mb-4"><i class="bi bi-shield-check me-1 text-success"></i>試用期間終了後にご案内するまで、同意なく自動課金されることは一切ありません</p>
+    <p class="section-subtitle">すべてのプランに2週間の無料トライアルがあります</p>
 
     <div class="row g-4 justify-content-center mb-5">
       <div class="col-md-6 col-lg-5">
@@ -1410,11 +1354,8 @@
             <li><i class="bi bi-check-circle-fill"></i>電帳法対応可能</li>
             <li><i class="bi bi-check-circle-fill"></i>1ユーザー</li>
           </ul>
-          <a href="https://keihi-log.smartandsmooth.com/app.html?demo" class="btn btn-primary w-100 rounded-pill mb-2">
-            <i class="bi bi-play-circle me-1"></i>デモ画面を見る（無料・登録不要）
-          </a>
-          <a href="https://buy.stripe.com/test_00w5kDfxH53DaY3fgPc7u04" class="btn btn-outline-primary w-100 rounded-pill small">
-            本登録（ソロプラン）
+          <a href="https://buy.stripe.com/test_00w5kDfxH53DaY3fgPc7u04" class="btn btn-outline-primary w-100 rounded-pill">
+            ソロプランを試す
           </a>
         </div>
       </div>
@@ -1443,11 +1384,8 @@
             <li><i class="bi bi-check-circle-fill"></i>権限管理（管理者・一般）</li>
             <li><i class="bi bi-check-circle-fill"></i>会計ソフト連携CSV出力</li>
           </ul>
-          <a href="https://keihi-log.smartandsmooth.com/app.html?demo" class="btn btn-primary w-100 rounded-pill mb-2">
-            <i class="bi bi-play-circle me-1"></i>デモ画面を見る（無料・登録不要）
-          </a>
-          <a href="https://buy.stripe.com/test_28E7sL99j53Dgin7Onc7u05" class="btn btn-outline-primary w-100 rounded-pill small">
-            本登録（チームプラン）
+          <a href="https://buy.stripe.com/test_28E7sL99j53Dgin7Onc7u05" class="btn btn-primary w-100 rounded-pill">
+            チームプランを試す
           </a>
         </div>
       </div>
@@ -1669,7 +1607,7 @@
             </h2>
             <div id="faq7" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
               <div class="accordion-body">
-                いいえ、クレジットカードは不要です。2週間は無料でお使いいただけます。試用期間が終了したタイミングで、Stripeへのご登録をご案内します。試用期間中に自動的に課金されることは一切ありません。
+                クレジットカードの登録後、2週間は無料でご利用いただけます。トライアル期間中に解約すれば費用は一切かかりません。解約はStripeカスタマーポータルからいつでも手続きできます。
               </div>
             </div>
           </div>
@@ -1700,13 +1638,13 @@
       <use href="#logo-keihilog"/>
     </svg>
     <h2 class="fw-bold mb-3">今すぐ、経費精算をラクにしませんか？</h2>
-    <p class="text-muted mb-4 lead">まずはデモ画面で実際の操作を確認してみてください。</p>
-    <a href="https://keihi-log.smartandsmooth.com/app.html?demo" class="btn btn-primary btn-lg rounded-pill px-5 mb-3">
-      <i class="bi bi-play-circle me-2"></i>デモ画面を見る（無料・登録不要）
+    <p class="text-muted mb-4 lead">2週間の無料トライアルで、まずはお試しください。</p>
+    <a href="https://buy.stripe.com/test_28E7sL99j53Dgin7Onc7u05" class="btn btn-primary btn-lg rounded-pill px-5">
+      <i class="bi bi-google me-2"></i>Googleで無料スタート
     </a>
-    <p class="text-muted small mt-1">
-      <i class="bi bi-shield-check me-1 text-success"></i>2週間無料・クレジットカード不要
-      <i class="bi bi-shield-check me-1 text-success ms-2"></i>同意なく自動課金されることは一切ありません
+    <p class="text-muted small mt-3">
+      <i class="bi bi-check-circle me-1"></i>クレカ登録後2週間無料
+      <i class="bi bi-check-circle me-1"></i>いつでも解約OK
     </p>
   </div>
 </section>

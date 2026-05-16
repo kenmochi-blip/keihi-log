@@ -42,27 +42,54 @@ const Setup = (() => {
     // 2. ヘッダーと初期データを書き込む
     await _writeInitialData(ssId, sheetIds, companyName);
 
-    // 3. 保存先フォルダが指定されていればスプレッドシートを移動
-    if (parentFolderId) {
-      await Drive.moveToFolder(ssId, parentFolderId).catch(() => {});
+    // 3. 保存先フォルダが未指定なら親フォルダを自動作成
+    if (!parentFolderId) {
+      parentFolderId = await Drive.createFolder(`経費ログ - ${companyName || ''}`.trim(), null);
     }
 
-    // 4. Drive 証票フォルダ作成（保存先フォルダ内 or ルート）
-    const folderId = await Drive.createFolder(`経費証票 - ${companyName || ''}`.trim(), parentFolderId || null);
+    // 4. スプレッドシートをフォルダに移動
+    await Drive.moveToFolder(ssId, parentFolderId).catch(() => {});
 
-    // 5. フォルダIDを設定シートに保存
+    // 5. Drive 証票フォルダ作成（親フォルダ内）
+    const folderId = await Drive.createFolder(`経費証票 - ${companyName || ''}`.trim(), parentFolderId);
+
+    // 6. フォルダIDを設定シートに保存
     await Sheets.update('設定!B4', [[folderId]], ssId);
 
-    // 6. localStorageとDriveに保存（端末間同期）
+    // 7. エイリアス生成・登録（スプレッドシートIDをURLに露出させない）
+    const alias = _generateAlias();
+    const licenseKey = localStorage.getItem('keihi_license_key') || '';
+    await _registerAlias(alias, ssId, licenseKey).catch(() => {});
+
+    // 8. localStorageとDriveに保存（端末間同期）
     localStorage.setItem('keihi_sheet_id', ssId);
+    localStorage.setItem('keihi_alias', alias);
     localStorage.setItem('keihi_folder_id', folderId);
     Drive.saveSettings({
-      licenseKey: localStorage.getItem('keihi_license_key') || '',
+      licenseKey,
       sheetId:    ssId,
       folderId,
+      alias,
     }).catch(() => {});
 
     return ssId;
+  }
+
+  function _generateAlias() {
+    const chars = 'abcdefghijkmnpqrstuvwxyz23456789';
+    let s = '';
+    const arr = crypto.getRandomValues(new Uint8Array(10));
+    arr.forEach(b => { s += chars[b % chars.length]; });
+    return s;
+  }
+
+  async function _registerAlias(alias, sheetId, licenseKey) {
+    const base = window.APP_CONFIG?.apiBase || '';
+    await fetch(`${base}/api/alias`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: alias, sheetId, licenseKey }),
+    });
   }
 
   async function _writeInitialData(ssId, sheetIds, companyName) {
@@ -70,13 +97,13 @@ const Setup = (() => {
     const userName  = Auth.getUserInfo()?.name || userEmail;
 
     const updates = [
-      // 経費一覧ヘッダー（18列）
+      // 経費一覧ヘッダー（19列）
       {
-        range: '経費一覧!A1:R1',
+        range: '経費一覧!A1:S1',
         values: [[
           '申請日時', '申請者名', 'タイプ', '日付', '支払先', '金額',
           '勘定科目', '備考', '証票', '確認', 'AI監査', '精算日',
-          'インボイス番号', 'AI解析額', '画像ハッシュ(SHA256)', '申請者Email', 'ID', 'デバイス情報'
+          'インボイス番号', 'AI解析額', '画像ハッシュ(SHA256)', '申請者Email', 'ID', 'デバイス情報', '税区分'
         ]]
       },
       // 修正履歴ヘッダー
@@ -108,18 +135,18 @@ const Setup = (() => {
       {
         range: 'マスタ表!A1:G13',
         values: [
-          ['氏名', 'メールアドレス', '所属', '会社払い支払元',         '勘定科目',   '権限',  '備考'],
-          [userName, userEmail, '',   '法人カード',                    '消耗品費',   'admin', '初期管理者'],
-          ['', '', '',                '小口現金',                      '旅費交通費', '',      ''],
-          ['', '', '',                '○○銀行(管理タブで変更可)',      '会議費',     '',      ''],
-          ['', '', '',                '▲▲銀行(管理タブで変更可)',      '交際費',     '',      ''],
-          ['', '', '', '', '通信費',     '', ''],
-          ['', '', '', '', '新聞図書費', '', ''],
-          ['', '', '', '', '水道光熱費', '', ''],
-          ['', '', '', '', '賃借料',     '', ''],
-          ['', '', '', '', '租税公課',   '', ''],
-          ['', '', '', '', '支払手数料', '', ''],
-          ['', '', '', '', '雑費',       '', ''],
+          ['氏名', 'メールアドレス', '所属', '権限',  '備考',       '会社払い支払元',         '勘定科目'],
+          [userName, userEmail, '', 'admin', '初期管理者', '法人カード',              '消耗品費'],
+          ['', '', '', '', '', '小口現金',                 '旅費交通費'],
+          ['', '', '', '', '', '○○銀行(管理タブで変更可)', '会議費'],
+          ['', '', '', '', '', '▲▲銀行(管理タブで変更可)', '交際費'],
+          ['', '', '', '', '', '',                          '通信費'],
+          ['', '', '', '', '', '',                          '新聞図書費'],
+          ['', '', '', '', '', '',                          '水道光熱費'],
+          ['', '', '', '', '', '',                          '賃借料'],
+          ['', '', '', '', '', '',                          '租税公課'],
+          ['', '', '', '', '', '',                          '支払手数料'],
+          ['', '', '', '', '', '',                          '雑費'],
         ]
       },
     ];
@@ -210,6 +237,19 @@ const Setup = (() => {
         fields: 'pixelSize'
       }
     });
+
+    // マスタ表：非表示に設定
+    if (sheetIds['マスタ表'] !== undefined) {
+      requests.push({
+        updateSheetProperties: {
+          properties: {
+            sheetId: sheetIds['マスタ表'],
+            hidden: true,
+          },
+          fields: 'hidden'
+        }
+      });
+    }
 
     await Sheets.batchUpdate(requests, ssId);
   }

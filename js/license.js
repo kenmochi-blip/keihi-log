@@ -10,10 +10,10 @@ const License = (() => {
   async function verify(key) {
     if (!key) return { valid: false, reason: 'no_key' };
 
-    // localStorage キャッシュ確認
+    // localStorage キャッシュ確認（ownerEmailがない古いキャッシュは無効化）
     try {
       const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
-      if (cached && cached.key === key && Date.now() < cached.expiry) {
+      if (cached && cached.key === key && Date.now() < cached.expiry && cached.result?.ownerEmail) {
         return cached.result;
       }
     } catch (_) {}

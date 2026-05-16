@@ -43,15 +43,33 @@ const Gemini = (() => {
     throw new Error('Gemini APIキーが設定されていません。管理者に設定シートへのキー入力を依頼してください。');
   }
 
+  /** APIキーをプリフェッチしてキャッシュに乗せる（呼び出し元はawait不要） */
+  function warmup() {
+    _getApiKey().catch(() => {});
+  }
+
+  /**
+   * 画像を事前圧縮してキャッシュ用に返す（ファイル選択直後に呼び出す）
+   * @param {Array<{base64: string, mimeType: string, name: string}>} files
+   */
+  async function precompress(files) {
+    return Promise.all(files.map(async f => ({
+      ...f,
+      base64: await _compressImage(f.base64, f.mimeType, 2000, 0.85),
+      mimeType: f.mimeType.startsWith('image/') ? 'image/jpeg' : f.mimeType,
+    })));
+  }
+
   /**
    * 領収書画像を解析してJSON情報を返す
    * @param {Array<{base64: string, mimeType: string}>} files
    * @param {string[]} categories 勘定科目リスト
+   * @param {boolean} alreadyCompressed 圧縮済みの場合はtrueで圧縮をスキップ
    */
-  async function analyzeReceipt(files, categories) {
+  async function analyzeReceipt(files, categories, alreadyCompressed = false) {
     // 電帳法要件（200万画素以上）を満たしつつ圧縮（2000px長辺・quality 0.85）
-    // 2000×1500=300万画素で要件をクリア。全モードで適用。
-    const processedFiles = await Promise.all(files.map(async f => ({
+    // precompress済みの場合はスキップ
+    const processedFiles = alreadyCompressed ? files : await Promise.all(files.map(async f => ({
       ...f,
       base64: await _compressImage(f.base64, f.mimeType, 2000, 0.85),
       mimeType: f.mimeType.startsWith('image/') ? 'image/jpeg' : f.mimeType,
@@ -77,7 +95,8 @@ const Gemini = (() => {
   "category": "勘定科目（単一カテゴリの場合）",
   "items": [{"amount": 金額, "category": "勘定科目"}] または null（明細分割の場合のみ使用）,
   "fx_currency": "USD/EUR等の通貨コードまたはnull",
-  "fx_amount": 外貨金額またはnull
+  "fx_amount": 外貨金額またはnull,
+  "tax_rate": "課税10%/課税8%/混在/非課税/不課税のいずれか"
 }
 
 注意：
@@ -85,6 +104,7 @@ const Gemini = (() => {
 - 外貨なら total_amount は null にして fx_currency と fx_amount を埋める
 - 複数カテゴリに分けられる場合は items を使い category は null
 - インボイス番号は T+13桁の数字で始まる番号
+- tax_rate：食品・飲料なら「課税8%」、非課税取引（医療・教育・住宅家賃等）なら「非課税」、不課税取引（給与・保険料等）なら「不課税」、複数税率混在なら「混在」、それ以外は「課税10%」
 `;
 
     const body = JSON.stringify({
@@ -130,5 +150,5 @@ const Gemini = (() => {
   /** キャッシュをクリアする（APIキーが変更された場合など） */
   function clearApiKey() { _apiKey = ''; }
 
-  return { analyzeReceipt, clearApiKey };
+  return { analyzeReceipt, precompress, warmup, clearApiKey };
 })();

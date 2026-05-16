@@ -18,14 +18,9 @@ const SummaryView = (() => {
 <div class="pt-3">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h5 class="fw-bold mb-0"><i class="bi bi-bar-chart-fill me-2 text-primary"></i>集計表</h5>
-    <div class="d-flex gap-2 no-print">
-      <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">
-        <i class="bi bi-printer me-1"></i>印刷
-      </button>
-      <button class="btn btn-outline-secondary btn-sm" id="btnRefreshSummary">
-        <i class="bi bi-arrow-clockwise"></i>
-      </button>
-    </div>
+    <button class="btn btn-outline-secondary btn-sm no-print" id="btnRefreshSummary">
+      <i class="bi bi-arrow-clockwise"></i>
+    </button>
   </div>
 
   <!-- フィルター -->
@@ -78,11 +73,6 @@ const SummaryView = (() => {
       </div>
     </div>
   </div>
-
-  <!-- 電帳法バッジ -->
-  <div class="text-center mt-2 mb-3">
-    <span class="badge-denchou">電帳法対応：承認済データは改ざん防止記録あり</span>
-  </div>
 </div>`;
   }
 
@@ -134,6 +124,7 @@ const SummaryView = (() => {
 
     el.querySelector('#inputFrom')?.addEventListener('change', update);
     el.querySelector('#inputTo')?.addEventListener('change', update);
+
     el.querySelector('#btnRefreshSummary')?.addEventListener('click', async () => {
       App.showLoading('更新中...');
       try { _expenses = await Sheets.readExpenses(); } finally { App.hideLoading(); }
@@ -198,21 +189,33 @@ const SummaryView = (() => {
       if (role === 'member' && e.email !== userEmail) return false;
       return true;
     });
-    const unpaid = filtered.filter(e => !e.confirmed);
+    // 精算日が空のものを未精算とする（会社払いは申請時に「会社払い」が入るため除外される）
+    const unpaid = filtered.filter(e => !e.settlementDate);
 
     const periodLabel = `直近${months.length}ヶ月間`;
     el.querySelector('#titleMember').textContent = `メンバー別（${periodLabel}）`;
     el.querySelector('#titleUnpaid').textContent = `未精算一覧（${periodLabel}）`;
     el.querySelector('#titleCat').textContent    = `勘定科目一覧（${periodLabel}）`;
 
-    _renderPivotTable(el.querySelector('#wrapMember'), filtered, months, _memberKey, '申請者');
-    _renderPivotTable(el.querySelector('#wrapUnpaid'), unpaid,   months, _memberKey, '申請者');
-    _renderPivotTable(el.querySelector('#wrapCat'),    filtered, months, _categoryKey, '勘定科目');
+    const isAdmin = App.getUserRole() === 'admin';
+
+    _renderPivotTable(el.querySelector('#wrapMember'), filtered, months, _memberKey,   '申請者', null, false);
+    _renderPivotTable(el.querySelector('#wrapUnpaid'), unpaid,   months, _memberKey,   '申請者',
+      isAdmin ? (drillExpenses, onDone) => _batchSettleDrill(drillExpenses, onDone, el) : null, false);
+    _renderPivotTable(el.querySelector('#wrapCat'),    filtered, months, _categoryKey, '勘定科目', null, true);
+
+    // 直近月と合計が見えるよう右端にスクロール（ダブルrAFでレイアウト確定後に実行）
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      ['#wrapCat', '#wrapMember', '#wrapUnpaid'].forEach(id => {
+        const w = el.querySelector(id);
+        if (w) w.scrollLeft = w.scrollWidth;
+      });
+    }));
   }
 
   // ─── キー関数 ──────────────────────────────────────────────
   function _memberKey(e) {
-    if (e.payment) return [{ key: `🏢 ${e.payment}`, amount: e.amount }];
+    if (e.settlementDate?.startsWith('会社払い')) return [{ key: `🏢 ${e.settlementDate}`, amount: e.amount }];
     return [{ key: e.name || e.email || '（不明）', amount: e.amount }];
   }
   function _categoryKey(e) {
@@ -221,8 +224,29 @@ const SummaryView = (() => {
     return parts.map(k => ({ key: k, amount: e.amount / parts.length }));
   }
 
+  // ─── 一括精算処理 ──────────────────────────────────────────
+  async function _batchSettleDrill(expenses, onDone, el) {
+    const ids = expenses.map(e => e.id).filter(Boolean);
+    if (!ids.length) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const ok = await App.confirm(`${ids.length}件を精算済みにします（精算日: ${today}）。よろしいですか？`);
+    if (!ok) return;
+    App.showLoading('精算処理中...');
+    try {
+      await Sheets.batchSettle(ids, today);
+      _expenses = await Sheets.readExpenses();
+      if (el) _renderAll(el);
+      App.showToast(`${ids.length}件を精算済みにしました`, 'success');
+      if (onDone) onDone();
+    } catch (err) {
+      App.showToast('精算処理エラー: ' + err.message, 'danger');
+    } finally {
+      App.hideLoading();
+    }
+  }
+
   // ─── ピボットテーブル描画 ──────────────────────────────────
-  function _renderPivotTable(container, records, months, keyFn, rowLabel) {
+  function _renderPivotTable(container, records, months, keyFn, rowLabel, settleCallback = null, showName = true) {
     if (!container) return;
 
     // 集計
@@ -301,16 +325,20 @@ const SummaryView = (() => {
     // ドリルダウン：セルクリック
     container.querySelectorAll('.pivot-cell[data-di]').forEach(td => {
       const { key, ym } = drillMap[Number(td.dataset.di)];
-      td.addEventListener('click', () =>
-        _showDrill(`${key} — ${_fmtYM(ym)}`, drillRecords[key]?.[ym] || [])
-      );
+      td.addEventListener('click', () => {
+        const drillExp = drillRecords[key]?.[ym] || [];
+        const settle = settleCallback ? (onDone) => settleCallback(drillExp, onDone) : null;
+        _showDrill(`${key} — ${_fmtYM(ym)}`, drillExp, settle, showName);
+      });
     });
   }
 
   // ─── ドリルダウンモーダル ──────────────────────────────────
-  function _showDrill(title, expenses) {
+  function _showDrill(title, expenses, settleCallback = null, showName = true) {
     const total = expenses.reduce((s, e) => s + e.amount, 0);
     const sorted = expenses.slice().sort((a, b) => a.date.localeCompare(b.date));
+    // 列数：日付・支払先・金額・状態 (4) + 申請者 (showName時+1)
+    const colCount = showName ? 5 : 4;
 
     const rows = sorted.map((e, i) => {
       const imgUrls = (e.imageLinks || '').split(',').map(s => s.trim()).filter(Boolean);
@@ -321,25 +349,28 @@ const SummaryView = (() => {
            <i class="bi bi-image me-1"></i>証票${imgUrls.length > 1 ? j + 1 : ''}
          </a>`
       ).join('');
+      // 日付を M/D 形式に短縮（例: 2026-04-18 → 4/18）
+      const shortDate = e.date ? e.date.replace(/^\d{4}-0?(\d+)-0?(\d+)$/, '$1/$2') : e.date;
 
       return `<tr>
-        <td style="white-space:nowrap;">${e.date}</td>
+        <td style="white-space:nowrap;">${shortDate}</td>
         <td>${_escape(e.place)}</td>
         <td class="text-end${hasExtra ? ' drill-amount-toggle' : ''}" data-row="${i}"
             style="${hasExtra ? 'cursor:pointer;' : ''}">
           ¥${e.amount.toLocaleString()}
           ${hasExtra ? '<i class="bi bi-chevron-down" style="font-size:0.6rem;opacity:0.55;margin-left:2px;vertical-align:middle;"></i>' : ''}
         </td>
-        <td class="text-muted">${_escape(e.name)}</td>
-        <td class="text-muted" style="font-size:0.75rem;">${_escape(e.category)}</td>
+        ${showName ? `<td class="text-muted" style="font-size:0.8rem;white-space:nowrap;">${_escape(e.name)}</td>` : ''}
         <td>
-          ${e.confirmed
-            ? '<span class="badge badge-confirmed rounded-pill px-2">承認済</span>'
-            : '<span class="badge badge-pending rounded-pill px-2">未確認</span>'}
+          ${e.settlementDate
+            ? '<span class="badge rounded-pill px-2" style="background:#6c757d;">精算済</span>'
+            : e.confirmed
+              ? '<span class="badge badge-confirmed rounded-pill px-2">登録済</span>'
+              : '<span class="badge badge-pending rounded-pill px-2">申請済</span>'}
         </td>
       </tr>
       ${hasExtra ? `<tr class="drill-detail-row d-none" data-row="${i}">
-        <td colspan="6" style="background:#f8f9fa;border-top:none;padding:0.4rem 0.75rem 0.5rem;">
+        <td colspan="${colCount}" style="background:#f8f9fa;border-top:none;padding:0.4rem 0.75rem 0.5rem;">
           ${e.note ? `<div style="font-size:0.78rem;color:#495057;white-space:pre-wrap;word-break:break-all;margin-bottom:${imgUrls.length ? '0.3rem' : '0'};">
             <i class="bi bi-chat-text me-1 text-secondary"></i>${_escape(e.note)}
           </div>` : ''}
@@ -351,24 +382,34 @@ const SummaryView = (() => {
     const div = document.createElement('div');
     div.innerHTML = `
       <div class="modal fade" tabindex="-1">
-        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered">
           <div class="modal-content">
             <div class="modal-header py-2 justify-content-center position-relative">
               <h6 class="modal-title text-center w-100">${_escape(title)}</h6>
               <button class="btn-close position-absolute end-0 me-3" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-0">
+              ${settleCallback ? `
+              <div class="px-3 pt-3 pb-2">
+                <button class="btn btn-success btn-sm w-100" id="drillBtnSettle">
+                  <i class="bi bi-check2-all me-1"></i>この月をまとめて精算済みにする（${expenses.length}件）
+                </button>
+              </div>` : ''}
               <div class="table-responsive">
                 <table class="table table-sm mb-0">
                   <thead class="table-light">
-                    <tr><th class="text-center">日付</th><th class="text-center">支払先</th><th class="text-center">金額</th><th class="text-center">申請者</th><th class="text-center">科目</th><th class="text-center">状態</th></tr>
+                    <tr>
+                      <th>日付</th><th>支払先</th><th class="text-end">金額</th>
+                      ${showName ? '<th>申請者</th>' : ''}
+                      <th>状態</th>
+                    </tr>
                   </thead>
                   <tbody>${rows}</tbody>
                   <tfoot class="table-light">
                     <tr>
                       <td colspan="2" class="fw-bold">合計 ${expenses.length}件</td>
                       <td class="text-end fw-bold">¥${total.toLocaleString()}</td>
-                      <td colspan="3"></td>
+                      <td colspan="${colCount - 3}"></td>
                     </tr>
                   </tfoot>
                 </table>
@@ -398,6 +439,12 @@ const SummaryView = (() => {
     const modal = new bootstrap.Modal(div.querySelector('.modal'));
     modal.show();
     div.querySelector('.modal').addEventListener('hidden.bs.modal', () => div.remove());
+
+    if (settleCallback) {
+      div.querySelector('#drillBtnSettle')?.addEventListener('click', () => {
+        settleCallback(() => modal.hide());
+      });
+    }
   }
 
   // ─── ユーティリティ ───────────────────────────────────────

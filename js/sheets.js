@@ -16,7 +16,7 @@ const Sheets = (() => {
   async function read(range, ssId) {
     if (typeof Demo !== 'undefined' && Demo.isActive()) {
       // デモ：経費一覧の単一行リクエスト（修正履歴の旧データ取得など）はEXPENSESから再構築
-      const m = range.match(/^経費一覧!A(\d+):R\1$/);
+      const m = range.match(/^経費一覧!A(\d+):S\1$/);
       if (m) {
         const idx = Number(m[1]) - 2; // ヘッダー行ぶん -2
         const e = Demo.EXPENSES[idx];
@@ -104,7 +104,7 @@ const Sheets = (() => {
   async function readExpenses(ssId) {
     if (typeof Demo !== 'undefined' && Demo.isActive()) return [...Demo.EXPENSES];
     ssId = ssId || _ssId();
-    const range  = encodeURIComponent('経費一覧!A2:R');
+    const range  = encodeURIComponent('経費一覧!A2:S');
     const fields = encodeURIComponent('sheets.data.rowData.values(effectiveValue,hyperlink)');
     const resp = await Auth.authFetch(`${BASE}/${ssId}?ranges=${range}&fields=${fields}`);
     if (!resp.ok) throw new Error(`Sheets readExpenses error: ${resp.status}`);
@@ -148,24 +148,25 @@ const Sheets = (() => {
   /** 行配列 → 経費オブジェクト */
   function _rowToExpense(row) {
     return {
-      appliedAt:   row[0]  || '',
-      name:        row[1]  || '',
-      type:        row[2]  || '',
-      date:        _parseSheetDate(row[3]),
-      place:       row[4]  || '',
-      amount:      Number(row[5]) || 0,
-      category:    row[6]  || '',
-      note:        row[7]  || '',
-      imageLinks:  _extractUrl(row[8] || ''),
-      confirmed:   row[9]  === true || row[9] === 'TRUE',
-      aiAudit:     row[10] || '',
-      payment:     row[11] || '',
-      invoice:     row[12] || '',
-      aiAmount:    Number(row[13]) || 0,
-      imageHash:   row[14] || '',
-      email:       row[15] || '',
-      id:          row[16] || '',
-      device:      row[17] || '',
+      appliedAt:      row[0]  || '',
+      name:           row[1]  || '',
+      type:           row[2]  || '',
+      date:           _parseSheetDate(row[3]),
+      place:          row[4]  || '',
+      amount:         Number(row[5]) || 0,
+      category:       row[6]  || '',
+      note:           row[7]  || '',
+      imageLinks:     _extractUrl(row[8] || ''),
+      confirmed:      row[9]  === true || row[9] === 'TRUE',
+      aiAudit:        row[10] || '',
+      settlementDate: row[11] != null && row[11] !== '' ? String(row[11]) : '',  // L列：精算日
+      invoice:        row[12] || '',
+      aiAmount:       Number(row[13]) || 0,
+      imageHash:      row[14] || '',
+      email:          row[15] || '',
+      id:             row[16] || '',
+      device:         row[17] || '',
+      taxRate:        row[18] || '',
     };
   }
 
@@ -184,27 +185,28 @@ const Sheets = (() => {
     return String(val);
   }
 
-  /** 経費オブジェクト → 行配列（18列）*/
+  /** 経費オブジェクト → 行配列（19列）*/
   function expenseToRow(e) {
     return [
-      e.appliedAt,   // A
-      e.name,        // B
-      e.type,        // C
-      e.date,        // D
-      e.place,       // E
-      e.amount,      // F
-      e.category,    // G
-      e.note,        // H
-      _toHyperlink(e.imageLinks),  // I（SS上でクリック可能なHYPERLINK式）
-      e.confirmed ? true : false, // J
-      e.aiAudit,     // K
-      e.payment,     // L
-      e.invoice,     // M
-      e.aiAmount,    // N
-      e.imageHash,   // O
-      e.email,       // P
-      e.id,          // Q
-      e.device,      // R
+      e.appliedAt,                 // A
+      e.name,                      // B
+      e.type,                      // C
+      e.date,                      // D
+      e.place,                     // E
+      e.amount,                    // F
+      e.category,                  // G
+      e.note,                      // H
+      _toHyperlink(e.imageLinks),  // I
+      e.confirmed ? true : false,  // J
+      e.aiAudit,                   // K
+      e.settlementDate || '',      // L：精算日
+      e.invoice,                   // M
+      e.aiAmount,                  // N
+      e.imageHash,                 // O
+      e.email,                     // P
+      e.id,                        // Q
+      e.device,                    // R
+      e.taxRate || '課税10%',      // S：税区分
     ];
   }
 
@@ -243,10 +245,11 @@ const Sheets = (() => {
     const viewers    = [];
 
     rows.forEach(r => {
-      if (r[0] || r[1]) members.push({ name: r[0] || '', email: r[1] || '', dept: r[2] || '', role: r[5] || '' });
-      if (r[3]) paySources.push(r[3]);
-      if (r[4]) categories.push(r[4]);
-      const role = (r[5] || '').toLowerCase();
+      // A:氏名 B:メール C:所属 D:権限 E:備考 F:会社払い支払元 G:勘定科目
+      if (r[0] || r[1]) members.push({ name: r[0] || '', email: r[1] || '', dept: r[2] || '', role: r[3] || '' });
+      if (r[5]) paySources.push(r[5]);
+      if (r[6]) categories.push(r[6]);
+      const role = (r[3] || '').toLowerCase();
       if (role === 'admin' && r[1]) admins.push(r[1].toLowerCase());
       if (role === 'viewer' && r[1]) viewers.push(r[1].toLowerCase());
     });
@@ -344,12 +347,48 @@ const Sheets = (() => {
   }
 
   /**
+   * 指定IDの経費を一括精算済みにする（S列に精算日を書き込む）
+   * @param {string[]} ids  精算対象の expense ID 配列
+   * @param {string}   dateStr  精算日文字列（例: '2026-05-12'）
+   */
+  async function batchSettle(ids, dateStr, ssId) {
+    if (typeof Demo !== 'undefined' && Demo.isActive()) return {};
+    if (!ids.length) return {};
+    ssId = ssId || _ssId();
+    const qRows = await read('経費一覧!Q2:Q', ssId);
+    const updates = [];
+    ids.forEach(id => {
+      const idx = qRows.findIndex(r => r[0] === id);
+      if (idx !== -1) {
+        updates.push({ range: `経費一覧!L${idx + 2}`, values: [[dateStr]] });
+      }
+    });
+    if (!updates.length) return {};
+    return batchUpdateValues(updates, ssId);
+  }
+
+  /**
    * 経費一覧の先頭（ヘッダー直下の2行目）に新規行を挿入する。
    * append と異なり最新データが常に先頭に並ぶ。
    */
+  async function prependRow(sheetName, values, ssId) {
+    if (typeof Demo !== 'undefined' && Demo.isActive()) return {};
+    ssId = ssId || _ssId();
+    const sheetId = await _getSheetId(sheetName, ssId);
+    if (sheetId === null) throw new Error(`${sheetName}シートが見つかりません`);
+    // ヘッダー直下に書式を引き継がない空行を挿入
+    await batchUpdate([{
+      insertDimension: {
+        range: { sheetId, dimension: 'ROWS', startIndex: 1, endIndex: 2 },
+        inheritFromBefore: false,
+      }
+    }], ssId);
+    await update(`${sheetName}!A2`, [values], ssId);
+  }
+
   async function prependExpense(row, ssId) {
     if (typeof Demo !== 'undefined' && Demo.isActive()) {
-      return { updates: { updatedRange: '経費一覧!A2:R2' } };
+      return { updates: { updatedRange: '経費一覧!A2:S2' } };
     }
     ssId = ssId || _ssId();
     const sheetId = await _getSheetId('経費一覧', ssId);
@@ -364,10 +403,10 @@ const Sheets = (() => {
     }], ssId);
 
     // 挿入した行にデータを書き込む
-    await update('経費一覧!A2:R2', [row], ssId);
+    await update('経費一覧!A2:S2', [row], ssId);
 
-    await formatExpenseRow('経費一覧!A2:R2', ssId);
-    return { updates: { updatedRange: '経費一覧!A2:R2' } };
+    await formatExpenseRow('経費一覧!A2:S2', ssId);
+    return { updates: { updatedRange: '経費一覧!A2:S2' } };
   }
 
   return {
@@ -382,6 +421,8 @@ const Sheets = (() => {
     findRowById,
     formatExpenseRow,
     prependExpense,
+    prependRow,
+    batchSettle,
     readSetting,
     readMaster,
     _rowToExpense,
