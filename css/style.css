@@ -41,8 +41,9 @@ body { font-size: 0.9rem; }
   gap: 8px;
   transition: all 0.15s;
 }
-.type-card i { font-size: 1.7rem; color: #0d6efd; }
-.type-card.active { background: #0d6efd; border-color: #0d6efd; color: #fff; }
+.type-card i { font-size: 1.7rem; color: #b0b8c1; }
+.type-card { color: #b0b8c1; border-color: #e9ecef; opacity: 0.6; }
+.type-card.active { background: #0d6efd; border-color: #0d6efd; color: #fff; opacity: 1; }
 .type-card.active i { color: #fff; }
 
 /* アップロードグリッド（旧） */
