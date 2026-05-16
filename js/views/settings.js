@@ -228,6 +228,13 @@ const SettingsView = (() => {
   async function bindEvents(el) {
     el.querySelector('#btnLogoutSettings')?.addEventListener('click', () => Auth.signOut());
 
+    // localStorage に規程がなければシートから復元を試みる（iOSのlocalStorage消去対策）
+    if (!_loadRegulation() && localStorage.getItem('keihi_sheet_id')) {
+      _restoreRegulationFromSheet().then(() => {
+        if (_loadRegulation()) Router.navigate('settings');
+      });
+    }
+
     // 訂正・削除防止規程（初期設定⑤版）
     el.querySelector('#btnConfirmRegulationInit')?.addEventListener('click', () => {
       const orgName = el.querySelector('#regInitOrgName')?.value.trim();
@@ -823,6 +830,20 @@ const SettingsView = (() => {
 
   function _saveRegulation(data) {
     localStorage.setItem('keihi_regulation', JSON.stringify(data));
+    // スプレッドシートにもバックアップ（非同期・失敗しても無視）
+    const ssId = localStorage.getItem('keihi_sheet_id');
+    if (ssId) {
+      Sheets.update('設定!B6', [[JSON.stringify(data)]]).catch(() => {});
+    }
+  }
+
+  async function _restoreRegulationFromSheet() {
+    try {
+      const val = await Sheets.readSetting('B6');
+      if (!val) return;
+      const data = JSON.parse(val);
+      if (data?.confirmedAt) localStorage.setItem('keihi_regulation', JSON.stringify(data));
+    } catch (_) {}
   }
 
   function buildRegulationText(reg) {

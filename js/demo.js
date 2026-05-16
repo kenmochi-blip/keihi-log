@@ -14,8 +14,9 @@ const Demo = (() => {
     if (!localStorage.getItem('keihi_regulation')) {
       localStorage.setItem('keihi_regulation', JSON.stringify({
         orgName: 'デモCo.',
-        representative: 'デモ ユーザー',
-        confirmedAt: '2026-01-01',
+        repName: 'デモ ユーザー',
+        address: '東京都渋谷区デモ町1-2-3',
+        confirmedAt: '2026年1月1日',
       }));
     }
   }
