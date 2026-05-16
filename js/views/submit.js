@@ -458,20 +458,16 @@ const SubmitView = (() => {
       const div = document.createElement('div');
       div.className = 'file-preview-item';
       div.dataset.existingIdx = i;
-      const fileId = url.match(/\/d\/([^/]+)\//)?.[1];
-      const inner = fileId
-        ? `<a href="${url}" target="_blank" rel="noopener">
-             <img src="https://drive.google.com/thumbnail?id=${fileId}&sz=w120-h120-c"
-               alt="証票" style="width:80px;height:80px;object-fit:cover;border-radius:4px;"
-               onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-             <div class="file-icon d-flex align-items-center justify-content-center bg-light d-none" style="width:80px;height:80px;border-radius:4px;">
-               <i class="bi bi-file-earmark-image" style="font-size:1.5rem;"></i></div>
-           </a>`
-        : `<a href="${url}" target="_blank" rel="noopener"
-             class="file-icon d-flex align-items-center justify-content-center bg-light"
-             style="width:80px;height:80px;border-radius:4px;">
-             <i class="bi bi-file-earmark-image" style="font-size:1.5rem;"></i></a>`;
-      div.innerHTML = inner + `<button class="remove-btn" data-existing-idx="${i}">✕</button>`;
+      // サムネイル取得はCORSで失敗するためアイコン+リンクで表示
+      div.innerHTML =
+        `<a href="${url}" target="_blank" rel="noopener"
+            style="display:flex;align-items:center;justify-content:center;
+                   width:80px;height:80px;border-radius:4px;background:#f0f4ff;
+                   border:1px solid #c8d8f8;text-decoration:none;flex-direction:column;gap:4px;">
+           <i class="bi bi-file-earmark-image" style="font-size:1.8rem;color:#4a90d9;"></i>
+           <span style="font-size:0.6rem;color:#555;">証票を開く</span>
+         </a>
+         <button class="remove-btn" data-existing-idx="${i}">✕</button>`;
       div.querySelector('.remove-btn').addEventListener('click', () => {
         _existingUrls[i] = null;
         div.remove();
@@ -674,10 +670,51 @@ const SubmitView = (() => {
     return null;
   }
 
+  async function _downloadExistingForAnalysis() {
+    const results = [];
+    for (const url of _existingUrls.filter(Boolean)) {
+      const fileId = url.match(/\/d\/([^/?]+)/)?.[1];
+      if (!fileId) continue;
+      try {
+        const resp = await Auth.authFetch(
+          `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`
+        );
+        if (!resp.ok) continue;
+        const blob = await resp.blob();
+        const base64 = await new Promise(resolve => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result.split(',')[1]);
+          reader.readAsDataURL(blob);
+        });
+        results.push({ base64, mimeType: blob.type, name: fileId });
+      } catch (e) { console.warn('[download existing]', e); }
+    }
+    return results;
+  }
+
   async function _runAiAnalysis(el) {
-    const files = _selectedFiles.filter(Boolean);
-    if (files.length === 0) return App.showToast('ファイルを選択してから解析してください', 'warning');
+    let files = _selectedFiles.filter(Boolean);
     const btn = el.querySelector('#btnAnalyze');
+
+    if (files.length === 0 && _existingUrls.filter(Boolean).length > 0) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>ダウンロード中...';
+      try {
+        files = await _downloadExistingForAnalysis();
+        if (files.length === 0) {
+          App.showToast('証票ファイルのダウンロードに失敗しました', 'danger');
+          return;
+        }
+      } catch (dlErr) {
+        App.showToast('証票ダウンロードエラー: ' + dlErr.message, 'danger');
+        return;
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-stars me-2"></i>AIで読み取る';
+      }
+    }
+
+    if (files.length === 0) return App.showToast('ファイルを選択してから解析してください', 'warning');
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>解析中...';
     try {
@@ -835,18 +872,20 @@ const SubmitView = (() => {
         if (warn) App.showToast(warn, 'warning');
       }
 
-      // 3. 重複チェック
+      // 3. AI監査チェック（重複・2ヶ月超・同一画像）
       const expenses = await Sheets.readExpenses();
-      const dup = _checkDuplicate(expenses, data, hashes);
-      if (dup) {
-        App.hideLoading(); // ダイアログ表示前にオーバーレイを隠す
-        const ok = await App.confirm(`⚠️ ${dup}\nこのまま申請しますか？`);
+      const alerts = _runAuditChecks(expenses, data, hashes);
+      if (alerts.length > 0) {
+        App.hideLoading();
+        const ok = await App.confirm(
+          `⚠️ 以下の問題が検出されました:\n\n${alerts.map(a => `• ${a}`).join('\n')}\n\nこのまま申請しますか？`
+        );
         if (!ok) return;
-        App.showLoading('申請中...'); // 続行する場合は再表示
+        App.showLoading('申請中...');
       }
 
       // 4. AI監査フラグ設定
-      const aiAudit = dup ? `⛔ ${dup}` : '✅ OK';
+      const aiAudit = alerts.length > 0 ? `⛔ ${alerts.join(' / ')}` : '✅ OK';
 
       // 5. 行データ組み立て
       const row = Sheets.expenseToRow({
@@ -879,10 +918,7 @@ const SubmitView = (() => {
           await Sheets.update(`経費一覧!A${rowNum}:R${rowNum}`, [row]);
         }
       } else {
-        const appendResult = await Sheets.append('経費一覧', row);
-        if (appendResult?.updates?.updatedRange) {
-          Sheets.formatExpenseRow(appendResult.updates.updatedRange).catch(() => {});
-        }
+        await Sheets.prependExpense(row);
       }
 
       App.showToast(_editId ? '修正しました' : '登録しました', 'success');
@@ -974,24 +1010,47 @@ const SubmitView = (() => {
     };
   }
 
-  function _checkDuplicate(expenses, data, newHashes) {
-    const userEmail = Auth.getUserEmail();
-    // 同一申請者の既存レコードと照合
-    for (const e of expenses) {
-      if (e.id === _editId) continue; // 自分自身は除く
-      // 日付・支払先・金額の完全一致
-      if (e.date === data.date && e.place === data.place && e.amount === data.amount && e.email === userEmail) {
-        return '同じ日付・支払先・金額の申請が既に存在します';
-      }
-      // 画像ハッシュの重複
-      if (newHashes.length > 0 && e.imageHash) {
-        const existingHashes = e.imageHash.split(',');
-        if (newHashes.some(h => existingHashes.includes(h))) {
-          return '同じ証票画像が既に申請されています（重複の可能性）';
-        }
-      }
+  function _runAuditChecks(expenses, data, newHashes) {
+    const alerts = [];
+
+    // 1. 2ヶ月以上前の日付チェック（電帳法対応）
+    const expDate = new Date(data.date);
+    const twoMonthsAgo = new Date();
+    twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+    if (expDate < twoMonthsAgo) {
+      alerts.push(`2ヶ月以上前の日付 (${data.date})`);
     }
-    return null;
+
+    // 2. 画像ハッシュ重複チェック
+    if (newHashes.length > 0) {
+      const dup = expenses.find(e => {
+        if (e.id === _editId) return false;
+        return e.imageHash && newHashes.some(h => e.imageHash.split(',').includes(h));
+      });
+      if (dup) alerts.push(`同一画像が既に申請済み (${dup.date} ${dup.place})`);
+    }
+
+    // 3. 同日・同額・類似取引先の重複チェック（揺らぎ許容）
+    function _similarPlace(a, b) {
+      if (!a || !b) return false;
+      const na = a.trim().toLowerCase().replace(/[\s　]/g, '');
+      const nb = b.trim().toLowerCase().replace(/[\s　]/g, '');
+      if (na === nb) return true;
+      if (na.length >= 3 && (nb.includes(na) || na.includes(nb))) return true;
+      if (na.length >= 4 && nb.length >= 4 && na.slice(0, 4) === nb.slice(0, 4)) return true;
+      return false;
+    }
+    const dupEntry = expenses.find(e => {
+      if (e.id === _editId) return false;
+      return e.date === data.date &&
+        Number(e.amount) === Number(data.amount) &&
+        _similarPlace(e.place, data.place);
+    });
+    if (dupEntry) {
+      alerts.push(`重複の疑い: ${dupEntry.date} ${dupEntry.place} ¥${Number(dupEntry.amount).toLocaleString('ja-JP')}`);
+    }
+
+    return alerts;
   }
 
   async function _loadHistory(el) {
