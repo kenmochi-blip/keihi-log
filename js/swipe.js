@@ -4,8 +4,14 @@
  * - スクロール位置は transform:translateY で再現（scrollTop の非同期問題を回避）
  */
 const SwipeNav = (() => {
-  const ORDER = ['submit', 'list', 'summary', 'settings'];
   const COMMIT_RATIO = 0.28;
+
+  // ボトムナビに表示されているボタンの順序を動的に取得（非表示タブはスワイプ対象外）
+  function _order() {
+    return Array.from(document.querySelectorAll('.nav-item-btn:not(.d-none)'))
+      .map(b => b.dataset.view)
+      .filter(Boolean);
+  }
 
   // 各ビューの最終レンダリング結果をキャッシュ
   const _cache = {};
@@ -77,7 +83,8 @@ const SwipeNav = (() => {
   function _build() {
     const main = document.getElementById('appMain');
     _cur = Router.current();
-    const idx = ORDER.indexOf(_cur);
+    const order = _order();
+    const idx = order.indexOf(_cur);
     if (idx === -1) { _isHoriz = false; return; }
 
     _W = window.innerWidth;
@@ -89,8 +96,8 @@ const SwipeNav = (() => {
     const navH = document.querySelector('nav.navbar.sticky-top')?.offsetHeight || 56;
 
     const views    = _views();
-    const prevName = ORDER[(idx + ORDER.length - 1) % ORDER.length];
-    const nextName = ORDER[(idx + 1) % ORDER.length];
+    const prevName = order[(idx + order.length - 1) % order.length];
+    const nextName = order[(idx + 1) % order.length];
 
     // 非表示にする前にクラスとスタイルを取得（visibility:hidden が混入するのを防ぐ）
     const mainClassName = main.className;
@@ -144,11 +151,12 @@ const SwipeNav = (() => {
 
   function _snap(dx) {
     const threshold = _W * COMMIT_RATIO;
-    const idx = ORDER.indexOf(_cur);
+    const order = _order();
+    const idx = order.indexOf(_cur);
     if (dx < -threshold) {
-      _animate(-_W * 2, ORDER[(idx + 1) % ORDER.length]);
+      _animate(-_W * 2, order[(idx + 1) % order.length]);
     } else if (dx > threshold) {
-      _animate(0, ORDER[(idx + ORDER.length - 1) % ORDER.length]);
+      _animate(0, order[(idx + order.length - 1) % order.length]);
     } else {
       _snapBack();
     }
