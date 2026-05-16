@@ -108,11 +108,16 @@
   }
   .btn-cta:focus, .btn-cta:focus-visible,
   .btn-cta:active {
-    background-color: #fff;
-    color: var(--brand);
-    box-shadow: 0 4px 14px rgba(0,0,0,0.15);
-    outline: none;
-    transform: none;
+    background-color: #fff !important;
+    color: var(--brand) !important;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.15) !important;
+    outline: none !important;
+    transform: none !important;
+  }
+  /* LP上のすべてのリンクボタンのフォーカスring消去 */
+  a.btn:focus, a.btn:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
   }
   .btn-cta-outline {
     background: transparent;
@@ -1777,9 +1782,17 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  // デモページから戻った際にリンクのフォーカス状態をリセット
+  // リンクボタンタップ直後にフォーカスを外す（bfcache復帰時にも青くならないように）
+  document.addEventListener('click', function(e) {
+    var btn = e.target.closest('a.btn');
+    if (btn) setTimeout(function() { btn.blur(); }, 50);
+  });
   window.addEventListener('pageshow', function() {
-    if (document.activeElement) document.activeElement.blur();
+    setTimeout(function() {
+      if (document.activeElement && document.activeElement.tagName !== 'BODY') {
+        document.activeElement.blur();
+      }
+    }, 100);
   });
 </script>
 </body>
