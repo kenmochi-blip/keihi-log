@@ -623,6 +623,58 @@
     color: var(--brand);
   }
 
+  /* ===== Hero Carousel ===== */
+  .hero-carousel {
+    width: 240px;
+    padding-bottom: 44px;
+  }
+  .hero-screen-frame {
+    width: 240px;
+    height: 420px;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.3);
+    background: #f0f2f5;
+    margin: 0 auto;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+  }
+  .hero-screen-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top;
+    display: block;
+  }
+  .hero-screen-label {
+    text-align: center;
+    color: rgba(255,255,255,0.7);
+    font-size: 0.8rem;
+    margin-top: 10px;
+    margin-bottom: 0;
+  }
+  .hero-carousel .carousel-indicators {
+    bottom: 0;
+    margin-bottom: 0;
+  }
+  .hero-carousel .carousel-indicators button {
+    width: 8px !important;
+    height: 8px !important;
+    border-radius: 50% !important;
+    border: none !important;
+    opacity: 0.5;
+    padding: 0 !important;
+    flex: none !important;
+  }
+  .hero-carousel .carousel-indicators button.active {
+    opacity: 1;
+  }
+  @media (min-width: 992px) {
+    .hero-carousel { width: 280px; }
+    .hero-screen-frame { width: 280px; height: 490px; }
+  }
+
   @media (max-width: 768px) {
     .hero {
       padding: 5rem 0 3rem;
@@ -728,89 +780,46 @@
           <i class="bi bi-check-circle me-1"></i>電帳法対応可能
         </div>
         <div class="mt-3">
-          <a href="https://keihi-log.smartandsmooth.com/app.html?demo" class="text-white-50 small">
+          <a href="https://keihi-log.smartandsmooth.com/app.html?demo" class="btn btn-outline-light btn-sm rounded-pill px-3">
             <i class="bi bi-play-circle me-1"></i>まずデモを試す（登録不要）
           </a>
         </div>
       </div>
 
-      <!-- Hero Mockup -->
-      <div class="col-lg-6 mt-5 mt-lg-0">
-        <div class="hero-mockup">
-          <!-- Floating AI badge -->
-          <div class="floating-receipt">
-            <div class="ai-badge">
-              <i class="bi bi-stars"></i>
+      <!-- Hero Screenshots Carousel -->
+      <div class="col-lg-6 mt-5 mt-lg-0 d-flex align-items-center justify-content-center">
+        <div id="heroCarousel" class="carousel slide hero-carousel" data-bs-ride="carousel" data-bs-interval="3000">
+          <div class="carousel-inner">
+            <div class="carousel-item active">
+              <div class="hero-screen-frame">
+                <img src="/img/demo-submit.png" class="hero-screen-img" alt="申請画面">
+              </div>
+              <p class="hero-screen-label">申請画面</p>
             </div>
-            <div class="text-block">
-              <strong>AI解析完了</strong><br>
-              ¥3,200 / スターバックス
+            <div class="carousel-item">
+              <div class="hero-screen-frame">
+                <img src="/img/demo-form.png" class="hero-screen-img" alt="入力フォーム">
+              </div>
+              <p class="hero-screen-label">入力フォーム</p>
+            </div>
+            <div class="carousel-item">
+              <div class="hero-screen-frame">
+                <img src="/img/demo-list.png" class="hero-screen-img" alt="一覧表">
+              </div>
+              <p class="hero-screen-label">一覧表</p>
+            </div>
+            <div class="carousel-item">
+              <div class="hero-screen-frame">
+                <img src="/img/demo-summary.png" class="hero-screen-img" alt="集計表">
+              </div>
+              <p class="hero-screen-label">集計表</p>
             </div>
           </div>
-
-          <!-- Browser window -->
-          <div class="mockup-window">
-            <div class="mockup-titlebar">
-              <span class="mockup-dot red"></span>
-              <span class="mockup-dot yellow"></span>
-              <span class="mockup-dot green"></span>
-              <span class="mockup-url">app.keihi-log.jp</span>
-            </div>
-            <div class="mockup-body">
-              <div class="mockup-header">
-                <h6><i class="bi bi-receipt me-1 text-primary"></i>今月の経費</h6>
-                <span class="mockup-pill">承認3 / 申請5</span>
-              </div>
-
-              <div class="receipt-row">
-                <div class="icon"><i class="bi bi-cup-hot"></i></div>
-                <div class="info">
-                  <div class="title">スターバックス 渋谷店</div>
-                  <div class="meta">2026/05/12 ・ 会議費</div>
-                </div>
-                <div>
-                  <span class="amount">¥3,200</span>
-                  <span class="status status-ok">承認</span>
-                </div>
-              </div>
-              <div class="receipt-row">
-                <div class="icon"><i class="bi bi-train-front"></i></div>
-                <div class="info">
-                  <div class="title">JR東日本 ICチャージ</div>
-                  <div class="meta">2026/05/10 ・ 旅費交通費</div>
-                </div>
-                <div>
-                  <span class="amount">¥5,000</span>
-                  <span class="status status-ok">承認</span>
-                </div>
-              </div>
-              <div class="receipt-row">
-                <div class="icon"><i class="bi bi-bag"></i></div>
-                <div class="info">
-                  <div class="title">アスクル 事務用品</div>
-                  <div class="meta">2026/05/08 ・ 消耗品費</div>
-                </div>
-                <div>
-                  <span class="amount">¥8,640</span>
-                  <span class="status status-wait">申請中</span>
-                </div>
-              </div>
-
-              <div class="mockup-chart">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                  <span style="font-size:11px; font-weight:600;">月次推移</span>
-                  <span style="font-size:10px; color:#6c757d;">前月比 +12%</span>
-                </div>
-                <div class="mockup-chart-bars">
-                  <div class="chart-bar" style="height: 40%;"></div>
-                  <div class="chart-bar" style="height: 55%;"></div>
-                  <div class="chart-bar" style="height: 35%;"></div>
-                  <div class="chart-bar" style="height: 70%;"></div>
-                  <div class="chart-bar" style="height: 50%;"></div>
-                  <div class="chart-bar" style="height: 85%;"></div>
-                </div>
-              </div>
-            </div>
+          <div class="carousel-indicators">
+            <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="0" class="active"></button>
+            <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="1"></button>
+            <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="2"></button>
+            <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="3"></button>
           </div>
         </div>
       </div>
