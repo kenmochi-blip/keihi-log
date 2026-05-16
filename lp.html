@@ -12,7 +12,11 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bs-primary: #0d6efd;
+    --brand-h: 217;          /* hue of #0d6efd */
+    --brand-s: 97%;
+    --brand-l: 52%;
+    --brand:   hsl(var(--brand-h), var(--brand-s), var(--brand-l));
+    --bs-primary: var(--brand);
     --bs-primary-rgb: 13, 110, 253;
   }
   body {
@@ -569,10 +573,12 @@
 
   /* ===== Footer ===== */
   .footer {
-    background: linear-gradient(160deg, #0d1929 0%, #111e2e 100%);
+    background: linear-gradient(160deg,
+      hsl(var(--brand-h), var(--brand-s), 9%) 0%,
+      hsl(var(--brand-h), 77%, 12%) 100%);
     color: #adb5bd;
     padding: 3rem 0 1.5rem;
-    border-top: 3px solid rgba(13,110,253,0.5);
+    border-top: 3px solid hsla(var(--brand-h), var(--brand-s), 40%, 0.5);
   }
   .footer a {
     color: #adb5bd;
@@ -580,10 +586,10 @@
     transition: color 0.2s;
   }
   .footer a:hover {
-    color: #6ea8fe;
+    color: hsl(var(--brand-h), 95%, 75%);
   }
   .footer h5 {
-    color: #6ea8fe;
+    color: hsl(var(--brand-h), 95%, 75%);
     font-size: 0.85rem;
     font-weight: 700;
     letter-spacing: 0.08em;
