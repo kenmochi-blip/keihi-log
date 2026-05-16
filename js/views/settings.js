@@ -75,10 +75,13 @@ const SettingsView = (() => {
           </button>
           <div id="createSheetMsg" class="form-text mb-3"></div>
           ` : `
+          <button class="btn btn-primary btn-sm w-100 mb-2" id="btnCreateFolder">
+            <i class="bi bi-folder-plus me-1"></i>証票フォルダを自動作成
+          </button>
           <div class="input-group mb-1">
             <input type="text" class="form-control form-control-sm" id="inputReceiptFolderUrl"
-              placeholder="Google Drive フォルダのURL">
-            <button class="btn btn-outline-primary btn-sm" id="btnSaveReceiptFolder">変更</button>
+              placeholder="Google Drive フォルダのURL（既存フォルダを使う場合）">
+            <button class="btn btn-outline-secondary btn-sm" id="btnSaveReceiptFolder">変更</button>
           </div>
           <div id="receiptFolderMsg" class="form-text mb-1"></div>
           <div id="folderOpenLinkWrap" class="mb-3"></div>
@@ -425,6 +428,27 @@ const SettingsView = (() => {
       folderInput.value = `https://drive.google.com/drive/folders/${currentFolderId}`;
     }
     _setFolderLink(currentFolderId);
+
+    el.querySelector('#btnCreateFolder')?.addEventListener('click', async () => {
+      const btn = el.querySelector('#btnCreateFolder');
+      const msg = el.querySelector('#receiptFolderMsg');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>作成中...';
+      try {
+        const companyName = (await Sheets.readSetting('B2').catch(() => '')) || '';
+        const newFolderId = await Drive.createFolder(`経費証票 - ${companyName}`.trim());
+        await Sheets.update('設定!B4', [[newFolderId]]);
+        localStorage.setItem('keihi_folder_id', newFolderId);
+        if (folderInput) folderInput.value = `https://drive.google.com/drive/folders/${newFolderId}`;
+        _setFolderLink(newFolderId);
+        msg.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>証票フォルダを作成しました</span>';
+        btn.innerHTML = '<i class="bi bi-check-circle me-1"></i>作成済み';
+      } catch (e) {
+        msg.innerHTML = `<span class="text-danger">作成に失敗しました: ${e.message}</span>`;
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-folder-plus me-1"></i>証票フォルダを自動作成';
+      }
+    });
 
     el.querySelector('#btnSaveReceiptFolder')?.addEventListener('click', async () => {
       const raw = el.querySelector('#inputReceiptFolderUrl').value.trim();
