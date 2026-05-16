@@ -3,8 +3,8 @@ body { font-size: 0.9rem; }
 
 /* ナビゲーション */
 .nav-item-btn {
-  color: #b0b8c1;
-  opacity: 0.55;
+  color: #6c757d;
+  opacity: 0.8;
   padding: 0.3rem 0.5rem;
   min-width: 56px;
   text-align: center;
