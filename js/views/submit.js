@@ -439,16 +439,12 @@ function _bindTypeButtons(el) {
       }
       e.target.value = '';
 
-      // 領収書タイプの場合：圧縮とAPIキー取得を並列でプリフェッチし、自動でAI解析を開始
+      // 領収書タイプの場合：圧縮とAPIキー取得をボタン押下前にバックグラウンドで先読み
       if (type === '領収書' && _selectedFiles.length > 0) {
         _compressedFiles = [];
         _compressPromise = Gemini.precompress(_selectedFiles);
         Gemini.warmup();
-        // プリフェッチ完了後に自動解析
-        _compressPromise.then(compressed => {
-          _compressedFiles = compressed;
-          _runAiAnalysis(el);
-        });
+        _compressPromise.then(compressed => { _compressedFiles = compressed; });
       }
     };
 
