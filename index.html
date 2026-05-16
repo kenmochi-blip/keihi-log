@@ -571,6 +571,24 @@
     text-align: center;
   }
 
+  /* ===== Demo CTA Banner ===== */
+  .demo-cta-banner {
+    background: linear-gradient(135deg, var(--brand) 0%, hsl(var(--brand-h), var(--brand-s), 42%) 100%);
+    color: #fff;
+    padding: 2.5rem 0;
+    text-align: center;
+  }
+  .demo-cta-banner h3 {
+    font-weight: 700;
+    font-size: 1.25rem;
+    margin-bottom: 0.5rem;
+  }
+  .demo-cta-banner p {
+    opacity: 0.9;
+    margin-bottom: 1.25rem;
+    font-size: 0.95rem;
+  }
+
   /* ===== Footer ===== */
   .footer {
     background: linear-gradient(160deg,
@@ -740,8 +758,8 @@
         <li class="nav-item"><a class="nav-link" href="#pricing">料金</a></li>
         <li class="nav-item"><a class="nav-link" href="#faq">FAQ</a></li>
         <li class="nav-item ms-lg-2 mt-2 mt-lg-0">
-          <a class="btn btn-primary rounded-pill px-3" href="https://buy.stripe.com/test_28E7sL99j53Dgin7Onc7u05">
-            無料で始める
+          <a class="btn btn-primary rounded-pill px-3" href="https://keihi-log.smartandsmooth.com/app.html?demo">
+            デモ画面を見る
           </a>
         </li>
       </ul>
@@ -757,7 +775,7 @@
     <div class="row align-items-center">
       <div class="col-lg-6 text-center text-lg-start">
         <span class="badge-hero">
-          <i class="bi bi-stars me-1"></i>2週間無料トライアル
+          <i class="bi bi-stars me-1"></i>2週間無料・クレジットカード不要
         </span>
         <h1>
           撮るだけ、貼るだけ。<br>
@@ -768,21 +786,17 @@
           データはあなたのGoogleスプレッドシートに安全保管。
         </p>
         <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center justify-content-lg-start">
-          <a href="https://buy.stripe.com/test_28E7sL99j53Dgin7Onc7u05" class="btn btn-cta btn-lg">
-            <i class="bi bi-google me-2"></i>Googleで無料スタート
+          <a href="https://keihi-log.smartandsmooth.com/app.html?demo" class="btn btn-cta btn-lg">
+            <i class="bi bi-play-circle me-2"></i>デモ画面を見る（登録不要・無料）
           </a>
           <a href="#features" class="btn btn-cta-outline btn-lg">
             機能を見る <i class="bi bi-arrow-right ms-1"></i>
           </a>
         </div>
-        <div class="mt-4 small">
-          <i class="bi bi-check-circle me-1"></i>クレジットカード登録後2週間無料、いつでも解約OK
-          <i class="bi bi-check-circle me-1"></i>電帳法対応可能
-        </div>
-        <div class="mt-3">
-          <a href="https://keihi-log.smartandsmooth.com/app.html?demo" class="btn btn-outline-light btn-sm rounded-pill px-3">
-            <i class="bi bi-play-circle me-1"></i>まずデモを試す（登録不要）
-          </a>
+        <div class="mt-4 small opacity-90">
+          <i class="bi bi-check-circle me-1"></i>クレジットカード不要で2週間お試し<br>
+          <i class="bi bi-check-circle me-1"></i>試用期間終了後にStripeへのご登録をご案内します<br>
+          <i class="bi bi-check-circle me-1"></i>同意なく自動課金されることは一切ありません
         </div>
       </div>
 
@@ -907,6 +921,17 @@
   </div>
 </section>
 
+<!-- Demo CTA 1 -->
+<section class="demo-cta-banner">
+  <div class="container">
+    <h3><i class="bi bi-play-circle me-2"></i>まずはデモで触ってみてください</h3>
+    <p>アカウント登録なし・クレジットカード不要。実際の画面をそのまま体験できます。</p>
+    <a href="https://keihi-log.smartandsmooth.com/app.html?demo" class="btn btn-light btn-lg rounded-pill px-4 fw-bold" style="color: var(--brand);">
+      デモ画面を見る（無料・登録不要）
+    </a>
+  </div>
+</section>
+
 <!-- ============================================ -->
 <!-- Steps                                        -->
 <!-- ============================================ -->
@@ -1019,6 +1044,17 @@
         </div>
       </div>
     </div>
+  </div>
+</section>
+
+<!-- Demo CTA 2 -->
+<section class="demo-cta-banner">
+  <div class="container">
+    <h3><i class="bi bi-play-circle me-2"></i>5ステップ、実際に試してみませんか？</h3>
+    <p>デモ環境で申請・一覧・集計まで、すべての機能を体験できます。</p>
+    <a href="https://keihi-log.smartandsmooth.com/app.html?demo" class="btn btn-light btn-lg rounded-pill px-4 fw-bold" style="color: var(--brand);">
+      デモ画面を見る（無料・登録不要）
+    </a>
   </div>
 </section>
 
@@ -1159,6 +1195,17 @@
         </div>
       </div>
     </div>
+  </div>
+</section>
+
+<!-- Demo CTA 3 -->
+<section class="demo-cta-banner">
+  <div class="container">
+    <h3><i class="bi bi-play-circle me-2"></i>実際の操作感をデモで確認</h3>
+    <p>登録なし・カード不要。本番と同じ画面でAI解析も体験できます。</p>
+    <a href="https://keihi-log.smartandsmooth.com/app.html?demo" class="btn btn-light btn-lg rounded-pill px-4 fw-bold" style="color: var(--brand);">
+      デモ画面を見る（無料・登録不要）
+    </a>
   </div>
 </section>
 
@@ -1338,7 +1385,8 @@
 <section id="pricing" class="pricing-section">
   <div class="container">
     <h2 class="section-title">料金プラン</h2>
-    <p class="section-subtitle">すべてのプランに2週間の無料トライアルがあります</p>
+    <p class="section-subtitle">2週間無料・クレジットカード不要でお試しいただけます</p>
+    <p class="text-center text-muted small mb-4"><i class="bi bi-shield-check me-1 text-success"></i>試用期間終了後にご案内するまで、同意なく自動課金されることは一切ありません</p>
 
     <div class="row g-4 justify-content-center mb-5">
       <div class="col-md-6 col-lg-5">
@@ -1363,8 +1411,11 @@
             <li><i class="bi bi-check-circle-fill"></i>電帳法対応可能</li>
             <li><i class="bi bi-check-circle-fill"></i>1ユーザー</li>
           </ul>
-          <a href="https://buy.stripe.com/test_00w5kDfxH53DaY3fgPc7u04" class="btn btn-outline-primary w-100 rounded-pill">
-            ソロプランを試す
+          <a href="https://keihi-log.smartandsmooth.com/app.html?demo" class="btn btn-primary w-100 rounded-pill mb-2">
+            <i class="bi bi-play-circle me-1"></i>デモ画面を見る（無料・登録不要）
+          </a>
+          <a href="https://buy.stripe.com/test_00w5kDfxH53DaY3fgPc7u04" class="btn btn-outline-primary w-100 rounded-pill small">
+            本登録（ソロプラン）
           </a>
         </div>
       </div>
@@ -1393,8 +1444,11 @@
             <li><i class="bi bi-check-circle-fill"></i>権限管理（管理者・一般）</li>
             <li><i class="bi bi-check-circle-fill"></i>会計ソフト連携CSV出力</li>
           </ul>
-          <a href="https://buy.stripe.com/test_28E7sL99j53Dgin7Onc7u05" class="btn btn-primary w-100 rounded-pill">
-            チームプランを試す
+          <a href="https://keihi-log.smartandsmooth.com/app.html?demo" class="btn btn-primary w-100 rounded-pill mb-2">
+            <i class="bi bi-play-circle me-1"></i>デモ画面を見る（無料・登録不要）
+          </a>
+          <a href="https://buy.stripe.com/test_28E7sL99j53Dgin7Onc7u05" class="btn btn-outline-primary w-100 rounded-pill small">
+            本登録（チームプラン）
           </a>
         </div>
       </div>
@@ -1616,7 +1670,7 @@
             </h2>
             <div id="faq7" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
               <div class="accordion-body">
-                クレジットカードの登録後、2週間は無料でご利用いただけます。トライアル期間中に解約すれば費用は一切かかりません。解約はStripeカスタマーポータルからいつでも手続きできます。
+                いいえ、クレジットカードは不要です。2週間は無料でお使いいただけます。試用期間が終了したタイミングで、Stripeへのご登録をご案内します。試用期間中に自動的に課金されることは一切ありません。
               </div>
             </div>
           </div>
@@ -1647,13 +1701,13 @@
       <use href="#logo-keihilog"/>
     </svg>
     <h2 class="fw-bold mb-3">今すぐ、経費精算をラクにしませんか？</h2>
-    <p class="text-muted mb-4 lead">2週間の無料トライアルで、まずはお試しください。</p>
-    <a href="https://buy.stripe.com/test_28E7sL99j53Dgin7Onc7u05" class="btn btn-primary btn-lg rounded-pill px-5">
-      <i class="bi bi-google me-2"></i>Googleで無料スタート
+    <p class="text-muted mb-4 lead">まずはデモ画面で実際の操作を確認してみてください。</p>
+    <a href="https://keihi-log.smartandsmooth.com/app.html?demo" class="btn btn-primary btn-lg rounded-pill px-5 mb-3">
+      <i class="bi bi-play-circle me-2"></i>デモ画面を見る（無料・登録不要）
     </a>
-    <p class="text-muted small mt-3">
-      <i class="bi bi-check-circle me-1"></i>クレカ登録後2週間無料
-      <i class="bi bi-check-circle me-1"></i>いつでも解約OK
+    <p class="text-muted small mt-1">
+      <i class="bi bi-shield-check me-1 text-success"></i>2週間無料・クレジットカード不要
+      <i class="bi bi-shield-check me-1 text-success ms-2"></i>同意なく自動課金されることは一切ありません
     </p>
   </div>
 </section>
