@@ -23,6 +23,7 @@
     font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     color: #212529;
     -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
   }
 
   /* ===== Logo ===== */
@@ -1786,12 +1787,17 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+  // bfcacheに入る前（pagehide）に全ボタンのフォーカスを解除
+  window.addEventListener('pagehide', function() {
+    document.querySelectorAll('a.btn, button').forEach(function(el) { el.blur(); });
+    if (document.activeElement) document.activeElement.blur();
+  });
+  // 念のため復帰時（pageshow）にも解除
   window.addEventListener('pageshow', function() {
     setTimeout(function() {
-      if (document.activeElement && document.activeElement.tagName !== 'BODY') {
-        document.activeElement.blur();
-      }
-    }, 100);
+      document.querySelectorAll('a.btn, button').forEach(function(el) { el.blur(); });
+      if (document.activeElement) document.activeElement.blur();
+    }, 0);
   });
 </script>
 </body>
