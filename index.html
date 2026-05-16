@@ -19,11 +19,15 @@
     --bs-primary: var(--brand);
     --bs-primary-rgb: 13, 110, 253;
   }
+  html {
+    overflow-x: hidden;
+  }
   body {
     font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     color: #212529;
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
+    max-width: 100%;
   }
 
   /* ===== Logo ===== */
@@ -279,7 +283,7 @@
   .floating-receipt {
     position: absolute;
     top: 30px;
-    right: -30px;
+    right: -10px;
     background: #fff;
     color: #212529;
     border-radius: 12px;
@@ -315,7 +319,7 @@
   }
   @media (max-width: 991px) {
     .hero-mockup { margin-top: 3rem; max-width: 400px; }
-    .floating-receipt { right: -10px; top: 15px; }
+    .floating-receipt { right: 0px; top: 15px; }
   }
 
   /* ===== Sections ===== */
@@ -395,7 +399,7 @@
   .step-arrow {
     position: absolute;
     top: 60px;
-    right: -15px;
+    right: -8px;
     color: var(--brand);
     font-size: 1.5rem;
     z-index: 1;
