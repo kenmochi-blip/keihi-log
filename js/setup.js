@@ -61,16 +61,10 @@ const Setup = (() => {
     const licenseKey = localStorage.getItem('keihi_license_key') || '';
     await _registerAlias(alias, ssId, licenseKey).catch(() => {});
 
-    // 8. localStorageとDriveに保存（端末間同期）
+    // 8. localStorageに保存
     localStorage.setItem('keihi_sheet_id', ssId);
     localStorage.setItem('keihi_alias', alias);
     localStorage.setItem('keihi_folder_id', folderId);
-    Drive.saveSettings({
-      licenseKey,
-      sheetId:    ssId,
-      folderId,
-      alias,
-    }).catch(() => {});
 
     return ssId;
   }
