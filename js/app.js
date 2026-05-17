@@ -94,18 +94,19 @@ const App = (() => {
     }
 
     // 会社名をナビタイトルに反映
+    let _companyName = '';
     try {
-      const companyName = await Sheets.readSetting('B2');
-      if (companyName) {
+      _companyName = await Sheets.readSetting('B2') || '';
+      if (_companyName) {
         const titleEl = document.getElementById('navAppTitle');
-        if (titleEl) titleEl.textContent = `経費ログ - ${companyName}`;
+        if (titleEl) titleEl.textContent = `経費ログ - ${_companyName}`;
       }
     } catch (_) {}
 
-    _setupUI('submit');
+    _setupUI('submit', _companyName);
   }
 
-  function _setupUI(initialView = 'submit') {
+  function _setupUI(initialView = 'submit', companyName = '') {
     // URLをシートID付きパスに書き換え（例: /app.html → /SHEET_ID）デモ中は除外
     if (!(typeof Demo !== 'undefined' && Demo.isActive())) {
       const _ssId  = localStorage.getItem('keihi_sheet_id');
@@ -113,6 +114,9 @@ const App = (() => {
       if (_ssId && location.pathname === '/app.html') {
         history.replaceState(null, '', '/' + (_alias || _ssId));
       }
+      // チーム別ショートカット用：動的マニフェストを生成してstart_urlにエイリアスURLを設定
+      const startPath = '/' + (_alias || _ssId || 'app.html');
+      _injectDynamicManifest(startPath, companyName);
     }
 
     // 保存済みナビカラーを適用（旧デフォルト#808000は青にリセット）
@@ -325,6 +329,30 @@ const App = (() => {
     }
     container.appendChild(div);
     setTimeout(() => { div.style.opacity = '0'; div.style.transition = 'opacity 0.3s'; setTimeout(() => div.remove(), 300); }, duration);
+  }
+
+  function _injectDynamicManifest(startPath, companyName) {
+    try {
+      const appName = companyName ? `経費ログ - ${companyName}` : '経費ログ';
+      const manifest = {
+        name: appName,
+        short_name: companyName || '経費ログ',
+        description: 'AI領収書解析・経費申請・承認・集計をブラウザで完結できる経費管理Webアプリ',
+        start_url: startPath,
+        display: 'standalone',
+        background_color: '#ffffff',
+        theme_color: '#0d6efd',
+        lang: 'ja',
+        icons: [
+          { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+          { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+        ],
+      };
+      const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+      const url  = URL.createObjectURL(blob);
+      const link = document.querySelector('link[rel="manifest"]');
+      if (link) link.href = url;
+    } catch (_) {}
   }
 
   return {
