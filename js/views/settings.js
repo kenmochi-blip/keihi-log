@@ -275,7 +275,6 @@ const SettingsView = (() => {
           Router.navigate('settings');
           return;
         }
-        _syncSettingsToDrive();
       } else {
         msg.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle me-1"></i>無効なライセンスキーです（${result.reason || ''}）</span>`;
       }
@@ -468,11 +467,6 @@ const SettingsView = (() => {
       try {
         await Sheets.update('設定!B4', [[folderId]]);
         localStorage.setItem('keihi_folder_id', folderId);
-        Drive.saveSettings({
-          licenseKey: localStorage.getItem('keihi_license_key') || '',
-          sheetId:    localStorage.getItem('keihi_sheet_id')    || '',
-          folderId,
-        }).catch(() => {});
         msg.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>保存しました</span>';
         _setFolderLink(folderId);
         App.showToast('証票フォルダを変更しました', 'success');
@@ -755,15 +749,6 @@ const SettingsView = (() => {
 
   function _escape(s) {
     return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  }
-
-  function _syncSettingsToDrive() {
-    Drive.saveSettings({
-      licenseKey: localStorage.getItem('keihi_license_key') || '',
-      sheetId:    localStorage.getItem('keihi_sheet_id')    || '',
-      folderId:   localStorage.getItem('keihi_folder_id')   || '',
-      alias:      localStorage.getItem('keihi_alias')       || '',
-    }).catch(() => {});
   }
 
   function _renderRegulationInitStep() {

@@ -148,57 +148,6 @@ const Drive = (() => {
     });
   }
 
-  const SETTINGS_FILENAME = 'keihi-settings.json';
-
-  /** Drive appDataFolder に設定を保存する（端末をまたいで同期） */
-  async function saveSettings(settings) {
-    const fileId = await _findSettingsFile();
-    const body = JSON.stringify(settings);
-    const blob = new Blob([body], { type: 'application/json' });
-
-    if (fileId) {
-      // 既存ファイルを更新
-      await Auth.authFetch(
-        `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`,
-        { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: blob }
-      );
-    } else {
-      // 新規作成
-      const meta = JSON.stringify({ name: SETTINGS_FILENAME, parents: ['appDataFolder'] });
-      const form = new FormData();
-      form.append('metadata', new Blob([meta], { type: 'application/json' }));
-      form.append('file', blob);
-      await Auth.authFetch(
-        'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
-        { method: 'POST', body: form }
-      );
-    }
-  }
-
-  /** Drive appDataFolder から設定を読み込む。未設定ならnullを返す */
-  async function loadSettings() {
-    try {
-      const fileId = await _findSettingsFile();
-      if (!fileId) return null;
-      const resp = await Auth.authFetch(
-        `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`
-      );
-      if (!resp.ok) return null;
-      return await resp.json();
-    } catch (_) {
-      return null;
-    }
-  }
-
-  async function _findSettingsFile() {
-    const resp = await Auth.authFetch(
-      `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name%3D'${SETTINGS_FILENAME}'&fields=files(id)`
-    );
-    if (!resp.ok) return null;
-    const data = await resp.json();
-    return data.files?.[0]?.id || null;
-  }
-
   async function moveToFolder(fileId, folderId) {
     if (!fileId || !folderId) return;
     const resp = await Auth.authFetch(
@@ -246,5 +195,5 @@ const Drive = (() => {
     );
   }
 
-  return { createFolder, moveToFolder, uploadFile, uploadReceiptFile, fileToBase64, saveSettings, loadSettings, grantEditorAccess, revokeAccess };
+  return { createFolder, moveToFolder, uploadFile, uploadReceiptFile, fileToBase64, grantEditorAccess, revokeAccess };
 })();
