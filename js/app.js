@@ -110,6 +110,17 @@ const App = (() => {
       }
     } catch (_) {}
 
+    // 規程をシートから自動復元（viewer/memberは設定画面を開かないため起動時に実施）
+    if (!localStorage.getItem('keihi_regulation')) {
+      try {
+        const val = await Sheets.readSetting('B6');
+        if (val) {
+          const data = JSON.parse(val);
+          if (data?.confirmedAt) localStorage.setItem('keihi_regulation', JSON.stringify(data));
+        }
+      } catch (_) {}
+    }
+
     _setupUI('submit', _companyName);
 
     // 管理者以外は設定タブを非表示
