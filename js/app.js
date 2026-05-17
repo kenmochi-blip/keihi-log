@@ -28,11 +28,15 @@ const App = (() => {
       return;
     }
 
+    // URLパスからエイリアス/シートIDを解決してlocalStorageに反映
+    await _resolvePathAlias();
+
     // 認証トークン確認（未認証ならログイン画面へ）
     try {
       await Auth.getToken();
     } catch (_) {
-      window.location.href = 'login.html';
+      const ret = location.pathname !== '/app.html' ? location.pathname : '';
+      window.location.href = 'login.html' + (ret ? '?return=' + encodeURIComponent(ret) : '');
       return;
     }
 
@@ -329,6 +333,32 @@ const App = (() => {
     }
     container.appendChild(div);
     setTimeout(() => { div.style.opacity = '0'; div.style.transition = 'opacity 0.3s'; setTimeout(() => div.remove(), 300); }, duration);
+  }
+
+  async function _resolvePathAlias() {
+    const match = location.pathname.match(/^\/([a-zA-Z0-9_-]{6,})$/);
+    if (!match) return;
+    const token = match[1];
+    // キャッシュ済みなら即反映
+    if (token.length >= 44) {
+      localStorage.setItem('keihi_sheet_id', token);
+      return;
+    }
+    const cached = localStorage.getItem('keihi_alias');
+    const cachedSheet = localStorage.getItem('keihi_sheet_id');
+    if (cached === token && cachedSheet) return;
+    // APIで解決
+    try {
+      const base = (window.APP_CONFIG && window.APP_CONFIG.apiBase) || '';
+      const r = await fetch(base + '/api/alias?code=' + encodeURIComponent(token));
+      if (r.ok) {
+        const { sheetId } = await r.json();
+        if (sheetId) {
+          localStorage.setItem('keihi_sheet_id', sheetId);
+          localStorage.setItem('keihi_alias', token);
+        }
+      }
+    } catch (_) {}
   }
 
   function _injectDynamicManifest(startPath, companyName) {
