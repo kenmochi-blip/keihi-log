@@ -2,7 +2,7 @@
   "name": "経費ログ",
   "short_name": "経費ログ",
   "description": "AI領収書解析・経費申請・承認・集計をブラウザで完結できる経費管理Webアプリ",
-  "start_url": "/",
+  "start_url": "/app.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#0d6efd",
