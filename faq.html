@@ -268,19 +268,34 @@
     </details>
 
     <details>
-      <summary>管理者とメンバーの違いは何ですか？<span class="arrow">▼</span></summary>
+      <summary>メンバーごとに操作や閲覧の権限を変えることはできますか？<span class="arrow">▼</span></summary>
       <div class="answer">
-        <p>マスタ表に「権限=admin」として登録されているGoogleアカウントが管理者として扱われます。</p>
+        <p>はい。メンバーごとに以下の3段階から権限を設定できます。</p>
         <table>
-          <tr><th>機能</th><th>管理者</th><th>メンバー</th></tr>
-          <tr><td>経費申請</td><td>○</td><td>○</td></tr>
-          <tr><td>自分の申請を確認・修正・削除</td><td>○</td><td>○（未承認のみ）</td></tr>
-          <tr><td>全員の申請を一覧で見る</td><td>○</td><td>自分のみ</td></tr>
-          <tr><td>承認操作</td><td>○</td><td>×</td></tr>
-          <tr><td>マスタ管理（メンバー・科目追加等）</td><td>○</td><td>×</td></tr>
-          <tr><td>Gemini APIキー設定</td><td>○</td><td>×</td></tr>
+          <tr><th>権限</th><th>できること</th></tr>
+          <tr><td><strong>管理者</strong></td><td>全機能（申請・一覧・集計・承認・メンバー管理・設定変更）</td></tr>
+          <tr><td><strong>閲覧者</strong></td><td>申請 ＋ 全員の一覧・集計の閲覧（承認・管理は不可）</td></tr>
+          <tr><td><strong>一般</strong></td><td>申請 ＋ 自分の履歴のみ閲覧</td></tr>
         </table>
-        <p>スプレッドシート新規作成時は、作成者が自動的に管理者として登録されます。</p>
+        <p>設定は管理者が設定画面の「メンバー管理」から変更できます。権限が異なると見える画面も異なります（例：一般メンバーには全員の一覧・集計タブが表示されません）。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>管理者・閲覧者・一般の違いは何ですか？<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>3段階の権限ごとに使える機能が異なります。</p>
+        <table>
+          <tr><th>機能</th><th>管理者</th><th>閲覧者</th><th>一般</th></tr>
+          <tr><td>経費申請</td><td>○</td><td>○</td><td>○</td></tr>
+          <tr><td>自分の申請を修正・削除</td><td>○</td><td>○（未承認のみ）</td><td>○（未承認のみ）</td></tr>
+          <tr><td>全員の申請を一覧で見る</td><td>○</td><td>○</td><td>自分のみ</td></tr>
+          <tr><td>集計・グラフを見る</td><td>○</td><td>○</td><td>×</td></tr>
+          <tr><td>承認操作</td><td>○</td><td>×</td><td>×</td></tr>
+          <tr><td>メンバー・科目管理</td><td>○</td><td>×</td><td>×</td></tr>
+          <tr><td>Gemini APIキー設定</td><td>○</td><td>×</td><td>×</td></tr>
+        </table>
+        <p>権限はメンバー管理画面からいつでも変更できます。スプレッドシート新規作成時は、作成者が自動的に管理者として登録されます。</p>
       </div>
     </details>
 
