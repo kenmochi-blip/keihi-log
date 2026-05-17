@@ -93,6 +93,7 @@ const App = (() => {
       if (_companyName) {
         const titleEl = document.getElementById('navAppTitle');
         if (titleEl) titleEl.textContent = `経費ログ - ${_companyName}`;
+        document.title = `経費ログ | ${_companyName}`;
       }
     } catch (_) {}
 
