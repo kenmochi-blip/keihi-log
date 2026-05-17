@@ -74,7 +74,7 @@ async function _issueNewLicense(session) {
     if (existingData && !existingData.suspended) {
       console.log(`License already exists for ${customerEmail}: ${existingKey}, resending`);
       if (process.env.RESEND_API_KEY) {
-        await _sendLicenseEmail(customerEmail, customerName, existingKey, existingData.expiresAt);
+        await _sendDuplicateLicenseEmail(customerEmail, customerName, existingKey, existingData.expiresAt);
       }
       return;
     }
@@ -135,6 +135,36 @@ async function _sendLicenseEmail(to, name, licenseKey, expiresAt) {
   <li>アプリURL：<a href="https://keihi-log.smartandsmooth.com/app.html">https://keihi-log.smartandsmooth.com/app.html</a></li>
 </ul>
 <p>ご不明な点はお気軽にお問い合わせください。</p>
+    `.trim(),
+  };
+  const resp = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+  if (!resp.ok) console.error('Resend error:', await resp.text());
+}
+
+async function _sendDuplicateLicenseEmail(to, name, licenseKey, expiresAt) {
+  const body = {
+    from: process.env.RESEND_FROM_EMAIL || 'noreply@' + (process.env.VERCEL_PROJECT_PRODUCTION_URL || 'example.com'),
+    to,
+    subject: '【経費ログ】ライセンスキーのご案内（登録済み）',
+    html: `
+<p>${name} 様</p>
+<p>このメールアドレスにはすでにライセンスキーが発行されています。</p>
+<p>以下の既存キーをそのままお使いください。</p>
+<p style="font-size:1.2em;font-family:monospace;background:#f5f5f5;padding:12px 16px;border-radius:6px;letter-spacing:1px;">
+  <strong>${licenseKey}</strong>
+</p>
+<ul>
+  <li>有効期限：${expiresAt}</li>
+  <li>アプリURL：<a href="https://keihi-log.smartandsmooth.com/app.html">https://keihi-log.smartandsmooth.com/app.html</a></li>
+</ul>
+<p>今回の購入はStripeより返金処理いたします。ご不明な点はお気軽にお問い合わせください。</p>
     `.trim(),
   };
   const resp = await fetch('https://api.resend.com/emails', {
