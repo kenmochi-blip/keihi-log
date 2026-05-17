@@ -165,7 +165,7 @@ const Drive = (() => {
   async function grantEditorAccess(email, fileId) {
     if (!email || !fileId) return;
     const resp = await Auth.authFetch(
-      `https://www.googleapis.com/drive/v3/files/${fileId}/permissions`,
+      `https://www.googleapis.com/drive/v3/files/${fileId}/permissions?sendNotificationEmail=false`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
