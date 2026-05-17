@@ -55,6 +55,8 @@ const App = (() => {
     }
     if (!licKey || !ssId) {
       _setupUI('submit');
+      document.querySelector('.nav-item-btn[data-view="settings"]')?.classList.remove('d-none');
+      ['list', 'summary'].forEach(v => document.querySelector(`.nav-item-btn[data-view="${v}"]`)?.classList.add('d-none'));
       return;
     }
     const lic = await License.verify(licKey);
