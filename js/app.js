@@ -360,6 +360,7 @@ const App = (() => {
     const token = match[1];
     // 44文字以上はシートID直指定
     if (token.length >= 44) {
+      sessionStorage.setItem('keihi_sheet_id', token);
       localStorage.setItem('keihi_sheet_id', token);
       return;
     }
@@ -370,6 +371,8 @@ const App = (() => {
       if (r.ok) {
         const { sheetId } = await r.json();
         if (sheetId) {
+          // sessionStorageにも保存してタブ間の混入を防ぐ
+          sessionStorage.setItem('keihi_sheet_id', sheetId);
           localStorage.setItem('keihi_sheet_id', sheetId);
           localStorage.setItem('keihi_alias', token);
         }

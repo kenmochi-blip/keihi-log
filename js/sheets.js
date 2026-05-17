@@ -5,7 +5,9 @@
 const Sheets = (() => {
 
   function _ssId() {
-    const id = localStorage.getItem('keihi_sheet_id');
+    // sessionStorage（タブ固有）を優先してlocalStorageにフォールバック
+    // 複数チームを同一ブラウザで開いた際のタブ間混入を防ぐ
+    const id = sessionStorage.getItem('keihi_sheet_id') || localStorage.getItem('keihi_sheet_id');
     if (!id) throw new Error('スプレッドシートIDが設定されていません。設定画面で入力してください。');
     return id;
   }
