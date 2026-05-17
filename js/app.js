@@ -41,8 +41,19 @@ const App = (() => {
     }
 
     // ライセンス・シート未設定の場合は申請画面を表示してバナーで案内
-    const licKey = localStorage.getItem('keihi_license_key');
-    if (!licKey || !localStorage.getItem('keihi_sheet_id')) {
+    let licKey = localStorage.getItem('keihi_license_key');
+    const ssId = localStorage.getItem('keihi_sheet_id');
+    // シートIDはあるがライセンスキーが未設定の場合、シートから自動取得（メンバー向け）
+    if (!licKey && ssId) {
+      try {
+        const sheetLicKey = await Sheets.readSetting('B3');
+        if (sheetLicKey && sheetLicKey.startsWith('KL-')) {
+          localStorage.setItem('keihi_license_key', sheetLicKey);
+          licKey = sheetLicKey;
+        }
+      } catch (_) {}
+    }
+    if (!licKey || !ssId) {
       _setupUI('submit');
       return;
     }
@@ -98,6 +109,11 @@ const App = (() => {
     } catch (_) {}
 
     _setupUI('submit', _companyName);
+
+    // 管理者以外は設定タブを非表示
+    if (!_isAdmin) {
+      document.querySelector('.nav-item-btn[data-view="settings"]')?.classList.add('d-none');
+    }
   }
 
   function _setupUI(initialView = 'submit', companyName = '') {
