@@ -358,15 +358,12 @@ const App = (() => {
     const match = location.pathname.match(/^\/([a-zA-Z0-9_-]{6,})$/);
     if (!match) return;
     const token = match[1];
-    // キャッシュ済みなら即反映
+    // 44文字以上はシートID直指定
     if (token.length >= 44) {
       localStorage.setItem('keihi_sheet_id', token);
       return;
     }
-    const cached = localStorage.getItem('keihi_alias');
-    const cachedSheet = localStorage.getItem('keihi_sheet_id');
-    if (cached === token && cachedSheet) return;
-    // APIで解決
+    // 常にAPIで解決（キャッシュは使わない：別チームのシートIDが混入するのを防ぐ）
     try {
       const base = (window.APP_CONFIG && window.APP_CONFIG.apiBase) || '';
       const r = await fetch(base + '/api/alias?code=' + encodeURIComponent(token));
