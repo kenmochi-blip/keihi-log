@@ -132,7 +132,7 @@ async function _sendLicenseEmail(to, name, licenseKey, expiresAt) {
 </p>
 <ul>
   <li>有効期限：${expiresAt}</li>
-  <li>アプリURL：https://keihi-log.smartandsmooth.com</li>
+  <li>アプリURL：<a href="https://keihi-log.smartandsmooth.com/app.html">https://keihi-log.smartandsmooth.com/app.html</a></li>
 </ul>
 <p>ご不明な点はお気軽にお問い合わせください。</p>
     `.trim(),
