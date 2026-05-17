@@ -51,60 +51,10 @@
   </div>
 
   <script src="js/config.js"></script>
-  <script src="js/demo.js"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="https://apis.google.com/js/api.js" async defer></script>
   <script src="js/auth.js"></script>
-  <script src="js/license.js"></script>
   <script>
-    // ?demo パラメータで直接デモ起動
-    if (new URLSearchParams(location.search).has('demo')) {
-      Demo.enable();
-      window.location.replace('app.html?demo');
-    }
-
-    // パスからエイリアスまたはスプレッドシートIDを取得
-    (function() {
-      const _pathMatch = location.pathname.match(/^\/([a-zA-Z0-9_-]{6,})$/);
-      if (!_pathMatch) return;
-      const _token = _pathMatch[1];
-
-      function _proceed() {
-        const _sess = JSON.parse(sessionStorage.getItem('keihi_auth_session') || 'null');
-        if (_sess && _sess.expiry > Date.now()) {
-          window.location.replace('app.html');
-        }
-      }
-
-      if (_token.length >= 44) {
-        // 長い → スプレッドシートID直接指定（後方互換）
-        localStorage.setItem('keihi_sheet_id', _token);
-        _proceed();
-        return;
-      }
-
-      // 短い → エイリアスとして解決
-      const _cachedAlias = localStorage.getItem('keihi_alias');
-      const _cachedSheet = localStorage.getItem('keihi_sheet_id');
-      if (_cachedAlias === _token && _cachedSheet) {
-        _proceed();
-        return;
-      }
-
-      // APIで解決
-      const base = (window.APP_CONFIG && window.APP_CONFIG.apiBase) || '';
-      fetch(base + '/api/alias?code=' + encodeURIComponent(_token))
-        .then(function(r) { return r.ok ? r.json() : null; })
-        .then(function(data) {
-          if (data && data.sheetId) {
-            localStorage.setItem('keihi_sheet_id', data.sheetId);
-            localStorage.setItem('keihi_alias', _token);
-          }
-          _proceed();
-        })
-        .catch(function() { _proceed(); });
-    })();
-
     let gapiReady = false, gisReady = false;
     function checkReady() {
       if (gapiReady && gisReady) initLogin();

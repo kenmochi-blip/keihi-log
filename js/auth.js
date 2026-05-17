@@ -188,11 +188,17 @@ function initLogin() {
     }
   };
 
+  const _returnUrl = (() => {
+    const ret = new URLSearchParams(location.search).get('return');
+    if (ret && /^\/[a-zA-Z0-9_\-/.]*$/.test(ret)) return ret;
+    return 'app.html';
+  })();
+
   // ボタンクリックから直接OAuthポップアップを開く（ブラウザのポップアップブロック回避）
   document.getElementById('signInBtn').addEventListener('click', () => {
     document.getElementById('loginError').classList.add('d-none');
     Auth.getToken().then(() => {
-      window.location.href = 'app.html';
+      window.location.href = _returnUrl;
     }).catch(err => {
       _showLoginBtn('ログインに失敗しました: ' + err.message);
     });
@@ -205,7 +211,7 @@ function initLogin() {
     document.getElementById('loadingArea').classList.remove('d-none');
     document.querySelector('#loadingArea p').textContent = `${savedEmail} でログイン中...`;
     Auth.getToken().then(() => {
-      window.location.href = 'app.html';
+      window.location.href = _returnUrl;
     }).catch(() => {
       // サイレントログイン失敗（同意期限切れ等）→ ログインボタンを表示
       _showLoginBtn(null);
