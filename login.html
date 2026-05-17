@@ -60,7 +60,7 @@
       if (gapiReady && gisReady) initLogin();
     }
 
-    document.querySelector('[src*="api.js"]').onload = () => {
+    function onGapiLoad() {
       gapi.load('client', () => {
         gapi.client.init({
           discoveryDocs: [
@@ -69,8 +69,20 @@
           ]
         }).then(() => { gapiReady = true; checkReady(); });
       });
-    };
-    document.querySelector('[src*="gsi/client"]').onload = () => { gisReady = true; checkReady(); };
+    }
+    function onGsiLoad() { gisReady = true; checkReady(); }
+
+    // キャッシュ読み込みでonloadが既に発火済みの場合にも対応
+    if (window.gapi) {
+      onGapiLoad();
+    } else {
+      document.querySelector('[src*="api.js"]').addEventListener('load', onGapiLoad);
+    }
+    if (window.google?.accounts) {
+      onGsiLoad();
+    } else {
+      document.querySelector('[src*="gsi/client"]').addEventListener('load', onGsiLoad);
+    }
   </script>
   <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');</script>
 </body>
