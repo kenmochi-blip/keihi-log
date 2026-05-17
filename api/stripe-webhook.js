@@ -67,6 +67,19 @@ async function _issueNewLicense(session) {
   const customerName  = session.customer_details?.name  || customerEmail;
   const plan = session.metadata?.plan || 'standard';
 
+  // 同一メールアドレスで既存ライセンスがある場合は再発行せず既存キーを再送
+  const existingKey = await kv.get(`email_to_license:${customerEmail}`);
+  if (existingKey) {
+    const existingData = await kv.get(`license:${existingKey}`);
+    if (existingData && !existingData.suspended) {
+      console.log(`License already exists for ${customerEmail}: ${existingKey}, resending`);
+      if (process.env.RESEND_API_KEY) {
+        await _sendLicenseEmail(customerEmail, customerName, existingKey, existingData.expiresAt);
+      }
+      return;
+    }
+  }
+
   // ライセンスキー生成
   const licenseKey = `KL-${crypto.randomBytes(12).toString('hex').toUpperCase()}`;
 
