@@ -18,8 +18,6 @@ const App = (() => {
       _userRole = demoRole;
       _isAdmin = demoRole === 'admin';
       _setupUI('submit');
-      const titleEl = document.getElementById('navAppTitle');
-      if (titleEl) titleEl.textContent = `経費ログ - ${Demo.COMPANY_NAME}`;
       const navEmail = document.getElementById('navUserEmail');
       if (navEmail) navEmail.textContent = Demo.getUserEmail();
       _applyDemoNavVisibility(demoRole);
@@ -104,8 +102,6 @@ const App = (() => {
     try {
       _companyName = await Sheets.readSetting('B2') || '';
       if (_companyName) {
-        const titleEl = document.getElementById('navAppTitle');
-        if (titleEl) titleEl.textContent = `経費ログ - ${_companyName}`;
         document.title = `経費ログ | ${_companyName}`;
       }
     } catch (_) {}
