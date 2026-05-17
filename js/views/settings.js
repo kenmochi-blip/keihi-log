@@ -694,7 +694,7 @@ const SettingsView = (() => {
       const m = _master.members[i]    || {};
       const c = _master.categories[i] || '';
       const p = _master.paySources[i] || '';
-      rows.push([m.name || '', m.email || '', m.dept || '', p, c, m.role || '', '']);
+      rows.push([m.name || '', m.email || '', m.dept || '', m.role || '', '', p, c]);
     }
     await Sheets.update(`マスタ表!A2:G${rows.length + 1}`, rows);
     App.showToast('保存しました', 'success');
