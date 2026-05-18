@@ -32,11 +32,22 @@ export default async function handler(req, res) {
       cursor = Number(nextCursor);
     } while (cursor !== 0);
 
-    // 各キーのデータを取得
+    // 各キーのデータと当月・先月の申請カウンターを取得
+    const thisYM = new Date().toISOString().slice(0, 7);
+    const lastYM = (() => {
+      const d = new Date(); d.setMonth(d.getMonth() - 1);
+      return d.toISOString().slice(0, 7);
+    })();
+
     const licenses = await Promise.all(
       keys.map(async key => {
-        const data = await kv.get(key);
-        return { key: key.replace('license:', ''), ...data };
+        const licKey = key.replace('license:', '');
+        const [data, usageThis, usageLast] = await Promise.all([
+          kv.get(key),
+          kv.get(`usage:${licKey}:${thisYM}`),
+          kv.get(`usage:${licKey}:${lastYM}`),
+        ]);
+        return { key: licKey, ...data, usageThis: usageThis || 0, usageLast: usageLast || 0 };
       })
     );
 

@@ -910,8 +910,13 @@ function _bindTypeButtons(el) {
 
     App.showLoading('申請中...');
     try {
-      // 1. サーバー時刻取得（電帳法対応）
-      const timeResp = await fetch(`${window.APP_CONFIG?.apiBase || ''}/api/time`);
+      // 1. サーバー時刻取得（電帳法対応）、申請カウンターをインクリメント
+      const _licKey = localStorage.getItem('keihi_license_key') || '';
+      const timeResp = await fetch(`${window.APP_CONFIG?.apiBase || ''}/api/time`, {
+        method: _licKey ? 'POST' : 'GET',
+        headers: _licKey ? { 'Content-Type': 'application/json' } : {},
+        body: _licKey ? JSON.stringify({ key: _licKey }) : undefined,
+      });
       const { jst: appliedAt } = await timeResp.json();
 
       // 2. ファイルアップロード + SHA-256ハッシュ計算

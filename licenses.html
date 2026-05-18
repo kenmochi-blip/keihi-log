@@ -83,7 +83,10 @@
                 <th style="font-size:0.78rem;">会社名・氏名</th>
                 <th style="font-size:0.78rem;">メール</th>
                 <th style="font-size:0.78rem;">ライセンスキー</th>
+                <th style="font-size:0.78rem;">プラン</th>
                 <th style="font-size:0.78rem;">有効期限</th>
+                <th style="font-size:0.78rem;">今月申請数</th>
+                <th style="font-size:0.78rem;">先月申請数</th>
                 <th style="font-size:0.78rem;">ステータス</th>
                 <th style="font-size:0.78rem;"></th>
               </tr>
@@ -142,17 +145,25 @@
 
       const statusBadge = { active: 'success', expired: 'warning', suspended: 'danger' };
       const statusLabel = { active: '有効', expired: '期限切れ', suspended: '停止中' };
+      const planLabel   = { solo: 'ソロ', team: 'チーム', standard: '標準' };
+      const planBadge   = { solo: 'secondary', team: 'primary', standard: 'secondary' };
 
       const tbody = document.getElementById('licenseTable');
       tbody.innerHTML = filtered.map(l => {
-        const st = getStatus(l);
+        const st   = getStatus(l);
         const date = l.createdAt ? l.createdAt.split('T')[0] : '—';
+        const plan = l.plan || 'standard';
+        const usageThis = l.usageThis ?? '—';
+        const usageLast = l.usageLast ?? '—';
         return `<tr data-key="${esc(l.key)}">
           <td style="font-size:0.78rem;">${date}</td>
           <td style="font-size:0.78rem;">${esc(l.company || '')}</td>
           <td style="font-size:0.78rem;">${esc(l.email || '')}</td>
           <td style="font-size:0.72rem;font-family:monospace;">${esc(l.key)}</td>
+          <td><span class="badge bg-${planBadge[plan]}" style="font-size:0.65rem;">${planLabel[plan] || plan}</span></td>
           <td style="font-size:0.78rem;">${l.expiresAt || '—'}</td>
+          <td style="font-size:0.78rem;text-align:right;font-weight:${usageThis > 0 ? '600' : 'normal'};">${usageThis}</td>
+          <td style="font-size:0.78rem;text-align:right;color:#888;">${usageLast}</td>
           <td><span class="badge bg-${statusBadge[st]}" style="font-size:0.65rem;">${statusLabel[st]}</span></td>
           <td><button class="btn btn-outline-danger btn-sm py-0 px-1 btn-delete" data-key="${esc(l.key)}" title="削除"><i class="bi bi-trash"></i></button></td>
         </tr>`;
