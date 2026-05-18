@@ -57,6 +57,39 @@ export default async function handler(req, res) {
     await kv.set(`email_to_license:${email}`, licenseKey);
     console.log(`License manually issued: ${licenseKey} for ${email}`);
 
+    // メール送信（RESEND_API_KEY が設定されている場合のみ）
+    if (process.env.RESEND_API_KEY) {
+      const from   = process.env.RESEND_FROM_EMAIL || 'noreply@' + (process.env.VERCEL_PROJECT_PRODUCTION_URL || 'example.com');
+      const appUrl = 'https://keihi-log.smartandsmooth.com/app.html';
+
+      await _sendEmail(from, email, '【経費ログ】ライセンスキーのご案内', `
+<p>${licenseData.company} 様</p>
+<p>経費ログのライセンスキーをお送りします。</p>
+<p style="font-size:1.2em;font-family:monospace;background:#f5f5f5;padding:12px 16px;border-radius:6px;letter-spacing:1px;">
+  <strong>${licenseKey}</strong>
+</p>
+<ul>
+  <li>有効期限：${licenseData.expiresAt}</li>
+  <li>アプリURL：<a href="${appUrl}">${appUrl}</a></li>
+</ul>
+<p>アプリの設定画面でライセンスキーを入力してください。ご不明な点はお気軽にお問い合わせください。</p>
+      `.trim());
+
+      if (process.env.ADMIN_NOTIFY_EMAIL) {
+        await _sendEmail(from, process.env.ADMIN_NOTIFY_EMAIL, `【経費ログ】手動ライセンス発行 — ${licenseData.company}`, `
+<p>手動でライセンスを発行しました。</p>
+<table style="border-collapse:collapse;font-size:14px;">
+  <tr><td style="padding:4px 12px 4px 0;color:#666;">会社名・氏名</td><td>${licenseData.company}</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;color:#666;">メールアドレス</td><td>${email}</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;color:#666;">ライセンスキー</td><td style="font-family:monospace;">${licenseKey}</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;color:#666;">プラン</td><td>${licenseData.plan}</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;color:#666;">有効期限</td><td>${licenseData.expiresAt}</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;color:#666;">備考</td><td>${licenseData.note}</td></tr>
+</table>
+        `.trim());
+      }
+    }
+
     return res.status(200).json({ key: licenseKey, ...licenseData });
   }
 
@@ -96,42 +129,14 @@ export default async function handler(req, res) {
   }
 }
 
-
-  try {
-    // KV から license:* キーを全スキャン
-    const keys = [];
-    let cursor = 0;
-    do {
-      const [nextCursor, batch] = await kv.scan(cursor, { match: 'license:*', count: 100 });
-      keys.push(...batch);
-      cursor = Number(nextCursor);
-    } while (cursor !== 0);
-
-    // 各キーのデータと当月・先月の申請カウンターを取得
-    const thisYM = new Date().toISOString().slice(0, 7);
-    const lastYM = (() => {
-      const d = new Date(); d.setMonth(d.getMonth() - 1);
-      return d.toISOString().slice(0, 7);
-    })();
-
-    const licenses = await Promise.all(
-      keys.map(async key => {
-        const licKey = key.replace('license:', '');
-        const [data, usageThis, usageLast] = await Promise.all([
-          kv.get(key),
-          kv.get(`usage:${licKey}:${thisYM}`),
-          kv.get(`usage:${licKey}:${lastYM}`),
-        ]);
-        return { key: licKey, ...data, usageThis: usageThis || 0, usageLast: usageLast || 0 };
-      })
-    );
-
-    // 発行日時の新しい順にソート
-    licenses.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-
-    return res.status(200).json({ total: licenses.length, licenses });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: 'server_error' });
-  }
+async function _sendEmail(from, to, subject, html) {
+  const resp = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ from, to, subject, html }),
+  });
+  if (!resp.ok) console.error('Resend error:', await resp.text());
 }
