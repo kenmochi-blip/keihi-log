@@ -352,20 +352,29 @@ const App = (() => {
       return;
     }
     // 常にAPIで解決（キャッシュは使わない：別チームのシートIDが混入するのを防ぐ）
-    try {
-      const base = (window.APP_CONFIG && window.APP_CONFIG.apiBase) || '';
-      const r = await fetch(base + '/api/alias?code=' + encodeURIComponent(token));
-      if (r.ok) {
-        const { sheetId } = await r.json();
-        if (sheetId) {
-          // sessionStorageにも保存してタブ間の混入を防ぐ
-          sessionStorage.setItem('keihi_sheet_id', sheetId);
-          localStorage.setItem('keihi_sheet_id', sheetId);
-          localStorage.setItem('keihi_alias', token);
+    let resolved = false;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const base = (window.APP_CONFIG && window.APP_CONFIG.apiBase) || '';
+        const r = await fetch(base + '/api/alias?code=' + encodeURIComponent(token));
+        if (r.ok) {
+          const { sheetId } = await r.json();
+          if (sheetId) {
+            sessionStorage.setItem('keihi_sheet_id', sheetId);
+            localStorage.setItem('keihi_sheet_id', sheetId);
+            localStorage.setItem('keihi_alias', token);
+            resolved = true;
+          }
         }
+        break;
+      } catch (_) {
+        if (attempt < 2) await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
       }
-    } catch (_) {}
-  }
+    }
+    if (!resolved && !localStorage.getItem('keihi_sheet_id')) {
+      // エイリアスURLなのに解決できなかった場合、URLをそのまま保持してユーザーに通知
+      console.warn('alias resolution failed for:', token);
+    }
 
   function _injectDynamicManifest(startPath, companyName) {
     try {
