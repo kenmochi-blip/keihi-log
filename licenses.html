@@ -58,6 +58,35 @@
         </div>
       </div>
 
+      <!-- 手動発行フォーム -->
+      <div class="card mb-4">
+        <div class="card-header py-2 fw-bold small"><i class="bi bi-plus-circle me-1 text-success"></i>手動発行</div>
+        <div class="card-body py-3">
+          <div class="row g-2">
+            <div class="col-12 col-md-4">
+              <input type="email" class="form-control form-control-sm" id="issueEmail" placeholder="メールアドレス *">
+            </div>
+            <div class="col-12 col-md-3">
+              <input type="text" class="form-control form-control-sm" id="issueCompany" placeholder="会社名・氏名">
+            </div>
+            <div class="col-6 col-md-2">
+              <select class="form-select form-select-sm" id="issuePlan">
+                <option value="standard">標準</option>
+                <option value="solo">ソロ</option>
+                <option value="team">チーム</option>
+              </select>
+            </div>
+            <div class="col-6 col-md-2">
+              <input type="date" class="form-control form-control-sm" id="issueExpiry">
+            </div>
+            <div class="col-12 col-md-1 d-grid">
+              <button class="btn btn-success btn-sm" id="btnIssue">発行</button>
+            </div>
+          </div>
+          <div class="mt-2 small" id="issueMsg"></div>
+        </div>
+      </div>
+
       <!-- フィルター -->
       <div class="d-flex gap-2 mb-3 flex-wrap">
         <input type="text" class="form-control form-control-sm" id="filterText"
@@ -105,9 +134,49 @@
 
     document.getElementById('btnLoad').addEventListener('click', load);
     document.getElementById('inputSecret').addEventListener('keydown', e => { if (e.key === 'Enter') load(); });
+    document.getElementById('btnIssue').addEventListener('click', issueLicense);
     document.getElementById('filterText').addEventListener('input', render);
     document.getElementById('filterStatus').addEventListener('change', render);
     document.getElementById('btnCsvExport').addEventListener('click', exportCsv);
+
+    // 有効期限のデフォルト値（1年後）をセット
+    const _defaultExpiry = () => {
+      const d = new Date(); d.setFullYear(d.getFullYear() + 1);
+      return d.toISOString().split('T')[0];
+    };
+    document.getElementById('issueExpiry').value = _defaultExpiry();
+
+    async function issueLicense() {
+      const email   = document.getElementById('issueEmail').value.trim();
+      const company = document.getElementById('issueCompany').value.trim();
+      const plan    = document.getElementById('issuePlan').value;
+      const expiry  = document.getElementById('issueExpiry').value;
+      const msg     = document.getElementById('issueMsg');
+      if (!email) { msg.innerHTML = '<span class="text-danger">メールアドレスは必須です</span>'; return; }
+      msg.innerHTML = '<span class="text-muted">発行中...</span>';
+      const resp = await fetch(`/api/admin-licenses?secret=${encodeURIComponent(_secret)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, company, plan, expiresAt: expiry }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) {
+        if (data.error === 'duplicate_email') {
+          msg.innerHTML = `<span class="text-warning">このメールには既存キーがあります: <code>${esc(data.existingKey)}</code></span>`;
+        } else {
+          msg.innerHTML = `<span class="text-danger">エラー: ${esc(data.error)}</span>`;
+        }
+        return;
+      }
+      msg.innerHTML = `<span class="text-success"><i class="bi bi-check-circle me-1"></i>発行しました: <code>${esc(data.key)}</code></span>`;
+      document.getElementById('issueEmail').value   = '';
+      document.getElementById('issueCompany').value = '';
+      document.getElementById('issueExpiry').value  = _defaultExpiry();
+      // テーブルに追記
+      _all.unshift(data);
+      updateStats();
+      render();
+    }
 
     async function load() {
       _secret = document.getElementById('inputSecret').value.trim();
