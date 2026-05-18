@@ -15,6 +15,7 @@
 import Stripe from 'stripe';
 import { kv } from '@vercel/kv';
 import crypto from 'crypto';
+import { captureException } from './_sentry.js';
 
 export const config = { api: { bodyParser: false } };
 
@@ -30,6 +31,7 @@ export default async function handler(req, res) {
     event = stripe.webhooks.constructEvent(rawBody, sig, process.env.STRIPE_WEBHOOK_SECRET?.trim());
   } catch (err) {
     console.error('Webhook signature error:', err.message);
+    captureException(err, { context: 'webhook_signature' });
     return res.status(400).json({ error: 'Invalid signature' });
   }
 

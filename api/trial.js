@@ -10,6 +10,7 @@
 import { kv } from '@vercel/kv';
 import crypto from 'crypto';
 import { rateLimit } from './_rateLimit.js';
+import { captureException } from './_sentry.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();

@@ -14,6 +14,7 @@
 
 import { kv } from '@vercel/kv';
 import { rateLimit } from './_rateLimit.js';
+import { captureException } from './_sentry.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -59,6 +60,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.error('License KV error:', err);
+    captureException(err, { key });
     return res.status(200).json({ valid: false, reason: 'server_error' });
   }
 }
