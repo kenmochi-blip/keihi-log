@@ -30,6 +30,7 @@ const ListView = (() => {
           <li><h6 class="dropdown-header" style="font-size:0.7rem;">会計ソフト形式</h6></li>
           <li><a class="dropdown-item small" href="#" id="btnExportFreee">freee 経費精算</a></li>
           <li><a class="dropdown-item small" href="#" id="btnExportYayoi">弥生 仕訳日記帳</a></li>
+          <li><a class="dropdown-item small" href="#" id="btnExportMfc">MFクラウド 仕訳帳</a></li>
         </ul>
       </div>
       <button class="btn btn-outline-secondary btn-sm no-print" id="btnRefreshList">
@@ -219,6 +220,7 @@ const ListView = (() => {
     el.querySelector('#btnExportCsv')?.addEventListener('click', () => _exportCsv(el));
     el.querySelector('#btnExportFreee')?.addEventListener('click', e => { e.preventDefault(); _exportFreee(el); });
     el.querySelector('#btnExportYayoi')?.addEventListener('click', e => { e.preventDefault(); _exportYayoi(el); });
+    el.querySelector('#btnExportMfc')?.addEventListener('click', e => { e.preventDefault(); _exportMfc(el); });
 
     _renderTable(el);
     requestAnimationFrame(() => _initResizableColumns(el.querySelector('.list-table-pc')));
@@ -572,14 +574,14 @@ const ListView = (() => {
     return m ? m[1] : '';
   }
 
-  // taxRate に応じた消費税額と freee/弥生 用の税区分文字列を返す
+  // taxRate に応じた消費税額と各会計ソフト用の税区分文字列を返す
   function _taxInfo(amount, taxRate) {
     const r = taxRate || '課税10%';
-    if (r === '課税8%') return { tax: Math.floor(amount * 8 / 108),  freeeKbn: '課対仕入8%軽減', yayoiKbn: '課対仕入8%' };
-    if (r === '非課税')  return { tax: 0, freeeKbn: '非課税仕入',    yayoiKbn: '非課税' };
-    if (r === '不課税')  return { tax: 0, freeeKbn: '対象外',        yayoiKbn: '対象外' };
+    if (r === '課税8%') return { tax: Math.floor(amount * 8 / 108),  freeeKbn: '課対仕入8%軽減', yayoiKbn: '課対仕入8%', mfcKbn: '課税仕入8%(軽)' };
+    if (r === '非課税')  return { tax: 0, freeeKbn: '非課税仕入',    yayoiKbn: '非課税',           mfcKbn: '非課税仕入' };
+    if (r === '不課税')  return { tax: 0, freeeKbn: '対象外',        yayoiKbn: '対象外',           mfcKbn: '対象外' };
     // 課税10%・混在はどちらも10%で処理
-    return { tax: Math.floor(amount * 10 / 110), freeeKbn: '課対仕入10%', yayoiKbn: '課対仕入10%' };
+    return { tax: Math.floor(amount * 10 / 110), freeeKbn: '課対仕入10%', yayoiKbn: '課対仕入10%', mfcKbn: '課税仕入10%' };
   }
 
   function _exportFreee(el) {
@@ -590,7 +592,7 @@ const ListView = (() => {
       const amount  = Number(e.amount) || 0;
       const corpSrc = _corpPaySource(e);
       const { tax, freeeKbn } = _taxInfo(amount, e.taxRate);
-      const payMethod = corpSrc ? '未払金（会社）' : '未払金（個人）';
+      const payMethod = corpSrc ? corpSrc : `個人（${e.name}）`;
       return [
         _isoToSlash(e.date), e.category, freeeKbn, amount, tax,
         e.place, payMethod, e.name, e.note
@@ -610,7 +612,7 @@ const ListView = (() => {
       const amount  = Number(e.amount) || 0;
       const corpSrc = _corpPaySource(e);
       const { tax, yayoiKbn } = _taxInfo(amount, e.taxRate);
-      const creditSub = corpSrc ? '会社' : '個人';
+      const creditSub = corpSrc ? corpSrc : `個人（${e.name}）`;
       const summary   = `${e.place}${e.note ? ' ' + e.note : ''}`;
       return [
         i + 1, '', _isoToSlash(e.date),
@@ -623,6 +625,29 @@ const ListView = (() => {
       r.map(v => `"${String(v || '').replace(/"/g, '""')}"`).join(',')
     ).join('\n');
     _downloadCsv(csv, `弥生仕訳_${new Date().toISOString().split('T')[0]}.csv`);
+  }
+
+  function _exportMfc(el) {
+    const filtered = _getFiltered(el);
+    const _isoToSlash = s => s ? String(s).replace(/^(\d{4})-(\d{2})-(\d{2}).*/, '$1/$2/$3') : '';
+    const header = ['取引日','借方勘定科目','借方補助科目','借方税区分','借方金額','貸方勘定科目','貸方補助科目','貸方税区分','貸方金額','摘要','メモ'];
+    const rows = filtered.map(e => {
+      const amount  = Number(e.amount) || 0;
+      const corpSrc = _corpPaySource(e);
+      const { tax, mfcKbn } = _taxInfo(amount, e.taxRate);
+      const creditSub = corpSrc ? corpSrc : `個人（${e.name}）`;
+      const summary   = `${e.place}${e.note ? ' ' + e.note : ''}`;
+      return [
+        _isoToSlash(e.date),
+        e.category, '', mfcKbn, amount,
+        '未払金', creditSub, '', amount,
+        summary, e.id
+      ];
+    });
+    const csv = [header, ...rows].map(r =>
+      r.map(v => `"${String(v || '').replace(/"/g, '""')}"`).join(',')
+    ).join('\n');
+    _downloadCsv(csv, `MFクラウド仕訳_${new Date().toISOString().split('T')[0]}.csv`);
   }
 
   function _escape(s) {
