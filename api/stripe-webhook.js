@@ -65,6 +65,11 @@ async function _issueNewLicense(session) {
 
   const customerEmail = session.customer_details?.email || session.customer_email || '';
   const customerName  = session.customer_details?.name  || customerEmail;
+  // Stripe Payment Linkのカスタムフィールド「会社名・チーム名」を取得
+  const customCompany = session.custom_fields?.find(
+    f => f.key === 'company_name' || f.key === 'companyname'
+  )?.text?.value || '';
+  const company = customCompany || customerName;
   const plan = session.metadata?.plan || 'standard';
 
   // 同一メールアドレスで既存ライセンスがある場合は再発行せず既存キーを再送
@@ -88,7 +93,7 @@ async function _issueNewLicense(session) {
   expiresAt.setFullYear(expiresAt.getFullYear() + 1);
 
   const licenseData = {
-    company:         customerName,
+    company:         company,
     plan,
     expiresAt:       expiresAt.toISOString().split('T')[0],
     email:           customerEmail,
