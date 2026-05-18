@@ -2,6 +2,7 @@
  * 発行済みライセンス一覧 API（管理者専用）
  * GET    /api/admin-licenses?secret=ADMIN_SECRET          一覧取得
  * POST   /api/admin-licenses?secret=ADMIN_SECRET          手動発行
+ * PATCH  /api/admin-licenses?secret=ADMIN_SECRET          手動アップグレード
  * DELETE /api/admin-licenses?secret=ADMIN_SECRET&key=KL-  削除
  */
 
@@ -23,6 +24,30 @@ export default async function handler(req, res) {
     if (data?.stripeSessionId) await kv.del(`session:${data.stripeSessionId}`).catch(() => {});
     console.log(`License deleted: ${key}`);
     return res.status(200).json({ deleted: true });
+  }
+
+  // PATCH: 手動アップグレード（Stripe外決済用）
+  if (req.method === 'PATCH') {
+    const { key, action } = req.body || {};
+    if (!key) return res.status(400).json({ error: 'key required' });
+    const data = await kv.get(`license:${key}`).catch(() => null);
+    if (!data) return res.status(404).json({ error: 'not found' });
+
+    if (action === 'upgrade') {
+      const expiresAt = new Date();
+      expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+      const updated = {
+        ...data,
+        upgradedAt: new Date().toISOString(),
+        expiresAt:  expiresAt.toISOString().split('T')[0],
+        note:       (data.note ? data.note + ' ' : '') + '→有料転換（手動）',
+      };
+      await kv.set(`license:${key}`, updated);
+      console.log(`License manually upgraded: ${key}`);
+      return res.status(200).json({ ok: true, ...updated });
+    }
+
+    return res.status(400).json({ error: 'unknown action' });
   }
 
   // POST: 手動発行
