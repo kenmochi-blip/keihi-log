@@ -154,6 +154,9 @@ const SettingsView = (() => {
         <span>メンバー管理</span>
         <button class="btn btn-outline-primary btn-sm" id="btnAddMember"><i class="bi bi-plus me-1"></i>追加</button>
       </div>
+      <div id="memberPlanHint" class="d-none text-muted small mt-1">
+        <i class="bi bi-info-circle me-1"></i>メンバー追加はチームプランでご利用いただけます
+      </div>
       <div id="memberList" class="mt-2">
         <div class="text-muted small text-center py-2">読み込み中...</div>
       </div>
@@ -272,6 +275,7 @@ const SettingsView = (() => {
         msg.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle me-1"></i>無効なライセンスキーです（${result.reason || ''}）</span>`;
       }
       _updateLicenseStatus(el, result);
+      _applyMemberPlanRestriction(el);
     });
     _updateLicenseStatus(el, _getCachedLicenseResult());
 
@@ -406,6 +410,7 @@ const SettingsView = (() => {
       App.showToast('マスタデータの読み込みに失敗しました', 'danger');
     }
 
+    _applyMemberPlanRestriction(el);
     el.querySelector('#btnAddMember')?.addEventListener('click', () => _showMemberForm(el, null));
     el.querySelector('#btnAddCategory')?.addEventListener('click', () => _showInlineAdd(el, 'category'));
 
@@ -720,6 +725,23 @@ const SettingsView = (() => {
       if (updates.length > 0) await Sheets.batchUpdateValues(updates);
       return updates.length;
     } catch (_) { return 0; }
+  }
+
+  function _applyMemberPlanRestriction(el) {
+    const result = _getCachedLicenseResult();
+    const isSolo = result?.plan === 'solo';
+    const btn  = el.querySelector('#btnAddMember');
+    const hint = el.querySelector('#memberPlanHint');
+    if (!btn) return;
+    if (isSolo) {
+      btn.disabled = true;
+      btn.classList.replace('btn-outline-primary', 'btn-outline-secondary');
+      hint?.classList.remove('d-none');
+    } else {
+      btn.disabled = false;
+      btn.classList.replace('btn-outline-secondary', 'btn-outline-primary');
+      hint?.classList.add('d-none');
+    }
   }
 
   function _updateLicenseStatus(el, result) {
