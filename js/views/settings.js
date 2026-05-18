@@ -188,6 +188,10 @@ const SettingsView = (() => {
       <div class="settings-step-hint mb-2">
         上のメンバー管理に氏名・メールアドレス・権限を登録してから、このURLをメンバーに連絡してください。
       </div>
+      <div class="alert alert-info py-2 px-3 mb-2" style="font-size:0.78rem;">
+        <i class="bi bi-bookmark-fill me-1"></i>
+        <strong>このURLをブックマーク</strong>しておくと、ブラウザの設定がリセットされても自動復元されます。<code>app.html</code> ではなくこのURLを使ってください。
+      </div>
       <div class="input-group input-group-sm">
         <input type="text" class="form-control form-control-sm" id="shareUrlDisplay"
           value="${_escape(shareUrl)}" readonly>
