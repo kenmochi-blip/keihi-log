@@ -58,6 +58,50 @@
         </div>
       </div>
 
+      <!-- 月次サマリー -->
+      <div class="card mb-4">
+        <div class="card-header py-2 fw-bold small d-flex align-items-center justify-content-between">
+          <span><i class="bi bi-bar-chart-line me-1 text-primary"></i>月次サマリー</span>
+          <input type="month" class="form-control form-control-sm w-auto" id="monthPicker">
+        </div>
+        <div class="card-body py-3">
+          <div class="row g-3 mb-3">
+            <div class="col-6 col-md-3">
+              <div class="border rounded p-2 text-center">
+                <div class="h4 fw-bold text-primary mb-0" id="mNew">—</div>
+                <div class="small text-muted">新規登録</div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="border rounded p-2 text-center">
+                <div class="h4 fw-bold text-success mb-0" id="mPaid">—</div>
+                <div class="small text-muted">有料購入 <span class="badge bg-success" style="font-size:0.6rem;">Stripe</span></div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="border rounded p-2 text-center">
+                <div class="h4 fw-bold text-secondary mb-0" id="mManual">—</div>
+                <div class="small text-muted">手動発行 <span class="badge bg-secondary" style="font-size:0.6rem;">無料等</span></div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="border rounded p-2 text-center">
+                <div class="h4 fw-bold text-danger mb-0" id="mChurn">—</div>
+                <div class="small text-muted">離脱（期限切れ）</div>
+              </div>
+            </div>
+          </div>
+          <!-- 当月新規一覧 -->
+          <div id="mNewList" class="d-none">
+            <div class="small fw-semibold text-muted mb-1">当月新規登録</div>
+            <table class="table table-sm mb-0" style="font-size:0.78rem;">
+              <thead class="table-light"><tr><th>発行日</th><th>会社名・氏名</th><th>メール</th><th>プラン</th><th>種別</th></tr></thead>
+              <tbody id="mNewTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
       <!-- 手動発行フォーム -->
       <div class="card mb-4">
         <div class="card-header py-2 fw-bold small"><i class="bi bi-plus-circle me-1 text-success"></i>手動発行</div>
@@ -139,6 +183,10 @@
     document.getElementById('filterStatus').addEventListener('change', render);
     document.getElementById('btnCsvExport').addEventListener('click', exportCsv);
 
+    // 月次ピッカーの初期値（当月）
+    document.getElementById('monthPicker').value = new Date().toISOString().slice(0, 7);
+    document.getElementById('monthPicker').addEventListener('change', updateMonthly);
+
     // 有効期限のデフォルト値（1年後）をセット
     const _defaultExpiry = () => {
       const d = new Date(); d.setFullYear(d.getFullYear() + 1);
@@ -187,7 +235,47 @@
       document.getElementById('authArea').classList.add('d-none');
       document.getElementById('summary').classList.remove('d-none');
       updateStats();
+      updateMonthly();
       render();
+    }
+
+    function updateMonthly() {
+      const ym = document.getElementById('monthPicker').value;
+      if (!ym) return;
+
+      const planLabel = { solo: 'ソロ', team: 'チーム', standard: '標準' };
+      const planBadge = { solo: 'secondary', team: 'primary', standard: 'secondary' };
+
+      const newRegs   = _all.filter(l => (l.createdAt || '').startsWith(ym));
+      const paid      = newRegs.filter(l => !!l.stripeSessionId);
+      const manual    = newRegs.filter(l => !l.stripeSessionId);
+      const churn     = _all.filter(l => (l.expiresAt || '').startsWith(ym) && getStatus(l) !== 'active');
+
+      document.getElementById('mNew').textContent    = newRegs.length;
+      document.getElementById('mPaid').textContent   = paid.length;
+      document.getElementById('mManual').textContent = manual.length;
+      document.getElementById('mChurn').textContent  = churn.length;
+
+      const listEl = document.getElementById('mNewList');
+      const tbody  = document.getElementById('mNewTable');
+      if (newRegs.length > 0) {
+        tbody.innerHTML = newRegs.map(l => {
+          const plan = l.plan || 'standard';
+          const kind = l.stripeSessionId
+            ? '<span class="badge bg-success" style="font-size:0.65rem;">有料</span>'
+            : '<span class="badge bg-secondary" style="font-size:0.65rem;">手動</span>';
+          return `<tr>
+            <td>${(l.createdAt || '').split('T')[0]}</td>
+            <td>${esc(l.company || '')}</td>
+            <td>${esc(l.email || '')}</td>
+            <td><span class="badge bg-${planBadge[plan]}" style="font-size:0.65rem;">${planLabel[plan] || plan}</span></td>
+            <td>${kind}</td>
+          </tr>`;
+        }).join('');
+        listEl.classList.remove('d-none');
+      } else {
+        listEl.classList.add('d-none');
+      }
     }
 
     function getStatus(lic) {
