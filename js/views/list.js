@@ -522,14 +522,18 @@ const ListView = (() => {
 
   function _exportCsv(el) {
     const filtered = _getFiltered(el);
-    const header = ['申請日時','申請者名','タイプ','日付','支払先','金額','勘定科目','備考','証票URL','ステータス','インボイス番号','申請者Email','ID','精算日','税区分'];
+    const header = ['申請日時','申請者名','タイプ','日付','支払先','金額','勘定科目','備考','証票URL','ステータス','インボイス番号','申請者Email','ID','精算日','税区分','支払元'];
     const _isoToSlash = s => s ? String(s).replace(/^(\d{4})-(\d{2})-(\d{2}).*/, '$1/$2/$3') : '';
-    const rows = filtered.map(e => [
-      _isoToSlash(e.appliedAt), e.name, e.type, _isoToSlash(e.date), e.place, e.amount,
-      e.category, e.note, e.imageLinks.split(',')[0]?.trim() || '',
-      _getStatus(e), e.invoice, e.email, e.id,
-      e.settlementDate || '', e.taxRate || '課税10%'
-    ]);
+    const rows = filtered.map(e => {
+      const corpSrc = _corpPaySource(e);
+      const paySource = corpSrc ? corpSrc : `個人（${e.name}）`;
+      return [
+        _isoToSlash(e.appliedAt), e.name, e.type, _isoToSlash(e.date), e.place, e.amount,
+        e.category, e.note, e.imageLinks.split(',')[0]?.trim() || '',
+        _getStatus(e), e.invoice, e.email, e.id,
+        e.settlementDate || '', e.taxRate || '課税10%', paySource
+      ];
+    });
     const csv = [header, ...rows].map(r =>
       r.map(v => `"${String(v || '').replace(/"/g, '""')}"`).join(',')
     ).join('\n');
