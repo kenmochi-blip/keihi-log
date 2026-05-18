@@ -8,8 +8,13 @@
 
 import { kv } from '@vercel/kv';
 import crypto from 'crypto';
+import { rateLimit } from './_rateLimit.js';
 
 export default async function handler(req, res) {
+  // 認証前にレートリミット（ブルートフォース対策）
+  const { ok } = await rateLimit(req, { prefix: 'rl:admin', limit: 10, window: 60 });
+  if (!ok) return res.status(429).json({ error: 'too_many_requests' });
+
   if (req.query.secret !== process.env.ADMIN_SECRET) {
     return res.status(401).json({ error: 'Unauthorized' });
   }

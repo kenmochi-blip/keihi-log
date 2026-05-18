@@ -9,9 +9,13 @@
 
 import { kv } from '@vercel/kv';
 import crypto from 'crypto';
+import { rateLimit } from './_rateLimit.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
+
+  const { ok } = await rateLimit(req, { prefix: 'rl:trial', limit: 5, window: 300 });
+  if (!ok) return res.status(429).json({ error: 'too_many_requests' });
 
   const { email } = req.body || {};
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
