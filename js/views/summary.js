@@ -87,6 +87,15 @@ const SummaryView = (() => {
   }
 
   async function bindEvents(el) {
+    if (!localStorage.getItem('keihi_sheet_id') || !localStorage.getItem('keihi_license_key')) {
+      el.innerHTML = `<div class="text-center py-5 text-muted">
+        <i class="bi bi-bar-chart-fill" style="font-size:2.5rem;opacity:0.3;"></i>
+        <div class="mt-3">初期設定が完了していません。</div>
+        <button class="btn btn-primary btn-sm mt-3" onclick="Router.navigate('settings')">設定画面へ</button>
+      </div>`;
+      return;
+    }
+
     const appMain = document.getElementById('appMain');
     if (appMain) appMain.style.maxWidth = '';
 
