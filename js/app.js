@@ -35,7 +35,9 @@ const App = (() => {
     try {
       await Auth.getToken();
     } catch (_) {
-      const ret = location.pathname !== '/app.html' ? location.pathname : '';
+      let ret = location.pathname !== '/app.html' ? location.pathname : '';
+      // /app.html からの起動で alias が Cookie にあれば return 先に使う
+      if (!ret) { const ca = _getCookieAlias(); if (ca) ret = '/' + ca; }
       window.location.href = 'login.html' + (ret ? '?return=' + encodeURIComponent(ret) : '');
       return;
     }
@@ -128,6 +130,8 @@ const App = (() => {
     if (!(typeof Demo !== 'undefined' && Demo.isActive())) {
       const _ssId  = localStorage.getItem('keihi_sheet_id');
       const _alias = localStorage.getItem('keihi_alias');
+      // alias を Cookie にも保存（SafariとPWAで共有、既存ユーザー移行）
+      if (_alias) _setCookieAlias(_alias);
       if (_ssId && location.pathname === '/app.html') {
         history.replaceState(null, '', '/' + (_alias || _ssId));
       }
@@ -350,7 +354,17 @@ const App = (() => {
 
   async function _resolvePathAlias() {
     const match = location.pathname.match(/^\/([a-zA-Z0-9_-]{6,})$/);
-    if (!match) return;
+    if (!match) {
+      // /app.html で起動（PWAショートカット等）→ Cookie に alias が残っていればリダイレクト
+      if (location.pathname === '/app.html' || location.pathname === '/') {
+        const cookieAlias = _getCookieAlias();
+        if (cookieAlias) {
+          location.replace('/' + cookieAlias);
+          return new Promise(() => {}); // リダイレクト後は処理を止める
+        }
+      }
+      return;
+    }
     const token = match[1];
     // 44文字以上はシートID直指定
     if (token.length >= 44) {
@@ -370,6 +384,8 @@ const App = (() => {
             sessionStorage.setItem('keihi_sheet_id', sheetId);
             localStorage.setItem('keihi_sheet_id', sheetId);
             localStorage.setItem('keihi_alias', token);
+            // Cookie にも保存（SafariとPWA間で共有される）
+            _setCookieAlias(token);
             resolved = true;
           }
         }
@@ -381,6 +397,16 @@ const App = (() => {
     if (!resolved && !localStorage.getItem('keihi_sheet_id')) {
       console.warn('alias resolution failed for:', token);
     }
+  }
+
+  function _setCookieAlias(alias) {
+    const maxAge = 365 * 24 * 60 * 60; // 1年
+    document.cookie = `keihi_alias=${encodeURIComponent(alias)}; path=/; max-age=${maxAge}; SameSite=Lax`;
+  }
+
+  function _getCookieAlias() {
+    const m = document.cookie.match(/(?:^|;\s*)keihi_alias=([^;]+)/);
+    return m ? decodeURIComponent(m[1]) : null;
   }
 
   function _injectDynamicManifest(startPath, companyName) {
