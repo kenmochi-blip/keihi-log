@@ -429,6 +429,25 @@
     </details>
 
     <details>
+      <summary>Gemini APIキーが漏洩するリスクはありますか？対策方法は？<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>APIキーはスプレッドシートの設定シートに保存されます。スプレッドシートへのアクセス権を持つメンバーはキーを閲覧できる状態です。以下の対策を推奨します。</p>
+        <p><strong>① HTTPリファラー制限（推奨・無料・即効性あり）</strong></p>
+        <ol>
+          <li>Google AI Studioでキー一覧を開く</li>
+          <li>該当キーの「編集」→「APIの制限」→「HTTPリファラー（ウェブサイト）」を選択</li>
+          <li><code>keihi-log.smartandsmooth.com/*</code> を許可ドメインに追加</li>
+        </ol>
+        <p>これによりキーが流出しても、指定ドメイン以外からは使用できなくなります。</p>
+        <p><strong>② 使用量上限の設定</strong></p>
+        <p>Google AI Studioのキー設定で1日あたりのリクエスト上限を設定しておくと、万一の大量悪用によるコスト被害を防げます。</p>
+        <p><strong>③ スプレッドシートの共有範囲を最小化</strong></p>
+        <p>スプレッドシートの共有設定は「リンクを知っている全員」ではなく「特定のメンバーのみ」に設定することを推奨します。</p>
+        <div class="note">設定画面のGemini APIキー欄にもリファラー制限の設定手順を掲載しています。</div>
+      </div>
+    </details>
+
+    <details>
       <summary>「同じ領収書が既に登録されている可能性があります」と表示されました<span class="arrow">▼</span></summary>
       <div class="answer">
         <p>アップロードした画像のSHA-256ハッシュ値を過去の申請と照合し、同一の画像ファイルが既に登録されている場合に警告します。</p>
