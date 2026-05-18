@@ -18,9 +18,19 @@ const SummaryView = (() => {
 <div class="pt-3">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h5 class="fw-bold mb-0"><i class="bi bi-bar-chart-fill me-2 text-primary"></i>集計表</h5>
-    <button class="btn btn-outline-secondary btn-sm no-print" id="btnRefreshSummary">
-      <i class="bi bi-arrow-clockwise"></i>
-    </button>
+    <div class="d-flex gap-2 no-print">
+      <button class="btn btn-outline-secondary btn-sm" id="btnPrintSummary" title="PDF出力">
+        <i class="bi bi-file-earmark-pdf"></i>
+      </button>
+      <button class="btn btn-outline-secondary btn-sm" id="btnRefreshSummary" title="更新">
+        <i class="bi bi-arrow-clockwise"></i>
+      </button>
+    </div>
+  </div>
+  <!-- 印刷時のみ表示するタイトル -->
+  <div class="summary-print-title" style="display:none;">
+    <h5 class="fw-bold mb-1">経費集計表</h5>
+    <div id="printPeriodLabel" class="text-muted small mb-3"></div>
   </div>
 
   <!-- フィルター -->
@@ -125,6 +135,8 @@ const SummaryView = (() => {
     el.querySelector('#inputFrom')?.addEventListener('change', update);
     el.querySelector('#inputTo')?.addEventListener('change', update);
 
+    el.querySelector('#btnPrintSummary')?.addEventListener('click', () => window.print());
+
     el.querySelector('#btnRefreshSummary')?.addEventListener('click', async () => {
       App.showLoading('更新中...');
       try { _expenses = await Sheets.readExpenses(); } finally { App.hideLoading(); }
@@ -196,6 +208,8 @@ const SummaryView = (() => {
     el.querySelector('#titleMember').textContent = `メンバー別（${periodLabel}）`;
     el.querySelector('#titleUnpaid').textContent = `未精算一覧（${periodLabel}）`;
     el.querySelector('#titleCat').textContent    = `勘定科目一覧（${periodLabel}）`;
+    const printLabel = el.querySelector('#printPeriodLabel');
+    if (printLabel) printLabel.textContent = `${fromYM} 〜 ${toYM}（${months.length}ヶ月間）`;
 
     const isAdmin = App.getUserRole() === 'admin';
 

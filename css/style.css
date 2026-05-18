@@ -334,9 +334,16 @@ body { font-size: 0.9rem; }
 
 /* 印刷対応 */
 @media print {
+  @page { size: A4 landscape; margin: 1cm; }
   .navbar, .fixed-bottom, #toastContainer, .btn, .no-print { display: none !important; }
   body { background: #fff; }
-  .card { border: 1px solid #ccc; box-shadow: none; }
+  .card { border: 1px solid #ccc; box-shadow: none; break-inside: avoid; }
+  /* 集計ビュー：テーブルを全幅に展開 */
+  #appMain { max-width: 100% !important; padding-bottom: 0 !important; }
+  .table-responsive { overflow: visible !important; }
+  .pivot-table { font-size: 0.72rem; width: 100%; }
+  .pivot-table th, .pivot-table td { padding: 0.2rem 0.4rem !important; white-space: nowrap; }
+  .summary-print-title { display: block !important; }
 }
 
 /* スマホ最適化 */
