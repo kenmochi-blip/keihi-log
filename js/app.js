@@ -97,14 +97,21 @@ const App = (() => {
       } catch (_e) {}
     }
 
-    // 会社名をナビタイトルに反映
-    let _companyName = '';
+    // 会社名をナビタイトルに反映（キャッシュ優先で即時表示、APIで更新）
+    let _companyName = localStorage.getItem('keihi_company_name') || '';
+    if (_companyName) {
+      const titleEl = document.getElementById('navAppTitle');
+      if (titleEl) titleEl.textContent = `経費ログ - ${_companyName}`;
+      document.title = `経費ログ | ${_companyName}`;
+    }
     try {
-      _companyName = await Sheets.readSetting('B2') || '';
-      if (_companyName) {
+      const fetched = await Sheets.readSetting('B2') || '';
+      if (fetched && fetched !== _companyName) {
+        _companyName = fetched;
+        localStorage.setItem('keihi_company_name', fetched);
         const titleEl = document.getElementById('navAppTitle');
-        if (titleEl) titleEl.textContent = `経費ログ - ${_companyName}`;
-        document.title = `経費ログ | ${_companyName}`;
+        if (titleEl) titleEl.textContent = `経費ログ - ${fetched}`;
+        document.title = `経費ログ | ${fetched}`;
       }
     } catch (_) {}
 

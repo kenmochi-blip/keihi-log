@@ -315,6 +315,7 @@ const SettingsView = (() => {
       msg.textContent = '';
       try {
         const ssId    = await Setup.createSpreadsheet(name, parentFolderId);
+        localStorage.setItem('keihi_company_name', name);
         const alias   = localStorage.getItem('keihi_alias') || '';
         const shareUrl = alias ? `${location.origin}/${alias}` : `${location.origin}/${ssId}`;
         const qrUrl   = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(shareUrl)}`;
@@ -393,6 +394,7 @@ const SettingsView = (() => {
       const msg  = el.querySelector('#companyNameMsg');
       try {
         await Sheets.update('設定!B2', [[name]]);
+        localStorage.setItem('keihi_company_name', name);
         msg.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>保存しました</span>';
         App.showToast('会社名を保存しました', 'success');
         const titleEl = document.getElementById('navAppTitle');
