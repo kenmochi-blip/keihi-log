@@ -58,34 +58,34 @@ const ListView = (() => {
             value="${toYM}" style="width:140px;">
         </div>
       </div>
-      <!-- タイプ・承認状態・申請者・キーワード・支払元 -->
+      <!-- タイプ・承認状態・申請者・支払元・キーワード（PC:1行、SP:2列） -->
       <div class="row g-2">
-        <div class="col-6 col-md-3">
+        <div class="col-6 col-md">
           <select class="form-select form-select-sm" id="filterType">
             <option value="">タイプ（全て）</option>
             <option>領収書</option><option>領収書なし</option>
             <option>交通費</option><option>自家用車</option>
           </select>
         </div>
-        <div class="col-6 col-md-3">
+        <div class="col-6 col-md">
           <select class="form-select form-select-sm" id="filterStatus">
-          <option value="">ステータス（全て）</option>
+            <option value="">ステータス（全て）</option>
             <option value="申請済">申請済</option>
             <option value="登録済">登録済</option>
             <option value="精算済">精算済</option>
           </select>
         </div>
-        <div class="col-6 col-md-3" id="filterMemberWrap" style="display:none;">
+        <div class="col-6 col-md" id="filterMemberWrap" style="display:none;">
           <select class="form-select form-select-sm" id="filterMember">
             <option value="">申請者（全員）</option>
           </select>
         </div>
-        <div class="col-6 col-md-3">
+        <div class="col-6 col-md">
           <select class="form-select form-select-sm" id="filterPaySource">
             <option value="">支払元（全て）</option>
           </select>
         </div>
-        <div class="col-6 col-md-3">
+        <div class="col-12 col-md">
           <div class="input-group input-group-sm">
             <span class="input-group-text"><i class="bi bi-search"></i></span>
             <input type="text" class="form-control" id="filterKeyword" placeholder="支払先・備考・科目">
