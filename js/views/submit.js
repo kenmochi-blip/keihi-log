@@ -1025,7 +1025,8 @@ function _bindTypeButtons(el) {
       const to   = el.querySelector('#txtTo')?.value.trim();
       if (!from) { App.showToast('出発駅・バス停を入力してください', 'danger'); return null; }
       if (!to)   { App.showToast('到着駅・バス停を入力してください', 'danger'); return null; }
-      place = `${from} → ${to}`;
+      const isRound = el.querySelector('#chkRoundTrip')?.checked;
+      place = `${from} ${isRound ? '↔' : '→'} ${to}`;
     } else if (_currentType === '自家用車') {
       place = el.querySelector('#txtCarRoute')?.value.trim() || '';
       if (!place) { App.showToast('案件・経路名を入力してください', 'danger'); return null; }
@@ -1257,7 +1258,7 @@ function _bindTypeButtons(el) {
         const taxSel = el.querySelector('#selTaxRate');
         if (taxSel && e.taxRate) taxSel.value = e.taxRate;
       } else if (e.type === '交通費') {
-        const parts = (e.place || '').split(' → ');
+        const parts = (e.place || '').split(/ [→↔] /);
         const fromInput = el.querySelector('#txtFrom');
         const toInput   = el.querySelector('#txtTo');
         if (fromInput) fromInput.value = parts[0] || e.place;
