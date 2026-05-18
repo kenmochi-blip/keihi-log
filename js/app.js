@@ -372,9 +372,9 @@ const App = (() => {
       }
     }
     if (!resolved && !localStorage.getItem('keihi_sheet_id')) {
-      // エイリアスURLなのに解決できなかった場合、URLをそのまま保持してユーザーに通知
       console.warn('alias resolution failed for:', token);
     }
+  }
 
   function _injectDynamicManifest(startPath, companyName) {
     try {
