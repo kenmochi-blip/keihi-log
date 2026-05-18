@@ -58,7 +58,7 @@ const ListView = (() => {
             value="${toYM}" style="width:140px;">
         </div>
       </div>
-      <!-- タイプ・承認状態・申請者・キーワード（横4列） -->
+      <!-- タイプ・承認状態・申請者・キーワード・支払元 -->
       <div class="row g-2">
         <div class="col-6 col-md-3">
           <select class="form-select form-select-sm" id="filterType">
@@ -78,6 +78,11 @@ const ListView = (() => {
         <div class="col-6 col-md-3" id="filterMemberWrap" style="display:none;">
           <select class="form-select form-select-sm" id="filterMember">
             <option value="">申請者（全員）</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-3">
+          <select class="form-select form-select-sm" id="filterPaySource">
+            <option value="">支払元（全て）</option>
           </select>
         </div>
         <div class="col-6 col-md-3">
@@ -174,6 +179,9 @@ const ListView = (() => {
       });
     }
 
+    // 支払元フィルター：データから動的に生成
+    _populatePaySourceFilter(el);
+
     // 期間プリセットボタン
     el.querySelectorAll('#listPresetBtns [data-months]').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -203,13 +211,14 @@ const ListView = (() => {
     el.querySelector('#filterMonthTo')?.addEventListener('change', _reset);
 
     // フィルタリング
-    ['filterType','filterStatus','filterKeyword','filterMember'].forEach(id => {
+    ['filterType','filterStatus','filterKeyword','filterMember','filterPaySource'].forEach(id => {
       el.querySelector(`#${id}`)?.addEventListener('input', _reset);
     });
 
     el.querySelector('#btnRefreshList')?.addEventListener('click', async () => {
       try {
         _expenses = await Sheets.readExpenses();
+        _populatePaySourceFilter(el);
         _renderTable(el);
         App.showToast('更新しました', 'success');
       } catch (err) {
@@ -293,9 +302,10 @@ const ListView = (() => {
     const toDate   = toYM   ? `${toYM}-31`   : '';
     const type    = el.querySelector('#filterType')?.value     || '';
     const status  = el.querySelector('#filterStatus')?.value   || '';
-    const keyword = (el.querySelector('#filterKeyword')?.value || '').toLowerCase();
-    const member  = el.querySelector('#filterMember')?.value   || '';
-    const email   = Auth.getUserEmail();
+    const keyword   = (el.querySelector('#filterKeyword')?.value || '').toLowerCase();
+    const member    = el.querySelector('#filterMember')?.value    || '';
+    const paySrc    = el.querySelector('#filterPaySource')?.value || '';
+    const email     = Auth.getUserEmail();
 
     return _expenses.filter(e => {
       if (!e.id) return false;
@@ -309,6 +319,11 @@ const ListView = (() => {
       if (type && e.type !== type) return false;
       if (status && _getStatus(e) !== status) return false;
       if (keyword && ![e.place, e.note, e.category].join(' ').toLowerCase().includes(keyword)) return false;
+      if (paySrc) {
+        const corpSrc = _corpPaySource(e);
+        if (paySrc === '__individual__') { if (corpSrc) return false; }
+        else if (corpSrc !== paySrc) return false;
+      }
       return true;
     }).sort((a, b) => {
       // 申請日時（新しい順）→ 日付（新しい順）の優先順でソート
@@ -570,6 +585,22 @@ const ListView = (() => {
     const a    = document.createElement('a');
     a.href = url; a.download = filename; a.click();
     URL.revokeObjectURL(url);
+  }
+
+  function _populatePaySourceFilter(el) {
+    const sel = el.querySelector('#filterPaySource');
+    if (!sel) return;
+    const sources = new Set();
+    let hasIndividual = false;
+    _expenses.forEach(e => {
+      const s = _corpPaySource(e);
+      if (s) sources.add(s);
+      else hasIndividual = true;
+    });
+    if (hasIndividual) sel.innerHTML += `<option value="__individual__">個人払い</option>`;
+    [...sources].sort().forEach(s => {
+      sel.innerHTML += `<option value="${s}">${s}</option>`;
+    });
   }
 
   // "会社払い（◯◯）" から支払元名を抽出。会社払いでなければ空文字。
