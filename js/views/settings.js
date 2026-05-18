@@ -154,8 +154,13 @@ const SettingsView = (() => {
         <span>メンバー管理</span>
         <button class="btn btn-outline-primary btn-sm" id="btnAddMember"><i class="bi bi-plus me-1"></i>追加</button>
       </div>
-      <div id="memberPlanHint" class="d-none text-muted small mt-1">
-        <i class="bi bi-info-circle me-1"></i>メンバー追加はチームプランでご利用いただけます
+      <div id="memberPlanHint" class="d-none mt-2">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <span class="text-muted small"><i class="bi bi-info-circle me-1"></i>メンバー追加はチームプランでご利用いただけます</span>
+          <button class="btn btn-primary btn-sm" id="btnUpgradePlan">
+            <i class="bi bi-arrow-up-circle me-1"></i>プランを切り替える
+          </button>
+        </div>
       </div>
       <div id="memberList" class="mt-2">
         <div class="text-muted small text-center py-2">読み込み中...</div>
@@ -412,6 +417,7 @@ const SettingsView = (() => {
 
     _applyMemberPlanRestriction(el);
     el.querySelector('#btnAddMember')?.addEventListener('click', () => _showMemberForm(el, null));
+    el.querySelector('#btnUpgradePlan')?.addEventListener('click', () => _openStripePortal());
     el.querySelector('#btnAddCategory')?.addEventListener('click', () => _showInlineAdd(el, 'category'));
 
     el.querySelector('#btnAddPaySource')?.addEventListener('click', () => _showInlineAdd(el, 'paySource'));
@@ -725,6 +731,26 @@ const SettingsView = (() => {
       if (updates.length > 0) await Sheets.batchUpdateValues(updates);
       return updates.length;
     } catch (_) { return 0; }
+  }
+
+  async function _openStripePortal() {
+    const key = localStorage.getItem('keihi_license_key');
+    if (!key) { App.showToast('ライセンスキーが設定されていません', 'danger'); return; }
+    App.showLoading('ポータルを開いています...');
+    try {
+      const res = await fetch('/api/portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key }),
+      });
+      const { url, error } = await res.json();
+      if (!url) throw new Error(error || 'portal_error');
+      window.location.href = url;
+    } catch (err) {
+      App.showToast('ポータルを開けませんでした: ' + err.message, 'danger');
+    } finally {
+      App.hideLoading();
+    }
   }
 
   function _applyMemberPlanRestriction(el) {
