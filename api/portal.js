@@ -7,9 +7,13 @@
 
 import Stripe from 'stripe';
 import { kv } from '@vercel/kv';
+import { rateLimit } from './_rateLimit.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
+
+  const { ok } = await rateLimit(req, { prefix: 'rl:portal', limit: 10, window: 60 });
+  if (!ok) return res.status(429).json({ error: 'too_many_requests' });
 
   const { key } = req.body || {};
   if (!key || typeof key !== 'string') {
