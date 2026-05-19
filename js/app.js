@@ -372,12 +372,20 @@ const App = (() => {
   async function _resolvePathAlias() {
     const match = location.pathname.match(/^\/([a-zA-Z0-9_-]{6,})$/);
     if (!match) {
-      // /app.html で起動（PWAショートカット等）→ Cookie に alias が残っていればリダイレクト
+      // /app.html・/app・/ で起動（PWAショートカット等）
       if (location.pathname === '/app.html' || location.pathname === '/app' || location.pathname === '/') {
+        // Cookie に alias があればフルリダイレクト
         const cookieAlias = _getCookieAlias();
         if (cookieAlias) {
           location.replace('/' + cookieAlias);
           return new Promise(() => {}); // リダイレクト後は処理を止める
+        }
+        // Cookie はないが localStorage に alias があればアドレスバーだけ即時書き換え
+        // （ホーム画面追加ダイアログを開く前にURLを確定させる）
+        const storedAlias = localStorage.getItem('keihi_alias');
+        if (storedAlias) {
+          history.replaceState(null, '', '/' + storedAlias);
+          _injectDynamicManifest('/' + storedAlias, localStorage.getItem('keihi_company_name') || '');
         }
       }
       return;
