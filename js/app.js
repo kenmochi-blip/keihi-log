@@ -82,7 +82,8 @@ const App = (() => {
       _isAdmin = _userRole === 'admin';
 
       // メンバー制限：登録メンバーが1人以上いる場合、未登録ユーザーはアクセス不可
-      if (_masterCache.members.length > 0 && !_masterCache.members.some(m => m.email.toLowerCase() === email)) {
+      // 管理者はメンバーリストの有無に関わらず常にアクセス許可
+      if (_userRole !== 'admin' && _masterCache.members.length > 0 && !_masterCache.members.some(m => m.email.toLowerCase() === email)) {
         _setupUI('settings');
         showToast('このアプリへのアクセス権がありません。管理者に連絡してください。', 'danger');
         return;
