@@ -32,8 +32,12 @@ const App = (() => {
     await _resolvePathAlias();
 
     // 認証トークン確認（未認証ならログイン画面へ）
+    // 8秒タイムアウト：PWAスタンドアロンでポップアップがハングした場合のフォールバック
     try {
-      await Auth.getToken();
+      await Promise.race([
+        Auth.getToken(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('auth_timeout')), 8000)),
+      ]);
     } catch (_) {
       const _isGenericPath = location.pathname === '/app.html' || location.pathname === '/app' || location.pathname === '/';
       let ret = _isGenericPath ? '' : location.pathname;

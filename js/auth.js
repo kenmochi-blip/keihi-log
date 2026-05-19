@@ -27,9 +27,9 @@ const Auth = (() => {
   function init() {
     // デモモード：トークン不要
     if (typeof Demo !== 'undefined' && Demo.isActive()) return;
-    // sessionStorage からトークンを復元（ページ遷移後もポップアップ不要）
+    // localStorage からトークンを復元（PWAホーム画面起動後もポップアップ不要）
     try {
-      const saved = JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null');
+      const saved = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
       if (saved && saved.expiry > Date.now()) {
         _accessToken = saved.access_token;
         _tokenExpiry = saved.expiry;
@@ -56,22 +56,20 @@ const Auth = (() => {
     if (resp.error) {
       _pendingResolves.forEach(({ reject }) => reject(new Error(resp.error)));
       _pendingResolves = [];
-      // ユーザーが意図的に閉じた場合以外はログイン画面へ戻す
-      if (resp.error !== 'popup_closed_by_user' && resp.error !== 'access_denied') {
-        sessionStorage.removeItem(SESSION_KEY);
-        window.location.replace('login.html');
-      }
+      // エラー種別に関わらずログイン画面へ戻す（スタンドアロンでのハング防止）
+      localStorage.removeItem(SESSION_KEY);
+      window.location.replace('login.html');
       return;
     }
     _accessToken = resp.access_token;
     _tokenExpiry = Date.now() + (resp.expires_in - 60) * 1000;
     gapi.client.setToken({ access_token: _accessToken });
 
-    // ユーザー情報を取得してから sessionStorage に保存
+    // ユーザー情報を取得してから localStorage に保存
     _fetchUserInfo().then(() => {
       // 次回の自動ログインヒント用にメールアドレスを保存
       if (_userInfo?.email) localStorage.setItem('keihi_user_email', _userInfo.email);
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify({
+      localStorage.setItem(SESSION_KEY, JSON.stringify({
         access_token: _accessToken,
         expiry: _tokenExpiry,
         userInfo: _userInfo,
@@ -144,7 +142,7 @@ const Auth = (() => {
     _accessToken = null;
     _userInfo    = null;
     _tokenExpiry = 0;
-    sessionStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem(SESSION_KEY);
     localStorage.removeItem('keihi_user_email');
     gapi.client.setToken(null);
     window.location.href = 'login.html';
@@ -204,8 +202,11 @@ function initLogin() {
   });
 
   // 前回ログインしたアカウントが保存されていれば自動ログインを試みる
+  // ただしPWAスタンドアロンモードではポップアップが機能しないためボタン表示のみ
   const savedEmail = localStorage.getItem('keihi_user_email');
-  if (savedEmail) {
+  const isStandalone = window.navigator.standalone === true ||
+                       window.matchMedia('(display-mode: standalone)').matches;
+  if (savedEmail && !isStandalone) {
     document.getElementById('loginArea').classList.add('d-none');
     document.getElementById('loadingArea').classList.remove('d-none');
     document.querySelector('#loadingArea p').textContent = `${savedEmail} でログイン中...`;
@@ -215,5 +216,8 @@ function initLogin() {
       // サイレントログイン失敗（同意期限切れ等）→ ログインボタンを表示
       _showLoginBtn(null);
     });
+  } else if (savedEmail && isStandalone) {
+    // スタンドアロン：ログインボタンをすぐ表示（自動ポップアップは出さない）
+    _showLoginBtn(null);
   }
 }
