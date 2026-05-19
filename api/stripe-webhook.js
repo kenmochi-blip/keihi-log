@@ -66,12 +66,15 @@ async function _issueNewLicense(session) {
   }
 
   const customerEmail = session.customer_details?.email || session.customer_email || '';
-  const customerName  = session.customer_details?.name  || customerEmail;
-  // Stripe Payment Linkのカスタムフィールド「会社名・チーム名」を取得
-  const customCompany = session.custom_fields?.find(
-    f => f.key === 'company_name' || f.key === 'companyname'
+  // "顧客の氏名を収集" → customer_details.name
+  const customerName  = session.customer_details?.name  || '';
+  // "ビジネス名を収集" → custom_fields に business_name / businessname キーで入る
+  // カスタムフィールド「会社名・チーム名」も同様に拾う
+  const businessName = session.custom_fields?.find(
+    f => ['business_name','businessname','company_name','companyname'].includes(f.key)
   )?.text?.value || '';
-  const company = customCompany || customerName;
+  // 表示用 company: ビジネス名 → 氏名 → メール の優先順
+  const company = businessName || customerName || customerEmail;
   const plan = session.metadata?.plan || 'standard';
 
   // 同一メールアドレスで既存ライセンスがある場合
@@ -102,6 +105,8 @@ async function _issueNewLicense(session) {
 
   const licenseData = {
     company:         company,
+    customerName:    customerName,
+    businessName:    businessName,
     plan,
     expiresAt:       expiresAt.toISOString().split('T')[0],
     email:           customerEmail,
@@ -123,10 +128,10 @@ async function _issueNewLicense(session) {
 
   // RESEND_API_KEY が設定されていればメール送信
   if (process.env.RESEND_API_KEY) {
-    await _sendLicenseEmail(customerEmail, customerName, licenseKey, licenseData.expiresAt);
+    await _sendLicenseEmail(customerEmail, customerName || businessName || company, licenseKey, licenseData.expiresAt);
     // 管理者通知
     if (process.env.ADMIN_NOTIFY_EMAIL) {
-      await _sendAdminNotifyEmail(customerEmail, customerName, licenseKey, licenseData.expiresAt);
+      await _sendAdminNotifyEmail(customerEmail, customerName, licenseKey, licenseData.expiresAt, businessName);
     }
   }
 }
@@ -266,15 +271,16 @@ async function _sendDuplicateLicenseEmail(to, name, licenseKey, expiresAt) {
   if (!resp.ok) console.error('Resend error:', await resp.text());
 }
 
-async function _sendAdminNotifyEmail(customerEmail, customerName, licenseKey, expiresAt) {
+async function _sendAdminNotifyEmail(customerEmail, customerName, licenseKey, expiresAt, businessName = '') {
   const body = {
     from: process.env.RESEND_FROM_EMAIL || 'noreply@' + (process.env.VERCEL_PROJECT_PRODUCTION_URL || 'example.com'),
     to: process.env.ADMIN_NOTIFY_EMAIL,
-    subject: `【経費ログ】ライセンス発行通知 — ${customerName}`,
+    subject: `【経費ログ】ライセンス発行通知 — ${businessName || customerName}`,
     html: `
 <p>新しいライセンスが発行されました。</p>
 <table style="border-collapse:collapse;font-size:14px;">
-  <tr><td style="padding:4px 12px 4px 0;color:#666;">購入者名</td><td>${customerName}</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;color:#666;">氏名</td><td>${customerName || '—'}</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;color:#666;">ビジネス名</td><td>${businessName || '—'}</td></tr>
   <tr><td style="padding:4px 12px 4px 0;color:#666;">メールアドレス</td><td>${customerEmail}</td></tr>
   <tr><td style="padding:4px 12px 4px 0;color:#666;">ライセンスキー</td><td style="font-family:monospace;">${licenseKey}</td></tr>
   <tr><td style="padding:4px 12px 4px 0;color:#666;">有効期限</td><td>${expiresAt}</td></tr>
