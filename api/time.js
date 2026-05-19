@@ -14,7 +14,7 @@ export default async function handler(req, res) {
   const key = req.method === 'POST' ? (req.body?.key || '') : (req.query?.key || '');
   if (key && key.startsWith('KL-')) {
     const ym = new Date().toISOString().slice(0, 7); // "YYYY-MM"
-    kv.incr(`usage:${key}:${ym}`).catch(() => {});
+    kv.incr(`usage:${key}:${ym}`).catch(err => console.error('Usage increment failed:', err));
   }
 
   res.setHeader('Cache-Control', 'no-store');

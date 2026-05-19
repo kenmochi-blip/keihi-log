@@ -181,6 +181,8 @@ const App = (() => {
    * @param {string} [detailHtml] メッセージ下部に追加表示するHTML（任意）
    */
   function confirm(message, detailHtml = '') {
+    // 前のダイアログが未解決の場合はキャンセル扱いで閉じてから開く
+    if (_confirmResolve) { _confirmResolve(false); _confirmResolve = null; }
     return new Promise(resolve => {
       _confirmResolve = resolve;
       const body = document.getElementById('confirmModalBody');

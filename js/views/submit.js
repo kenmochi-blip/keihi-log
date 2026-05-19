@@ -759,8 +759,9 @@ function _bindTypeButtons(el) {
         // Drive API でアクセスできない場合（drive.file スコープ制限）
         // 証票リンクを開いて手動で再選択するよう案内する
         const existingUrl = _existingUrls.filter(Boolean)[0];
-        const msg = existingUrl
-          ? `証票ファイルに直接アクセスできません。<a href="${existingUrl}" target="_blank" rel="noopener" style="color:#fff;text-decoration:underline;">証票を開いてダウンロード</a>後、「ファイル」から再選択してください。`
+        const safeUrl = existingUrl ? existingUrl.replace(/[<>"']/g, '') : '';
+        const msg = safeUrl
+          ? `証票ファイルに直接アクセスできません。<a href="${safeUrl}" target="_blank" rel="noopener" style="color:#fff;text-decoration:underline;">証票を開いてダウンロード</a>後、「ファイル」から再選択してください。`
           : '証票ファイルにアクセスできません。ファイルを再選択してください。';
         App.showToast(msg, 'warning', 8000);
         return;
