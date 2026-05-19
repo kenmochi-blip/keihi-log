@@ -17,12 +17,12 @@ const Auth = (() => {
 
   const SESSION_KEY = 'keihi_auth_session';
 
-  let _accessToken = null;
-  let _userInfo    = null;
-  let _tokenExpiry = 0;
-
+  // redirect_uri は常に固定（GCPに登録した値と完全一致させるため）
   function _redirectUri() {
-    return `${location.origin}/login`;
+    if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+      return `${location.origin}/login`;
+    }
+    return 'https://keihi-log.com/login';
   }
 
   function _loadSession() {
