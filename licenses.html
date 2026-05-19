@@ -7,224 +7,266 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <style>
-    body { font-size: 0.875rem; }
-    .stat-card { border-top: 3px solid; }
-    .stat-card.primary   { border-top-color: #0d6efd; }
-    .stat-card.success   { border-top-color: #198754; }
-    .stat-card.warning   { border-top-color: #ffc107; }
-    .stat-card.danger    { border-top-color: #dc3545; }
-    .license-table th { white-space: nowrap; font-size: 0.75rem; font-weight: 600; color: #555; background: #f8f9fa; }
-    .license-table td { vertical-align: middle; }
-    .license-table .col-date    { width: 88px;  white-space: nowrap; }
-    .license-table .col-customer{ width: 180px; }
-    .license-table .col-email   { width: 190px; }
-    .license-table .col-key     { width: 185px; }
-    .license-table .col-plan    { width: 64px;  text-align: center; }
-    .license-table .col-expiry  { width: 88px;  white-space: nowrap; }
-    .license-table .col-usage   { width: 60px;  text-align: right; }
-    .license-table .col-status  { width: 78px;  text-align: center; }
-    .license-table .col-action  { width: 68px;  text-align: right; white-space: nowrap; }
-    .key-mono { font-family: 'Menlo','Consolas',monospace; font-size: 0.7rem; letter-spacing: 0.03em; color: #333; }
-    .customer-name { font-weight: 500; font-size: 0.8rem; }
-    .customer-biz  { font-size: 0.72rem; color: #666; margin-top: 1px; }
-    .email-cell    { font-size: 0.78rem; color: #444; word-break: break-all; }
-    .section-header { font-size: 0.8rem; font-weight: 600; color: #444; margin-bottom: 0; }
+    :root {
+      --accent: #2563eb;
+      --surface: #ffffff;
+      --surface-sub: #f8fafc;
+      --border: #e8ecf0;
+      --text: #1a1f2e;
+      --text-sub: #64748b;
+      --text-mute: #94a3b8;
+      --shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+      --shadow-md: 0 4px 12px rgba(0,0,0,.06);
+    }
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f4f8; color: var(--text); font-size: 0.875rem; }
+
+    /* Nav */
+    .top-nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 1.5rem; height: 52px; display: flex; align-items: center; gap: 0.5rem; box-shadow: var(--shadow); }
+    .top-nav .brand { font-weight: 700; font-size: 0.95rem; color: var(--accent); display: flex; align-items: center; gap: 0.4rem; }
+
+    /* Cards */
+    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); }
+    .panel-header { padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 0.5rem; }
+    .panel-header .title { font-weight: 600; font-size: 0.82rem; color: var(--text-sub); letter-spacing: 0.02em; }
+    .panel-body { padding: 1.25rem; }
+
+    /* KPI */
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; }
+    .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.25rem; box-shadow: var(--shadow); }
+    .kpi .value { font-size: 1.9rem; font-weight: 700; line-height: 1; }
+    .kpi .label { font-size: 0.72rem; color: var(--text-mute); margin-top: 0.25rem; }
+    .kpi.c-blue  .value { color: var(--accent); }
+    .kpi.c-green .value { color: #16a34a; }
+    .kpi.c-amber .value { color: #d97706; }
+    .kpi.c-red   .value { color: #dc2626; }
+
+    /* Table */
+    .data-table { width: 100%; border-collapse: collapse; }
+    .data-table thead th { padding: 0.55rem 0.75rem; font-size: 0.72rem; font-weight: 600; color: var(--text-mute); text-transform: uppercase; letter-spacing: 0.06em; background: var(--surface-sub); border-bottom: 1px solid var(--border); white-space: nowrap; }
+    .data-table tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+    .data-table tbody tr:last-child { border-bottom: none; }
+    .data-table tbody tr:hover { background: #f8fafc; }
+    .data-table td { padding: 0.6rem 0.75rem; vertical-align: middle; }
+    .data-table .ps-first { padding-left: 1.25rem; }
+    .data-table .pe-last  { padding-right: 1.25rem; }
+
+    /* Customer cell */
+    .customer-name { font-weight: 500; font-size: 0.82rem; color: var(--text); }
+    .customer-biz  { font-size: 0.72rem; color: var(--text-sub); margin-top: 1px; }
+    .email-btn { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 4px; border: 1px solid var(--border); background: var(--surface); color: var(--text-mute); cursor: pointer; transition: all 0.15s; position: relative; margin-left: 2px; }
+    .email-btn:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .email-tooltip { position: absolute; left: 26px; top: 50%; transform: translateY(-50%); background: #1e293b; color: #fff; font-size: 0.7rem; white-space: nowrap; padding: 3px 8px; border-radius: 4px; pointer-events: none; opacity: 0; transition: opacity 0.15s; z-index: 100; }
+    .email-btn:hover .email-tooltip { opacity: 1; }
+    .email-copied { background: #16a34a !important; border-color: #16a34a !important; color: #fff !important; }
+
+    /* Key */
+    .key-chip { font-family: 'Menlo','Consolas',monospace; font-size: 0.69rem; color: var(--text-sub); background: var(--surface-sub); border: 1px solid var(--border); padding: 2px 7px; border-radius: 4px; letter-spacing: 0.03em; cursor: pointer; transition: background 0.15s; }
+    .key-chip:hover { background: #e8ecf0; }
+    .key-chip.copied { background: #dcfce7; border-color: #86efac; color: #166534; }
+
+    /* Badges */
+    .tag { display: inline-block; font-size: 0.65rem; font-weight: 600; padding: 2px 7px; border-radius: 100px; }
+    .tag-stripe  { background: #dbeafe; color: #1d4ed8; }
+    .tag-manual  { background: #f1f5f9; color: #64748b; border: 1px solid var(--border); }
+    .tag-solo    { background: #f1f5f9; color: #475569; }
+    .tag-team    { background: #ede9fe; color: #6d28d9; }
+    .tag-std     { background: #f1f5f9; color: #64748b; }
+    .status-dot  { display: inline-flex; align-items: center; gap: 5px; font-size: 0.75rem; font-weight: 500; }
+    .status-dot::before { content:''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .status-dot.active   { color: #16a34a; } .status-dot.active::before   { background: #16a34a; }
+    .status-dot.expired  { color: #d97706; } .status-dot.expired::before  { background: #d97706; }
+    .status-dot.suspended{ color: #dc2626; } .status-dot.suspended::before{ background: #dc2626; }
+
+    /* Action buttons */
+    .action-btn { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 5px; border: 1px solid var(--border); background: transparent; color: var(--text-mute); cursor: pointer; transition: all 0.15s; font-size: 0.8rem; }
+    .action-btn:hover.upgrade { background: #fef3c7; border-color: #fbbf24; color: #92400e; }
+    .action-btn:hover.delete  { background: #fee2e2; border-color: #fca5a5; color: #991b1b; }
+
+    /* Mini stats */
+    .mini-stat { background: var(--surface-sub); border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem 0.75rem; text-align: center; }
+    .mini-stat .v { font-size: 1.3rem; font-weight: 700; line-height: 1; }
+    .mini-stat .l { font-size: 0.68rem; color: var(--text-mute); margin-top: 3px; }
+
+    /* Filter bar */
+    .filter-bar { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    .filter-input { border: 1px solid var(--border); border-radius: 6px; padding: 0.35rem 0.75rem; font-size: 0.8rem; outline: none; background: var(--surface-sub); transition: border 0.15s, background 0.15s; width: 200px; }
+    .filter-input:focus { border-color: var(--accent); background: #fff; }
+    .filter-select { border: 1px solid var(--border); border-radius: 6px; padding: 0.35rem 0.6rem; font-size: 0.8rem; outline: none; background: var(--surface-sub); cursor: pointer; }
+    .btn-ghost { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.35rem 0.75rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); font-size: 0.8rem; color: var(--text-sub); cursor: pointer; transition: all 0.15s; }
+    .btn-ghost:hover { background: var(--surface-sub); border-color: #c0c8d0; }
+    .btn-accent { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.35rem 0.9rem; border: none; border-radius: 6px; background: var(--accent); font-size: 0.8rem; color: #fff; cursor: pointer; font-weight: 500; transition: background 0.15s; }
+    .btn-accent:hover { background: #1d4ed8; }
+    .btn-success-solid { background: #16a34a; } .btn-success-solid:hover { background: #15803d; }
+
+    /* Month summary table */
+    .month-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+    .month-table th { padding: 0.4rem 0.6rem; color: var(--text-mute); font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); }
+    .month-table td { padding: 0.45rem 0.6rem; border-bottom: 1px solid var(--border); }
+    .month-table tr:last-child td { border-bottom: none; }
+
+    /* Usage numbers */
+    .usage-num { font-size: 0.8rem; font-variant-numeric: tabular-nums; text-align: right; }
+    .usage-num.active { font-weight: 600; color: var(--text); }
+    .usage-num.zero   { color: var(--text-mute); }
+
+    /* Responsive */
+    @media (max-width: 768px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
   </style>
 </head>
-<body class="bg-light">
+<body>
 
-  <nav class="navbar navbar-dark bg-primary mb-4 py-2">
-    <div class="container-fluid" style="max-width:1300px;">
-      <span class="navbar-brand fw-bold small mb-0">
-        <i class="bi bi-key-fill me-2"></i>経費ログ — ライセンス管理
-      </span>
-    </div>
-  </nav>
+  <div class="top-nav">
+    <div class="brand"><i class="bi bi-key-fill"></i>ライセンス管理</div>
+    <span style="color:var(--border);margin-left:4px;">— 経費ログ</span>
+  </div>
 
-  <div class="container-fluid px-4" style="max-width:1300px;">
+  <div style="max-width:1280px;margin:0 auto;padding:1.5rem 1.25rem;">
 
-    <!-- 認証フォーム -->
-    <div id="authArea" class="card shadow-sm mb-4" style="max-width:420px;">
-      <div class="card-body p-3">
-        <p class="text-muted small mb-2">管理シークレットを入力してください</p>
-        <div class="input-group">
-          <input type="password" class="form-control" id="inputSecret" placeholder="管理シークレット">
-          <button class="btn btn-primary" id="btnLoad"><i class="bi bi-unlock me-1"></i>読み込む</button>
+    <!-- 認証 -->
+    <div id="authArea" class="panel" style="max-width:400px;">
+      <div class="panel-body">
+        <p style="font-size:0.8rem;color:var(--text-sub);margin-bottom:0.75rem;">管理シークレットを入力してください</p>
+        <div style="display:flex;gap:0.5rem;">
+          <input type="password" id="inputSecret" class="filter-input" style="width:auto;flex:1;" placeholder="管理シークレット">
+          <button class="btn-accent" id="btnLoad"><i class="bi bi-unlock"></i>読み込む</button>
         </div>
       </div>
     </div>
 
     <div id="summary" class="d-none">
 
-      <!-- KPI カード -->
-      <div class="row g-3 mb-4">
-        <div class="col-6 col-md-3">
-          <div class="card shadow-sm stat-card primary">
-            <div class="card-body py-3 text-center">
-              <div class="h2 fw-bold text-primary mb-0" id="statTotal">—</div>
-              <div class="small text-muted">総発行数</div>
-            </div>
-          </div>
+      <!-- KPI -->
+      <div class="kpi-grid mb-4">
+        <div class="kpi c-blue">
+          <div class="value" id="statTotal">—</div>
+          <div class="label">総発行数</div>
         </div>
-        <div class="col-6 col-md-3">
-          <div class="card shadow-sm stat-card success">
-            <div class="card-body py-3 text-center">
-              <div class="h2 fw-bold text-success mb-0" id="statActive">—</div>
-              <div class="small text-muted">有効</div>
-            </div>
-          </div>
+        <div class="kpi c-green">
+          <div class="value" id="statActive">—</div>
+          <div class="label">有効</div>
         </div>
-        <div class="col-6 col-md-3">
-          <div class="card shadow-sm stat-card warning">
-            <div class="card-body py-3 text-center">
-              <div class="h2 fw-bold text-warning mb-0" id="statExpired">—</div>
-              <div class="small text-muted">期限切れ</div>
-            </div>
-          </div>
+        <div class="kpi c-amber">
+          <div class="value" id="statExpired">—</div>
+          <div class="label">期限切れ</div>
         </div>
-        <div class="col-6 col-md-3">
-          <div class="card shadow-sm stat-card danger">
-            <div class="card-body py-3 text-center">
-              <div class="h2 fw-bold text-danger mb-0" id="statSuspended">—</div>
-              <div class="small text-muted">停止中</div>
-            </div>
-          </div>
+        <div class="kpi c-red">
+          <div class="value" id="statSuspended">—</div>
+          <div class="label">停止中</div>
         </div>
       </div>
 
-      <div class="row g-3 mb-4">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1rem;">
 
         <!-- 月次サマリー -->
-        <div class="col-12 col-lg-6">
-          <div class="card shadow-sm h-100">
-            <div class="card-header bg-white py-2 d-flex align-items-center justify-content-between">
-              <span class="section-header"><i class="bi bi-bar-chart-line me-1 text-primary"></i>月次サマリー</span>
-              <input type="month" class="form-control form-control-sm w-auto" id="monthPicker">
-            </div>
-            <div class="card-body py-3">
-              <div class="row g-2 mb-3">
-                <div class="col-4">
-                  <div class="border rounded p-2 text-center">
-                    <div class="h5 fw-bold text-primary mb-0" id="mNew">—</div>
-                    <div class="x-small text-muted" style="font-size:0.7rem;">新規登録</div>
-                  </div>
-                </div>
-                <div class="col-4">
-                  <div class="border rounded p-2 text-center">
-                    <div class="h5 fw-bold text-success mb-0" id="mPaid">—</div>
-                    <div class="x-small text-muted" style="font-size:0.7rem;">有料 <span class="badge bg-success" style="font-size:0.55rem;">Stripe</span></div>
-                  </div>
-                </div>
-                <div class="col-4">
-                  <div class="border rounded p-2 text-center">
-                    <div class="h5 fw-bold text-secondary mb-0" id="mManual">—</div>
-                    <div class="x-small text-muted" style="font-size:0.7rem;">手動発行</div>
-                  </div>
-                </div>
-                <div class="col-4">
-                  <div class="border rounded p-2 text-center">
-                    <div class="h5 fw-bold text-warning mb-0" id="mUpgrade">—</div>
-                    <div class="x-small text-muted" style="font-size:0.7rem;">無料→有料</div>
-                  </div>
-                </div>
-                <div class="col-4">
-                  <div class="border rounded p-2 text-center">
-                    <div class="h5 fw-bold text-danger mb-0" id="mChurn">—</div>
-                    <div class="x-small text-muted" style="font-size:0.7rem;">離脱</div>
-                  </div>
-                </div>
+        <div class="panel">
+          <div class="panel-header">
+            <i class="bi bi-bar-chart-line" style="color:var(--accent);"></i>
+            <span class="title">月次サマリー</span>
+            <input type="month" id="monthPicker" class="filter-input ms-auto" style="width:auto;">
+          </div>
+          <div class="panel-body">
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;margin-bottom:1rem;">
+              <div class="mini-stat">
+                <div class="v" id="mNew" style="color:var(--accent);">—</div>
+                <div class="l">新規登録</div>
               </div>
-              <div id="mNewList" class="d-none">
-                <div class="small fw-semibold text-muted mb-1 border-top pt-2">当月新規登録</div>
-                <div class="table-responsive">
-                  <table class="table table-sm mb-0" style="font-size:0.75rem;">
-                    <thead class="table-light">
-                      <tr><th>発行日</th><th>顧客</th><th>メール</th><th>プラン</th><th>種別</th></tr>
-                    </thead>
-                    <tbody id="mNewTable"></tbody>
-                  </table>
-                </div>
+              <div class="mini-stat">
+                <div class="v" id="mPaid" style="color:#16a34a;">—</div>
+                <div class="l">有料 <span style="font-size:0.6rem;background:#dcfce7;color:#166534;padding:1px 4px;border-radius:3px;">Stripe</span></div>
+              </div>
+              <div class="mini-stat">
+                <div class="v" id="mManual" style="color:var(--text-sub);">—</div>
+                <div class="l">手動発行</div>
+              </div>
+              <div class="mini-stat">
+                <div class="v" id="mUpgrade" style="color:#d97706;">—</div>
+                <div class="l">有料転換</div>
+              </div>
+              <div class="mini-stat">
+                <div class="v" id="mChurn" style="color:#dc2626;">—</div>
+                <div class="l">離脱</div>
+              </div>
+            </div>
+            <div id="mNewList" class="d-none">
+              <div style="font-size:0.72rem;font-weight:600;color:var(--text-mute);text-transform:uppercase;letter-spacing:0.06em;border-top:1px solid var(--border);padding-top:0.75rem;margin-bottom:0.5rem;">当月新規登録</div>
+              <div style="overflow-x:auto;">
+                <table class="month-table">
+                  <thead><tr><th>発行日</th><th>顧客</th><th>プラン</th><th>種別</th></tr></thead>
+                  <tbody id="mNewTable"></tbody>
+                </table>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- 手動発行フォーム -->
-        <div class="col-12 col-lg-6">
-          <div class="card shadow-sm h-100">
-            <div class="card-header bg-white py-2">
-              <span class="section-header"><i class="bi bi-plus-circle me-1 text-success"></i>手動発行</span>
-            </div>
-            <div class="card-body py-3">
-              <div class="row g-2">
-                <div class="col-12">
-                  <input type="email" class="form-control form-control-sm" id="issueEmail" placeholder="メールアドレス *">
-                </div>
-                <div class="col-12">
-                  <input type="text" class="form-control form-control-sm" id="issueCompany" placeholder="会社名・氏名（任意）">
-                </div>
-                <div class="col-5">
-                  <select class="form-select form-select-sm" id="issuePlan">
-                    <option value="standard">標準</option>
-                    <option value="solo">ソロ</option>
-                    <option value="team">チーム</option>
-                  </select>
-                </div>
-                <div class="col-5">
-                  <input type="date" class="form-control form-control-sm" id="issueExpiry">
-                </div>
-                <div class="col-2 d-grid">
-                  <button class="btn btn-success btn-sm" id="btnIssue">発行</button>
-                </div>
+        <!-- 手動発行 -->
+        <div class="panel">
+          <div class="panel-header">
+            <i class="bi bi-plus-circle" style="color:#16a34a;"></i>
+            <span class="title">手動発行</span>
+          </div>
+          <div class="panel-body">
+            <div style="display:flex;flex-direction:column;gap:0.5rem;">
+              <input type="email" class="filter-input" id="issueEmail" style="width:100%;" placeholder="メールアドレス *">
+              <input type="text" class="filter-input" id="issueCompany" style="width:100%;" placeholder="会社名・氏名（任意）">
+              <div style="display:flex;gap:0.5rem;">
+                <select class="filter-select" id="issuePlan" style="flex:1;">
+                  <option value="standard">標準</option>
+                  <option value="solo">ソロ</option>
+                  <option value="team">チーム</option>
+                </select>
+                <input type="date" class="filter-input" id="issueExpiry" style="flex:1.5;">
+                <button class="btn-accent btn-success-solid" id="btnIssue">発行</button>
               </div>
-              <div class="mt-2 small" id="issueMsg"></div>
             </div>
+            <div style="margin-top:0.5rem;font-size:0.78rem;" id="issueMsg"></div>
           </div>
         </div>
       </div>
 
-      <!-- フィルター & テーブル -->
-      <div class="card shadow-sm">
-        <div class="card-header bg-white py-2 d-flex align-items-center gap-2 flex-wrap">
-          <span class="section-header me-auto"><i class="bi bi-list-ul me-1 text-primary"></i>発行一覧 <span class="text-muted fw-normal" id="filteredCount"></span></span>
-          <input type="text" class="form-control form-control-sm" id="filterText"
-            placeholder="氏名・ビジネス名・メールで検索" style="max-width:220px;">
-          <select class="form-select form-select-sm" id="filterStatus" style="max-width:130px;">
-            <option value="">全ステータス</option>
-            <option value="active">有効</option>
-            <option value="expired">期限切れ</option>
-            <option value="suspended">停止中</option>
-          </select>
-          <button class="btn btn-outline-secondary btn-sm" id="btnCsvExport">
-            <i class="bi bi-download me-1"></i>CSV
-          </button>
+      <!-- テーブル -->
+      <div class="panel">
+        <div class="panel-header">
+          <i class="bi bi-list-ul" style="color:var(--accent);"></i>
+          <span class="title">発行一覧</span>
+          <span id="filteredCount" style="font-size:0.72rem;color:var(--text-mute);margin-left:0.25rem;"></span>
+          <div class="filter-bar ms-auto">
+            <input type="text" class="filter-input" id="filterText" placeholder="名前・メールで検索" style="width:180px;">
+            <select class="filter-select" id="filterStatus">
+              <option value="">全ステータス</option>
+              <option value="active">有効</option>
+              <option value="expired">期限切れ</option>
+              <option value="suspended">停止中</option>
+            </select>
+            <button class="btn-ghost" id="btnCsvExport"><i class="bi bi-download"></i>CSV</button>
+          </div>
         </div>
-        <div class="table-responsive">
-          <table class="table table-sm table-hover license-table mb-0">
+        <div style="overflow-x:auto;">
+          <table class="data-table">
             <thead>
               <tr>
-                <th class="col-date ps-3">発行日</th>
-                <th class="col-customer">顧客</th>
-                <th class="col-email">メール</th>
-                <th class="col-key">ライセンスキー</th>
-                <th class="col-plan">プラン</th>
-                <th class="col-expiry">有効期限</th>
-                <th class="col-usage" title="今月の申請数">今月</th>
-                <th class="col-usage" title="先月の申請数">先月</th>
-                <th class="col-status">ステータス</th>
-                <th class="col-action pe-3"></th>
+                <th class="ps-first" style="width:90px;">発行日</th>
+                <th style="width:220px;">顧客</th>
+                <th style="width:70px;">プラン</th>
+                <th style="width:200px;">ライセンスキー</th>
+                <th style="width:90px;">有効期限</th>
+                <th style="width:60px;text-align:right;">今月</th>
+                <th style="width:60px;text-align:right;">先月</th>
+                <th style="width:90px;text-align:center;">状態</th>
+                <th class="pe-last" style="width:64px;text-align:right;"></th>
               </tr>
             </thead>
             <tbody id="licenseTable"></tbody>
           </table>
         </div>
-        <div id="noResult" class="text-center text-muted py-4 d-none">
-          <i class="bi bi-inbox me-1"></i>該当なし
+        <div id="noResult" class="d-none" style="text-align:center;padding:2.5rem;color:var(--text-mute);font-size:0.85rem;">
+          <i class="bi bi-inbox" style="font-size:1.5rem;display:block;margin-bottom:0.5rem;"></i>該当なし
         </div>
       </div>
 
-    </div><!-- /summary -->
-  </div><!-- /container -->
+    </div>
+  </div>
 
   <script>
     let _all = [];
@@ -236,7 +278,6 @@
     document.getElementById('filterText').addEventListener('input', render);
     document.getElementById('filterStatus').addEventListener('change', render);
     document.getElementById('btnCsvExport').addEventListener('click', exportCsv);
-
     document.getElementById('monthPicker').value = new Date().toISOString().slice(0, 7);
     document.getElementById('monthPicker').addEventListener('change', updateMonthly);
 
@@ -252,8 +293,8 @@
       const plan    = document.getElementById('issuePlan').value;
       const expiry  = document.getElementById('issueExpiry').value;
       const msg     = document.getElementById('issueMsg');
-      if (!email) { msg.innerHTML = '<span class="text-danger">メールアドレスは必須です</span>'; return; }
-      msg.innerHTML = '<span class="text-muted">発行中...</span>';
+      if (!email) { msg.innerHTML = '<span style="color:#dc2626;">メールアドレスは必須です</span>'; return; }
+      msg.innerHTML = '<span style="color:var(--text-mute);">発行中...</span>';
       const resp = await fetch(`/api/admin-licenses?secret=${encodeURIComponent(_secret)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -262,13 +303,13 @@
       const data = await resp.json();
       if (!resp.ok) {
         if (data.error === 'duplicate_email') {
-          msg.innerHTML = `<span class="text-warning">このメールには既存キーがあります: <code>${esc(data.existingKey)}</code></span>`;
+          msg.innerHTML = `<span style="color:#d97706;">既存キーあり: <code>${esc(data.existingKey)}</code></span>`;
         } else {
-          msg.innerHTML = `<span class="text-danger">エラー: ${esc(data.error)}</span>`;
+          msg.innerHTML = `<span style="color:#dc2626;">エラー: ${esc(data.error)}</span>`;
         }
         return;
       }
-      msg.innerHTML = `<span class="text-success"><i class="bi bi-check-circle me-1"></i>発行しました: <code>${esc(data.key)}</code></span>`;
+      msg.innerHTML = `<span style="color:#16a34a;"><i class="bi bi-check-circle me-1"></i>発行: <code>${esc(data.key)}</code></span>`;
       document.getElementById('issueEmail').value   = '';
       document.getElementById('issueCompany').value = '';
       document.getElementById('issueExpiry').value  = _defaultExpiry();
@@ -290,13 +331,47 @@
       render();
     }
 
+    function _customerCell(l, compact = false) {
+      const name = esc(l.customerName || l.company || '');
+      const biz  = esc(l.businessName || '');
+      const displayName = biz || name || '<span style="color:var(--text-mute);">—</span>';
+      const subLine = (biz && name && biz !== name) ? `<div class="customer-biz">${name}</div>` : '';
+      const email = esc(l.email || '');
+      if (compact) {
+        return `<div class="customer-name">${displayName}</div>${subLine}`;
+      }
+      return `
+        <div style="display:flex;align-items:center;gap:4px;">
+          <div>
+            <div class="customer-name">${displayName}</div>
+            ${subLine}
+          </div>
+          ${email ? `<button class="email-btn" onclick="copyEmail(this,'${email}')" title="${email}">
+            <i class="bi bi-envelope" style="font-size:0.7rem;"></i>
+            <span class="email-tooltip">${email}</span>
+          </button>` : ''}
+        </div>`;
+    }
+
+    function copyEmail(btn, email) {
+      navigator.clipboard.writeText(email).then(() => {
+        btn.classList.add('email-copied');
+        btn.title = 'コピーしました';
+        setTimeout(() => { btn.classList.remove('email-copied'); btn.title = email; }, 1500);
+      });
+    }
+
+    function copyKey(el, key) {
+      navigator.clipboard.writeText(key).then(() => {
+        el.classList.add('copied');
+        setTimeout(() => el.classList.remove('copied'), 1500);
+      });
+    }
+
     function updateMonthly() {
       const ym = document.getElementById('monthPicker').value;
       if (!ym) return;
-
       const planLabel = { solo: 'ソロ', team: 'チーム', standard: '標準' };
-      const planBadge = { solo: 'secondary', team: 'primary', standard: 'secondary' };
-
       const newRegs  = _all.filter(l => (l.createdAt || '').startsWith(ym));
       const paid     = newRegs.filter(l => !!l.stripeSessionId);
       const manual   = newRegs.filter(l => !l.stripeSessionId);
@@ -315,14 +390,12 @@
         tbody.innerHTML = newRegs.map(l => {
           const plan = l.plan || 'standard';
           const kind = l.stripeSessionId
-            ? '<span class="badge bg-success" style="font-size:0.6rem;">有料</span>'
-            : '<span class="badge bg-secondary" style="font-size:0.6rem;">手動</span>';
-          const customerLabel = _customerLabel(l);
+            ? '<span class="tag tag-stripe">有料</span>'
+            : '<span class="tag tag-manual">手動</span>';
           return `<tr>
-            <td>${(l.createdAt || '').split('T')[0]}</td>
-            <td>${customerLabel}</td>
-            <td class="email-cell">${esc(l.email || '')}</td>
-            <td><span class="badge bg-${planBadge[plan]}" style="font-size:0.6rem;">${planLabel[plan] || plan}</span></td>
+            <td style="color:var(--text-sub);">${(l.createdAt||'').split('T')[0]}</td>
+            <td>${_customerCell(l, true)}</td>
+            <td><span class="tag tag-${plan === 'team' ? 'team' : plan === 'solo' ? 'solo' : 'std'}">${planLabel[plan]||plan}</span></td>
             <td>${kind}</td>
           </tr>`;
         }).join('');
@@ -330,16 +403,6 @@
       } else {
         listEl.classList.add('d-none');
       }
-    }
-
-    function _customerLabel(l) {
-      const name = esc(l.customerName || l.company || '');
-      const biz  = esc(l.businessName || '');
-      if (!name && !biz) return '<span class="text-muted">—</span>';
-      if (biz && name && biz !== name) {
-        return `<div class="customer-name">${name}</div><div class="customer-biz">${biz}</div>`;
-      }
-      return `<div class="customer-name">${biz || name}</div>`;
     }
 
     function getStatus(lic) {
@@ -365,50 +428,45 @@
       });
 
       const countEl = document.getElementById('filteredCount');
-      countEl.textContent = text || status
-        ? `（${filtered.length} / ${_all.length}件）`
-        : `（${_all.length}件）`;
+      countEl.textContent = (text || status)
+        ? `${filtered.length} / ${_all.length}件`
+        : `${_all.length}件`;
 
-      const statusBadge = { active: 'success', expired: 'warning text-dark', suspended: 'danger' };
       const statusLabel = { active: '有効', expired: '期限切れ', suspended: '停止中' };
       const planLabel   = { solo: 'ソロ', team: 'チーム', standard: '標準' };
-      const planBadge   = { solo: 'secondary', team: 'primary', standard: 'light text-dark' };
 
       const tbody = document.getElementById('licenseTable');
       tbody.innerHTML = filtered.map(l => {
-        const st   = getStatus(l);
-        const date = l.createdAt ? l.createdAt.split('T')[0] : '—';
-        const plan = l.plan || 'standard';
-        const usageThis = l.usageThis ?? '—';
-        const usageLast = l.usageLast ?? '—';
-        const customerLabel = _customerLabel(l);
-        const isStripe = !!l.stripeSessionId;
+        const st         = getStatus(l);
+        const date       = l.createdAt ? l.createdAt.split('T')[0] : '—';
+        const plan       = l.plan || 'standard';
+        const usageThis  = l.usageThis ?? 0;
+        const usageLast  = l.usageLast ?? 0;
+        const isStripe   = !!l.stripeSessionId;
+        const planClass  = plan === 'team' ? 'team' : plan === 'solo' ? 'solo' : 'std';
         return `<tr data-key="${esc(l.key)}">
-          <td class="col-date ps-3" style="font-size:0.78rem;color:#555;">${date}</td>
-          <td class="col-customer">
-            ${customerLabel}
-            ${isStripe ? '<span class="badge bg-success ms-0" style="font-size:0.55rem;vertical-align:middle;">Stripe</span>' : '<span class="badge bg-light text-secondary border ms-0" style="font-size:0.55rem;vertical-align:middle;">手動</span>'}
+          <td class="ps-first" style="font-size:0.78rem;color:var(--text-sub);">${date}</td>
+          <td>
+            ${_customerCell(l)}
+            ${isStripe ? '<span class="tag tag-stripe" style="margin-top:3px;display:inline-block;">Stripe</span>' : '<span class="tag tag-manual" style="margin-top:3px;display:inline-block;">手動</span>'}
           </td>
-          <td class="col-email email-cell">${esc(l.email || '')}</td>
-          <td class="col-key"><span class="key-mono">${esc(l.key)}</span></td>
-          <td class="col-plan"><span class="badge bg-${planBadge[plan]}" style="font-size:0.65rem;">${planLabel[plan] || plan}</span></td>
-          <td class="col-expiry" style="font-size:0.78rem;color:#555;">${l.expiresAt || '—'}</td>
-          <td class="col-usage" style="font-size:0.78rem;font-weight:${usageThis > 0 ? '600' : 'normal'};color:${usageThis > 0 ? '#000' : '#aaa'};">${usageThis}</td>
-          <td class="col-usage" style="font-size:0.78rem;color:#aaa;">${usageLast}</td>
-          <td class="col-status"><span class="badge bg-${statusBadge[st]}" style="font-size:0.65rem;">${statusLabel[st]}</span></td>
-          <td class="col-action pe-3">
-            ${!isStripe && !l.upgradedAt ? `<button class="btn btn-outline-warning btn-sm py-0 px-1 me-1 btn-upgrade" data-key="${esc(l.key)}" title="有料転換としてマーク"><i class="bi bi-arrow-up-circle"></i></button>` : ''}
-            <button class="btn btn-outline-danger btn-sm py-0 px-1 btn-delete" data-key="${esc(l.key)}" title="削除"><i class="bi bi-trash"></i></button>
+          <td><span class="tag tag-${planClass}">${planLabel[plan]||plan}</span></td>
+          <td><span class="key-chip" onclick="copyKey(this,'${esc(l.key)}')" title="クリックでコピー">${esc(l.key)}</span></td>
+          <td style="font-size:0.78rem;color:var(--text-sub);">${l.expiresAt||'—'}</td>
+          <td class="usage-num ${usageThis > 0 ? 'active' : 'zero'}">${usageThis || '—'}</td>
+          <td class="usage-num zero">${usageLast || '—'}</td>
+          <td style="text-align:center;"><span class="status-dot ${st}">${statusLabel[st]}</span></td>
+          <td class="pe-last" style="text-align:right;white-space:nowrap;">
+            ${!isStripe && !l.upgradedAt ? `<button class="action-btn upgrade btn-upgrade me-1" data-key="${esc(l.key)}" title="有料転換としてマーク"><i class="bi bi-arrow-up-circle"></i></button>` : ''}
+            <button class="action-btn delete btn-delete" data-key="${esc(l.key)}" title="削除"><i class="bi bi-trash"></i></button>
           </td>
         </tr>`;
       }).join('');
 
-      tbody.querySelectorAll('.btn-upgrade').forEach(btn => {
-        btn.addEventListener('click', () => upgradeLicense(btn.dataset.key));
-      });
-      tbody.querySelectorAll('.btn-delete').forEach(btn => {
-        btn.addEventListener('click', () => deleteLicense(btn.dataset.key));
-      });
+      tbody.querySelectorAll('.btn-upgrade').forEach(btn =>
+        btn.addEventListener('click', () => upgradeLicense(btn.dataset.key)));
+      tbody.querySelectorAll('.btn-delete').forEach(btn =>
+        btn.addEventListener('click', () => deleteLicense(btn.dataset.key)));
 
       document.getElementById('noResult').classList.toggle('d-none', filtered.length > 0);
     }
@@ -418,14 +476,13 @@
       const statusLabel = { active: '有効', expired: '期限切れ', suspended: '停止中' };
       const planLabel   = { solo: 'ソロ', team: 'チーム', standard: '標準' };
       const rows = _all.map(l => [
-        l.createdAt?.split('T')[0] || '',
-        l.customerName || l.company || '', l.businessName || '', l.email || '',
-        l.key, planLabel[l.plan] || l.plan || '', l.expiresAt || '',
-        l.usageThis ?? '', l.usageLast ?? '', statusLabel[getStatus(l)]
+        l.createdAt?.split('T')[0]||'', l.customerName||l.company||'', l.businessName||'',
+        l.email||'', l.key, planLabel[l.plan]||l.plan||'', l.expiresAt||'',
+        l.usageThis??'', l.usageLast??'', statusLabel[getStatus(l)]
       ]);
-      const csv = [header, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+      const csv = [header,...rows].map(r => r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
       const a = document.createElement('a');
-      a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' }));
+      a.href = URL.createObjectURL(new Blob(['﻿'+csv], { type: 'text/csv;charset=utf-8;' }));
       a.download = `licenses_${new Date().toISOString().split('T')[0]}.csv`;
       a.click();
     }
@@ -456,7 +513,7 @@
     }
 
     function esc(s) {
-      return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     }
   </script>
 </body>
