@@ -70,9 +70,15 @@ const App = (() => {
     try {
       _masterCache = await Sheets.readMaster();
       const email  = Auth.getUserEmail().toLowerCase();
-      // 管理者未登録のときは全員管理者扱い（初期設定の保険）
-      // 管理者登録後はマスタ表の権限のみで判定（ライセンスオーナーも例外なし）
-      if (_masterCache.admins.length === 0 || _masterCache.admins.includes(email)) {
+
+      // ライセンス購入者メールをキャッシュから取得（シート設定に関わらず管理者扱い）
+      let isOwner = false;
+      try {
+        const _lc = JSON.parse(localStorage.getItem('keihi_license_cache') || 'null');
+        if (_lc?.result?.ownerEmail && _lc.result.ownerEmail === email) isOwner = true;
+      } catch (_e) {}
+
+      if (isOwner || _masterCache.admins.length === 0 || _masterCache.admins.includes(email)) {
         _userRole = 'admin';
       } else if (_masterCache.viewers && _masterCache.viewers.includes(email)) {
         _userRole = 'viewer';
@@ -82,7 +88,7 @@ const App = (() => {
       _isAdmin = _userRole === 'admin';
 
       // メンバー制限：登録メンバーが1人以上いる場合、未登録ユーザーはアクセス不可
-      // 管理者はメンバーリストの有無に関わらず常にアクセス許可
+      // 管理者（isOwner含む）はメンバーリストの有無に関わらず常にアクセス許可
       if (_userRole !== 'admin' && _masterCache.members.length > 0 && !_masterCache.members.some(m => m.email.toLowerCase() === email)) {
         _setupUI('settings');
         showToast('このアプリへのアクセス権がありません。管理者に連絡してください。', 'danger');
