@@ -136,13 +136,15 @@
   <!-- グローバルエラーハンドラ：未捕捉のJSエラーで真っ白にならないように -->
   <script>
     window.addEventListener('error', function(ev) {
+      // 'Script error.' は CDN スクリプトの Cross-Origin エラーで内容不明のため無視
+      if (!ev.message || ev.message === 'Script error.') return;
       var main = document.getElementById('appMain');
       if (!main) return;
       // すでにビューが描画されていれば何もしない（バインド中のエラーで画面を消さない）
       if (main.querySelector('h5, .pt-3')) return;
       main.innerHTML = '<div class="pt-4"><div class="alert alert-danger small">' +
         '<i class="bi bi-exclamation-triangle-fill me-2"></i>' +
-        '初期化エラー: ' + (ev.message || 'スクリプトの読み込みに失敗しました') +
+        '初期化エラー: ' + ev.message +
         '</div><button class="btn btn-outline-secondary btn-sm" onclick="location.reload()">' +
         '<i class="bi bi-arrow-clockwise me-1"></i>再読み込み</button></div>';
     });

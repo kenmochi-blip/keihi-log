@@ -41,7 +41,13 @@ const Auth = (() => {
   function _restoreIfNeeded() {
     if (_accessToken) return;
     const saved = _loadSession();
-    if (saved && saved.expiry > Date.now()) {
+    if (!saved) return;
+    // 旧 GIS セッション（refresh_token なし）は PKCE で再ログインが必要なためクリア
+    if (!saved.refresh_token) {
+      localStorage.removeItem(SESSION_KEY);
+      return;
+    }
+    if (saved.expiry > Date.now()) {
       _accessToken = saved.access_token;
       _tokenExpiry = saved.expiry;
       _userInfo    = saved.userInfo;
