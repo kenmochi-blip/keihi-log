@@ -294,6 +294,11 @@ const SettingsView = (() => {
         localStorage.setItem('keihi_license_key', key);
         msg.innerHTML = `<span class="text-success"><i class="bi bi-check-circle me-1"></i>有効（${result.company || ''}）${result.expiresAt ? ' 期限: ' + result.expiresAt.split('T')[0] : ''}</span>`;
         App.showToast('ライセンスを確認しました', 'success');
+        // 社名が未入力なら Stripe 登録の会社名を自動入力
+        const companyInput = el.querySelector('#inputCompanyName');
+        if (companyInput && !companyInput.value.trim() && result.company) {
+          companyInput.value = result.company;
+        }
         // 購入者メールが一致する場合は管理者に昇格して画面を再描画
         if (result.ownerEmail && result.ownerEmail === Auth.getUserEmail().toLowerCase()) {
           await App.reloadMaster();
@@ -546,7 +551,20 @@ const SettingsView = (() => {
     const container = el.querySelector('#memberList');
     if (!container) return;
     if (!_master?.members?.length) {
-      container.innerHTML = '<div class="text-muted small">メンバーが登録されていません</div>';
+      // スプレッドシート未作成時：現在ユーザーを管理者プレビューとして表示
+      const userInfo  = Auth.getUserInfo();
+      const userEmail = Auth.getUserEmail();
+      const userName  = userInfo?.name || userEmail || '';
+      container.innerHTML = `
+        <div class="d-flex align-items-center gap-2 py-2 border-bottom">
+          <div class="flex-grow-1">
+            <div class="master-item-name">${_escape(userName)}</div>
+            <div class="text-muted" style="font-size:0.72rem;">${_escape(userEmail)}
+              <span class="badge bg-primary ms-1" style="font-size:0.6rem;"><i class="bi bi-shield-fill-check me-1"></i>管理者</span>
+            </div>
+          </div>
+        </div>
+        <div class="text-muted mt-2" style="font-size:0.72rem;"><i class="bi bi-info-circle me-1"></i>データ保存先を新規作成すると正式に登録されます</div>`;
       return;
     }
     container.innerHTML = _master.members.map((m, i) => {
