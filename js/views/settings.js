@@ -225,7 +225,19 @@ const SettingsView = (() => {
     </div>
   </div>
 
-
+  <!-- カスタムフラグ（管理者のみ） -->
+  <div class="card mb-3">
+    <div class="card-body">
+      <div class="settings-section-title d-flex justify-content-between align-items-center">
+        <span>カスタムフラグ</span>
+        <button class="btn btn-outline-primary btn-sm" id="btnAddCustomFlag"><i class="bi bi-plus me-1"></i>追加</button>
+      </div>
+      <p class="text-muted small mb-2">部門・プロジェクト等、申請時に自由に使えるタグを定義します。</p>
+      <div id="customFlagList" class="mt-2">
+        <div class="text-muted small text-center py-2">読み込み中...</div>
+      </div>
+    </div>
+  </div>
 
   <!-- ヘッダー色（管理者のみ） -->
   <div class="card mb-3">
@@ -423,8 +435,9 @@ const SettingsView = (() => {
     try {
       _master = await App.getMaster();
       _renderMembers(el);
-      _renderSimpleList(el, 'categoryList', _master.categories, 'category');
-      _renderSimpleList(el, 'paySourceList', _master.paySources, 'paySource');
+      _renderSimpleList(el, 'categoryList',   _master.categories,        'category');
+      _renderSimpleList(el, 'paySourceList',  _master.paySources,        'paySource');
+      _renderSimpleList(el, 'customFlagList', _master.customFlags || [], 'customFlag');
     } catch (err) {
       App.showToast('マスタデータの読み込みに失敗しました', 'danger');
     }
@@ -433,8 +446,8 @@ const SettingsView = (() => {
     el.querySelector('#btnAddMember')?.addEventListener('click', () => _showMemberForm(el, null));
     el.querySelector('#btnUpgradePlan')?.addEventListener('click', () => _openStripePortal());
     el.querySelector('#btnAddCategory')?.addEventListener('click', () => _showInlineAdd(el, 'category'));
-
     el.querySelector('#btnAddPaySource')?.addEventListener('click', () => _showInlineAdd(el, 'paySource'));
+    el.querySelector('#btnAddCustomFlag')?.addEventListener('click', () => _showInlineAdd(el, 'customFlag'));
 
     // 証票フォルダ：現在値をURLとしてinputに表示＋フォルダを開くリンクを生成
     const currentFolderId = localStorage.getItem('keihi_folder_id') || await Sheets.readSetting('B4').catch(() => '');
@@ -652,8 +665,8 @@ const SettingsView = (() => {
   }
 
   function _showInlineAdd(el, type) {
-    const containerId = type === 'category' ? 'categoryList' : 'paySourceList';
-    const container = el.querySelector(`#${containerId}`);
+    const containerIds = { category: 'categoryList', paySource: 'paySourceList', customFlag: 'customFlagList' };
+    const container = el.querySelector(`#${containerIds[type]}`);
     const row = document.createElement('div');
     row.className = 'd-flex gap-1 mt-2';
     row.innerHTML = `<input type="text" class="form-control form-control-sm" placeholder="追加する項目名">
@@ -665,8 +678,9 @@ const SettingsView = (() => {
     row.querySelectorAll('button')[0].addEventListener('click', async () => {
       const val = row.querySelector('input').value.trim();
       if (!val) return;
-      if (type === 'category') _master.categories.push(val);
-      else _master.paySources.push(val);
+      if (type === 'category')        _master.categories.push(val);
+      else if (type === 'paySource')  _master.paySources.push(val);
+      else if (type === 'customFlag') { if (!_master.customFlags) _master.customFlags = []; _master.customFlags.push(val); }
       await _saveMasterToSheet(el);
       row.remove();
     });
@@ -700,21 +714,25 @@ const SettingsView = (() => {
   }
 
   async function _deleteSimpleItem(el, type, idx) {
-    if (type === 'category') _master.categories.splice(idx, 1);
-    else _master.paySources.splice(idx, 1);
+    if (type === 'category')        _master.categories.splice(idx, 1);
+    else if (type === 'paySource')  _master.paySources.splice(idx, 1);
+    else if (type === 'customFlag') (_master.customFlags || []).splice(idx, 1);
     await _saveMasterToSheet(el);
   }
 
   async function _saveMasterToSheet(el) {
-    const maxRows = Math.max(_master.members.length, _master.categories.length, _master.paySources.length, 1);
+    const customFlags = _master.customFlags || [];
+    const maxRows = Math.max(_master.members.length, _master.categories.length, _master.paySources.length, customFlags.length, 1);
     const rows = [];
     for (let i = 0; i < maxRows; i++) {
       const m = _master.members[i]    || {};
       const c = _master.categories[i] || '';
       const p = _master.paySources[i] || '';
-      rows.push([m.name || '', m.email || '', m.dept || '', m.role || '', '', p, c]);
+      const f = customFlags[i]        || '';
+      // A:氏名 B:メール C:所属 D:権限 E:備考 F:会社払い支払元 G:勘定科目 H:カスタムフラグ
+      rows.push([m.name || '', m.email || '', m.dept || '', m.role || '', '', p, c, f]);
     }
-    await Sheets.update(`マスタ表!A2:G${rows.length + 1}`, rows);
+    await Sheets.update(`マスタ表!A2:H${rows.length + 1}`, rows);
     App.showToast('保存しました', 'success');
 
     const syncCount = await _syncMemberNamesToExpenses(_master.members);
@@ -723,8 +741,9 @@ const SettingsView = (() => {
     App.clearMasterCache();
     _master = await App.getMaster();
     _renderMembers(el);
-    _renderSimpleList(el, 'categoryList', _master.categories, 'category');
-    _renderSimpleList(el, 'paySourceList', _master.paySources, 'paySource');
+    _renderSimpleList(el, 'categoryList',   _master.categories,        'category');
+    _renderSimpleList(el, 'paySourceList',  _master.paySources,        'paySource');
+    _renderSimpleList(el, 'customFlagList', _master.customFlags || [], 'customFlag');
   }
 
   async function _syncMemberNamesToExpenses(members) {
