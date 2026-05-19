@@ -87,6 +87,6 @@
       document.querySelector('[src*="gsi/client"]').addEventListener('load', onGsiLoad);
     }
   </script>
-  <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');</script>
+  <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js', { scope: '/app.html' });</script>
 </body>
 </html>
