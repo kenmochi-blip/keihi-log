@@ -430,14 +430,13 @@ function _bindTypeButtons(el) {
   }
 
   function _bindFileInputs(el) {
-    const handleFiles = async (el, type, e) => {
-      for (const file of e.target.files) {
+    const processFiles = async (el, type, files) => {
+      for (const file of files) {
         if (file.size > 10 * 1024 * 1024) { App.showToast(`${file.name} は10MBを超えています`, 'warning'); continue; }
         const base64 = await Drive.fileToBase64(file);
         _selectedFiles.push({ base64, mimeType: file.type, name: file.name });
         _addPreviewItem(el, type, base64, file.type, _selectedFiles.length - 1);
       }
-      e.target.value = '';
 
       // 領収書タイプの場合：圧縮とAPIキー取得をボタン押下前にバックグラウンドで先読み
       if (type === '領収書' && _selectedFiles.length > 0) {
@@ -457,13 +456,33 @@ function _bindTypeButtons(el) {
       const camBtn   = el.querySelector(`#btnCamera-${type}`);
       if (camBtn && camInput) {
         camBtn.addEventListener('click', () => camInput.click());
-        camInput.addEventListener('change', e => handleFiles(el, type, e));
+        camInput.addEventListener('change', e => { processFiles(el, type, e.target.files); e.target.value = ''; });
       }
 
       // ファイルボタン：通常のファイル選択
       const fileBtn = el.querySelector(`#btnFile-${type}`);
       if (fileBtn) fileBtn.addEventListener('click', () => fileInput.click());
-      fileInput.addEventListener('change', e => handleFiles(el, type, e));
+      fileInput.addEventListener('change', e => { processFiles(el, type, e.target.files); e.target.value = ''; });
+
+      // ドラッグ＆ドロップ（領収書カード全体 or 参考資料エリア）
+      const dropZone = el.querySelector(
+        type === '領収書' ? '.receipt-upload-card' : `#previewArea-${type}`
+      )?.closest(type === '領収書' ? '.receipt-upload-card' : '.mb-2') ?? null;
+      if (!dropZone) return;
+
+      dropZone.addEventListener('dragover', e => {
+        e.preventDefault();
+        dropZone.classList.add('drag-over');
+      });
+      dropZone.addEventListener('dragleave', e => {
+        if (!dropZone.contains(e.relatedTarget)) dropZone.classList.remove('drag-over');
+      });
+      dropZone.addEventListener('drop', e => {
+        e.preventDefault();
+        dropZone.classList.remove('drag-over');
+        const files = Array.from(e.dataTransfer.files);
+        if (files.length) processFiles(el, type, files);
+      });
     });
 
     el.querySelector('#btnAnalyze')?.addEventListener('click', () => _runAiAnalysis(el));

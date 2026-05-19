@@ -73,6 +73,12 @@ body { font-size: 0.9rem; }
   border-radius: 16px;
   padding: 16px;
   box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+  border: 2px dashed transparent;
+  transition: border-color 0.15s, background 0.15s;
+}
+.receipt-upload-card.drag-over {
+  border-color: #0d6efd;
+  background: #f0f5ff;
 }
 
 /* コンパクトアップロードボタン */
