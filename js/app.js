@@ -383,18 +383,12 @@ const App = (() => {
     if (!match) {
       // /app.html・/app・/ で起動（PWAショートカット等）
       if (location.pathname === '/app.html' || location.pathname === '/app' || location.pathname === '/') {
-        // Cookie に alias があればフルリダイレクト
-        const cookieAlias = _getCookieAlias();
-        if (cookieAlias) {
-          location.replace('/' + cookieAlias);
-          return new Promise(() => {}); // リダイレクト後は処理を止める
-        }
-        // Cookie はないが localStorage に alias があればエイリアスURLへリダイレクト
-        // history.replaceState ではホーム画面追加ダイアログに反映されないため location.replace を使う
-        const storedAlias = localStorage.getItem('keihi_alias');
-        if (storedAlias) {
-          location.replace('/' + storedAlias);
-          return new Promise(() => {});
+        // alias があれば URL バーだけ書き換える（ページリロードなし）
+        // 動的マニフェストがすでに start_url に alias を設定しているため
+        // location.replace による再読み込みは不要
+        const alias = _getCookieAlias() || localStorage.getItem('keihi_alias');
+        if (alias) {
+          try { history.replaceState(null, '', '/' + alias); } catch (_) {}
         }
       }
       return;
@@ -406,34 +400,25 @@ const App = (() => {
       localStorage.setItem('keihi_sheet_id', token);
       return;
     }
-    // 常にAPIで解決（キャッシュは使わない：別チームのシートIDが混入するのを防ぐ）
-    let resolved = false;
-    for (let attempt = 0; attempt < 3; attempt++) {
-      try {
-        const base = (window.APP_CONFIG && window.APP_CONFIG.apiBase) || '';
-        const ctrl = new AbortController();
-        const tid  = setTimeout(() => ctrl.abort(), 5000); // 5秒タイムアウト
-        const r = await fetch(base + '/api/alias?code=' + encodeURIComponent(token),
-          { signal: ctrl.signal });
-        clearTimeout(tid);
-        if (r.ok) {
-          const { sheetId } = await r.json();
-          if (sheetId) {
-            sessionStorage.setItem('keihi_sheet_id', sheetId);
-            localStorage.setItem('keihi_sheet_id', sheetId);
-            localStorage.setItem('keihi_alias', token);
-            // Cookie にも保存（SafariとPWA間で共有される）
-            _setCookieAlias(token);
-            resolved = true;
-          }
+    // 5秒タイムアウト・リトライなし（タイムアウト時は既存localStorageのIDで続行）
+    try {
+      const base = (window.APP_CONFIG && window.APP_CONFIG.apiBase) || '';
+      const ctrl = new AbortController();
+      const tid  = setTimeout(() => ctrl.abort(), 5000);
+      const r = await fetch(base + '/api/alias?code=' + encodeURIComponent(token),
+        { signal: ctrl.signal });
+      clearTimeout(tid);
+      if (r.ok) {
+        const { sheetId } = await r.json();
+        if (sheetId) {
+          sessionStorage.setItem('keihi_sheet_id', sheetId);
+          localStorage.setItem('keihi_sheet_id', sheetId);
+          localStorage.setItem('keihi_alias', token);
+          _setCookieAlias(token);
         }
-        break;
-      } catch (_) {
-        if (attempt < 2) await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
       }
-    }
-    if (!resolved && !localStorage.getItem('keihi_sheet_id')) {
-      console.warn('alias resolution failed for:', token);
+    } catch (_) {
+      // タイムアウト・ネットワークエラーは無視してlocalStorageのIDで続行
     }
   }
 
