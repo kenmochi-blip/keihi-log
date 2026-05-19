@@ -347,6 +347,12 @@ const SettingsView = (() => {
       try {
         const ssId    = await Setup.createSpreadsheet(name, parentFolderId);
         localStorage.setItem('keihi_company_name', name);
+        // 作成されたフォルダURLをフォルダURL欄に反映
+        const createdFolderId = localStorage.getItem('keihi_folder_id') || '';
+        if (createdFolderId) {
+          const folderInput = el.querySelector('#inputFolderUrl');
+          if (folderInput) folderInput.value = `https://drive.google.com/drive/folders/${createdFolderId}`;
+        }
         const alias   = localStorage.getItem('keihi_alias') || '';
         const shareUrl = alias ? `${location.origin}/${alias}` : `${location.origin}/${ssId}`;
         const qrUrl   = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(shareUrl)}`;
