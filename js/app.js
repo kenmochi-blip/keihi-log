@@ -380,12 +380,12 @@ const App = (() => {
           location.replace('/' + cookieAlias);
           return new Promise(() => {}); // リダイレクト後は処理を止める
         }
-        // Cookie はないが localStorage に alias があればアドレスバーだけ即時書き換え
-        // （ホーム画面追加ダイアログを開く前にURLを確定させる）
+        // Cookie はないが localStorage に alias があればエイリアスURLへリダイレクト
+        // history.replaceState ではホーム画面追加ダイアログに反映されないため location.replace を使う
         const storedAlias = localStorage.getItem('keihi_alias');
         if (storedAlias) {
-          history.replaceState(null, '', '/' + storedAlias);
-          _injectDynamicManifest('/' + storedAlias, localStorage.getItem('keihi_company_name') || '');
+          location.replace('/' + storedAlias);
+          return new Promise(() => {});
         }
       }
       return;
