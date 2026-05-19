@@ -7,6 +7,11 @@
 const Auth = (() => {
   const CLIENT_ID = window.APP_CONFIG?.clientId || '';
 
+  // プライベート状態
+  let _accessToken = null;
+  let _tokenExpiry = 0;
+  let _userInfo    = null;
+
   const SCOPES = [
     'https://www.googleapis.com/auth/spreadsheets',
     'https://www.googleapis.com/auth/drive.file',
