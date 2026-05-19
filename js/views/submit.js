@@ -16,6 +16,7 @@ const SubmitView = (() => {
   let _currentType      = '領収書';
   let _cats             = [];
   let _paySources       = [];
+  let _customFlags      = [];
   let _pendingEdit   = null; // 一覧表からの編集キュー {id, expenses}
   let _historyAll      = []; // 自分の全履歴（ソート済）
   let _historyExpenses = []; // 全経費データ（編集用）
@@ -235,6 +236,14 @@ const SubmitView = (() => {
     </div>
   </div>
 
+  <!-- カスタムフラグ（管理者が選択肢を設定した場合のみ表示） -->
+  <div id="customFlagWrap" class="d-none mb-3">
+    <label class="form-label small fw-semibold">カスタムフラグ <span class="text-muted fw-normal">（任意）</span></label>
+    <select class="form-select form-select-sm" id="selCustomFlag">
+      <option value="">未設定</option>
+    </select>
+  </div>
+
   <!-- 申請ボタン -->
   <div class="d-grid mt-3 mb-4 no-print">
     <button class="btn btn-primary btn-lg rounded-3" id="btnSubmit">
@@ -344,8 +353,9 @@ const SubmitView = (() => {
     // マスタデータ読み込み
     try {
       const master = await App.getMaster();
-      _cats       = master.categories;
-      _paySources = master.paySources;
+      _cats        = master.categories;
+      _paySources  = master.paySources;
+      _customFlags = master.customFlags || [];
     } catch (_) {}
 
     _populateSelects(el);
@@ -394,6 +404,17 @@ const SubmitView = (() => {
     const psHtml = '<option value="">支払元を選択</option>' +
       _paySources.map(p => `<option value="${p}">${p}</option>`).join('');
     el.querySelectorAll('#selPaySource').forEach(s => { s.innerHTML = psHtml; });
+
+    // カスタムフラグ：選択肢があれば表示
+    const cfWrap = el.querySelector('#customFlagWrap');
+    const cfSel  = el.querySelector('#selCustomFlag');
+    if (_customFlags.length > 0 && cfWrap && cfSel) {
+      cfSel.innerHTML = '<option value="">未設定</option>' +
+        _customFlags.map(f => `<option value="${f}">${f}</option>`).join('');
+      cfWrap.classList.remove('d-none');
+    } else if (cfWrap) {
+      cfWrap.classList.add('d-none');
+    }
   }
 
   /** 金額入力欄を自動カンマ整形する */
@@ -1026,13 +1047,14 @@ function _bindTypeButtons(el) {
         device:         navigator.userAgent,
         taxRate:        data.taxRate,
         withholding:    _withholdingAmount,
+        customFlag:     data.customFlag,
       });
 
       // 7. 編集の場合は修正履歴に旧データを保存してから更新
       if (_editId) {
         const rowNum = await Sheets.findRowById(_editId);
         if (rowNum > 0) {
-          const oldRows = await Sheets.read(`経費一覧!A${rowNum}:T${rowNum}`);
+          const oldRows = await Sheets.read(`経費一覧!A${rowNum}:U${rowNum}`);
           const r = oldRows[0] || [];
           const oldSummary = [
             `日付: ${r[3] || ''}`,
@@ -1046,7 +1068,7 @@ function _bindTypeButtons(el) {
             `税区分: ${r[18] || ''}`,
           ].filter(s => !s.endsWith(': ')).join(' / ');
           await Sheets.prependRow('修正履歴', [appliedAt, Auth.getUserEmail(), oldSummary]);
-          await Sheets.update(`経費一覧!A${rowNum}:T${rowNum}`, [row]);
+          await Sheets.update(`経費一覧!A${rowNum}:U${rowNum}`, [row]);
         }
       } else {
         await Sheets.prependExpense(row);
@@ -1137,8 +1159,9 @@ function _bindTypeButtons(el) {
 
     return {
       date, place, amount, category, note,
-      invoice:   pnl.querySelector('#inputInvoice')?.value?.trim() || '',
-      taxRate:   el.querySelector('#selTaxRate')?.value || '課税10%',
+      invoice:    pnl.querySelector('#inputInvoice')?.value?.trim() || '',
+      taxRate:    el.querySelector('#selTaxRate')?.value || '課税10%',
+      customFlag: el.querySelector('#selCustomFlag')?.value || '',
       corpPay, paySource,
     };
   }
@@ -1320,6 +1343,8 @@ function _bindTypeButtons(el) {
         if (sel) [...sel.options].forEach(o => o.selected = o.value === e.category);
         const taxSel = el.querySelector('#selTaxRate');
         if (taxSel && e.taxRate) taxSel.value = e.taxRate;
+        const cfSel = el.querySelector('#selCustomFlag');
+        if (cfSel && e.customFlag) cfSel.value = e.customFlag;
       } else if (e.type === '交通費') {
         const parts = (e.place || '').split(/ [→↔] /);
         const fromInput = el.querySelector('#txtFrom');
@@ -1366,7 +1391,7 @@ function _bindTypeButtons(el) {
 
       // 元の行を削除（sheetIdが必要なのでbatchUpdateを使う）
       // 簡略化：行の内容を空白で上書きしてフィルタリングする方式
-      await Sheets.update(`経費一覧!A${rowNum}:T${rowNum}`, [new Array(20).fill('')]);
+      await Sheets.update(`経費一覧!A${rowNum}:U${rowNum}`, [new Array(21).fill('')]);
 
       App.showToast('削除しました', 'success');
       _loadHistory(el);

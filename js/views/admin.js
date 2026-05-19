@@ -4,7 +4,7 @@
  */
 const AdminView = (() => {
 
-  let _master = null; // { members, categories, paySources, admins }
+  let _master = null; // { members, categories, paySources, customFlags, admins }
 
   function render() {
     return `
@@ -68,6 +68,20 @@ const AdminView = (() => {
       </div>
     </div>
 
+    <!-- カスタムフラグ管理 -->
+    <div class="card mb-3">
+      <div class="card-body">
+        <div class="settings-section-title d-flex justify-content-between align-items-center">
+          <span>カスタムフラグ</span>
+          <button class="btn btn-outline-primary btn-sm" id="btnAddCustomFlag">
+            <i class="bi bi-plus me-1"></i>追加
+          </button>
+        </div>
+        <p class="text-muted small mb-2">部門・プロジェクト等、申請時に自由に使えるタグを定義します。未設定の場合は申請フォームに表示されません。</p>
+        <div id="customFlagList" class="mt-2"></div>
+      </div>
+    </div>
+
   </div>
 </div>`;
   }
@@ -107,12 +121,15 @@ const AdminView = (() => {
     el.querySelector('#btnAddCategory')?.addEventListener('click', () => _showInlineAdd(el, 'category'));
     // 支払元追加
     el.querySelector('#btnAddPaySource')?.addEventListener('click', () => _showInlineAdd(el, 'paySource'));
+    // カスタムフラグ追加
+    el.querySelector('#btnAddCustomFlag')?.addEventListener('click', () => _showInlineAdd(el, 'customFlag'));
   }
 
   function _renderAll(el) {
     _renderMembers(el);
-    _renderSimpleList(el, 'categoryList', _master.categories, 'category');
-    _renderSimpleList(el, 'paySourceList', _master.paySources, 'paySource');
+    _renderSimpleList(el, 'categoryList',  _master.categories,  'category');
+    _renderSimpleList(el, 'paySourceList', _master.paySources,  'paySource');
+    _renderSimpleList(el, 'customFlagList', _master.customFlags || [], 'customFlag');
   }
 
   function _renderMembers(el) {
@@ -245,8 +262,8 @@ const AdminView = (() => {
   }
 
   function _showInlineAdd(el, type) {
-    const containerId = type === 'category' ? 'categoryList' : 'paySourceList';
-    const container = el.querySelector(`#${containerId}`);
+    const containerIds = { category: 'categoryList', paySource: 'paySourceList', customFlag: 'customFlagList' };
+    const container = el.querySelector(`#${containerIds[type]}`);
     const input = document.createElement('div');
     input.className = 'd-flex gap-1 mt-2';
     input.innerHTML = `
@@ -259,8 +276,9 @@ const AdminView = (() => {
     input.querySelectorAll('button')[0].addEventListener('click', async () => {
       const val = input.querySelector('input').value.trim();
       if (!val) return;
-      if (type === 'category') _master.categories.push(val);
-      else _master.paySources.push(val);
+      if (type === 'category')   _master.categories.push(val);
+      else if (type === 'paySource')  _master.paySources.push(val);
+      else if (type === 'customFlag') { if (!_master.customFlags) _master.customFlags = []; _master.customFlags.push(val); }
       await _saveMasterToSheet(el);
       input.remove();
     });
@@ -289,24 +307,27 @@ const AdminView = (() => {
   }
 
   async function _deleteSimpleItem(el, type, idx) {
-    if (type === 'category') _master.categories.splice(idx, 1);
-    else _master.paySources.splice(idx, 1);
+    if (type === 'category')        _master.categories.splice(idx, 1);
+    else if (type === 'paySource')  _master.paySources.splice(idx, 1);
+    else if (type === 'customFlag') (_master.customFlags || []).splice(idx, 1);
     await _saveMasterToSheet(el);
   }
 
   async function _saveMasterToSheet(el) {
     // マスタ表を全行書き直す
-    const maxRows = Math.max(_master.members.length, _master.categories.length, _master.paySources.length);
+    const customFlags = _master.customFlags || [];
+    const maxRows = Math.max(_master.members.length, _master.categories.length, _master.paySources.length, customFlags.length);
     const rows = [];
     for (let i = 0; i < maxRows; i++) {
       const m = _master.members[i]    || {};
       const c = _master.categories[i] || '';
       const p = _master.paySources[i] || '';
-      // A:氏名 B:メール C:所属 D:権限 E:備考 F:会社払い支払元 G:勘定科目
-      rows.push([m.name || '', m.email || '', m.dept || '', m.role || '', '', p, c]);
+      const f = customFlags[i]        || '';
+      // A:氏名 B:メール C:所属 D:権限 E:備考 F:会社払い支払元 G:勘定科目 H:カスタムフラグ
+      rows.push([m.name || '', m.email || '', m.dept || '', m.role || '', '', p, c, f]);
     }
     // ヘッダーを保持しながら2行目以降を上書き
-    await Sheets.update(`マスタ表!A2:G${rows.length + 1}`, rows);
+    await Sheets.update(`マスタ表!A2:H${rows.length + 1}`, rows);
     App.showToast('保存しました', 'success');
     _renderAll(el);
     // AppのmasterキャッシュをクリアAして再読み込みさせる

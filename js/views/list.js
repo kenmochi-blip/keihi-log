@@ -85,6 +85,11 @@ const ListView = (() => {
             <option value="">支払元（全て）</option>
           </select>
         </div>
+        <div class="col-6 col-md">
+          <select class="form-select form-select-sm" id="filterCustomFlag">
+            <option value="">フラグ（全て）</option>
+          </select>
+        </div>
         <div class="col-12 col-md">
           <div class="input-group input-group-sm">
             <span class="input-group-text"><i class="bi bi-search"></i></span>
@@ -220,8 +225,15 @@ const ListView = (() => {
     el.querySelector('#filterMonthFrom')?.addEventListener('change', _reset);
     el.querySelector('#filterMonthTo')?.addEventListener('change', _reset);
 
+    // カスタムフラグフィルター選択肢をマスタから生成
+    const customFlags = _master.customFlags || [];
+    if (customFlags.length > 0) {
+      const cfSel = el.querySelector('#filterCustomFlag');
+      if (cfSel) customFlags.forEach(f => { cfSel.innerHTML += `<option value="${f}">${f}</option>`; });
+    }
+
     // フィルタリング
-    ['filterType','filterStatus','filterKeyword','filterMember','filterPaySource'].forEach(id => {
+    ['filterType','filterStatus','filterKeyword','filterMember','filterPaySource','filterCustomFlag'].forEach(id => {
       el.querySelector(`#${id}`)?.addEventListener('input', _reset);
     });
 
@@ -312,10 +324,11 @@ const ListView = (() => {
     const toDate   = toYM   ? `${toYM}-31`   : '';
     const type    = el.querySelector('#filterType')?.value     || '';
     const status  = el.querySelector('#filterStatus')?.value   || '';
-    const keyword   = (el.querySelector('#filterKeyword')?.value || '').toLowerCase();
-    const member    = el.querySelector('#filterMember')?.value    || '';
-    const paySrc    = el.querySelector('#filterPaySource')?.value || '';
-    const email     = Auth.getUserEmail();
+    const keyword    = (el.querySelector('#filterKeyword')?.value    || '').toLowerCase();
+    const member     = el.querySelector('#filterMember')?.value     || '';
+    const paySrc     = el.querySelector('#filterPaySource')?.value  || '';
+    const customFlag = el.querySelector('#filterCustomFlag')?.value || '';
+    const email      = Auth.getUserEmail();
 
     return _expenses.filter(e => {
       if (!e.id) return false;
@@ -328,6 +341,7 @@ const ListView = (() => {
       if (toDate   && e.date > toDate)   return false;
       if (type && e.type !== type) return false;
       if (status && _getStatus(e) !== status) return false;
+      if (customFlag && e.customFlag !== customFlag) return false;
       if (keyword && ![e.place, e.note, e.category].join(' ').toLowerCase().includes(keyword)) return false;
       if (paySrc) {
         const corpSrc = _corpPaySource(e);
@@ -547,7 +561,7 @@ const ListView = (() => {
 
   function _exportCsv(el) {
     const filtered = _getFiltered(el);
-    const header = ['申請日時','申請者名','タイプ','日付','支払先','金額','勘定科目','備考','証票URL','ステータス','インボイス番号','申請者Email','ID','精算日','税区分','支払元'];
+    const header = ['申請日時','申請者名','タイプ','日付','支払先','金額','勘定科目','備考','証票URL','ステータス','インボイス番号','申請者Email','ID','精算日','税区分','支払元','源泉徴収','カスタムフラグ'];
     const _isoToSlash = s => s ? String(s).replace(/^(\d{4})-(\d{2})-(\d{2}).*/, '$1/$2/$3') : '';
     const rows = filtered.map(e => {
       const corpSrc = _corpPaySource(e);
@@ -556,7 +570,8 @@ const ListView = (() => {
         _isoToSlash(e.appliedAt), e.name, e.type, _isoToSlash(e.date), e.place, e.amount,
         e.category, e.note, e.imageLinks.split(',')[0]?.trim() || '',
         _getStatus(e), e.invoice, e.email, e.id,
-        e.settlementDate || '', e.taxRate || '課税10%', paySource
+        e.settlementDate || '', e.taxRate || '課税10%', paySource,
+        e.withholding || 0, e.customFlag || ''
       ];
     });
     const csv = [header, ...rows].map(r =>
