@@ -47,8 +47,8 @@ const Auth = (() => {
     if (_accessToken) return;
     const saved = _loadSession();
     if (!saved) return;
-    // 旧 GIS セッション（refresh_token なし）は PKCE で再ログインが必要なためクリア
-    if (!saved.refresh_token) {
+    // access_token も refresh_token もない古いセッションはクリア
+    if (!saved.access_token && !saved.refresh_token) {
       localStorage.removeItem(SESSION_KEY);
       return;
     }
@@ -98,7 +98,7 @@ const Auth = (() => {
       code_challenge_method: 'S256',
       state,
       access_type:           'offline',
-      prompt:                'select_account',
+      prompt:                'consent',
     });
     location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
   }
