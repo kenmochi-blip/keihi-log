@@ -98,7 +98,7 @@ const Auth = (() => {
       code_challenge_method: 'S256',
       state,
       access_type:           'offline',
-      prompt:                'consent',
+      prompt:                'select_account',
     });
     location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
   }
