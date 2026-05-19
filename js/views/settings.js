@@ -670,8 +670,8 @@ const SettingsView = (() => {
     const row = document.createElement('div');
     row.className = 'd-flex gap-1 mt-2';
     row.innerHTML = `<input type="text" class="form-control form-control-sm" placeholder="追加する項目名">
-      <button class="btn btn-primary btn-sm">追加</button>
-      <button class="btn btn-secondary btn-sm">✕</button>`;
+      <button class="btn btn-primary btn-sm px-2" title="追加"><i class="bi bi-check-lg"></i></button>
+      <button class="btn btn-secondary btn-sm px-2" title="キャンセル"><i class="bi bi-x-lg"></i></button>`;
     container.prepend(row);
     row.querySelector('input').focus();
     row.querySelectorAll('button')[1].addEventListener('click', () => row.remove());
