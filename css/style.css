@@ -1,6 +1,9 @@
 /* ベースレイアウト */
 body { font-size: 0.9rem; }
 
+/* iOS Safari は input[type=date] をデフォルトでcenter寄せにするため上書き */
+input[type="date"] { text-align: left; }
+
 /* ナビゲーション */
 .nav-item-btn {
   color: #6c757d;
