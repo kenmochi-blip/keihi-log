@@ -110,8 +110,22 @@
     .usage-num.active { font-weight: 600; color: var(--text); }
     .usage-num.zero   { color: var(--text-mute); }
 
+    /* Sentry */
+    .sentry-kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-bottom: 1rem; }
+    .sentry-kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 0.85rem 1.1rem; box-shadow: var(--shadow); }
+    .sentry-kpi .sv { font-size: 1.6rem; font-weight: 700; line-height: 1; }
+    .sentry-kpi .sl { font-size: 0.7rem; color: var(--text-mute); margin-top: 0.2rem; }
+    .sentry-kpi.c-red   .sv { color: #dc2626; }
+    .sentry-kpi.c-amber .sv { color: #d97706; }
+    .sentry-kpi.c-green .sv { color: #16a34a; }
+    .sentry-kpi.c-mute  .sv { color: var(--text-sub); }
+    .lvl-fatal   { background:#fce7f3;color:#9d174d;font-size:0.6rem;font-weight:700;padding:2px 6px;border-radius:4px; }
+    .lvl-error   { background:#fee2e2;color:#991b1b;font-size:0.6rem;font-weight:700;padding:2px 6px;border-radius:4px; }
+    .lvl-warning { background:#fef3c7;color:#92400e;font-size:0.6rem;font-weight:700;padding:2px 6px;border-radius:4px; }
+    .lvl-info    { background:#dbeafe;color:#1d4ed8;font-size:0.6rem;font-weight:700;padding:2px 6px;border-radius:4px; }
+
     /* Responsive */
-    @media (max-width: 768px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 768px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } .sentry-kpi-grid { grid-template-columns: repeat(2, 1fr); } }
   </style>
 </head>
 <body>
@@ -124,12 +138,16 @@
   <div style="max-width:1280px;margin:0 auto;padding:1.5rem 1.25rem;">
 
     <!-- 認証 -->
-    <div id="authArea" class="panel" style="max-width:400px;">
+    <div id="authArea" class="panel" style="max-width:440px;">
       <div class="panel-body">
         <p style="font-size:0.8rem;color:var(--text-sub);margin-bottom:0.75rem;">管理シークレットを入力してください</p>
-        <div style="display:flex;gap:0.5rem;">
+        <div style="display:flex;gap:0.5rem;margin-bottom:0.5rem;">
           <input type="password" id="inputSecret" class="filter-input" style="width:auto;flex:1;" placeholder="管理シークレット">
           <button class="btn-accent" id="btnLoad"><i class="bi bi-unlock"></i>読み込む</button>
+        </div>
+        <div style="display:flex;gap:0.5rem;align-items:center;">
+          <input type="password" id="inputSentryToken" class="filter-input" style="width:auto;flex:1;" placeholder="Sentry トークン（任意）">
+          <span style="font-size:0.72rem;color:var(--text-mute);white-space:nowrap;">エラー監視</span>
         </div>
       </div>
     </div>
@@ -153,6 +171,59 @@
         <div class="kpi c-red">
           <div class="value" id="statSuspended">—</div>
           <div class="label">停止中</div>
+        </div>
+      </div>
+
+      <!-- Sentry モニタリング -->
+      <div id="sentrySection" class="d-none" style="margin-bottom:1rem;">
+        <div class="panel">
+          <div class="panel-header" style="justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:0.5rem;">
+              <img src="https://sentry-brand.storage.googleapis.com/sentry-glyph-black.png" style="width:16px;height:16px;opacity:0.6;" onerror="this.style.display='none'">
+              <span class="title">Sentry エラーモニタリング</span>
+              <span id="sentryUpdatedAt" style="font-size:0.7rem;color:var(--text-mute);"></span>
+            </div>
+            <button class="btn-ghost" id="btnSentryRefresh" style="font-size:0.75rem;padding:0.25rem 0.6rem;">
+              <i class="bi bi-arrow-clockwise"></i>更新
+            </button>
+          </div>
+          <div class="panel-body">
+            <div class="sentry-kpi-grid">
+              <div class="sentry-kpi c-red">
+                <div class="sv" id="sErrorTotal">—</div>
+                <div class="sl">未解決イシュー</div>
+              </div>
+              <div class="sentry-kpi c-amber">
+                <div class="sv" id="sErrorToday">—</div>
+                <div class="sl">今日の発生件数</div>
+              </div>
+              <div class="sentry-kpi c-mute">
+                <div class="sv" id="sErrorUsers">—</div>
+                <div class="sl">影響ユーザー数</div>
+              </div>
+              <div class="sentry-kpi c-green">
+                <div class="sv" id="sErrorResolved">—</div>
+                <div class="sl">解決済み（30日）</div>
+              </div>
+            </div>
+            <div style="overflow-x:auto;">
+              <table class="data-table" id="sentryTable">
+                <thead>
+                  <tr>
+                    <th class="ps-first" style="width:60px;">レベル</th>
+                    <th>エラー内容</th>
+                    <th style="width:70px;text-align:right;">発生数</th>
+                    <th style="width:60px;text-align:right;">ユーザー</th>
+                    <th style="width:110px;">最終発生</th>
+                    <th class="pe-last" style="width:120px;">環境</th>
+                  </tr>
+                </thead>
+                <tbody id="sentryTableBody">
+                  <tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--text-mute);">読み込み中...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -271,9 +342,11 @@
   <script>
     let _all = [];
     let _secret = '';
+    let _sentryToken = '';
 
     document.getElementById('btnLoad').addEventListener('click', load);
     document.getElementById('inputSecret').addEventListener('keydown', e => { if (e.key === 'Enter') load(); });
+    document.getElementById('btnSentryRefresh').addEventListener('click', () => loadSentry());
     document.getElementById('btnIssue').addEventListener('click', issueLicense);
     document.getElementById('filterText').addEventListener('input', render);
     document.getElementById('filterStatus').addEventListener('change', render);
@@ -320,6 +393,7 @@
 
     async function load() {
       _secret = document.getElementById('inputSecret').value.trim();
+      _sentryToken = document.getElementById('inputSentryToken').value.trim();
       const resp = await fetch(`/api/admin-licenses?secret=${encodeURIComponent(_secret)}`);
       if (!resp.ok) { alert('認証に失敗しました'); return; }
       const data = await resp.json();
@@ -329,6 +403,116 @@
       updateStats();
       updateMonthly();
       render();
+      if (_sentryToken) loadSentry();
+    }
+
+    async function loadSentry() {
+      const token = _sentryToken;
+      if (!token) return;
+      const section = document.getElementById('sentrySection');
+      section.classList.remove('d-none');
+
+      const BASE = 'https://us.sentry.io/api/0/organizations/smartsmooth';
+      const PROJECT = '4511415628464128';
+      const headers = { Authorization: `Bearer ${token}` };
+
+      const tbody = document.getElementById('sentryTableBody');
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--text-mute);">読み込み中...</td></tr>';
+      document.getElementById('sErrorTotal').textContent    = '…';
+      document.getElementById('sErrorToday').textContent    = '…';
+      document.getElementById('sErrorUsers').textContent    = '…';
+      document.getElementById('sErrorResolved').textContent = '…';
+      document.getElementById('sentryUpdatedAt').textContent = '';
+
+      try {
+        const [unresolvedResp, resolvedResp] = await Promise.all([
+          fetch(`${BASE}/issues/?project=${PROJECT}&limit=25&query=is:unresolved`, { headers }),
+          fetch(`${BASE}/issues/?project=${PROJECT}&limit=100&query=is:resolved&statsPeriod=30d`, { headers }),
+        ]);
+
+        if (!unresolvedResp.ok) throw new Error(`Sentry API ${unresolvedResp.status}`);
+
+        const unresolved = await unresolvedResp.json();
+        const resolved   = resolvedResp.ok ? await resolvedResp.json() : [];
+
+        // KPI: unresolved count (use X-Hits header if available, else array length)
+        const totalHits = parseInt(unresolvedResp.headers.get('X-Hits') || '0', 10) || unresolved.length;
+
+        // Today's event count: sum last 24h buckets from each issue's stats
+        let todayCount = 0;
+        let totalUsers = 0;
+        unresolved.forEach(issue => {
+          totalUsers += issue.userCount || 0;
+          const buckets24h = issue.stats?.['24h'];
+          if (Array.isArray(buckets24h)) {
+            const cutoff = Date.now() - 86400000;
+            buckets24h.forEach(([ts, cnt]) => {
+              if (ts * 1000 >= cutoff) todayCount += cnt;
+            });
+          } else {
+            // Fallback: if no stats, count issues seen today
+            if (issue.lastSeen && new Date(issue.lastSeen).toDateString() === new Date().toDateString()) {
+              todayCount += parseInt(issue.count || 0, 10);
+            }
+          }
+        });
+
+        document.getElementById('sErrorTotal').textContent    = totalHits;
+        document.getElementById('sErrorToday').textContent    = todayCount;
+        document.getElementById('sErrorUsers').textContent    = totalUsers;
+        document.getElementById('sErrorResolved').textContent = resolved.length;
+        document.getElementById('sentryUpdatedAt').textContent = '更新: ' + new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+
+        if (unresolved.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--text-mute);"><i class="bi bi-check-circle me-2"></i>未解決イシューはありません</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = unresolved.map(issue => {
+          const lvl   = issue.level || 'error';
+          const lvlHtml = `<span class="lvl-${lvl}">${lvl.toUpperCase()}</span>`;
+          const title = esc(issue.title || '');
+          const value = esc(issue.metadata?.value || '');
+          const count = Number(issue.count || 0).toLocaleString('ja-JP');
+          const users = issue.userCount || 0;
+          const last  = issue.lastSeen ? _relTime(issue.lastSeen) : '—';
+
+          // Environment / browser tag
+          const envTag  = issue.tags?.find(t => t.key === 'environment');
+          const browserTag = issue.tags?.find(t => t.key === 'browser.name');
+          const envText = [envTag?.value, browserTag?.value].filter(Boolean).join(' / ') || '—';
+
+          return `<tr>
+            <td class="ps-first">${lvlHtml}</td>
+            <td>
+              <div style="font-size:0.8rem;font-weight:500;color:var(--text);line-height:1.3;">${title}</div>
+              ${value ? `<div style="font-size:0.7rem;color:var(--text-mute);margin-top:2px;">${value}</div>` : ''}
+            </td>
+            <td style="text-align:right;font-variant-numeric:tabular-nums;font-size:0.8rem;">${count}</td>
+            <td style="text-align:right;font-size:0.8rem;">${users > 0 ? users : '—'}</td>
+            <td style="font-size:0.75rem;color:var(--text-sub);">${last}</td>
+            <td class="pe-last" style="font-size:0.72rem;color:var(--text-mute);">${esc(envText)}</td>
+          </tr>`;
+        }).join('');
+
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:#dc2626;">${esc(err.message)}</td></tr>`;
+        document.getElementById('sErrorTotal').textContent    = 'ERR';
+        document.getElementById('sErrorToday').textContent    = 'ERR';
+        document.getElementById('sErrorUsers').textContent    = 'ERR';
+        document.getElementById('sErrorResolved').textContent = 'ERR';
+      }
+    }
+
+    function _relTime(iso) {
+      const diff = Date.now() - new Date(iso).getTime();
+      const min  = Math.floor(diff / 60000);
+      if (min < 1)   return 'たった今';
+      if (min < 60)  return `${min}分前`;
+      const hr = Math.floor(min / 60);
+      if (hr < 24)   return `${hr}時間前`;
+      const day = Math.floor(hr / 24);
+      return `${day}日前`;
     }
 
     function _customerCell(l, compact = false) {
