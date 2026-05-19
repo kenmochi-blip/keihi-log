@@ -117,6 +117,13 @@ const App = (() => {
       }
     } catch (_) {}
 
+    // フォルダIDをシートから復元（新ドメイン等でlocalStorageが空の場合）
+    if (!localStorage.getItem('keihi_folder_id')) {
+      Sheets.readSetting('B4').then(fid => {
+        if (fid) localStorage.setItem('keihi_folder_id', fid);
+      }).catch(() => {});
+    }
+
     _setupUI('submit', _companyName);
 
     // 管理者以外は設定タブを非表示
