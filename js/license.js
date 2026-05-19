@@ -30,6 +30,13 @@ const License = (() => {
         body: JSON.stringify({ key }),
         signal: ctrl.signal,
       });
+    } catch (_) {
+      // タイムアウト・ネットワークエラー：既存キャッシュで続行、なければ invalid
+      try {
+        const stale = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+        if (stale?.key === key && stale.result?.valid) return stale.result;
+      } catch (_e) {}
+      return { valid: false, reason: 'network_error' };
     } finally {
       clearTimeout(tid);
     }

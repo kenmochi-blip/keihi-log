@@ -120,12 +120,20 @@ const Auth = (() => {
     const verifier = localStorage.getItem('keihi_pkce_verifier');
     if (!verifier) throw new Error('no_verifier');
 
-    const resp = await fetch('/api/token', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ action: 'exchange', code, code_verifier: verifier, redirect_uri: _redirectUri() }),
-    });
-    const tokens = await resp.json();
+    const exchCtrl = new AbortController();
+    const exchTid  = setTimeout(() => exchCtrl.abort(), 15000);
+    let tokens;
+    try {
+      const resp = await fetch('/api/token', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ action: 'exchange', code, code_verifier: verifier, redirect_uri: _redirectUri() }),
+        signal:  exchCtrl.signal,
+      });
+      tokens = await resp.json();
+    } finally {
+      clearTimeout(exchTid);
+    }
     if (tokens.error) throw new Error(tokens.error_description || tokens.error);
 
     await _storeTokens(tokens);
@@ -177,17 +185,20 @@ const Auth = (() => {
 
     const ctrl = new AbortController();
     const tid  = setTimeout(() => ctrl.abort(), 8000);
-    const resp = await fetch('/api/token', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ action: 'refresh', refresh_token: saved.refresh_token }),
-      signal:  ctrl.signal,
-    }).finally(() => clearTimeout(tid));
-    const tokens = await resp.json();
-    if (tokens.error) throw new Error(tokens.error_description || tokens.error);
-
-    tokens.refresh_token = tokens.refresh_token || saved.refresh_token;
-    await _storeTokens(tokens);
+    try {
+      const resp   = await fetch('/api/token', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ action: 'refresh', refresh_token: saved.refresh_token }),
+        signal:  ctrl.signal,
+      });
+      const tokens = await resp.json();
+      if (tokens.error) throw new Error(tokens.error_description || tokens.error);
+      tokens.refresh_token = tokens.refresh_token || saved.refresh_token;
+      await _storeTokens(tokens);
+    } finally {
+      clearTimeout(tid);
+    }
   }
 
   /**
