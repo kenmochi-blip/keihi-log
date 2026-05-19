@@ -443,6 +443,10 @@ const App = (() => {
     } catch (_) {}
   }
 
+  function updateDynamicManifest(startPath, companyName) {
+    _injectDynamicManifest(startPath, companyName || '');
+  }
+
   return {
     init,
     confirm,
@@ -454,6 +458,7 @@ const App = (() => {
     showLoading,
     hideLoading,
     showToast,
+    updateDynamicManifest,
   };
 })();
 

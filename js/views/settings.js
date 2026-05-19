@@ -354,6 +354,11 @@ const SettingsView = (() => {
           if (folderInput) folderInput.value = `https://drive.google.com/drive/folders/${createdFolderId}`;
         }
         const alias   = localStorage.getItem('keihi_alias') || '';
+        // エイリアスURLをアドレスバーに即反映（リロード前にホーム画面追加しても正しいURLになる）
+        if (alias) {
+          history.replaceState(null, '', '/' + alias);
+          App.updateDynamicManifest('/' + alias, name);
+        }
         const shareUrl = alias ? `${location.origin}/${alias}` : `${location.origin}/${ssId}`;
         const qrUrl   = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(shareUrl)}`;
         const mailSubject = encodeURIComponent(`【経費ログ】${name} へのご招待`);
