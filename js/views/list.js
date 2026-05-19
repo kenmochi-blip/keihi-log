@@ -90,7 +90,7 @@ const ListView = (() => {
             <option value="">フラグ（全て）</option>
           </select>
         </div>
-        <div class="col-12 col-md">
+        <div class="col-6 col-md">
           <div class="input-group input-group-sm">
             <span class="input-group-text"><i class="bi bi-search"></i></span>
             <input type="text" class="form-control" id="filterKeyword" placeholder="支払先・備考・科目">
