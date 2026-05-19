@@ -278,6 +278,25 @@ const SettingsView = (() => {
   async function bindEvents(el) {
     el.querySelector('#btnLogoutSettings')?.addEventListener('click', () => Auth.signOut());
 
+    // 規程が localStorage にない場合、スプレッドシートから復元する
+    if (!_loadRegulation()) {
+      const ssId = localStorage.getItem('keihi_sheet_id');
+      if (ssId) {
+        Sheets.readSetting('B6').then(raw => {
+          if (!raw) return;
+          try {
+            const data = JSON.parse(raw);
+            if (data?.confirmedAt) {
+              localStorage.setItem('keihi_regulation', JSON.stringify(data));
+              // 確定済みバッジを反映するため規程ステップのみ再描画
+              const step = el.querySelector('#regulationInitForm')?.closest('.card');
+              if (step) Router.navigate('settings');
+            }
+          } catch (_) {}
+        }).catch(() => {});
+      }
+    }
+
     // 訂正・削除防止規程（初期設定⑤版）
     el.querySelector('#btnConfirmRegulationInit')?.addEventListener('click', () => {
       const orgName = el.querySelector('#regInitOrgName')?.value.trim();
