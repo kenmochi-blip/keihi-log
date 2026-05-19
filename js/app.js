@@ -31,17 +31,12 @@ const App = (() => {
     // URLパスからエイリアス/シートIDを解決してlocalStorageに反映
     await _resolvePathAlias();
 
-    // 認証トークン確認（未認証ならログイン画面へ）
-    // 8秒タイムアウト：PWAスタンドアロンでポップアップがハングした場合のフォールバック
+    // 認証トークン確認（未認証・リフレッシュ失敗時はログイン画面へ）
     try {
-      await Promise.race([
-        Auth.getToken(),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('auth_timeout')), 8000)),
-      ]);
+      await Auth.getToken();
     } catch (_) {
       const _isGenericPath = location.pathname === '/app.html' || location.pathname === '/app' || location.pathname === '/';
       let ret = _isGenericPath ? '' : location.pathname;
-      // /app.html・/app からの起動で alias が Cookie にあれば return 先に使う
       if (!ret) { const ca = _getCookieAlias(); if (ca) ret = '/' + ca; }
       window.location.href = 'login.html' + (ret ? '?return=' + encodeURIComponent(ret) : '');
       return;

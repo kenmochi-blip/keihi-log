@@ -54,39 +54,8 @@
   </div>
 
   <script src="js/config.js"></script>
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="https://apis.google.com/js/api.js" async defer></script>
   <script src="js/auth.js"></script>
-  <script>
-    let gapiReady = false, gisReady = false;
-    function checkReady() {
-      if (gapiReady && gisReady) initLogin();
-    }
-
-    function onGapiLoad() {
-      gapi.load('client', () => {
-        gapi.client.init({
-          discoveryDocs: [
-            'https://sheets.googleapis.com/$discovery/rest?version=v4',
-            'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'
-          ]
-        }).then(() => { gapiReady = true; checkReady(); });
-      });
-    }
-    function onGsiLoad() { gisReady = true; checkReady(); }
-
-    // キャッシュ読み込みでonloadが既に発火済みの場合にも対応
-    if (window.gapi) {
-      onGapiLoad();
-    } else {
-      document.querySelector('[src*="api.js"]').addEventListener('load', onGapiLoad);
-    }
-    if (window.google?.accounts) {
-      onGsiLoad();
-    } else {
-      document.querySelector('[src*="gsi/client"]').addEventListener('load', onGsiLoad);
-    }
-  </script>
+  <script>document.addEventListener('DOMContentLoaded', initLogin);</script>
   <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js', { scope: '/app.html' });</script>
 </body>
 </html>
