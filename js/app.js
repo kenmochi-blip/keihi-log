@@ -250,6 +250,16 @@ const App = (() => {
 
   function clearMasterCache() { _masterCache = null; }
 
+  /**
+   * メンバー管理表に登録された名前を返す。
+   * 未登録の場合は fallback（シートのB列名やGoogle表示名）を使用。
+   */
+  function getMemberName(email, fallback) {
+    if (!email || !_masterCache?.members?.length) return fallback || email || '';
+    const member = _masterCache.members.find(m => m.email.toLowerCase() === email.toLowerCase());
+    return (member?.name) || fallback || email || '';
+  }
+
   /** ライセンス確認後に管理者権限を即時反映するためマスターを再読み込みする */
   async function reloadMaster() {
     _masterCache = null;
@@ -472,6 +482,7 @@ const App = (() => {
     getMaster,
     clearMasterCache,
     reloadMaster,
+    getMemberName,
     isAdmin,
     getUserRole,
     showLoading,

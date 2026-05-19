@@ -422,7 +422,7 @@ const ListView = (() => {
         <td class="list-date">${e.date}</td>
         <td class="list-place">
           <div>${e.settlementDate?.startsWith('会社払い') ? '🏢 ' : ''}${_escape(e.place)}</div>
-          <div class="text-muted" style="font-size:0.7rem;">${_escape(e.name)}</div>
+          <div class="text-muted" style="font-size:0.7rem;">${_escape(App.getMemberName(e.email, e.name))}</div>
         </td>
         <td class="list-type-cell">${_escape(e.type)}</td>
         <td class="text-end list-amount">¥${e.amount.toLocaleString()}</td>
@@ -444,7 +444,7 @@ const ListView = (() => {
                 <span class="list-sp-date">${_fmtDateShort(e.date)}</span>
                 <span class="list-sp-place">${e.settlementDate?.startsWith('会社払い') ? '🏢 ' : ''}${_escape(e.place)}</span>
               </div>
-              <div class="list-sp-name">${_escape(e.name)}</div>
+              <div class="list-sp-name">${_escape(App.getMemberName(e.email, e.name))}</div>
             </div>
             <div class="flex-shrink-0 text-end">
               <div class="list-sp-amount${e.note ? ' expandable' : ''}" style="${e.note ? '' : ''}">
@@ -564,9 +564,9 @@ const ListView = (() => {
     const _isoToSlash = s => s ? String(s).replace(/^(\d{4})-(\d{2})-(\d{2}).*/, '$1/$2/$3') : '';
     const rows = filtered.map(e => {
       const corpSrc = _corpPaySource(e);
-      const paySource = corpSrc ? corpSrc : `個人（${e.name}）`;
+      const paySource = corpSrc ? corpSrc : `個人（${App.getMemberName(e.email, e.name)}）`;
       return [
-        _isoToSlash(e.appliedAt), e.name, e.type, _isoToSlash(e.date), e.place, e.amount,
+        _isoToSlash(e.appliedAt), App.getMemberName(e.email, e.name), e.type, _isoToSlash(e.date), e.place, e.amount,
         e.category, e.note, e.imageLinks.split(',')[0]?.trim() || '',
         _getStatus(e), e.invoice, e.email, e.id,
         e.settlementDate || '', e.taxRate || '課税10%', paySource,
@@ -652,17 +652,17 @@ const ListView = (() => {
       const amount  = Number(e.amount) || 0;
       const corpSrc = _corpPaySource(e);
       const { tax, freeeKbn } = _taxInfo(amount, e.taxRate);
-      const payMethod = corpSrc ? corpSrc : `個人（${e.name}）`;
+      const payMethod = corpSrc ? corpSrc : `個人（${App.getMemberName(e.email, e.name)}）`;
       rows.push([
         _isoToSlash(e.date), e.category, freeeKbn, amount, tax,
-        e.place, payMethod, e.name, e.note
+        e.place, payMethod, App.getMemberName(e.email, e.name), e.note
       ]);
       // 源泉徴収がある場合は預り金行を追加
       const wh = Number(e.withholding) || 0;
       if (wh > 0) {
         rows.push([
           _isoToSlash(e.date), '預り金', '対象外', -wh, 0,
-          `${e.place}（源泉徴収）`, payMethod, e.name, ''
+          `${e.place}（源泉徴収）`, payMethod, App.getMemberName(e.email, e.name), ''
         ]);
       }
     });
@@ -683,7 +683,7 @@ const ListView = (() => {
       const amount  = Number(e.amount) || 0;
       const corpSrc = _corpPaySource(e);
       const { tax, yayoiKbn } = _taxInfo(amount, e.taxRate);
-      const creditSub = corpSrc ? corpSrc : `個人（${e.name}）`;
+      const creditSub = corpSrc ? corpSrc : `個人（${App.getMemberName(e.email, e.name)}）`;
       const summary   = `${e.place}${e.note ? ' ' + e.note : ''}`;
       const wh = Number(e.withholding) || 0;
       // 源泉徴収あり：借方=経費科目 / 貸方=未払金（支払額）＋預り金（源泉額）で2行
@@ -725,7 +725,7 @@ const ListView = (() => {
       const amount  = Number(e.amount) || 0;
       const corpSrc = _corpPaySource(e);
       const { tax, mfcKbn } = _taxInfo(amount, e.taxRate);
-      const creditSub = corpSrc ? corpSrc : `個人（${e.name}）`;
+      const creditSub = corpSrc ? corpSrc : `個人（${App.getMemberName(e.email, e.name)}）`;
       const summary   = `${e.place}${e.note ? ' ' + e.note : ''}`;
       const wh = Number(e.withholding) || 0;
       if (wh > 0) {

@@ -240,7 +240,7 @@ const SummaryView = (() => {
   // ─── キー関数 ──────────────────────────────────────────────
   function _memberKey(e) {
     if (e.settlementDate?.startsWith('会社払い')) return [{ key: `🏢 ${e.settlementDate}`, amount: e.amount }];
-    return [{ key: e.name || e.email || '（不明）', amount: e.amount }];
+    return [{ key: App.getMemberName(e.email, e.name) || e.email || '（不明）', amount: e.amount }];
   }
   function _categoryKey(e) {
     const parts = (e.category || '（未分類）').split('/').map(s => s.trim()).filter(Boolean);
@@ -384,7 +384,7 @@ const SummaryView = (() => {
           ¥${e.amount.toLocaleString()}
           ${hasExtra ? '<i class="bi bi-chevron-down" style="font-size:0.6rem;opacity:0.55;margin-left:2px;vertical-align:middle;"></i>' : ''}
         </td>
-        ${showName ? `<td class="text-muted" style="font-size:0.8rem;white-space:nowrap;">${_escape(e.name)}</td>` : ''}
+        ${showName ? `<td class="text-muted" style="font-size:0.8rem;white-space:nowrap;">${_escape(App.getMemberName(e.email, e.name))}</td>` : ''}
         <td>
           ${e.settlementDate
             ? '<span class="badge rounded-pill px-2" style="background:#6c757d;">精算済</span>'
