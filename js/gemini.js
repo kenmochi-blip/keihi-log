@@ -96,7 +96,8 @@ const Gemini = (() => {
   "items": [{"amount": 金額, "category": "勘定科目"}] または null（明細分割の場合のみ使用）,
   "fx_currency": "USD/EUR等の通貨コードまたはnull",
   "fx_amount": 外貨金額またはnull,
-  "tax_rate": "課税10%/課税8%/混在/非課税/不課税のいずれか"
+  "tax_rate": "課税10%/課税8%/混在/非課税/不課税のいずれか",
+  "withholding_amount": 源泉徴収税額（整数）またはnull
 }
 
 注意：
@@ -105,6 +106,7 @@ const Gemini = (() => {
 - 複数カテゴリに分けられる場合は items を使い category は null
 - インボイス番号は T+13桁の数字で始まる番号
 - tax_rate：食品・飲料なら「課税8%」、非課税取引（医療・教育・住宅家賃等）なら「非課税」、不課税取引（給与・保険料等）なら「不課税」、複数税率混在なら「混在」、それ以外は「課税10%」
+- withholding_amount：請求書に源泉徴収税額の記載がある場合のみ数値を入れる（ない場合はnull）
 `;
 
     const body = JSON.stringify({

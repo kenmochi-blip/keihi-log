@@ -633,15 +633,24 @@ const ListView = (() => {
     const filtered = _getFiltered(el);
     const _isoToSlash = s => s ? String(s).replace(/^(\d{4})-(\d{2})-(\d{2}).*/, '$1/$2/$3') : '';
     const header = ['発生日','勘定科目','税区分','金額(税込)','税額','摘要','支払方法','申請者','備考'];
-    const rows = filtered.map(e => {
+    const rows = [];
+    filtered.forEach(e => {
       const amount  = Number(e.amount) || 0;
       const corpSrc = _corpPaySource(e);
       const { tax, freeeKbn } = _taxInfo(amount, e.taxRate);
       const payMethod = corpSrc ? corpSrc : `個人（${e.name}）`;
-      return [
+      rows.push([
         _isoToSlash(e.date), e.category, freeeKbn, amount, tax,
         e.place, payMethod, e.name, e.note
-      ];
+      ]);
+      // 源泉徴収がある場合は預り金行を追加
+      const wh = Number(e.withholding) || 0;
+      if (wh > 0) {
+        rows.push([
+          _isoToSlash(e.date), '預り金', '対象外', -wh, 0,
+          `${e.place}（源泉徴収）`, payMethod, e.name, ''
+        ]);
+      }
     });
     const csv = [header, ...rows].map(r =>
       r.map(v => `"${String(v || '').replace(/"/g, '""')}"`).join(',')
@@ -653,18 +662,39 @@ const ListView = (() => {
     const filtered = _getFiltered(el);
     const _isoToSlash = s => s ? String(s).replace(/^(\d{4})-(\d{2})-(\d{2}).*/, '$1/$2/$3') : '';
     const header = ['伝票No.','決算','取引日','借方勘定科目','借方補助科目','借方税区分','借方金額','借方消費税額','貸方勘定科目','貸方補助科目','貸方税区分','貸方金額','貸方消費税額','摘要','番号'];
-    const rows = filtered.map((e, i) => {
+    const rows = [];
+    let slipNo = 0;
+    filtered.forEach(e => {
+      slipNo++;
       const amount  = Number(e.amount) || 0;
       const corpSrc = _corpPaySource(e);
       const { tax, yayoiKbn } = _taxInfo(amount, e.taxRate);
       const creditSub = corpSrc ? corpSrc : `個人（${e.name}）`;
       const summary   = `${e.place}${e.note ? ' ' + e.note : ''}`;
-      return [
-        i + 1, '', _isoToSlash(e.date),
-        e.category, '', yayoiKbn, amount, tax,
-        '未払金', creditSub, '', amount, '',
-        summary, e.id
-      ];
+      const wh = Number(e.withholding) || 0;
+      // 源泉徴収あり：借方=経費科目 / 貸方=未払金（支払額）＋預り金（源泉額）で2行
+      if (wh > 0) {
+        const payAmt = amount - wh;
+        rows.push([
+          slipNo, '', _isoToSlash(e.date),
+          e.category, '', yayoiKbn, amount, tax,
+          '未払金', creditSub, '', payAmt, '',
+          summary, e.id
+        ]);
+        rows.push([
+          slipNo, '', _isoToSlash(e.date),
+          '', '', '', '', '',
+          '預り金', '源泉徴収', '', wh, '',
+          `${e.place}（源泉徴収）`, e.id
+        ]);
+      } else {
+        rows.push([
+          slipNo, '', _isoToSlash(e.date),
+          e.category, '', yayoiKbn, amount, tax,
+          '未払金', creditSub, '', amount, '',
+          summary, e.id
+        ]);
+      }
     });
     const csv = [header, ...rows].map(r =>
       r.map(v => `"${String(v || '').replace(/"/g, '""')}"`).join(',')
@@ -676,18 +706,38 @@ const ListView = (() => {
     const filtered = _getFiltered(el);
     const _isoToSlash = s => s ? String(s).replace(/^(\d{4})-(\d{2})-(\d{2}).*/, '$1/$2/$3') : '';
     const header = ['取引日','借方勘定科目','借方補助科目','借方税区分','借方金額','貸方勘定科目','貸方補助科目','貸方税区分','貸方金額','摘要','メモ'];
-    const rows = filtered.map(e => {
+    const rows = [];
+    filtered.forEach(e => {
       const amount  = Number(e.amount) || 0;
       const corpSrc = _corpPaySource(e);
       const { tax, mfcKbn } = _taxInfo(amount, e.taxRate);
       const creditSub = corpSrc ? corpSrc : `個人（${e.name}）`;
       const summary   = `${e.place}${e.note ? ' ' + e.note : ''}`;
-      return [
-        _isoToSlash(e.date),
-        e.category, '', mfcKbn, amount,
-        '未払金', creditSub, '', amount,
-        summary, e.id
-      ];
+      const wh = Number(e.withholding) || 0;
+      if (wh > 0) {
+        const payAmt = amount - wh;
+        // 経費行（借方:経費科目 / 貸方:未払金 = 支払額）
+        rows.push([
+          _isoToSlash(e.date),
+          e.category, '', mfcKbn, amount,
+          '未払金', creditSub, '', payAmt,
+          summary, e.id
+        ]);
+        // 源泉行（借方:未払金 / 貸方:預り金 = 源泉額）
+        rows.push([
+          _isoToSlash(e.date),
+          '未払金', creditSub, '', wh,
+          '預り金', '源泉徴収', '', wh,
+          `${e.place}（源泉徴収）`, e.id
+        ]);
+      } else {
+        rows.push([
+          _isoToSlash(e.date),
+          e.category, '', mfcKbn, amount,
+          '未払金', creditSub, '', amount,
+          summary, e.id
+        ]);
+      }
     });
     const csv = [header, ...rows].map(r =>
       r.map(v => `"${String(v || '').replace(/"/g, '""')}"`).join(',')

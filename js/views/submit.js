@@ -12,6 +12,7 @@ const SubmitView = (() => {
   let _existingUrls     = []; // 編集時の既存証票URL
   let _existingHash     = '';
   let _editId           = null;
+  let _withholdingAmount = 0; // AIが検出した源泉徴収税額
   let _currentType      = '領収書';
   let _cats             = [];
   let _paySources       = [];
@@ -892,6 +893,12 @@ function _bindTypeButtons(el) {
         if (taxSel) taxSel.value = result.tax_rate;
       }
 
+      // 源泉徴収税額を保存（備考への記載は送信時に行う）
+      _withholdingAmount = Number(result.withholding_amount) || 0;
+      if (_withholdingAmount > 0) {
+        App.showToast(`源泉徴収税額 ¥${_withholdingAmount.toLocaleString()} を検出しました`, 'info');
+      }
+
       // 解析完了後、フォームを画面内にスクロール
       el.querySelector('#receiptFields')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
@@ -982,7 +989,22 @@ function _bindTypeButtons(el) {
       // 4. AI監査フラグ設定
       const aiAudit = alerts.length > 0 ? `⛔ ${alerts.join(' / ')}` : '✅ OK';
 
-      // 5. 行データ組み立て
+      // 5. 備考への自動注記
+      let finalNote = data.note || '';
+      // 固定資産警告（10万円以上）
+      if (data.amount >= 300000) {
+        if (!finalNote.includes('【30万円以上】')) finalNote = [finalNote, '【30万円以上】'].filter(Boolean).join('\n');
+      } else if (data.amount >= 100000) {
+        if (!finalNote.includes('【10万円〜30万円未満】')) finalNote = [finalNote, '【10万円〜30万円未満】'].filter(Boolean).join('\n');
+      }
+      // 源泉徴収注記
+      if (_withholdingAmount > 0) {
+        const payAmt = data.amount - _withholdingAmount;
+        const withholdingNote = `源泉徴収 ¥${_withholdingAmount.toLocaleString()}（支払額 ¥${payAmt.toLocaleString()}）`;
+        if (!finalNote.includes('源泉徴収')) finalNote = [finalNote, withholdingNote].filter(Boolean).join('\n');
+      }
+
+      // 6. 行データ組み立て
       const row = Sheets.expenseToRow({
         appliedAt,
         name:           userName,
@@ -991,7 +1013,7 @@ function _bindTypeButtons(el) {
         place:          data.place,
         amount:         data.amount,
         category:       data.category,
-        note:           data.note,
+        note:           finalNote,
         imageLinks:     uploadedUrls.join(', '),
         confirmed:      App.isAdmin(),
         aiAudit,
@@ -1003,13 +1025,14 @@ function _bindTypeButtons(el) {
         id:             _editId || crypto.randomUUID(),
         device:         navigator.userAgent,
         taxRate:        data.taxRate,
+        withholding:    _withholdingAmount,
       });
 
-      // 6. 編集の場合は修正履歴に旧データを保存してから更新
+      // 7. 編集の場合は修正履歴に旧データを保存してから更新
       if (_editId) {
         const rowNum = await Sheets.findRowById(_editId);
         if (rowNum > 0) {
-          const oldRows = await Sheets.read(`経費一覧!A${rowNum}:S${rowNum}`);
+          const oldRows = await Sheets.read(`経費一覧!A${rowNum}:T${rowNum}`);
           const r = oldRows[0] || [];
           const oldSummary = [
             `日付: ${r[3] || ''}`,
@@ -1023,7 +1046,7 @@ function _bindTypeButtons(el) {
             `税区分: ${r[18] || ''}`,
           ].filter(s => !s.endsWith(': ')).join(' / ');
           await Sheets.prependRow('修正履歴', [appliedAt, Auth.getUserEmail(), oldSummary]);
-          await Sheets.update(`経費一覧!A${rowNum}:S${rowNum}`, [row]);
+          await Sheets.update(`経費一覧!A${rowNum}:T${rowNum}`, [row]);
         }
       } else {
         await Sheets.prependExpense(row);
@@ -1343,7 +1366,7 @@ function _bindTypeButtons(el) {
 
       // 元の行を削除（sheetIdが必要なのでbatchUpdateを使う）
       // 簡略化：行の内容を空白で上書きしてフィルタリングする方式
-      await Sheets.update(`経費一覧!A${rowNum}:S${rowNum}`, [new Array(19).fill('')]);
+      await Sheets.update(`経費一覧!A${rowNum}:T${rowNum}`, [new Array(20).fill('')]);
 
       App.showToast('削除しました', 'success');
       _loadHistory(el);
@@ -1364,6 +1387,7 @@ function _bindTypeButtons(el) {
   function _resetForm(el) {
     _selectedFiles = []; _compressedFiles = []; _compressPromise = null;
     _editId = null;
+    _withholdingAmount = 0;
     el.querySelector('#editBanner')?.classList.add('d-none');
     const btn = el.querySelector('#btnSubmit');
     if (btn) { btn.innerHTML = '<i class="bi bi-send me-2"></i>登録する'; btn.className = 'btn btn-primary btn-lg rounded-3'; }

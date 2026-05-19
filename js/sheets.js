@@ -18,7 +18,7 @@ const Sheets = (() => {
   async function read(range, ssId) {
     if (typeof Demo !== 'undefined' && Demo.isActive()) {
       // デモ：経費一覧の単一行リクエスト（修正履歴の旧データ取得など）はEXPENSESから再構築
-      const m = range.match(/^経費一覧!A(\d+):S\1$/);
+      const m = range.match(/^経費一覧!A(\d+):T\1$/);
       if (m) {
         const idx = Number(m[1]) - 2; // ヘッダー行ぶん -2
         const e = Demo.EXPENSES[idx];
@@ -106,7 +106,7 @@ const Sheets = (() => {
   async function readExpenses(ssId) {
     if (typeof Demo !== 'undefined' && Demo.isActive()) return [...Demo.EXPENSES];
     ssId = ssId || _ssId();
-    const range  = encodeURIComponent('経費一覧!A2:S');
+    const range  = encodeURIComponent('経費一覧!A2:T');
     const fields = encodeURIComponent('sheets.data.rowData.values(effectiveValue,hyperlink)');
     const resp = await Auth.authFetch(`${BASE}/${ssId}?ranges=${range}&fields=${fields}`);
     if (!resp.ok) throw new Error(`Sheets readExpenses error: ${resp.status}`);
@@ -116,6 +116,7 @@ const Sheets = (() => {
       const cells = rowData.values || [];
       const row = cells.map((cell, i) => {
         // I列（index 8）: Insert→Link / =HYPERLINK() どちらもhyperlinkフィールドでURL取得
+        // T列（index 19）: 源泉徴収税額（数値）
         if (i === 8 && cell?.hyperlink) return cell.hyperlink;
         const ev = cell?.effectiveValue;
         if (!ev) return '';
@@ -169,6 +170,7 @@ const Sheets = (() => {
       id:             row[16] || '',
       device:         row[17] || '',
       taxRate:        row[18] || '',
+      withholding:    Number(row[19]) || 0,
     };
   }
 
@@ -187,7 +189,7 @@ const Sheets = (() => {
     return String(val);
   }
 
-  /** 経費オブジェクト → 行配列（19列）*/
+  /** 経費オブジェクト → 行配列（20列）*/
   function expenseToRow(e) {
     return [
       e.appliedAt,                 // A
@@ -209,6 +211,7 @@ const Sheets = (() => {
       e.id,                        // Q
       e.device,                    // R
       e.taxRate || '課税10%',      // S：税区分
+      e.withholding || 0,          // T：源泉徴収税額
     ];
   }
 
@@ -390,7 +393,7 @@ const Sheets = (() => {
 
   async function prependExpense(row, ssId) {
     if (typeof Demo !== 'undefined' && Demo.isActive()) {
-      return { updates: { updatedRange: '経費一覧!A2:S2' } };
+      return { updates: { updatedRange: '経費一覧!A2:T2' } };
     }
     ssId = ssId || _ssId();
     const sheetId = await _getSheetId('経費一覧', ssId);
@@ -405,10 +408,10 @@ const Sheets = (() => {
     }], ssId);
 
     // 挿入した行にデータを書き込む
-    await update('経費一覧!A2:S2', [row], ssId);
+    await update('経費一覧!A2:T2', [row], ssId);
 
-    await formatExpenseRow('経費一覧!A2:S2', ssId);
-    return { updates: { updatedRange: '経費一覧!A2:S2' } };
+    await formatExpenseRow('経費一覧!A2:T2', ssId);
+    return { updates: { updatedRange: '経費一覧!A2:T2' } };
   }
 
   return {
