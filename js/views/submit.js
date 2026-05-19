@@ -1226,6 +1226,17 @@ function _bindTypeButtons(el) {
            <i class="bi bi-trash"></i>
          </button>` : '';
 
+    const noteId = `hn-${e.id}`;
+    const noteToggle = e.note
+      ? `<button class="btn btn-link btn-sm p-0 text-secondary text-decoration-none history-note-toggle"
+           data-bs-toggle="collapse" data-bs-target="#${noteId}" aria-expanded="false">
+           <i class="bi bi-chevron-down" style="font-size:0.75rem;"></i>
+         </button>` : '';
+    const noteBody = e.note
+      ? `<div class="collapse mt-1" id="${noteId}">
+           <div class="history-note-body"><i class="bi bi-chat-text me-1 text-secondary"></i>${_escape(e.note)}</div>
+         </div>` : '';
+
     return `
     <div class="history-card">
       <div class="d-flex justify-content-between align-items-start">
@@ -1233,10 +1244,14 @@ function _bindTypeButtons(el) {
         <span class="h-amount">¥${e.amount.toLocaleString()}</span>
       </div>
       <div class="d-flex justify-content-between align-items-center mt-1">
-        <span class="h-meta">${e.date} / ${_escape(e.category)} (${e.type})</span>
+        <div class="d-flex align-items-center gap-1">
+          <span class="h-meta">${e.date} / ${_escape(e.category)} (${e.type})</span>
+          ${noteToggle}
+        </div>
         <span class="badge ${statusClass} rounded-pill px-2"
           ${e.settlementDate ? 'style="background:#6c757d;color:#fff;"' : ''}>${statusText}</span>
       </div>
+      ${noteBody}
       <div class="d-flex gap-2 mt-2 align-items-center">
         ${imageBtn}
         <div class="ms-auto d-flex gap-1">${editBtn}${delBtn}</div>
