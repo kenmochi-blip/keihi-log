@@ -149,11 +149,21 @@ const Auth = (() => {
   }
 
   async function _fetchUserInfo() {
+    const ctrl = new AbortController();
+    const tid  = setTimeout(() => ctrl.abort(), 5000);
     try {
       const resp = await fetch('https://www.googleapis.com/oauth2/v3/userinfo',
-        { headers: { Authorization: `Bearer ${_accessToken}` } });
+        { headers: { Authorization: `Bearer ${_accessToken}` }, signal: ctrl.signal });
       _userInfo = await resp.json();
-    } catch (_) { _userInfo = null; }
+    } catch (_) {
+      // タイムアウト・エラー時は保存済みuserInfoをそのまま維持
+      if (!_userInfo) {
+        const saved = _loadSession();
+        _userInfo = saved?.userInfo || null;
+      }
+    } finally {
+      clearTimeout(tid);
+    }
   }
 
   async function _refreshToken() {
@@ -231,6 +241,20 @@ const Auth = (() => {
 
   async function authFetch(url, options = {}) {
     await getToken();
+    // 呼び出し元が signal を指定していない場合は 20 秒タイムアウトを付与
+    if (!options.signal) {
+      const ctrl = new AbortController();
+      const tid  = setTimeout(() => ctrl.abort(), 20000);
+      try {
+        return await fetch(url, {
+          ...options,
+          headers: { ...(options.headers || {}), Authorization: `Bearer ${_accessToken}` },
+          signal: ctrl.signal,
+        });
+      } finally {
+        clearTimeout(tid);
+      }
+    }
     return fetch(url, {
       ...options,
       headers: { ...(options.headers || {}), Authorization: `Bearer ${_accessToken}` },
