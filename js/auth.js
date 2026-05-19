@@ -111,6 +111,14 @@ const Auth = (() => {
         resolve(_userInfo);
         return;
       }
+      // PWAスタンドアロンモードではポップアップが出るため requestAccessToken を呼ばない
+      // → App.init の catch が login.html へリダイレクトする
+      const _standalone = window.navigator.standalone === true ||
+                          window.matchMedia('(display-mode: standalone)').matches;
+      if (_standalone) {
+        reject(new Error('no_session_standalone'));
+        return;
+      }
       _pendingResolves.push({ resolve, reject });
       if (_pendingResolves.length === 1) {
         // prompt:'' = 既に同意済みならポップアップなしでサイレント取得
