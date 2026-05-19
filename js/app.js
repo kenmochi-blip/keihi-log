@@ -35,8 +35,9 @@ const App = (() => {
     try {
       await Auth.getToken();
     } catch (_) {
-      let ret = location.pathname !== '/app.html' ? location.pathname : '';
-      // /app.html からの起動で alias が Cookie にあれば return 先に使う
+      const _isGenericPath = location.pathname === '/app.html' || location.pathname === '/app' || location.pathname === '/';
+      let ret = _isGenericPath ? '' : location.pathname;
+      // /app.html・/app からの起動で alias が Cookie にあれば return 先に使う
       if (!ret) { const ca = _getCookieAlias(); if (ca) ret = '/' + ca; }
       window.location.href = 'login.html' + (ret ? '?return=' + encodeURIComponent(ret) : '');
       return;
@@ -139,7 +140,7 @@ const App = (() => {
       const _alias = localStorage.getItem('keihi_alias');
       // alias を Cookie にも保存（SafariとPWAで共有、既存ユーザー移行）
       if (_alias) _setCookieAlias(_alias);
-      if (_ssId && location.pathname === '/app.html') {
+      if (_ssId && (location.pathname === '/app.html' || location.pathname === '/app')) {
         history.replaceState(null, '', '/' + (_alias || _ssId));
       }
       // チーム別ショートカット用：動的マニフェストを生成してstart_urlにエイリアスURLを設定
@@ -365,7 +366,7 @@ const App = (() => {
     const match = location.pathname.match(/^\/([a-zA-Z0-9_-]{6,})$/);
     if (!match) {
       // /app.html で起動（PWAショートカット等）→ Cookie に alias が残っていればリダイレクト
-      if (location.pathname === '/app.html' || location.pathname === '/') {
+      if (location.pathname === '/app.html' || location.pathname === '/app' || location.pathname === '/') {
         const cookieAlias = _getCookieAlias();
         if (cookieAlias) {
           location.replace('/' + cookieAlias);
