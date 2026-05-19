@@ -530,8 +530,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 通常モード：PKCE フローのため gapi/GIS 待ちは不要。直接初期化。
   Auth.init();
-  App.init().catch(err => {
-    console.error('App.init error:', err);
-    _bootError(`初期化エラー: ${err.message}`);
-  });
+
+  // 25秒以内に画面が描画されなければログインページへ強制リダイレクト
+  // （License.verifyやSheets APIのタイムアウト漏れ対策）
+  const _safetyTimer = setTimeout(() => {
+    const main = document.getElementById('appMain');
+    if (main && !main.querySelector('h5, .pt-3, form, table, .card, [data-view]')) {
+      window.location.href = 'login.html';
+    }
+  }, 25000);
+
+  App.init()
+    .then(() => clearTimeout(_safetyTimer))
+    .catch(err => {
+      clearTimeout(_safetyTimer);
+      console.error('App.init error:', err);
+      _bootError(`初期化エラー: ${err.message}`);
+    });
 });

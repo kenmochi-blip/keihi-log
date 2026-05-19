@@ -36,6 +36,12 @@
       ]
     },
     {
+      "source": "/sw.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, must-revalidate" }
+      ]
+    },
+    {
       "source": "/favicon(.*)",
       "headers": [
         { "key": "Cache-Control", "value": "no-cache, must-revalidate" }
