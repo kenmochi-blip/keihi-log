@@ -188,12 +188,30 @@ const SettingsView = (() => {
       <div class="settings-step-hint mb-2">
         上のメンバー管理に氏名・メールアドレス・権限を登録してから、このURLをメンバーに連絡してください。
       </div>
-      <div class="input-group input-group-sm">
+      <div class="input-group input-group-sm mb-2">
         <input type="text" class="form-control form-control-sm" id="shareUrlDisplay"
           value="${_escape(shareUrl)}" readonly>
         <button class="btn btn-outline-secondary btn-sm" id="btnCopyShareUrl">
           <i class="bi bi-clipboard"></i>
         </button>
+      </div>
+      <div class="accordion" id="qrAcc">
+        <div class="accordion-item border-0">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed py-1 px-0 bg-transparent shadow-none text-primary"
+              style="font-size:0.8rem;" type="button"
+              data-bs-toggle="collapse" data-bs-target="#qrBody">
+              <i class="bi bi-qr-code me-1"></i>QRコードを表示
+            </button>
+          </h2>
+          <div id="qrBody" class="accordion-collapse collapse">
+            <div class="accordion-body px-0 py-2 text-center">
+              <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(shareUrl)}"
+                alt="QRコード" width="180" height="180" class="rounded border">
+              <div class="text-muted mt-1" style="font-size:0.7rem;">スクリーンショットしてメールなどで共有できます</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
