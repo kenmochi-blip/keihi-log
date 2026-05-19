@@ -411,7 +411,11 @@ const App = (() => {
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
         const base = (window.APP_CONFIG && window.APP_CONFIG.apiBase) || '';
-        const r = await fetch(base + '/api/alias?code=' + encodeURIComponent(token));
+        const ctrl = new AbortController();
+        const tid  = setTimeout(() => ctrl.abort(), 5000); // 5秒タイムアウト
+        const r = await fetch(base + '/api/alias?code=' + encodeURIComponent(token),
+          { signal: ctrl.signal });
+        clearTimeout(tid);
         if (r.ok) {
           const { sheetId } = await r.json();
           if (sheetId) {

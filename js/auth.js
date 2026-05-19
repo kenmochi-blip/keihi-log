@@ -160,11 +160,14 @@ const Auth = (() => {
     const saved = _loadSession();
     if (!saved?.refresh_token) throw new Error('no_refresh_token');
 
+    const ctrl = new AbortController();
+    const tid  = setTimeout(() => ctrl.abort(), 8000);
     const resp = await fetch('/api/token', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ action: 'refresh', refresh_token: saved.refresh_token }),
-    });
+      signal:  ctrl.signal,
+    }).finally(() => clearTimeout(tid));
     const tokens = await resp.json();
     if (tokens.error) throw new Error(tokens.error_description || tokens.error);
 
