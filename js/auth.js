@@ -101,7 +101,7 @@ const Auth = (() => {
     return { email, name: member?.name || 'デモ ユーザー', picture: '' };
   }
 
-  function getToken() {
+  function getToken({ userInitiated = false } = {}) {
     return new Promise((resolve, reject) => {
       if (typeof Demo !== 'undefined' && Demo.isActive()) {
         resolve(_demoUserInfo());
@@ -111,11 +111,11 @@ const Auth = (() => {
         resolve(_userInfo);
         return;
       }
-      // PWAスタンドアロンモードではポップアップが出るため requestAccessToken を呼ばない
-      // → App.init の catch が login.html へリダイレクトする
+      // PWAスタンドアロンモードでは自動呼び出し時のみスキップ
+      // ユーザーがボタンを押した場合（userInitiated=true）はポップアップを許可
       const _standalone = window.navigator.standalone === true ||
                           window.matchMedia('(display-mode: standalone)').matches;
-      if (_standalone) {
+      if (_standalone && !userInitiated) {
         reject(new Error('no_session_standalone'));
         return;
       }
@@ -202,7 +202,7 @@ function initLogin() {
   // ボタンクリックから直接OAuthポップアップを開く（ブラウザのポップアップブロック回避）
   document.getElementById('signInBtn').addEventListener('click', () => {
     document.getElementById('loginError').classList.add('d-none');
-    Auth.getToken().then(() => {
+    Auth.getToken({ userInitiated: true }).then(() => {
       window.location.href = _returnUrl;
     }).catch(err => {
       _showLoginBtn('ログインに失敗しました: ' + err.message);
