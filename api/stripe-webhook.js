@@ -66,13 +66,19 @@ async function _issueNewLicense(session) {
   }
 
   const customerEmail = session.customer_details?.email || session.customer_email || '';
-  // "顧客の氏名を収集" → customer_details.name
-  const customerName  = session.customer_details?.name  || '';
-  // "ビジネス名を収集" → custom_fields に business_name / businessname キーで入る
-  // カスタムフィールド「会社名・チーム名」も同様に拾う
-  const businessName = session.custom_fields?.find(
-    f => ['business_name','businessname','company_name','companyname'].includes(f.key)
-  )?.text?.value || '';
+  // "顧客の氏名を収集" → customer_details.name / individual_name（新APIでは両方あり）
+  const customerName  = session.customer_details?.individual_name
+                     || session.customer_details?.name
+                     || session.collected_information?.individual_name
+                     || '';
+  // "ビジネス名を収集" → 新APIでは collected_information.business_name / customer_details.business_name
+  // 旧APIでは custom_fields に business_name キーで入る
+  const businessName = session.collected_information?.business_name
+                    || session.customer_details?.business_name
+                    || session.custom_fields?.find(
+                         f => ['business_name','businessname','company_name','companyname'].includes(f.key)
+                       )?.text?.value
+                    || '';
   // 表示用 company: ビジネス名 → 氏名 → メール の優先順
   const company = businessName || customerName || customerEmail;
   const plan = session.metadata?.plan || 'standard';
@@ -86,7 +92,9 @@ async function _issueNewLicense(session) {
         // 手動（無料）ライセンス → 有料アップグレード
         await _upgradeLicense(existingKey, existingData, session, customerEmail, customerName, plan);
       } else {
-        // 既に有料ライセンスあり → 再送
+        // 既に有料ライセンスあり → セッションキーを更新してから再送メール
+        // （session:xxx が 'issuing' のままだと get-license が 404 を返すため必ず上書きする）
+        await kv.set(`session:${session.id}`, existingKey, { ex: SESSION_TTL });
         console.log(`License already exists for ${customerEmail}: ${existingKey}, resending`);
         if (process.env.RESEND_API_KEY) {
           await _sendDuplicateLicenseEmail(customerEmail, customerName, existingKey, existingData.expiresAt);
