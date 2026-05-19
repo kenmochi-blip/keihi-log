@@ -692,14 +692,17 @@ function _bindTypeButtons(el) {
   }
 
   /** 為替レート取得（複数APIを順に試す） */
-  async function _fetchExchangeRate(from, to) {
+  async function _fetchExchangeRate(from, to, date = null) {
     const f = from.toLowerCase();
     const t = to.toLowerCase();
+    // date が指定された場合は過去レート、なければ当日レートを取得
+    // 週末・祝日は各APIが直近営業日に自動フォールバックする
+    const dateStr = date || 'latest';
 
     // 1. CDN-backed currency API（CORS確実、無料）
     try {
       const resp = await fetch(
-        `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/${f}.json`
+        `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@${dateStr}/v1/currencies/${f}.json`
       );
       if (resp.ok) {
         const data = await resp.json();
@@ -708,10 +711,11 @@ function _bindTypeButtons(el) {
       }
     } catch (_) {}
 
-    // 2. Frankfurter dev（旧 .app から移行済み）
+    // 2. Frankfurter dev（過去レート対応）
     try {
+      const endpoint = date ? date : 'latest';
       const resp = await fetch(
-        `https://api.frankfurter.dev/v1/latest?base=${from.toUpperCase()}&symbols=${to.toUpperCase()}`
+        `https://api.frankfurter.dev/v1/${endpoint}?base=${from.toUpperCase()}&symbols=${to.toUpperCase()}`
       );
       if (resp.ok) {
         const data = await resp.json();
@@ -720,7 +724,7 @@ function _bindTypeButtons(el) {
       }
     } catch (_) {}
 
-    // 3. ExchangeRate-API 無料枠
+    // 3. ExchangeRate-API 無料枠（最新レートのみ対応）
     try {
       const resp = await fetch(
         `https://open.er-api.com/v6/latest/${from.toUpperCase()}`
@@ -850,18 +854,19 @@ function _bindTypeButtons(el) {
         const singleCat    = singleItem?.category ?? result.category;
 
         if (result.fx_currency && result.fx_amount) {
-          // 外貨：複数APIを順に試して換算
-          const rate = await _fetchExchangeRate(result.fx_currency, 'JPY');
+          // 外貨：取引日のレートを取得して換算（取引日 → AI認識日付 → 当日 の順でフォールバック）
+          const txDate = el.querySelector('#inputDate')?.value || result.date || null;
+          const rate = await _fetchExchangeRate(result.fx_currency, 'JPY', txDate);
           if (rate) {
             const jpy = Math.floor(Number(result.fx_amount) * rate);
             const amtInput = el.querySelector('#inputAmount');
             if (amtInput) amtInput.value = jpy.toLocaleString('ja-JP');
-            // 備考欄に換算内訳を自動入力
+            // 備考欄に換算内訳を自動入力（取引日レートである旨を明記）
             const noteInput = el.querySelector('#inputNote');
             if (noteInput) noteInput.value =
-              `${result.fx_currency} ${Number(result.fx_amount).toLocaleString()} × ${rate.toFixed(2)} = ¥${jpy.toLocaleString()}`;
+              `${result.fx_currency} ${Number(result.fx_amount).toLocaleString()} × ${rate.toFixed(2)} = ¥${jpy.toLocaleString()}${txDate ? `（${txDate}レート）` : ''}`;
             App.showToast(
-              `外貨換算: ${result.fx_currency} ${Number(result.fx_amount).toLocaleString()} × ${rate.toFixed(2)} = ¥${jpy.toLocaleString()}（確認してください）`,
+              `外貨換算: ${result.fx_currency} ${Number(result.fx_amount).toLocaleString()} × ${rate.toFixed(2)} = ¥${jpy.toLocaleString()}${txDate ? `（${txDate}レート）` : ''}（確認してください）`,
               'warning'
             );
             filled++;
