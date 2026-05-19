@@ -90,7 +90,7 @@ export default async function handler(req, res) {
     // メール送信（RESEND_API_KEY が設定されている場合のみ）
     if (process.env.RESEND_API_KEY) {
       const from   = process.env.RESEND_FROM_EMAIL || 'noreply@' + (process.env.VERCEL_PROJECT_PRODUCTION_URL || 'example.com');
-      const appUrl = 'https://keihi-log.smartandsmooth.com/app.html';
+      const appUrl = 'https://keihi-log.com/app.html';
 
       await _sendEmail(from, email, '【経費ログ】ライセンスキーのご案内', `
 <p>${licenseData.company} 様</p>

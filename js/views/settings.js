@@ -122,7 +122,7 @@ const SettingsView = (() => {
             <ol class="mb-1 ps-3">
               <li>Google AI Studioでキー一覧を開く</li>
               <li>作成したキーの「編集」→「APIの制限」を選択</li>
-              <li>「HTTPリファラー（ウェブサイト）」を選び <code>keihi-log.smartandsmooth.com/*</code> を追加</li>
+              <li>「HTTPリファラー（ウェブサイト）」を選び <code>keihi-log.com/*</code> を追加</li>
             </ol>
             <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" class="text-warning fw-semibold" style="font-size:0.82rem;">
               <i class="bi bi-box-arrow-up-right me-1"></i>Google AI Studioでキーを編集する

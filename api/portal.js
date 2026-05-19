@@ -34,7 +34,7 @@ export default async function handler(req, res) {
     const customerId = checkoutSession.customer;
     if (!customerId) return res.status(400).json({ error: 'no_customer' });
 
-    const origin = req.headers.origin || 'https://keihi-log.smartandsmooth.com';
+    const origin = req.headers.origin || 'https://keihi-log.com';
     const portalSession = await stripe.billingPortal.sessions.create({
       customer:   customerId,
       return_url: `${origin}/app.html`,

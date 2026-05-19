@@ -156,7 +156,7 @@ async function _upgradeLicense(key, oldData, session, email, name, plan) {
 }
 
 async function _sendUpgradeEmail(to, name, licenseKey, expiresAt) {
-  const appUrl = process.env.APP_URL || 'https://keihi-log.smartandsmooth.com/app.html';
+  const appUrl = process.env.APP_URL || 'https://keihi-log.com/app.html';
   const body = {
     from: process.env.RESEND_FROM_EMAIL || 'noreply@' + (process.env.VERCEL_PROJECT_PRODUCTION_URL || 'example.com'),
     to,
@@ -220,7 +220,7 @@ async function _sendLicenseEmail(to, name, licenseKey, expiresAt) {
 </p>
 <ul>
   <li>有効期限：${expiresAt}</li>
-  <li>アプリURL：<a href="https://keihi-log.smartandsmooth.com/app.html">https://keihi-log.smartandsmooth.com/app.html</a></li>
+  <li>アプリURL：<a href="https://keihi-log.com/app.html">https://keihi-log.com/app.html</a></li>
 </ul>
 <p>ご不明な点はお気軽にお問い合わせください。</p>
     `.trim(),
@@ -250,7 +250,7 @@ async function _sendDuplicateLicenseEmail(to, name, licenseKey, expiresAt) {
 </p>
 <ul>
   <li>有効期限：${expiresAt}</li>
-  <li>アプリURL：<a href="https://keihi-log.smartandsmooth.com/app.html">https://keihi-log.smartandsmooth.com/app.html</a></li>
+  <li>アプリURL：<a href="https://keihi-log.com/app.html">https://keihi-log.com/app.html</a></li>
 </ul>
 <p>今回の購入はStripeより返金処理いたします。ご不明な点はお気軽にお問い合わせください。</p>
     `.trim(),

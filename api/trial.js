@@ -73,7 +73,7 @@ async function _sendTrialEmail(to, licenseKey, expiresAt) {
 </p>
 <ul>
   <li>有効期限：${expiresAt}（2週間）</li>
-  <li>アプリURL：<a href="https://keihi-log.smartandsmooth.com/app.html">https://keihi-log.smartandsmooth.com/app.html</a></li>
+  <li>アプリURL：<a href="https://keihi-log.com/app.html">https://keihi-log.com/app.html</a></li>
 </ul>
 <p>トライアル終了後にご継続いただける場合は、アプリ内またはサイトから購入手続きをお願いします。</p>
 <p>ご不明な点はお気軽にお問い合わせください。<br>support@smartandsmooth.com</p>
