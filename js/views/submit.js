@@ -1267,7 +1267,7 @@ function _bindTypeButtons(el) {
          </a>`
       : '';
     const isAdmin = App.isAdmin();
-    const canEdit = !e.settlementDate && (!e.confirmed || isAdmin);
+    const canEdit = isAdmin || (!e.settlementDate && !e.confirmed);
     const editBtn = canEdit
       ? `<button class="btn btn-sm btn-outline-secondary btn-edit-history" data-id="${e.id}">
            <i class="bi bi-pencil"></i>

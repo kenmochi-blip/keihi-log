@@ -396,9 +396,8 @@ const ListView = (() => {
     visible.forEach(e => {
       const status = _getStatus(e);
       const statusBadge = _statusBadge(status);
-      // 編集可否：精算済は全員不可、申請済は本人のみ、登録済は管理者本人のみ
-      const canEdit = status !== '精算済' && e.email === email &&
-        (status === '申請済' || (_isAdmin && status === '登録済'));
+      // 編集可否：管理者は全ステータス可、一般は申請済かつ本人のみ
+      const canEdit = _isAdmin || (status === '申請済' && e.email === email);
       // 承認ボタン（申請済→登録済）：管理者のみ
       const approveBtn = _isAdmin && status === '申請済'
         ? `<button class="btn btn-outline-success btn-sm py-0 px-1 btn-approve" data-id="${e.id}" title="登録済にする"><i class="bi bi-check"></i></button>` : '';
