@@ -354,6 +354,10 @@
     document.getElementById('monthPicker').value = new Date().toISOString().slice(0, 7);
     document.getElementById('monthPicker').addEventListener('change', updateMonthly);
 
+    // 前回入力値を復元
+    const _saved = localStorage.getItem('keihi_admin_sentry_token');
+    if (_saved) document.getElementById('inputSentryToken').value = _saved;
+
     const _defaultExpiry = () => {
       const d = new Date(); d.setFullYear(d.getFullYear() + 1);
       return d.toISOString().split('T')[0];
@@ -394,6 +398,7 @@
     async function load() {
       _secret = document.getElementById('inputSecret').value.trim();
       _sentryToken = document.getElementById('inputSentryToken').value.trim();
+      if (_sentryToken) localStorage.setItem('keihi_admin_sentry_token', _sentryToken);
       const resp = await fetch(`/api/admin-licenses?secret=${encodeURIComponent(_secret)}`);
       if (!resp.ok) { alert('認証に失敗しました'); return; }
       const data = await resp.json();
