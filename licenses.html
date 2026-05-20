@@ -409,7 +409,6 @@
       section.classList.remove('d-none');
 
       const PROJECT = '4511415628464128';
-      const headers = { Authorization: `Bearer ${token}` };
 
       const tbody = document.getElementById('sentryTableBody');
       tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--text-mute);">読み込み中...</td></tr>';
@@ -420,11 +419,13 @@
       document.getElementById('sentryUpdatedAt').textContent = '';
 
       try {
-        // Org slug を自動検出（キャッシュ → API取得）
+        // サーバープロキシ経由でCORS回避・トークン隠蔽
+        const proxy = (path) => `/api/sentry-proxy?secret=${encodeURIComponent(_secret)}&path=${encodeURIComponent(path)}`;
+
         let orgSlug = localStorage.getItem('keihi_sentry_org_slug') || '';
         if (!orgSlug) {
-          const orgResp = await fetch('https://us.sentry.io/api/0/organizations/', { headers });
-          if (orgResp.status === 401) throw new Error('Sentry トークンが無効です（401 Unauthorized）\n\nSentry → Settings → Auth Tokens でトークンを確認してください。');
+          const orgResp = await fetch(proxy('/organizations/'));
+          if (orgResp.status === 401) throw new Error('Sentry トークンが無効です（SENTRY_AUTH_TOKEN を確認してください）');
           if (!orgResp.ok) {
             const errBody = await orgResp.json().catch(() => ({}));
             throw new Error(`Sentry 組織取得エラー ${orgResp.status}: ${errBody.detail || JSON.stringify(errBody)}`);
@@ -435,11 +436,9 @@
           localStorage.setItem('keihi_sentry_org_slug', orgSlug);
         }
 
-        // プロジェクト ID（数値）で検索
-        const BASE = `https://us.sentry.io/api/0/organizations/${orgSlug}`;
         const [unresolvedResp, resolvedResp] = await Promise.all([
-          fetch(`${BASE}/issues/?project=${PROJECT}&limit=25&query=is:unresolved&expand=owners`, { headers }),
-          fetch(`${BASE}/issues/?project=${PROJECT}&limit=100&query=is:resolved&statsPeriod=30d`, { headers }),
+          fetch(proxy(`/organizations/${orgSlug}/issues/?project=${PROJECT}&limit=25&query=is:unresolved`)),
+          fetch(proxy(`/organizations/${orgSlug}/issues/?project=${PROJECT}&limit=100&query=is:resolved&statsPeriod=30d`)),
         ]);
 
         if (!unresolvedResp.ok) {
@@ -453,10 +452,8 @@
         const unresolved = await unresolvedResp.json();
         const resolved   = resolvedResp.ok ? await resolvedResp.json() : [];
 
-        // KPI: unresolved count (use X-Hits header if available, else array length)
         const totalHits = parseInt(unresolvedResp.headers.get('X-Hits') || '0', 10) || unresolved.length;
 
-        // Today's event count: sum last 24h buckets from each issue's stats
         let todayCount = 0;
         let totalUsers = 0;
         unresolved.forEach(issue => {
@@ -468,7 +465,6 @@
               if (ts * 1000 >= cutoff) todayCount += cnt;
             });
           } else {
-            // Fallback: if no stats, count issues seen today
             if (issue.lastSeen && new Date(issue.lastSeen).toDateString() === new Date().toDateString()) {
               todayCount += parseInt(issue.count || 0, 10);
             }
@@ -487,19 +483,16 @@
         }
 
         tbody.innerHTML = unresolved.map(issue => {
-          const lvl   = issue.level || 'error';
+          const lvl     = issue.level || 'error';
           const lvlHtml = `<span class="lvl-${lvl}">${lvl.toUpperCase()}</span>`;
-          const title = esc(issue.title || '');
-          const value = esc(issue.metadata?.value || '');
-          const count = Number(issue.count || 0).toLocaleString('ja-JP');
-          const users = issue.userCount || 0;
-          const last  = issue.lastSeen ? _relTime(issue.lastSeen) : '—';
-
-          // Environment / browser tag
+          const title   = esc(issue.title || '');
+          const value   = esc(issue.metadata?.value || '');
+          const count   = Number(issue.count || 0).toLocaleString('ja-JP');
+          const users   = issue.userCount || 0;
+          const last    = issue.lastSeen ? _relTime(issue.lastSeen) : '—';
           const envTag  = issue.tags?.find(t => t.key === 'environment');
           const browserTag = issue.tags?.find(t => t.key === 'browser.name');
           const envText = [envTag?.value, browserTag?.value].filter(Boolean).join(' / ') || '—';
-
           return `<tr>
             <td class="ps-first">${lvlHtml}</td>
             <td>
@@ -539,9 +532,7 @@
       const displayName = biz || name || '<span style="color:var(--text-mute);">—</span>';
       const subLine = (biz && name && biz !== name) ? `<div class="customer-biz">${name}</div>` : '';
       const email = esc(l.email || '');
-      if (compact) {
-        return `<div class="customer-name">${displayName}</div>${subLine}`;
-      }
+      if (compact) return `<div class="customer-name">${displayName}</div>${subLine}`;
       return `
         <div style="display:flex;align-items:center;gap:4px;">
           <div>
@@ -579,21 +570,17 @@
       const manual   = newRegs.filter(l => !l.stripeSessionId);
       const upgrades = _all.filter(l => (l.upgradedAt || '').startsWith(ym));
       const churn    = _all.filter(l => (l.expiresAt || '').startsWith(ym) && getStatus(l) !== 'active');
-
       document.getElementById('mNew').textContent     = newRegs.length;
       document.getElementById('mPaid').textContent    = paid.length;
       document.getElementById('mManual').textContent  = manual.length;
       document.getElementById('mUpgrade').textContent = upgrades.length;
       document.getElementById('mChurn').textContent   = churn.length;
-
       const listEl = document.getElementById('mNewList');
       const tbody  = document.getElementById('mNewTable');
       if (newRegs.length > 0) {
         tbody.innerHTML = newRegs.map(l => {
           const plan = l.plan || 'standard';
-          const kind = l.stripeSessionId
-            ? '<span class="tag tag-stripe">有料</span>'
-            : '<span class="tag tag-manual">手動</span>';
+          const kind = l.stripeSessionId ? '<span class="tag tag-stripe">有料</span>' : '<span class="tag tag-manual">手動</span>';
           return `<tr>
             <td style="color:var(--text-sub);">${(l.createdAt||'').split('T')[0]}</td>
             <td>${_customerCell(l, true)}</td>
@@ -628,24 +615,19 @@
         if (status && getStatus(l) !== status) return false;
         return true;
       });
-
       const countEl = document.getElementById('filteredCount');
-      countEl.textContent = (text || status)
-        ? `${filtered.length} / ${_all.length}件`
-        : `${_all.length}件`;
-
+      countEl.textContent = (text || status) ? `${filtered.length} / ${_all.length}件` : `${_all.length}件`;
       const statusLabel = { active: '有効', expired: '期限切れ', suspended: '停止中' };
       const planLabel   = { solo: 'ソロ', team: 'チーム', standard: '標準' };
-
       const tbody = document.getElementById('licenseTable');
       tbody.innerHTML = filtered.map(l => {
-        const st         = getStatus(l);
-        const date       = l.createdAt ? l.createdAt.split('T')[0] : '—';
-        const plan       = l.plan || 'standard';
-        const usageThis  = l.usageThis ?? 0;
-        const usageLast  = l.usageLast ?? 0;
-        const isStripe   = !!l.stripeSessionId;
-        const planClass  = plan === 'team' ? 'team' : plan === 'solo' ? 'solo' : 'std';
+        const st        = getStatus(l);
+        const date      = l.createdAt ? l.createdAt.split('T')[0] : '—';
+        const plan      = l.plan || 'standard';
+        const usageThis = l.usageThis ?? 0;
+        const usageLast = l.usageLast ?? 0;
+        const isStripe  = !!l.stripeSessionId;
+        const planClass = plan === 'team' ? 'team' : plan === 'solo' ? 'solo' : 'std';
         return `<tr data-key="${esc(l.key)}">
           <td class="ps-first" style="font-size:0.78rem;color:var(--text-sub);">${date}</td>
           <td>
@@ -664,12 +646,10 @@
           </td>
         </tr>`;
       }).join('');
-
       tbody.querySelectorAll('.btn-upgrade').forEach(btn =>
         btn.addEventListener('click', () => upgradeLicense(btn.dataset.key)));
       tbody.querySelectorAll('.btn-delete').forEach(btn =>
         btn.addEventListener('click', () => deleteLicense(btn.dataset.key)));
-
       document.getElementById('noResult').classList.toggle('d-none', filtered.length > 0);
     }
 
