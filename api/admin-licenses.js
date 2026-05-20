@@ -1,9 +1,10 @@
 /**
  * 発行済みライセンス一覧 API（管理者専用）
- * GET    /api/admin-licenses?secret=ADMIN_SECRET          一覧取得
- * POST   /api/admin-licenses?secret=ADMIN_SECRET          手動発行
- * PATCH  /api/admin-licenses?secret=ADMIN_SECRET          手動アップグレード
- * DELETE /api/admin-licenses?secret=ADMIN_SECRET&key=KL-  削除
+ * GET    /api/admin-licenses?secret=ADMIN_SECRET                    一覧取得
+ * GET    /api/admin-licenses?secret=ADMIN_SECRET&sentry_path=/...   Sentryプロキシ
+ * POST   /api/admin-licenses?secret=ADMIN_SECRET                    手動発行
+ * PATCH  /api/admin-licenses?secret=ADMIN_SECRET                    手動アップグレード
+ * DELETE /api/admin-licenses?secret=ADMIN_SECRET&key=KL-            削除
  */
 
 import { kv } from '@vercel/kv';
@@ -17,6 +18,25 @@ export default async function handler(req, res) {
 
   if (req.query.secret !== process.env.ADMIN_SECRET) {
     return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  // Sentryプロキシ（sentry_path パラメータがある場合）
+  if (req.query.sentry_path) {
+    const sentryPath = req.query.sentry_path;
+    if (!sentryPath.startsWith('/')) return res.status(400).json({ error: 'invalid path' });
+    const token = process.env.SENTRY_AUTH_TOKEN;
+    if (!token) return res.status(503).json({ error: 'SENTRY_AUTH_TOKEN not configured' });
+    try {
+      const resp = await fetch(`https://us.sentry.io/api/0${sentryPath}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await resp.json();
+      const hits = resp.headers.get('X-Hits');
+      if (hits) res.setHeader('X-Hits', hits);
+      return res.status(resp.status).json(data);
+    } catch (err) {
+      return res.status(502).json({ error: err.message });
+    }
   }
 
   // DELETE: ライセンス削除
