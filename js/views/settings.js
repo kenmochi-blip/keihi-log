@@ -397,6 +397,10 @@ const SettingsView = (() => {
       try {
         const ssId    = await Setup.createSpreadsheet(name, parentFolderId);
         localStorage.setItem('keihi_company_name', name);
+        // シート作成後、localStorageにライセンスキーがあればB3に確実に書き込む
+        // （_writeInitialDataでも書くが、タイミングによっては空になる場合の保険）
+        const _lic = localStorage.getItem('keihi_license_key');
+        if (_lic) Sheets.update('設定!B3', [[_lic]]).catch(() => {});
         // 作成されたフォルダURLをフォルダURL欄に反映
         const createdFolderId = localStorage.getItem('keihi_folder_id') || '';
         if (createdFolderId) {
