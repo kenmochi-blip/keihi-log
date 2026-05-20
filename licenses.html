@@ -124,6 +124,24 @@
     .lvl-warning { background:#fef3c7;color:#92400e;font-size:0.6rem;font-weight:700;padding:2px 6px;border-radius:4px; }
     .lvl-info    { background:#dbeafe;color:#1d4ed8;font-size:0.6rem;font-weight:700;padding:2px 6px;border-radius:4px; }
 
+    /* Sentry notes */
+    .notes-btn { position: relative; }
+    .notes-btn.has-notes { border-color: var(--accent); color: var(--accent); background: #eff6ff; }
+    .notes-btn.open { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .notes-count { position: absolute; top: -5px; right: -5px; background: var(--accent); color: #fff; font-size: 0.55rem; font-weight: 700; min-width: 14px; height: 14px; border-radius: 7px; display: flex; align-items: center; justify-content: center; padding: 0 3px; }
+    .notes-row td { padding: 0 !important; background: #f8fafc; }
+    .notes-panel { padding: 0.85rem 1.25rem; border-top: 1px dashed var(--border); }
+    .note-item { display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.5rem 0; border-bottom: 1px solid var(--border); }
+    .note-item:last-child { border-bottom: none; }
+    .note-body { flex: 1; }
+    .note-text { font-size: 0.82rem; color: var(--text); white-space: pre-wrap; line-height: 1.5; }
+    .note-meta { font-size: 0.7rem; color: var(--text-mute); margin-top: 3px; }
+    .note-del { border: none; background: none; color: var(--text-mute); cursor: pointer; padding: 3px 5px; border-radius: 4px; font-size: 0.75rem; line-height: 1; flex-shrink: 0; margin-top: 1px; }
+    .note-del:hover { background: #fee2e2; color: #991b1b; }
+    .note-input-row { display: flex; gap: 0.5rem; align-items: flex-end; margin-top: 0.75rem; }
+    .note-textarea { flex: 1; border: 1px solid var(--border); border-radius: 6px; padding: 0.4rem 0.6rem; font-size: 0.8rem; resize: vertical; min-height: 52px; outline: none; font-family: inherit; background: var(--surface); transition: border 0.15s; }
+    .note-textarea:focus { border-color: var(--accent); }
+
     /* Responsive */
     @media (max-width: 768px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } .sentry-kpi-grid { grid-template-columns: repeat(2, 1fr); } }
   </style>
@@ -211,11 +229,12 @@
                     <th style="width:70px;text-align:right;">発生数</th>
                     <th style="width:60px;text-align:right;">ユーザー</th>
                     <th style="width:110px;">最終発生</th>
-                    <th class="pe-last" style="width:120px;">環境</th>
+                    <th style="width:120px;">環境</th>
+                    <th class="pe-last" style="width:48px;text-align:center;">メモ</th>
                   </tr>
                 </thead>
                 <tbody id="sentryTableBody">
-                  <tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--text-mute);">読み込み中...</td></tr>
+                  <tr><td colspan="7" style="text-align:center;padding:1.5rem;color:var(--text-mute);">読み込み中...</td></tr>
                 </tbody>
               </table>
             </div>
@@ -339,6 +358,8 @@
     let _all = [];
     let _secret = '';
     let _sentryToken = '';
+    const _notesCache = {};   // issueId → notes[]
+    const _notesOpen  = {};   // issueId → bool
 
     document.getElementById('btnLoad').addEventListener('click', load);
     document.getElementById('inputSecret').addEventListener('keydown', e => { if (e.key === 'Enter') load(); });
@@ -356,6 +377,124 @@
     };
     document.getElementById('issueExpiry').value = _defaultExpiry();
 
+    // ── ノート機能 ──────────────────────────────────────────
+    async function toggleNotes(issueId) {
+      const row = document.getElementById(`notes-row-${issueId}`);
+      const btn = document.querySelector(`.notes-btn[data-issue-id="${issueId}"]`);
+      if (!row) return;
+      const isOpen = !row.classList.contains('d-none');
+      if (isOpen) {
+        row.classList.add('d-none');
+        btn?.classList.remove('open');
+        _notesOpen[issueId] = false;
+      } else {
+        row.classList.remove('d-none');
+        btn?.classList.add('open');
+        _notesOpen[issueId] = true;
+        if (_notesCache[issueId] == null) {
+          await loadNotes(issueId);
+        } else {
+          renderNotes(issueId);
+        }
+      }
+    }
+
+    async function loadNotes(issueId) {
+      const panel = document.getElementById(`notes-panel-${issueId}`);
+      if (panel) panel.innerHTML = '<div style="color:var(--text-mute);font-size:0.78rem;">読み込み中...</div>';
+      try {
+        const resp = await fetch(`/api/admin-licenses?secret=${encodeURIComponent(_secret)}&sentry_notes=get&issue_id=${encodeURIComponent(issueId)}`);
+        const data = await resp.json();
+        _notesCache[issueId] = data.notes || [];
+        renderNotes(issueId);
+        updateNotesBtn(issueId);
+      } catch (err) {
+        if (panel) panel.innerHTML = `<div style="color:#dc2626;font-size:0.78rem;">読み込みエラー: ${esc(err.message)}</div>`;
+      }
+    }
+
+    function renderNotes(issueId) {
+      const panel = document.getElementById(`notes-panel-${issueId}`);
+      if (!panel) return;
+      const notes = _notesCache[issueId] || [];
+      const notesHtml = notes.length === 0
+        ? '<div style="color:var(--text-mute);font-size:0.78rem;font-style:italic;margin-bottom:0.5rem;">メモはまだありません</div>'
+        : `<div style="margin-bottom:0.75rem;">${notes.map((n, i) => `
+            <div class="note-item">
+              <div class="note-body">
+                <div class="note-text">${esc(n.text)}</div>
+                <div class="note-meta">${new Date(n.at).toLocaleString('ja-JP', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' })}</div>
+              </div>
+              <button class="note-del" onclick="deleteNote('${esc(issueId)}',${i})" title="削除"><i class="bi bi-x"></i></button>
+            </div>`).join('')}</div>`;
+
+      panel.innerHTML = `
+        ${notesHtml}
+        <div class="note-input-row">
+          <textarea class="note-textarea" id="note-input-${esc(issueId)}" placeholder="メモを追加（Ctrl+Enterで送信）..."></textarea>
+          <button class="btn-accent" onclick="addNote('${esc(issueId)}')" style="height:52px;white-space:nowrap;"><i class="bi bi-send" style="margin-right:4px;"></i>追加</button>
+        </div>`;
+
+      const ta = document.getElementById(`note-input-${issueId}`);
+      if (ta) {
+        ta.addEventListener('keydown', e => {
+          if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); addNote(issueId); }
+        });
+      }
+    }
+
+    function updateNotesBtn(issueId) {
+      const btn = document.querySelector(`.notes-btn[data-issue-id="${issueId}"]`);
+      if (!btn) return;
+      const count = (_notesCache[issueId] || []).length;
+      const badge = btn.querySelector('.notes-count');
+      if (count > 0) {
+        btn.classList.add('has-notes');
+        if (badge) badge.textContent = count;
+        else btn.insertAdjacentHTML('beforeend', `<span class="notes-count">${count}</span>`);
+      } else {
+        btn.classList.remove('has-notes');
+        if (badge) badge.remove();
+      }
+    }
+
+    async function addNote(issueId) {
+      const input = document.getElementById(`note-input-${issueId}`);
+      const text = input?.value?.trim();
+      if (!text) return;
+      input.disabled = true;
+      try {
+        const resp = await fetch(
+          `/api/admin-licenses?secret=${encodeURIComponent(_secret)}&sentry_notes=add&issue_id=${encodeURIComponent(issueId)}`,
+          { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) }
+        );
+        const data = await resp.json();
+        _notesCache[issueId] = data.notes || [];
+        renderNotes(issueId);
+        updateNotesBtn(issueId);
+      } catch (err) {
+        alert('メモの追加に失敗しました: ' + err.message);
+        input.disabled = false;
+      }
+    }
+
+    async function deleteNote(issueId, idx) {
+      if (!confirm('このメモを削除しますか？')) return;
+      try {
+        const resp = await fetch(
+          `/api/admin-licenses?secret=${encodeURIComponent(_secret)}&sentry_notes=del&issue_id=${encodeURIComponent(issueId)}&note_idx=${idx}`,
+          { method: 'POST' }
+        );
+        const data = await resp.json();
+        _notesCache[issueId] = data.notes || [];
+        renderNotes(issueId);
+        updateNotesBtn(issueId);
+      } catch (err) {
+        alert('削除に失敗しました: ' + err.message);
+      }
+    }
+
+    // ── ライセンス機能 ──────────────────────────────────────
     async function issueLicense() {
       const email   = document.getElementById('issueEmail').value.trim();
       const company = document.getElementById('issueCompany').value.trim();
@@ -411,7 +550,7 @@
       const PROJECT = '4511415628464128';
 
       const tbody = document.getElementById('sentryTableBody');
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--text-mute);">読み込み中...</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:1.5rem;color:var(--text-mute);">読み込み中...</td></tr>';
       document.getElementById('sErrorTotal').textContent    = '…';
       document.getElementById('sErrorToday').textContent    = '…';
       document.getElementById('sErrorUsers').textContent    = '…';
@@ -419,7 +558,6 @@
       document.getElementById('sentryUpdatedAt').textContent = '';
 
       try {
-        // サーバープロキシ経由でCORS回避・トークン隠蔽
         const proxy = (path) => `/api/admin-licenses?secret=${encodeURIComponent(_secret)}&sentry_path=${encodeURIComponent(path)}`;
 
         let orgSlug = localStorage.getItem('keihi_sentry_org_slug') || '';
@@ -478,11 +616,13 @@
         document.getElementById('sentryUpdatedAt').textContent = '更新: ' + new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
 
         if (unresolved.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--text-mute);"><i class="bi bi-check-circle me-2"></i>未解決イシューはありません</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:1.5rem;color:var(--text-mute);"><i class="bi bi-check-circle me-2"></i>未解決イシューはありません</td></tr>';
           return;
         }
 
-        tbody.innerHTML = unresolved.map(issue => {
+        // キャッシュ済みノート数を参照してバッジ表示
+        const rows = unresolved.map(issue => {
+          const id      = esc(issue.id || '');
           const lvl     = issue.level || 'error';
           const lvlHtml = `<span class="lvl-${lvl}">${lvl.toUpperCase()}</span>`;
           const title   = esc(issue.title || '');
@@ -493,21 +633,51 @@
           const envTag  = issue.tags?.find(t => t.key === 'environment');
           const browserTag = issue.tags?.find(t => t.key === 'browser.name');
           const envText = [envTag?.value, browserTag?.value].filter(Boolean).join(' / ') || '—';
-          return `<tr>
-            <td class="ps-first">${lvlHtml}</td>
-            <td>
-              <div style="font-size:0.8rem;font-weight:500;color:var(--text);line-height:1.3;">${title}</div>
-              ${value ? `<div style="font-size:0.7rem;color:var(--text-mute);margin-top:2px;">${value}</div>` : ''}
-            </td>
-            <td style="text-align:right;font-variant-numeric:tabular-nums;font-size:0.8rem;">${count}</td>
-            <td style="text-align:right;font-size:0.8rem;">${users > 0 ? users : '—'}</td>
-            <td style="font-size:0.75rem;color:var(--text-sub);">${last}</td>
-            <td class="pe-last" style="font-size:0.72rem;color:var(--text-mute);">${esc(envText)}</td>
-          </tr>`;
-        }).join('');
+          const noteCount = (_notesCache[issue.id] || []).length;
+          const hasCls  = noteCount > 0 ? ' has-notes' : '';
+          const badgeHtml = noteCount > 0 ? `<span class="notes-count">${noteCount}</span>` : '';
+          const isOpen  = !!_notesOpen[issue.id];
+          const openCls = isOpen ? ' open' : '';
+          return `
+            <tr>
+              <td class="ps-first">${lvlHtml}</td>
+              <td>
+                <div style="font-size:0.8rem;font-weight:500;color:var(--text);line-height:1.3;">${title}</div>
+                ${value ? `<div style="font-size:0.7rem;color:var(--text-mute);margin-top:2px;">${value}</div>` : ''}
+              </td>
+              <td style="text-align:right;font-variant-numeric:tabular-nums;font-size:0.8rem;">${count}</td>
+              <td style="text-align:right;font-size:0.8rem;">${users > 0 ? users : '—'}</td>
+              <td style="font-size:0.75rem;color:var(--text-sub);">${last}</td>
+              <td style="font-size:0.72rem;color:var(--text-mute);">${esc(envText)}</td>
+              <td class="pe-last" style="text-align:center;">
+                <button class="action-btn notes-btn${hasCls}${openCls}" data-issue-id="${id}" title="メモ">
+                  <i class="bi bi-chat-left-text"></i>${badgeHtml}
+                </button>
+              </td>
+            </tr>
+            <tr class="notes-row${isOpen ? '' : ' d-none'}" id="notes-row-${id}">
+              <td colspan="7">
+                <div class="notes-panel" id="notes-panel-${id}">
+                  <div style="color:var(--text-mute);font-size:0.78rem;">読み込み中...</div>
+                </div>
+              </td>
+            </tr>`;
+        });
+
+        tbody.innerHTML = rows.join('');
+
+        // イベント登録 & 開いていたパネルを復元
+        tbody.querySelectorAll('.notes-btn').forEach(btn => {
+          btn.addEventListener('click', () => toggleNotes(btn.dataset.issueId));
+          const iid = btn.dataset.issueId;
+          if (_notesOpen[iid]) {
+            if (_notesCache[iid] != null) renderNotes(iid);
+            else loadNotes(iid);
+          }
+        });
 
       } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:#dc2626;">${esc(err.message)}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:1.5rem;color:#dc2626;">${esc(err.message)}</td></tr>`;
         document.getElementById('sErrorTotal').textContent    = 'ERR';
         document.getElementById('sErrorToday').textContent    = 'ERR';
         document.getElementById('sErrorUsers').textContent    = 'ERR';
