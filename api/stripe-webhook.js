@@ -98,7 +98,7 @@ async function _issueNewLicense(session) {
     const existingData = await kv.get(`license:${existingKey}`);
     if (existingData && !existingData.suspended) {
       if (!existingData.stripeSessionId) {
-        // 手動（無料）ライセンス → 有料アップグレード
+        // トライアル（TR-xxx）または手動ライセンス → 有料アップグレード（キーはそのまま延長）
         await _upgradeLicense(existingKey, existingData, session, customerEmail, customerName, plan);
       } else {
         // 既に有料ライセンスあり → セッションキーを更新してから再送メール

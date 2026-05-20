@@ -51,6 +51,8 @@ export default async function handler(req, res) {
   // KV に保存（ライセンス自体は永続、メール重複防止キーも永続）
   await kv.set(`license:${licenseKey}`, licenseData);
   await kv.set(`trial_email:${normalizedEmail}`, licenseKey);
+  // 有料転換時に stripe-webhook が既存ライセンスを見つけられるよう逆引きインデックスも保存
+  await kv.set(`email_to_license:${normalizedEmail}`, licenseKey);
 
   // メール送信
   if (process.env.RESEND_API_KEY) {
