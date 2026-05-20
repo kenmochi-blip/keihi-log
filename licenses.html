@@ -345,9 +345,8 @@
             <thead>
               <tr>
                 <th class="ps-first" style="width:90px;">発行日</th>
-                <th style="width:220px;">顧客</th>
+                <th style="width:280px;">顧客</th>
                 <th style="width:70px;">プラン</th>
-                <th style="width:200px;">ライセンスキー</th>
                 <th style="width:90px;">有効期限</th>
                 <th style="width:60px;text-align:right;">今月</th>
                 <th style="width:60px;text-align:right;">先月</th>
@@ -1105,7 +1104,6 @@
           <td class="ps-first" style="font-size:0.78rem;color:var(--text-sub);">${l.createdAt ? l.createdAt.split('T')[0] : '—'}</td>
           <td>${_customerCell(l)}${isStripe ? '<span class="tag tag-stripe" style="margin-top:3px;display:inline-block;">Stripe</span>' : '<span class="tag tag-manual" style="margin-top:3px;display:inline-block;">手動</span>'}</td>
           <td><span class="tag tag-${planClass}">${planLabel[plan]||plan}</span></td>
-          <td><span class="key-chip" onclick="copyKey(this,'${esc(l.key)}')" title="クリックでコピー">${esc(l.key)}</span></td>
           <td style="font-size:0.78rem;color:var(--text-sub);">${l.expiresAt||'—'}</td>
           <td class="usage-num ${usageThis > 0 ? 'active' : 'zero'}">${usageThis || '—'}</td>
           <td class="usage-num zero">${usageLast || '—'}</td>
