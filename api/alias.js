@@ -58,10 +58,16 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: 'setup_code_mismatch' });
     }
 
-    // 既存のエイリアスがあれば古いものを削除
+    // 一度登録したエイリアスは変更不可
     const existingCode = await kv.get(`alias_by_sheet:${sheetId}`).catch(() => null);
     if (existingCode && existingCode !== code) {
-      await kv.del(`alias:${existingCode}`).catch(() => {});
+      return res.status(409).json({ error: 'alias_already_set', alias: existingCode });
+    }
+
+    // 指定コードが別のシートで使われていないか確認
+    const existingSheet = await kv.get(`alias:${code}`).catch(() => null);
+    if (existingSheet && existingSheet !== sheetId) {
+      return res.status(409).json({ error: 'code_taken' });
     }
 
     await kv.set(`alias:${code}`, sheetId);

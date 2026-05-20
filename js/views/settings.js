@@ -70,6 +70,16 @@ const SettingsView = (() => {
           <div class="settings-step-hint">スプレッドシートと証票画像の保存先（空欄でマイドライブのルートに作成）</div>
           <input type="text" class="form-control form-control-sm mb-2" id="inputFolderUrl"
             placeholder="Google Drive フォルダのURL（任意）">
+          <div class="mb-2">
+            <label class="form-label form-label-sm mb-1">チームURL（任意・設定後変更不可）</label>
+            <div class="input-group input-group-sm">
+              <span class="input-group-text" style="font-size:0.78rem;">${location.origin}/</span>
+              <input type="text" class="form-control form-control-sm" id="inputAliasCode"
+                placeholder="例: yamada-trading（英数字・ハイフン、6文字以上）"
+                pattern="[a-zA-Z0-9\\-]{6,}" maxlength="40">
+            </div>
+            <div id="aliasCheckMsg" class="form-text"></div>
+          </div>
           <button class="btn btn-primary btn-sm w-100 mb-2" id="btnCreateSheet">
             <i class="bi bi-plus-circle me-1"></i>データ保存先を新規作成
           </button>
@@ -389,13 +399,31 @@ const SettingsView = (() => {
       const folderUrl = el.querySelector('#inputFolderUrl')?.value.trim() || '';
       const parentFolderId = folderUrl.match(/folders\/([a-zA-Z0-9_-]+)/)?.[1] || null;
 
+      // カスタムエイリアスの検証
+      const aliasInput = el.querySelector('#inputAliasCode');
+      const aliasCheckMsg = el.querySelector('#aliasCheckMsg');
+      const customAlias = aliasInput?.value.trim().toLowerCase() || '';
+      if (customAlias) {
+        if (!/^[a-zA-Z0-9-]{6,40}$/.test(customAlias)) {
+          aliasCheckMsg.innerHTML = '<span class="text-danger">英数字・ハイフンのみ、6〜40文字で入力してください</span>';
+          return;
+        }
+        const base = window.APP_CONFIG?.apiBase || '';
+        const chk = await fetch(`${base}/api/alias?code=${encodeURIComponent(customAlias)}`);
+        if (chk.ok) {
+          aliasCheckMsg.innerHTML = '<span class="text-danger">このURLはすでに使われています。別の文字列を入力してください</span>';
+          return;
+        }
+        if (aliasCheckMsg) aliasCheckMsg.textContent = '';
+      }
+
       const msg = el.querySelector('#createSheetMsg');
       const btn = el.querySelector('#btnCreateSheet');
       btn.disabled = true;
       btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>作成中...';
       msg.textContent = '';
       try {
-        const ssId    = await Setup.createSpreadsheet(name, parentFolderId);
+        const ssId    = await Setup.createSpreadsheet(name, parentFolderId, customAlias);
         localStorage.setItem('keihi_company_name', name);
         // シート作成後、localStorageにライセンスキーがあればB3に確実に書き込む
         // （_writeInitialDataでも書くが、タイミングによっては空になる場合の保険）
@@ -553,6 +581,34 @@ const SettingsView = (() => {
       folderInput.value = `https://drive.google.com/drive/folders/${currentFolderId}`;
     }
     _setFolderLink(currentFolderId);
+
+    // チームURLリアルタイム重複チェック
+    let _aliasCheckTimer = null;
+    el.querySelector('#inputAliasCode')?.addEventListener('input', (e) => {
+      clearTimeout(_aliasCheckTimer);
+      const val = e.target.value.trim().toLowerCase();
+      const msgEl = el.querySelector('#aliasCheckMsg');
+      if (!val) { msgEl.textContent = ''; return; }
+      if (!/^[a-zA-Z0-9-]{1,40}$/.test(val)) {
+        msgEl.innerHTML = '<span class="text-danger">英数字・ハイフンのみ使用できます</span>';
+        return;
+      }
+      if (val.length < 6) {
+        msgEl.innerHTML = '<span class="text-muted">6文字以上必要です</span>';
+        return;
+      }
+      msgEl.innerHTML = '<span class="text-muted">確認中…</span>';
+      _aliasCheckTimer = setTimeout(async () => {
+        const base = window.APP_CONFIG?.apiBase || '';
+        const r = await fetch(`${base}/api/alias?code=${encodeURIComponent(val)}`).catch(() => null);
+        if (!r) { msgEl.textContent = ''; return; }
+        if (r.ok) {
+          msgEl.innerHTML = '<span class="text-danger"><i class="bi bi-x-circle me-1"></i>このURLはすでに使われています</span>';
+        } else {
+          msgEl.innerHTML = `<span class="text-success"><i class="bi bi-check-circle me-1"></i>${location.origin}/${val} は使用可能です</span>`;
+        }
+      }, 600);
+    });
 
     el.querySelector('#btnCreateFolder')?.addEventListener('click', async () => {
       const btn = el.querySelector('#btnCreateFolder');
