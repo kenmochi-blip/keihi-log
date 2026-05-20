@@ -634,6 +634,7 @@
           renderPriority(issue.id);
         } else {
           await analyzeWithAI(issue.id);
+          await new Promise(r => setTimeout(r, 500));
         }
       }
     }
