@@ -362,7 +362,7 @@ const SummaryView = (() => {
     const total = expenses.reduce((s, e) => s + e.amount, 0);
     const sorted = expenses.slice().sort((a, b) => a.date.localeCompare(b.date));
     const isAdmin = App.getUserRole() === 'admin';
-    const myEmail = App.getUserEmail();
+    const myEmail = Auth.getUserEmail();
     // 列数：日付・支払先・金額・状態・操作 (5) + 申請者 (showName時+1)
     const colCount = showName ? 6 : 5;
 
@@ -441,7 +441,7 @@ const SummaryView = (() => {
                     <tr>
                       <td colspan="2" class="fw-bold">合計 ${expenses.length}件</td>
                       <td class="text-end fw-bold">¥${total.toLocaleString()}</td>
-                      <td colspan="${colCount - 2}"></td>
+                      <td colspan="${colCount - 3}"></td>
                     </tr>
                   </tfoot>
                 </table>
