@@ -514,7 +514,7 @@ const SummaryView = (() => {
     div.querySelectorAll('.drill-edit-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         modal.hide();
-        SubmitView.queueEdit(btn.dataset.id, _expenses);
+        SubmitView.queueEdit(btn.dataset.id, _expenses, 'summary');
         Router.navigate('submit');
       });
     });
