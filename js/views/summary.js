@@ -372,8 +372,8 @@ const SummaryView = (() => {
       const shortDate = e.date ? e.date.replace(/^\d{4}-0?(\d+)-0?(\d+)$/, '$1/$2') : e.date;
       const status  = e.settlementDate ? '精算済' : e.confirmed ? '登録済' : '申請済';
       const canEdit = isAdmin || (status === '申請済' && e.email === myEmail);
-      // アコーディオンは備考・証票・編集削除ボタンのいずれかがある場合に表示
-      const hasExtra = !!(e.note || imgUrls.length > 0 || canEdit);
+      // アコーディオンは備考・証票・各種ボタンのいずれかがある場合に表示
+      const hasExtra = !!(e.note || imgUrls.length > 0 || canEdit || (isAdmin && status === '申請済'));
 
       const receiptBtns = imgUrls.map((url, j) =>
         `<a href="${_escape(url)}" target="_blank" rel="noopener"
@@ -381,6 +381,8 @@ const SummaryView = (() => {
            <i class="bi bi-image me-1"></i>証票${imgUrls.length > 1 ? j + 1 : ''}
          </a>`
       ).join('');
+      const approveBtn = isAdmin && status === '申請済'
+        ? `<button class="btn btn-outline-success btn-sm py-0 px-2 drill-approve-btn" data-id="${_escape(e.id)}" title="登録済にする" style="font-size:0.75rem;"><i class="bi bi-check-lg me-1"></i>登録済</button>` : '';
       const editBtn = canEdit
         ? `<button class="btn btn-outline-secondary btn-sm py-0 px-1 drill-edit-btn" data-id="${_escape(e.id)}" title="編集"><i class="bi bi-pencil"></i></button>` : '';
       const delBtn  = canEdit
@@ -409,7 +411,7 @@ const SummaryView = (() => {
             <div style="flex:1;font-size:0.78rem;color:#495057;white-space:pre-wrap;word-break:break-all;min-width:0;">
               ${e.note ? `<i class="bi bi-chat-text me-1 text-secondary"></i>${_escape(e.note)}` : ''}
             </div>
-            <div style="display:flex;gap:0.3rem;flex-shrink:0;">${receiptBtns}${editBtn}${delBtn}</div>
+            <div style="display:flex;gap:0.3rem;flex-shrink:0;">${receiptBtns}${approveBtn}${editBtn}${delBtn}</div>
           </div>
         </td>
       </tr>` : ''}`;
@@ -481,6 +483,32 @@ const SummaryView = (() => {
         settleCallback(() => modal.hide());
       });
     }
+
+    // 承認ボタン（申請済→登録済）
+    div.querySelectorAll('.drill-approve-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const ok = await App.confirm('この申請を登録済にしますか？');
+        if (!ok) return;
+        App.showLoading('承認中...');
+        try {
+          await ListView.approveExpense(btn.dataset.id);
+          const e = _expenses.find(x => x.id === btn.dataset.id);
+          if (e) e.confirmed = true;
+          // 行の状態バッジを更新
+          const tr = div.querySelector(`tr[data-expense-id="${btn.dataset.id}"]`);
+          if (tr) {
+            const badge = tr.querySelector('.badge-pending');
+            if (badge) { badge.className = 'badge badge-confirmed rounded-pill px-2'; badge.textContent = '登録済'; }
+          }
+          btn.closest('.drill-detail-row')?.querySelector('.drill-approve-btn')?.remove();
+          App.showToast('登録済にしました', 'success');
+        } catch (err) {
+          App.showToast('承認エラー: ' + err.message, 'danger');
+        } finally {
+          App.hideLoading();
+        }
+      });
+    });
 
     // 編集ボタン
     div.querySelectorAll('.drill-edit-btn').forEach(btn => {

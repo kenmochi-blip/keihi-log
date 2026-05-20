@@ -763,6 +763,16 @@ const ListView = (() => {
     return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
+  // summary.js のドリルダウンから呼び出せる承認関数（UI更新なし）
+  async function approveExpense(id) {
+    const e = _expenses.find(x => x.id === id);
+    if (!e) throw new Error('レコードが見つかりません');
+    const rowNum = await Sheets.findRowById(id);
+    if (rowNum < 0) throw new Error('行が見つかりません');
+    await Sheets.update(`経費一覧!J${rowNum}`, [[true]]);
+    e.confirmed = true;
+  }
+
   // summary.js のドリルダウンから呼び出せる削除関数（UI更新なし）
   async function deleteExpense(id) {
     const e = _expenses.find(x => x.id === id);
@@ -776,5 +786,5 @@ const ListView = (() => {
     _expenses = _expenses.filter(x => x.id !== id);
   }
 
-  return { render, bindEvents, deleteExpense };
+  return { render, bindEvents, approveExpense, deleteExpense };
 })();
