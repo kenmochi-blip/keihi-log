@@ -83,6 +83,13 @@ async function _issueNewLicense(session) {
   const company = businessName || customerName || customerEmail;
   const plan = session.metadata?.plan || 'standard';
 
+  // サンドボックス（テストモード）では顧客宛メールを管理者アドレスに転送
+  const isTestMode = !session.livemode;
+  const emailTo = isTestMode && process.env.ADMIN_NOTIFY_EMAIL
+    ? process.env.ADMIN_NOTIFY_EMAIL
+    : customerEmail;
+  const testPrefix = isTestMode ? '[TEST] ' : '';
+
   // 同一メールアドレスで既存ライセンスがある場合
   const existingKey = await kv.get(`email_to_license:${customerEmail}`);
   if (existingKey) {
@@ -136,10 +143,10 @@ async function _issueNewLicense(session) {
 
   // RESEND_API_KEY が設定されていればメール送信
   if (process.env.RESEND_API_KEY) {
-    await _sendLicenseEmail(customerEmail, customerName || businessName || company, licenseKey, licenseData.expiresAt);
+    await _sendLicenseEmail(emailTo, customerName || businessName || company, licenseKey, licenseData.expiresAt, testPrefix, customerEmail);
     // 管理者通知
     if (process.env.ADMIN_NOTIFY_EMAIL) {
-      await _sendAdminNotifyEmail(customerEmail, customerName, licenseKey, licenseData.expiresAt, businessName);
+      await _sendAdminNotifyEmail(customerEmail, customerName, licenseKey, licenseData.expiresAt, businessName, testPrefix);
     }
   }
 }
@@ -160,21 +167,28 @@ async function _upgradeLicense(key, oldData, session, email, name, plan) {
   await kv.set(`session:${session.id}`, key, { ex: 60 * 60 * 24 * 30 });
   console.log(`License upgraded: ${key} for ${email}`);
 
+  const isTestMode = !session.livemode;
+  const emailTo    = isTestMode && process.env.ADMIN_NOTIFY_EMAIL ? process.env.ADMIN_NOTIFY_EMAIL : email;
+  const testPrefix = isTestMode ? '[TEST] ' : '';
+
   if (process.env.RESEND_API_KEY) {
-    await _sendUpgradeEmail(email, name, key, expiresAtStr);
+    await _sendUpgradeEmail(emailTo, name, key, expiresAtStr, testPrefix, email);
     if (process.env.ADMIN_NOTIFY_EMAIL) {
-      await _sendAdminUpgradeEmail(email, name, key, expiresAtStr);
+      await _sendAdminUpgradeEmail(email, name, key, expiresAtStr, testPrefix);
     }
   }
 }
 
-async function _sendUpgradeEmail(to, name, licenseKey, expiresAt) {
+async function _sendUpgradeEmail(to, name, licenseKey, expiresAt, testPrefix = '', originalEmail = '') {
   const appUrl = process.env.APP_URL || 'https://keihi-log.com/app.html';
+  const testNote = testPrefix
+    ? `<p style="background:#fef3c7;border:1px solid #fde68a;padding:8px 12px;border-radius:6px;font-size:0.85em;">⚠️ テストモード：本来の送信先 ${originalEmail} の代わりに転送</p>` : '';
   const body = {
     from: process.env.RESEND_FROM_EMAIL || 'noreply@' + (process.env.VERCEL_PROJECT_PRODUCTION_URL || 'example.com'),
     to,
-    subject: '【経費ログ】有料プランへのアップグレードが完了しました',
+    subject: `${testPrefix}【経費ログ】有料プランへのアップグレードが完了しました`,
     html: `
+${testNote}
 <p>${name} 様</p>
 <p>この度は経費ログ有料プランへのアップグレードありがとうございます。</p>
 <p>引き続き同じライセンスキーをお使いください。有効期限が更新されました。</p>
@@ -196,13 +210,13 @@ async function _sendUpgradeEmail(to, name, licenseKey, expiresAt) {
   if (!resp.ok) console.error('Resend error:', await resp.text());
 }
 
-async function _sendAdminUpgradeEmail(email, name, licenseKey, expiresAt) {
+async function _sendAdminUpgradeEmail(email, name, licenseKey, expiresAt, testPrefix = '') {
   const body = {
     from: process.env.RESEND_FROM_EMAIL || 'noreply@' + (process.env.VERCEL_PROJECT_PRODUCTION_URL || 'example.com'),
     to: process.env.ADMIN_NOTIFY_EMAIL,
-    subject: `【経費ログ】有料転換 — ${name}`,
+    subject: `${testPrefix}【経費ログ】有料転換 — ${name}`,
     html: `
-<p>手動ライセンスが有料プランにアップグレードされました。</p>
+<p>${testPrefix ? '<strong>⚠️ テストモード</strong><br>' : ''}手動ライセンスが有料プランにアップグレードされました。</p>
 <table style="border-collapse:collapse;font-size:14px;">
   <tr><td style="padding:4px 12px 4px 0;color:#666;">氏名・会社名</td><td>${name}</td></tr>
   <tr><td style="padding:4px 12px 4px 0;color:#666;">メール</td><td>${email}</td></tr>
@@ -219,12 +233,17 @@ async function _sendAdminUpgradeEmail(email, name, licenseKey, expiresAt) {
   if (!resp.ok) console.error('Admin upgrade notify error:', await resp.text());
 }
 
-async function _sendLicenseEmail(to, name, licenseKey, expiresAt) {
+async function _sendLicenseEmail(to, name, licenseKey, expiresAt, testPrefix = '', originalEmail = '') {
+  const testNote = testPrefix
+    ? `<p style="background:#fef3c7;border:1px solid #fde68a;padding:8px 12px;border-radius:6px;font-size:0.85em;">
+        ⚠️ テストモード：本来の送信先 ${originalEmail} の代わりにこのアドレスに転送されています。
+       </p>` : '';
   const body = {
     from: process.env.RESEND_FROM_EMAIL || 'noreply@' + (process.env.VERCEL_PROJECT_PRODUCTION_URL || 'example.com'),
     to,
-    subject: '【経費ログ】ライセンスキーのご案内',
+    subject: `${testPrefix}【経費ログ】ライセンスキーのご案内`,
     html: `
+${testNote}
 <p>${name} 様</p>
 <p>この度は経費ログをご購入いただきありがとうございます。</p>
 <p>以下のライセンスキーをアプリの設定画面に入力してください。</p>
@@ -279,13 +298,13 @@ async function _sendDuplicateLicenseEmail(to, name, licenseKey, expiresAt) {
   if (!resp.ok) console.error('Resend error:', await resp.text());
 }
 
-async function _sendAdminNotifyEmail(customerEmail, customerName, licenseKey, expiresAt, businessName = '') {
+async function _sendAdminNotifyEmail(customerEmail, customerName, licenseKey, expiresAt, businessName = '', testPrefix = '') {
   const body = {
     from: process.env.RESEND_FROM_EMAIL || 'noreply@' + (process.env.VERCEL_PROJECT_PRODUCTION_URL || 'example.com'),
     to: process.env.ADMIN_NOTIFY_EMAIL,
-    subject: `【経費ログ】ライセンス発行通知 — ${businessName || customerName}`,
+    subject: `${testPrefix}【経費ログ】ライセンス発行通知 — ${businessName || customerName}`,
     html: `
-<p>新しいライセンスが発行されました。</p>
+<p>${testPrefix ? '<strong>⚠️ テストモード購入</strong><br>' : ''}新しいライセンスが発行されました。</p>
 <table style="border-collapse:collapse;font-size:14px;">
   <tr><td style="padding:4px 12px 4px 0;color:#666;">氏名</td><td>${customerName || '—'}</td></tr>
   <tr><td style="padding:4px 12px 4px 0;color:#666;">ビジネス名</td><td>${businessName || '—'}</td></tr>
