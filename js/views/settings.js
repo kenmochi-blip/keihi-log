@@ -116,17 +116,29 @@ const SettingsView = (() => {
               <i class="bi bi-box-arrow-up-right me-1"></i>Google AI Studioでキーを取得する
             </a>
           </div>
-          <div class="card border-warning border-opacity-50 p-2 mb-2" style="font-size:0.82rem;line-height:1.6;background:#fffdf0;">
-            <div class="fw-semibold mb-1"><i class="bi bi-shield-check me-1 text-warning"></i>セキュリティ推奨設定（任意）</div>
-            <p class="mb-1">APIキーに利用元ドメインの制限をかけると、万一キーが流出しても悪用を防げます。</p>
-            <ol class="mb-1 ps-3">
-              <li>Google AI Studioでキー一覧を開く</li>
-              <li>作成したキーの「編集」→「APIの制限」を選択</li>
-              <li>「HTTPリファラー（ウェブサイト）」を選び <code>keihi-log.com/*</code> を追加</li>
-            </ol>
-            <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" class="text-warning fw-semibold" style="font-size:0.82rem;">
-              <i class="bi bi-box-arrow-up-right me-1"></i>Google AI Studioでキーを編集する
-            </a>
+          <div class="accordion accordion-flush mb-2" id="geminiSecAccordion">
+            <div class="accordion-item border border-warning border-opacity-50 rounded" style="background:#fffdf0;">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed py-2 px-3 rounded" type="button"
+                  data-bs-toggle="collapse" data-bs-target="#geminiSecBody"
+                  style="background:transparent;font-size:0.82rem;font-weight:600;color:inherit;">
+                  <i class="bi bi-shield-check me-1 text-warning"></i>セキュリティ推奨設定（任意）
+                </button>
+              </h2>
+              <div id="geminiSecBody" class="accordion-collapse collapse">
+                <div class="accordion-body py-2 px-3" style="font-size:0.82rem;line-height:1.6;">
+                  <p class="mb-1">APIキーに利用元ドメインの制限をかけると、万一キーが流出しても悪用を防げます。</p>
+                  <ol class="mb-1 ps-3">
+                    <li>Google Cloud Console で APIキーを開く</li>
+                    <li>「APIの制限」→「HTTPリファラー（ウェブサイト）」を選択</li>
+                    <li><code>keihi-log.com/*</code> を追加して保存</li>
+                  </ol>
+                  <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener" class="text-warning fw-semibold" style="font-size:0.82rem;">
+                    <i class="bi bi-box-arrow-up-right me-1"></i>Google Cloud Consoleでキーを編集する
+                  </a>
+                </div>
+              </div>
+            </div>
           </div>
           <div class="input-group mb-1">
             <input type="password" class="form-control form-control-sm" id="inputGeminiKey" placeholder="AIzaSy...">
