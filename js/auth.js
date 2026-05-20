@@ -81,13 +81,16 @@ const Auth = (() => {
 
   // ── ログイン開始 ────────────────────────────────────────
   /** Google OAuth ページにリダイレクト（ポップアップなし） */
-  async function initiateLogin(returnUrl) {
+  async function initiateLogin(returnUrl, forceConsent = false) {
     const verifier  = await _generateVerifier();
     const challenge = await _generateChallenge(verifier);
     const state     = btoa(encodeURIComponent(returnUrl || '/app'));
 
     localStorage.setItem('keihi_pkce_verifier', verifier);
     localStorage.setItem('keihi_oauth_state',   state);
+
+    // forceConsent=true のとき consent を要求してリフレッシュトークンを確実に取得する
+    const prompt = forceConsent ? 'consent' : 'select_account';
 
     const params = new URLSearchParams({
       client_id:             CLIENT_ID,
@@ -98,7 +101,7 @@ const Auth = (() => {
       code_challenge_method: 'S256',
       state,
       access_type:           'offline',
-      prompt:                'select_account',
+      prompt,
     });
     location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
   }
@@ -179,9 +182,25 @@ const Auth = (() => {
     }
   }
 
+  /** リフレッシュトークンがない場合、consent付き再ログインに自動リダイレクト */
+  function _forceRelogin() {
+    _accessToken = null;
+    _userInfo    = null;
+    _tokenExpiry = 0;
+    localStorage.removeItem(SESSION_KEY);
+    localStorage.setItem('keihi_force_consent', '1');
+    const ret = encodeURIComponent(location.pathname + location.search);
+    location.href = `/login?return=${ret}`;
+  }
+
   async function _refreshToken() {
     const saved = _loadSession();
-    if (!saved?.refresh_token) throw new Error('no_refresh_token');
+    if (!saved?.refresh_token) {
+      // リフレッシュトークンがない（初回ログイン時にGoogleが返さなかった等）
+      // → consent付きで再ログインし、確実にリフレッシュトークンを取得する
+      _forceRelogin();
+      throw new Error('no_refresh_token');
+    }
 
     const ctrl = new AbortController();
     const tid  = setTimeout(() => ctrl.abort(), 8000);
@@ -331,9 +350,16 @@ async function initLogin() {
   } catch (_) {}
 
   // ログインボタンを表示
-  _showLoginBtn(null);
+  // keihi_force_consent が立っている場合は consent でリフレッシュトークンを強制取得
+  const forceConsent = localStorage.getItem('keihi_force_consent') === '1';
+  if (forceConsent) {
+    localStorage.removeItem('keihi_force_consent');
+    _showLoginBtn('セッションの有効期限が切れました。もう一度ログインしてください。');
+  } else {
+    _showLoginBtn(null);
+  }
   document.getElementById('signInBtn').addEventListener('click', () => {
     document.getElementById('loginError').classList.add('d-none');
-    Auth.initiateLogin(_returnUrl);
+    Auth.initiateLogin(_returnUrl, forceConsent);
   });
 }
