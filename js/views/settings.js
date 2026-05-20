@@ -10,7 +10,7 @@ const SettingsView = (() => {
   function render() {
     const isDemo = typeof Demo !== 'undefined' && Demo.isActive();
     const ssId   = isDemo ? Demo.SHEET_ID : (localStorage.getItem('keihi_sheet_id') || '');
-    const licKey = localStorage.getItem('keihi_license_key') || '';
+    const licKey = isDemo ? 'KL-XXXXXXXXXXXXXXXXXXXX（デモ）' : (localStorage.getItem('keihi_license_key') || '');
     const email  = Auth.getUserEmail();
     const isAdmin = App.isAdmin();
 
