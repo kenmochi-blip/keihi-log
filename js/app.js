@@ -28,6 +28,9 @@ const App = (() => {
       return;
     }
 
+    // ?setup= パラメータがあればライセンスキーをlocalStorageに自動入力
+    await _resolveSetupParam();
+
     // URLパスからエイリアス/シートIDを解決してlocalStorageに反映
     await _resolvePathAlias();
 
@@ -384,6 +387,27 @@ const App = (() => {
     }
     container.appendChild(div);
     setTimeout(() => { div.style.opacity = '0'; div.style.transition = 'opacity 0.3s'; setTimeout(() => div.remove(), 300); }, duration);
+  }
+
+  async function _resolveSetupParam() {
+    const setupCode = new URLSearchParams(location.search).get('setup');
+    if (!setupCode) return;
+    try {
+      const base = (window.APP_CONFIG && window.APP_CONFIG.apiBase) || '';
+      const r = await fetch(`${base}/api/alias?setup=${encodeURIComponent(setupCode)}`);
+      if (r.ok) {
+        const { licenseKey } = await r.json();
+        if (licenseKey && licenseKey.startsWith('KL-')) {
+          localStorage.setItem('keihi_license_key', licenseKey);
+        }
+      }
+    } catch (_) {}
+    // URLからsetupパラメータを除去
+    try {
+      const url = new URL(location.href);
+      url.searchParams.delete('setup');
+      history.replaceState(null, '', url.pathname + (url.searchParams.size ? '?' + url.searchParams : ''));
+    } catch (_) {}
   }
 
   async function _resolvePathAlias() {

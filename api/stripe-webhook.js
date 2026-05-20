@@ -152,14 +152,18 @@ async function _issueNewLicense(session) {
   // メールアドレスからキーを逆引きできるインデックスも保存
   await kv.set(`email_to_license:${customerEmail}`, licenseKey);
 
+  // セットアップリンク用ランダムコードを生成・保存
+  const setupCode = crypto.randomBytes(5).toString('hex'); // 10文字の16進数
+  await kv.set(`lic_ref:${setupCode}`, licenseKey);
+
   console.log(`License issued: ${licenseKey} for ${customerEmail}`);
 
   // RESEND_API_KEY が設定されていればメール送信
   if (process.env.RESEND_API_KEY) {
-    await _sendLicenseEmail(customerEmail, customerName || businessName || company, licenseKey, licenseData.expiresAt);
+    await _sendLicenseEmail(customerEmail, customerName || businessName || company, licenseKey, licenseData.expiresAt, plan, setupCode);
     // 管理者通知
     if (process.env.ADMIN_NOTIFY_EMAIL) {
-      await _sendAdminNotifyEmail(customerEmail, customerName, licenseKey, licenseData.expiresAt, businessName);
+      await _sendAdminNotifyEmail(customerEmail, customerName, licenseKey, licenseData.expiresAt, businessName, plan);
     }
   }
 }
@@ -240,23 +244,49 @@ async function _sendAdminUpgradeEmail(email, name, licenseKey, expiresAt) {
   if (!resp.ok) console.error('Admin upgrade notify error:', await resp.text());
 }
 
-async function _sendLicenseEmail(to, name, licenseKey, expiresAt) {
+async function _sendLicenseEmail(to, name, licenseKey, expiresAt, plan = 'solo', setupCode = '') {
+  const planLabel = plan === 'team' ? 'チームプラン' : 'ソロプラン';
+  const setupUrl = setupCode
+    ? `https://keihi-log.com/app.html?setup=${setupCode}`
+    : 'https://keihi-log.com/app.html';
   const body = {
     from: process.env.RESEND_FROM_EMAIL || 'noreply@' + (process.env.VERCEL_PROJECT_PRODUCTION_URL || 'example.com'),
     to,
-    subject: `【経費ログ】ライセンスキーのご案内`,
+    subject: `【経費ログ】ご利用開始のご案内`,
     html: `
 <p>${name} 様</p>
-<p>この度は経費ログをご購入いただきありがとうございます。</p>
-<p>以下のライセンスキーをアプリの設定画面に入力してください。</p>
-<p style="font-size:1.2em;font-family:monospace;background:#f5f5f5;padding:12px 16px;border-radius:6px;letter-spacing:1px;">
+
+<p>この度は経費ログ（${planLabel})にお申し込みいただきありがとうございます。</p>
+<p>以下のリンクからアプリを開くと、ライセンスキーが自動的に入力された状態で設定を始められます。</p>
+
+<p style="margin:1.5rem 0;">
+  <a href="${setupUrl}" style="display:inline-block;background:#0d6efd;color:#fff;text-decoration:none;padding:12px 28px;border-radius:6px;font-size:1rem;font-weight:600;">経費ログを開いてセットアップする</a>
+</p>
+
+<p style="color:#555;font-size:0.9em;">ボタンが開かない場合は以下のURLをコピーしてブラウザに貼り付けてください：<br>
+<a href="${setupUrl}">${setupUrl}</a></p>
+
+<hr style="border:none;border-top:1px solid #eee;margin:1.5rem 0;">
+
+<p><strong>ライセンスキー（手動入力用）</strong></p>
+<p style="font-size:1.1em;font-family:monospace;background:#f5f5f5;padding:12px 16px;border-radius:6px;letter-spacing:1px;">
   <strong>${licenseKey}</strong>
 </p>
-<ul>
+<ul style="color:#555;font-size:0.9em;">
+  <li>プラン：${planLabel}</li>
   <li>有効期限：${expiresAt}</li>
-  <li>アプリURL：<a href="https://keihi-log.com/app.html">https://keihi-log.com/app.html</a></li>
 </ul>
-<p>ご不明な点はお気軽にお問い合わせください。</p>
+
+<hr style="border:none;border-top:1px solid #eee;margin:1.5rem 0;">
+
+<p><strong>はじめかた（かんたん3ステップ）</strong></p>
+<ol style="line-height:2;">
+  <li>上のリンクからアプリを開き、Googleアカウントでログイン</li>
+  <li>設定画面で「スプレッドシートを新規作成」→ Driveに経費管理シートが自動作成されます</li>
+  <li>チームでご利用の場合は、作成されたシートのURLをメンバーに共有してください</li>
+</ol>
+
+<p style="color:#555;font-size:0.9em;">ご不明な点は <a href="mailto:support@keihi-log.com">support@keihi-log.com</a> までお気軽にお問い合わせください。</p>
     `.trim(),
   };
   const resp = await fetch('https://api.resend.com/emails', {
@@ -309,7 +339,8 @@ async function _sendDuplicateLicenseEmail(to, name, licenseKey, expiresAt) {
   if (!resp.ok) console.error('Resend error:', await resp.text());
 }
 
-async function _sendAdminNotifyEmail(customerEmail, customerName, licenseKey, expiresAt, businessName = '') {
+async function _sendAdminNotifyEmail(customerEmail, customerName, licenseKey, expiresAt, businessName = '', plan = 'solo') {
+  const planLabel = plan === 'team' ? 'チームプラン' : 'ソロプラン';
   const body = {
     from: process.env.RESEND_FROM_EMAIL || 'noreply@' + (process.env.VERCEL_PROJECT_PRODUCTION_URL || 'example.com'),
     to: process.env.ADMIN_NOTIFY_EMAIL,
@@ -321,6 +352,7 @@ async function _sendAdminNotifyEmail(customerEmail, customerName, licenseKey, ex
   <tr><td style="padding:4px 12px 4px 0;color:#666;">ビジネス名</td><td>${businessName || '—'}</td></tr>
   <tr><td style="padding:4px 12px 4px 0;color:#666;">メールアドレス</td><td>${customerEmail}</td></tr>
   <tr><td style="padding:4px 12px 4px 0;color:#666;">ライセンスキー</td><td style="font-family:monospace;">${licenseKey}</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;color:#666;">プラン</td><td>${planLabel}</td></tr>
   <tr><td style="padding:4px 12px 4px 0;color:#666;">有効期限</td><td>${expiresAt}</td></tr>
 </table>
     `.trim(),

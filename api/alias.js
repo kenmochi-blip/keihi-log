@@ -15,7 +15,16 @@ export default async function handler(req, res) {
 
   // GET: エイリアス解決
   if (req.method === 'GET') {
-    const { code } = req.query;
+    const { code, setup } = req.query;
+
+    // セットアップリンク解決（ライセンスキー自動入力用）
+    if (setup) {
+      if (setup.length < 6) return res.status(400).json({ error: 'invalid_code' });
+      const licenseKey = await kv.get(`lic_ref:${setup}`).catch(() => null);
+      if (!licenseKey) return res.status(404).json({ error: 'not_found' });
+      return res.status(200).json({ licenseKey });
+    }
+
     if (!code || code.length < 6) {
       return res.status(400).json({ error: 'invalid_code' });
     }
