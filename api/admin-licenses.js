@@ -357,7 +357,7 @@ ${logText}
 
     if (process.env.RESEND_API_KEY) {
       const from   = process.env.RESEND_FROM_EMAIL || 'noreply@' + (process.env.VERCEL_PROJECT_PRODUCTION_URL || 'example.com');
-      const appUrl = 'https://keihi-log.com/app.html';
+      const appUrl = 'https://keihi-log.com/app';
 
       await _sendEmail(from, email, '【経費ログ】ライセンスキーのご案内', `
 <p>${licenseData.company} 様</p>
