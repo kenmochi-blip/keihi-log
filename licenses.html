@@ -417,7 +417,6 @@
       const section = document.getElementById('sentrySection');
       section.classList.remove('d-none');
 
-      const BASE = 'https://us.sentry.io/api/0/organizations/smartsmooth';
       const PROJECT = '4511415628464128';
       const headers = { Authorization: `Bearer ${token}` };
 
@@ -430,12 +429,34 @@
       document.getElementById('sentryUpdatedAt').textContent = '';
 
       try {
+        // Org slug を自動検出（トークンに紐づく組織を取得）
+        let orgSlug = localStorage.getItem('keihi_sentry_org_slug') || '';
+        if (!orgSlug) {
+          const orgResp = await fetch('https://us.sentry.io/api/0/organizations/', { headers });
+          if (orgResp.status === 401) throw new Error('Sentry トークンが無効です（401 Unauthorized）');
+          if (!orgResp.ok) {
+            const errBody = await orgResp.json().catch(() => ({}));
+            throw new Error(`Sentry 組織取得エラー ${orgResp.status}: ${errBody.detail || JSON.stringify(errBody)}`);
+          }
+          const orgs = await orgResp.json();
+          if (!Array.isArray(orgs) || orgs.length === 0) throw new Error('Sentry 組織が見つかりません。トークンの権限（org:read）を確認してください。');
+          orgSlug = orgs[0].slug;
+          localStorage.setItem('keihi_sentry_org_slug', orgSlug);
+        }
+
+        const BASE = `https://us.sentry.io/api/0/organizations/${orgSlug}`;
+
         const [unresolvedResp, resolvedResp] = await Promise.all([
           fetch(`${BASE}/issues/?project=${PROJECT}&limit=25&query=is:unresolved`, { headers }),
           fetch(`${BASE}/issues/?project=${PROJECT}&limit=100&query=is:resolved&statsPeriod=30d`, { headers }),
         ]);
 
-        if (!unresolvedResp.ok) throw new Error(`Sentry API ${unresolvedResp.status}`);
+        if (!unresolvedResp.ok) {
+          const errBody = await unresolvedResp.json().catch(() => ({}));
+          // org slug キャッシュをクリアして次回再取得
+          if (unresolvedResp.status === 400 || unresolvedResp.status === 404) localStorage.removeItem('keihi_sentry_org_slug');
+          throw new Error(`Sentry API ${unresolvedResp.status}: ${errBody.detail || JSON.stringify(errBody)}`);
+        }
 
         const unresolved = await unresolvedResp.json();
         const resolved   = resolvedResp.ok ? await resolvedResp.json() : [];
