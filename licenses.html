@@ -449,15 +449,19 @@
 
     async function analyzeWithAI(issueId) {
       _analyzing[issueId] = true;
+      renderPriority(issueId);
       renderNotes(issueId);
 
       const issue = _issueData[issueId];
       try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 28000);
         const resp = await fetch(
           `/api/admin-licenses?secret=${encodeURIComponent(_secret)}&sentry_analyze=1`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            signal: controller.signal,
             body: JSON.stringify({
               issueId,
               title:      issue?.title || '',
@@ -470,16 +474,17 @@
             }),
           }
         );
+        clearTimeout(timer);
         const data = await resp.json();
         if (!resp.ok) throw new Error(data.error || 'AI解析に失敗しました');
         _notesCache[issueId] = data.notes || [];
         const aiNote = (data.notes || []).find(n => n.ai);
         if (aiNote) _priorityCache[issueId] = _extractPriority(aiNote.text);
-        renderPriority(issueId);
       } catch (err) {
-        console.error('AI解析エラー:', err.message);
+        console.error('AI解析エラー:', issueId, err.message);
       } finally {
         _analyzing[issueId] = false;
+        renderPriority(issueId);
         renderNotes(issueId);
         updateNotesBtn(issueId);
       }
