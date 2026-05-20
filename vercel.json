@@ -1,7 +1,6 @@
 {
   "redirects": [
-    { "source": "/app.html", "destination": "/app", "permanent": false },
-    { "source": "https://www.keihi-log.com/:path*", "destination": "https://keihi-log.com/:path*", "permanent": true }
+    { "source": "/app.html", "destination": "/app", "permanent": false }
   ],
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api/:path*" },
