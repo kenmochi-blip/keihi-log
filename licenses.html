@@ -56,7 +56,6 @@
     .tag-manual  { background: #f1f5f9; color: #64748b; border: 1px solid var(--border); }
     .tag-solo    { background: #f1f5f9; color: #475569; }
     .tag-team    { background: #ede9fe; color: #6d28d9; }
-    .tag-std     { background: #f1f5f9; color: #64748b; }
     .status-dot  { display: inline-flex; align-items: center; gap: 5px; font-size: 0.75rem; font-weight: 500; }
     .status-dot::before { content:''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
     .status-dot.active   { color: #16a34a; } .status-dot.active::before   { background: #16a34a; }
@@ -372,7 +371,6 @@
             <input type="email" class="filter-input" id="issueEmail" style="flex:2;min-width:180px;" placeholder="メールアドレス *">
             <input type="text" class="filter-input" id="issueCompany" style="flex:2;min-width:160px;" placeholder="会社名・氏名（任意）">
             <select class="filter-select" id="issuePlan" style="flex:1;min-width:100px;">
-              <option value="standard">標準</option>
               <option value="solo">ソロ</option>
               <option value="team">チーム</option>
             </select>
@@ -1046,7 +1044,7 @@
     function updateMonthly() {
       const ym = document.getElementById('monthPicker').value;
       if (!ym) return;
-      const planLabel = { solo: 'ソロ', team: 'チーム', standard: '標準' };
+      const planLabel = { solo: 'ソロ', team: 'チーム' };
       const newRegs  = _all.filter(l => (l.createdAt || '').startsWith(ym));
       const paid     = newRegs.filter(l => !!l.stripeSessionId);
       const manual   = newRegs.filter(l => !l.stripeSessionId);
@@ -1061,9 +1059,9 @@
       const tbody  = document.getElementById('mNewTable');
       if (newRegs.length > 0) {
         tbody.innerHTML = newRegs.map(l => {
-          const plan = l.plan || 'standard';
+          const plan = l.plan === 'team' ? 'team' : 'solo';
           const kind = l.stripeSessionId ? '<span class="tag tag-stripe">有料</span>' : '<span class="tag tag-manual">手動</span>';
-          return `<tr><td style="color:var(--text-sub);">${(l.createdAt||'').split('T')[0]}</td><td>${_customerCell(l,true)}</td><td><span class="tag tag-${plan==='team'?'team':plan==='solo'?'solo':'std'}">${planLabel[plan]||plan}</span></td><td>${kind}</td></tr>`;
+          return `<tr><td style="color:var(--text-sub);">${(l.createdAt||'').split('T')[0]}</td><td>${_customerCell(l,true)}</td><td><span class="tag tag-${plan}">${planLabel[plan]}</span></td><td>${kind}</td></tr>`;
         }).join('');
         listEl.classList.remove('d-none');
       } else { listEl.classList.add('d-none'); }
@@ -1092,18 +1090,17 @@
       });
       document.getElementById('filteredCount').textContent = (text || status) ? `${filtered.length} / ${_all.length}件` : `${_all.length}件`;
       const statusLabel = { active: '有効', expired: '期限切れ', suspended: '停止中' };
-      const planLabel   = { solo: 'ソロ', team: 'チーム', standard: '標準' };
+      const planLabel   = { solo: 'ソロ', team: 'チーム' };
       const tbody = document.getElementById('licenseTable');
       tbody.innerHTML = filtered.map(l => {
         const st = getStatus(l);
-        const plan = l.plan || 'standard';
+        const plan = l.plan === 'team' ? 'team' : 'solo';
         const usageThis = l.usageThis ?? 0, usageLast = l.usageLast ?? 0;
         const isStripe = !!l.stripeSessionId;
-        const planClass = plan === 'team' ? 'team' : plan === 'solo' ? 'solo' : 'std';
         return `<tr data-key="${esc(l.key)}">
           <td class="ps-first" style="font-size:0.78rem;color:var(--text-sub);">${l.createdAt ? l.createdAt.split('T')[0] : '—'}</td>
           <td>${_customerCell(l)}${isStripe ? '<span class="tag tag-stripe" style="margin-top:3px;display:inline-block;">Stripe</span>' : '<span class="tag tag-manual" style="margin-top:3px;display:inline-block;">手動</span>'}</td>
-          <td><span class="tag tag-${planClass}">${planLabel[plan]||plan}</span></td>
+          <td><span class="tag tag-${plan}">${planLabel[plan]}</span></td>
           <td style="font-size:0.78rem;color:var(--text-sub);">${l.expiresAt||'—'}</td>
           <td class="usage-num ${usageThis > 0 ? 'active' : 'zero'}">${usageThis || '—'}</td>
           <td class="usage-num zero">${usageLast || '—'}</td>
@@ -1122,10 +1119,10 @@
     function exportCsv() {
       const header = ['発行日','氏名','ビジネス名','メール','ライセンスキー','プラン','有効期限','今月申請数','先月申請数','ステータス'];
       const statusLabel = { active: '有効', expired: '期限切れ', suspended: '停止中' };
-      const planLabel   = { solo: 'ソロ', team: 'チーム', standard: '標準' };
+      const planLabel   = { solo: 'ソロ', team: 'チーム' };
       const rows = _all.map(l => [
         l.createdAt?.split('T')[0]||'', l.customerName||l.company||'', l.businessName||'',
-        l.email||'', l.key, planLabel[l.plan]||l.plan||'', l.expiresAt||'',
+        l.email||'', l.key, planLabel[l.plan === 'team' ? 'team' : 'solo'], l.expiresAt||'',
         l.usageThis??'', l.usageLast??'', statusLabel[getStatus(l)]
       ]);
       const csv = [header,...rows].map(r => r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
