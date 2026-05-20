@@ -16,22 +16,15 @@
       --text-sub: #64748b;
       --text-mute: #94a3b8;
       --shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
-      --shadow-md: 0 4px 12px rgba(0,0,0,.06);
     }
     * { box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f4f8; color: var(--text); font-size: 0.875rem; }
-
-    /* Nav */
     .top-nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 1.5rem; height: 52px; display: flex; align-items: center; gap: 0.5rem; box-shadow: var(--shadow); }
     .top-nav .brand { font-weight: 700; font-size: 0.95rem; color: var(--accent); display: flex; align-items: center; gap: 0.4rem; }
-
-    /* Cards */
     .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); }
     .panel-header { padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 0.5rem; }
     .panel-header .title { font-weight: 600; font-size: 0.82rem; color: var(--text-sub); letter-spacing: 0.02em; }
     .panel-body { padding: 1.25rem; }
-
-    /* KPI */
     .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; }
     .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.25rem; box-shadow: var(--shadow); }
     .kpi .value { font-size: 1.9rem; font-weight: 700; line-height: 1; }
@@ -40,8 +33,6 @@
     .kpi.c-green .value { color: #16a34a; }
     .kpi.c-amber .value { color: #d97706; }
     .kpi.c-red   .value { color: #dc2626; }
-
-    /* Table */
     .data-table { width: 100%; border-collapse: collapse; }
     .data-table thead th { padding: 0.55rem 0.75rem; font-size: 0.72rem; font-weight: 600; color: var(--text-mute); text-transform: uppercase; letter-spacing: 0.06em; background: var(--surface-sub); border-bottom: 1px solid var(--border); white-space: nowrap; }
     .data-table tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
@@ -50,8 +41,6 @@
     .data-table td { padding: 0.6rem 0.75rem; vertical-align: middle; }
     .data-table .ps-first { padding-left: 1.25rem; }
     .data-table .pe-last  { padding-right: 1.25rem; }
-
-    /* Customer cell */
     .customer-name { font-weight: 500; font-size: 0.82rem; color: var(--text); }
     .customer-biz  { font-size: 0.72rem; color: var(--text-sub); margin-top: 1px; }
     .email-btn { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 4px; border: 1px solid var(--border); background: var(--surface); color: var(--text-mute); cursor: pointer; transition: all 0.15s; position: relative; margin-left: 2px; }
@@ -59,13 +48,9 @@
     .email-tooltip { position: absolute; left: 26px; top: 50%; transform: translateY(-50%); background: #1e293b; color: #fff; font-size: 0.7rem; white-space: nowrap; padding: 3px 8px; border-radius: 4px; pointer-events: none; opacity: 0; transition: opacity 0.15s; z-index: 100; }
     .email-btn:hover .email-tooltip { opacity: 1; }
     .email-copied { background: #16a34a !important; border-color: #16a34a !important; color: #fff !important; }
-
-    /* Key */
     .key-chip { font-family: 'Menlo','Consolas',monospace; font-size: 0.69rem; color: var(--text-sub); background: var(--surface-sub); border: 1px solid var(--border); padding: 2px 7px; border-radius: 4px; letter-spacing: 0.03em; cursor: pointer; transition: background 0.15s; }
     .key-chip:hover { background: #e8ecf0; }
     .key-chip.copied { background: #dcfce7; border-color: #86efac; color: #166534; }
-
-    /* Badges */
     .tag { display: inline-block; font-size: 0.65rem; font-weight: 600; padding: 2px 7px; border-radius: 100px; }
     .tag-stripe  { background: #dbeafe; color: #1d4ed8; }
     .tag-manual  { background: #f1f5f9; color: #64748b; border: 1px solid var(--border); }
@@ -77,18 +62,12 @@
     .status-dot.active   { color: #16a34a; } .status-dot.active::before   { background: #16a34a; }
     .status-dot.expired  { color: #d97706; } .status-dot.expired::before  { background: #d97706; }
     .status-dot.suspended{ color: #dc2626; } .status-dot.suspended::before{ background: #dc2626; }
-
-    /* Action buttons */
     .action-btn { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 5px; border: 1px solid var(--border); background: transparent; color: var(--text-mute); cursor: pointer; transition: all 0.15s; font-size: 0.8rem; }
     .action-btn:hover.upgrade { background: #fef3c7; border-color: #fbbf24; color: #92400e; }
     .action-btn:hover.delete  { background: #fee2e2; border-color: #fca5a5; color: #991b1b; }
-
-    /* Mini stats */
     .mini-stat { background: var(--surface-sub); border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem 0.75rem; text-align: center; }
     .mini-stat .v { font-size: 1.3rem; font-weight: 700; line-height: 1; }
     .mini-stat .l { font-size: 0.68rem; color: var(--text-mute); margin-top: 3px; }
-
-    /* Filter bar */
     .filter-bar { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
     .filter-input { border: 1px solid var(--border); border-radius: 6px; padding: 0.35rem 0.75rem; font-size: 0.8rem; outline: none; background: var(--surface-sub); transition: border 0.15s, background 0.15s; width: 200px; }
     .filter-input:focus { border-color: var(--accent); background: #fff; }
@@ -98,19 +77,14 @@
     .btn-accent { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.35rem 0.9rem; border: none; border-radius: 6px; background: var(--accent); font-size: 0.8rem; color: #fff; cursor: pointer; font-weight: 500; transition: background 0.15s; }
     .btn-accent:hover { background: #1d4ed8; }
     .btn-success-solid { background: #16a34a; } .btn-success-solid:hover { background: #15803d; }
-
-    /* Month summary table */
     .month-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
     .month-table th { padding: 0.4rem 0.6rem; color: var(--text-mute); font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); }
     .month-table td { padding: 0.45rem 0.6rem; border-bottom: 1px solid var(--border); }
     .month-table tr:last-child td { border-bottom: none; }
-
-    /* Usage numbers */
     .usage-num { font-size: 0.8rem; font-variant-numeric: tabular-nums; text-align: right; }
     .usage-num.active { font-weight: 600; color: var(--text); }
     .usage-num.zero   { color: var(--text-mute); }
-
-    /* Sentry */
+    /* Sentry KPI */
     .sentry-kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-bottom: 1rem; }
     .sentry-kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 0.85rem 1.1rem; box-shadow: var(--shadow); }
     .sentry-kpi .sv { font-size: 1.6rem; font-weight: 700; line-height: 1; }
@@ -123,26 +97,31 @@
     .lvl-error   { background:#fee2e2;color:#991b1b;font-size:0.6rem;font-weight:700;padding:2px 6px;border-radius:4px; }
     .lvl-warning { background:#fef3c7;color:#92400e;font-size:0.6rem;font-weight:700;padding:2px 6px;border-radius:4px; }
     .lvl-info    { background:#dbeafe;color:#1d4ed8;font-size:0.6rem;font-weight:700;padding:2px 6px;border-radius:4px; }
-
-    /* Sentry notes */
+    /* Notes */
     .notes-btn { position: relative; }
     .notes-btn.has-notes { border-color: var(--accent); color: var(--accent); background: #eff6ff; }
     .notes-btn.open { background: var(--accent); border-color: var(--accent); color: #fff; }
     .notes-count { position: absolute; top: -5px; right: -5px; background: var(--accent); color: #fff; font-size: 0.55rem; font-weight: 700; min-width: 14px; height: 14px; border-radius: 7px; display: flex; align-items: center; justify-content: center; padding: 0 3px; }
     .notes-row td { padding: 0 !important; background: #f8fafc; }
     .notes-panel { padding: 0.85rem 1.25rem; border-top: 1px dashed var(--border); }
-    .note-item { display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.5rem 0; border-bottom: 1px solid var(--border); }
+    /* Note items */
+    .note-item { display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.6rem 0; border-bottom: 1px solid var(--border); }
     .note-item:last-child { border-bottom: none; }
-    .note-body { flex: 1; }
-    .note-text { font-size: 0.82rem; color: var(--text); white-space: pre-wrap; line-height: 1.5; }
-    .note-meta { font-size: 0.7rem; color: var(--text-mute); margin-top: 3px; }
-    .note-del { border: none; background: none; color: var(--text-mute); cursor: pointer; padding: 3px 5px; border-radius: 4px; font-size: 0.75rem; line-height: 1; flex-shrink: 0; margin-top: 1px; }
+    .note-item.ai-note { background: #fefce8; margin: 0 -1.25rem; padding: 0.6rem 1.25rem; border-left: 3px solid #eab308; }
+    .note-item.ai-note:last-child { border-bottom: none; }
+    .note-body { flex: 1; min-width: 0; }
+    .note-text { font-size: 0.82rem; color: var(--text); white-space: pre-wrap; line-height: 1.6; }
+    .note-meta { font-size: 0.7rem; color: var(--text-mute); margin-top: 4px; display: flex; align-items: center; gap: 0.4rem; }
+    .ai-badge { background: #eab308; color: #fff; font-size: 0.6rem; font-weight: 700; padding: 1px 5px; border-radius: 3px; }
+    .note-del { border: none; background: none; color: var(--text-mute); cursor: pointer; padding: 3px 5px; border-radius: 4px; font-size: 0.75rem; line-height: 1; flex-shrink: 0; }
     .note-del:hover { background: #fee2e2; color: #991b1b; }
-    .note-input-row { display: flex; gap: 0.5rem; align-items: flex-end; margin-top: 0.75rem; }
+    /* Note input */
+    .note-input-row { display: flex; gap: 0.5rem; align-items: flex-end; margin-top: 0.75rem; border-top: 1px solid var(--border); padding-top: 0.75rem; }
     .note-textarea { flex: 1; border: 1px solid var(--border); border-radius: 6px; padding: 0.4rem 0.6rem; font-size: 0.8rem; resize: vertical; min-height: 52px; outline: none; font-family: inherit; background: var(--surface); transition: border 0.15s; }
     .note-textarea:focus { border-color: var(--accent); }
-
-    /* Responsive */
+    .btn-ai { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.35rem 0.75rem; border: 1px solid #eab308; border-radius: 6px; background: #fefce8; font-size: 0.78rem; color: #92400e; cursor: pointer; font-weight: 500; transition: all 0.15s; white-space: nowrap; }
+    .btn-ai:hover:not(:disabled) { background: #fef08a; border-color: #ca8a04; }
+    .btn-ai:disabled { opacity: 0.6; cursor: not-allowed; }
     @media (max-width: 768px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } .sentry-kpi-grid { grid-template-columns: repeat(2, 1fr); } }
   </style>
 </head>
@@ -155,11 +134,10 @@
 
   <div style="max-width:1280px;margin:0 auto;padding:1.5rem 1.25rem;">
 
-    <!-- 認証 -->
     <div id="authArea" class="panel" style="max-width:440px;">
       <div class="panel-body">
         <p style="font-size:0.8rem;color:var(--text-sub);margin-bottom:0.75rem;">管理シークレットを入力してください</p>
-        <div style="display:flex;gap:0.5rem;margin-bottom:0.5rem;">
+        <div style="display:flex;gap:0.5rem;">
           <input type="password" id="inputSecret" class="filter-input" style="width:auto;flex:1;" placeholder="管理シークレット">
           <button class="btn-accent" id="btnLoad"><i class="bi bi-unlock"></i>読み込む</button>
         </div>
@@ -168,27 +146,14 @@
 
     <div id="summary" class="d-none">
 
-      <!-- KPI -->
       <div class="kpi-grid mb-4">
-        <div class="kpi c-blue">
-          <div class="value" id="statTotal">—</div>
-          <div class="label">総発行数</div>
-        </div>
-        <div class="kpi c-green">
-          <div class="value" id="statActive">—</div>
-          <div class="label">有効</div>
-        </div>
-        <div class="kpi c-amber">
-          <div class="value" id="statExpired">—</div>
-          <div class="label">期限切れ</div>
-        </div>
-        <div class="kpi c-red">
-          <div class="value" id="statSuspended">—</div>
-          <div class="label">停止中</div>
-        </div>
+        <div class="kpi c-blue"><div class="value" id="statTotal">—</div><div class="label">総発行数</div></div>
+        <div class="kpi c-green"><div class="value" id="statActive">—</div><div class="label">有効</div></div>
+        <div class="kpi c-amber"><div class="value" id="statExpired">—</div><div class="label">期限切れ</div></div>
+        <div class="kpi c-red"><div class="value" id="statSuspended">—</div><div class="label">停止中</div></div>
       </div>
 
-      <!-- Sentry モニタリング -->
+      <!-- Sentry -->
       <div id="sentrySection" class="d-none" style="margin-bottom:1rem;">
         <div class="panel">
           <div class="panel-header" style="justify-content:space-between;">
@@ -203,22 +168,10 @@
           </div>
           <div class="panel-body">
             <div class="sentry-kpi-grid">
-              <div class="sentry-kpi c-red">
-                <div class="sv" id="sErrorTotal">—</div>
-                <div class="sl">未解決イシュー</div>
-              </div>
-              <div class="sentry-kpi c-amber">
-                <div class="sv" id="sErrorToday">—</div>
-                <div class="sl">今日の発生件数</div>
-              </div>
-              <div class="sentry-kpi c-mute">
-                <div class="sv" id="sErrorUsers">—</div>
-                <div class="sl">影響ユーザー数</div>
-              </div>
-              <div class="sentry-kpi c-green">
-                <div class="sv" id="sErrorResolved">—</div>
-                <div class="sl">解決済み（30日）</div>
-              </div>
+              <div class="sentry-kpi c-red"><div class="sv" id="sErrorTotal">—</div><div class="sl">未解決イシュー</div></div>
+              <div class="sentry-kpi c-amber"><div class="sv" id="sErrorToday">—</div><div class="sl">今日の発生件数</div></div>
+              <div class="sentry-kpi c-mute"><div class="sv" id="sErrorUsers">—</div><div class="sl">影響ユーザー数</div></div>
+              <div class="sentry-kpi c-green"><div class="sv" id="sErrorResolved">—</div><div class="sl">解決済み（30日）</div></div>
             </div>
             <div style="overflow-x:auto;">
               <table class="data-table" id="sentryTable">
@@ -243,8 +196,6 @@
       </div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1rem;">
-
-        <!-- 月次サマリー -->
         <div class="panel">
           <div class="panel-header">
             <i class="bi bi-bar-chart-line" style="color:var(--accent);"></i>
@@ -253,26 +204,11 @@
           </div>
           <div class="panel-body">
             <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;margin-bottom:1rem;">
-              <div class="mini-stat">
-                <div class="v" id="mNew" style="color:var(--accent);">—</div>
-                <div class="l">新規登録</div>
-              </div>
-              <div class="mini-stat">
-                <div class="v" id="mPaid" style="color:#16a34a;">—</div>
-                <div class="l">有料 <span style="font-size:0.6rem;background:#dcfce7;color:#166534;padding:1px 4px;border-radius:3px;">Stripe</span></div>
-              </div>
-              <div class="mini-stat">
-                <div class="v" id="mManual" style="color:var(--text-sub);">—</div>
-                <div class="l">手動発行</div>
-              </div>
-              <div class="mini-stat">
-                <div class="v" id="mUpgrade" style="color:#d97706;">—</div>
-                <div class="l">有料転換</div>
-              </div>
-              <div class="mini-stat">
-                <div class="v" id="mChurn" style="color:#dc2626;">—</div>
-                <div class="l">離脱</div>
-              </div>
+              <div class="mini-stat"><div class="v" id="mNew" style="color:var(--accent);">—</div><div class="l">新規登録</div></div>
+              <div class="mini-stat"><div class="v" id="mPaid" style="color:#16a34a;">—</div><div class="l">有料 <span style="font-size:0.6rem;background:#dcfce7;color:#166534;padding:1px 4px;border-radius:3px;">Stripe</span></div></div>
+              <div class="mini-stat"><div class="v" id="mManual" style="color:var(--text-sub);">—</div><div class="l">手動発行</div></div>
+              <div class="mini-stat"><div class="v" id="mUpgrade" style="color:#d97706;">—</div><div class="l">有料転換</div></div>
+              <div class="mini-stat"><div class="v" id="mChurn" style="color:#dc2626;">—</div><div class="l">離脱</div></div>
             </div>
             <div id="mNewList" class="d-none">
               <div style="font-size:0.72rem;font-weight:600;color:var(--text-mute);text-transform:uppercase;letter-spacing:0.06em;border-top:1px solid var(--border);padding-top:0.75rem;margin-bottom:0.5rem;">当月新規登録</div>
@@ -286,7 +222,6 @@
           </div>
         </div>
 
-        <!-- 手動発行 -->
         <div class="panel">
           <div class="panel-header">
             <i class="bi bi-plus-circle" style="color:#16a34a;"></i>
@@ -311,7 +246,6 @@
         </div>
       </div>
 
-      <!-- テーブル -->
       <div class="panel">
         <div class="panel-header">
           <i class="bi bi-list-ul" style="color:var(--accent);"></i>
@@ -358,8 +292,10 @@
     let _all = [];
     let _secret = '';
     let _sentryToken = '';
-    const _notesCache = {};   // issueId → notes[]
-    const _notesOpen  = {};   // issueId → bool
+    let _hasGeminiKey = false;
+    const _notesCache = {};
+    const _notesOpen  = {};
+    const _issueData  = {};   // issueId → issue object (for AI analysis)
 
     document.getElementById('btnLoad').addEventListener('click', load);
     document.getElementById('inputSecret').addEventListener('keydown', e => { if (e.key === 'Enter') load(); });
@@ -391,11 +327,8 @@
         row.classList.remove('d-none');
         btn?.classList.add('open');
         _notesOpen[issueId] = true;
-        if (_notesCache[issueId] == null) {
-          await loadNotes(issueId);
-        } else {
-          renderNotes(issueId);
-        }
+        if (_notesCache[issueId] == null) await loadNotes(issueId);
+        else renderNotes(issueId);
       }
     }
 
@@ -417,30 +350,45 @@
       const panel = document.getElementById(`notes-panel-${issueId}`);
       if (!panel) return;
       const notes = _notesCache[issueId] || [];
+
       const notesHtml = notes.length === 0
-        ? '<div style="color:var(--text-mute);font-size:0.78rem;font-style:italic;margin-bottom:0.5rem;">メモはまだありません</div>'
-        : `<div style="margin-bottom:0.75rem;">${notes.map((n, i) => `
-            <div class="note-item">
+        ? '<div style="color:var(--text-mute);font-size:0.78rem;font-style:italic;padding-bottom:0.5rem;">メモはまだありません</div>'
+        : notes.map((n, i) => {
+            const isAi  = !!n.ai;
+            const cls   = isAi ? ' ai-note' : '';
+            const badge = isAi ? '<span class="ai-badge">AI</span>' : '';
+            const dt    = new Date(n.at).toLocaleString('ja-JP', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+            return `<div class="note-item${cls}">
               <div class="note-body">
                 <div class="note-text">${esc(n.text)}</div>
-                <div class="note-meta">${new Date(n.at).toLocaleString('ja-JP', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' })}</div>
+                <div class="note-meta">${badge}<span>${dt}</span></div>
               </div>
               <button class="note-del" onclick="deleteNote('${esc(issueId)}',${i})" title="削除"><i class="bi bi-x"></i></button>
-            </div>`).join('')}</div>`;
+            </div>`;
+          }).join('');
+
+      const aiBtn = _hasGeminiKey
+        ? `<button class="btn-ai" id="ai-btn-${esc(issueId)}" onclick="analyzeWithAI('${esc(issueId)}')">
+             <i class="bi bi-stars"></i>AI解析
+           </button>`
+        : '';
 
       panel.innerHTML = `
-        ${notesHtml}
+        <div>${notesHtml}</div>
         <div class="note-input-row">
           <textarea class="note-textarea" id="note-input-${esc(issueId)}" placeholder="メモを追加（Ctrl+Enterで送信）..."></textarea>
-          <button class="btn-accent" onclick="addNote('${esc(issueId)}')" style="height:52px;white-space:nowrap;"><i class="bi bi-send" style="margin-right:4px;"></i>追加</button>
+          <div style="display:flex;flex-direction:column;gap:0.4rem;">
+            ${aiBtn}
+            <button class="btn-accent" onclick="addNote('${esc(issueId)}')" style="height:auto;padding:0.35rem 0.75rem;white-space:nowrap;">
+              <i class="bi bi-send"></i>追加
+            </button>
+          </div>
         </div>`;
 
       const ta = document.getElementById(`note-input-${issueId}`);
-      if (ta) {
-        ta.addEventListener('keydown', e => {
-          if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); addNote(issueId); }
-        });
-      }
+      if (ta) ta.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); addNote(issueId); }
+      });
     }
 
     function updateNotesBtn(issueId) {
@@ -494,38 +442,41 @@
       }
     }
 
-    // ── ライセンス機能 ──────────────────────────────────────
-    async function issueLicense() {
-      const email   = document.getElementById('issueEmail').value.trim();
-      const company = document.getElementById('issueCompany').value.trim();
-      const plan    = document.getElementById('issuePlan').value;
-      const expiry  = document.getElementById('issueExpiry').value;
-      const msg     = document.getElementById('issueMsg');
-      if (!email) { msg.innerHTML = '<span style="color:#dc2626;">メールアドレスは必須です</span>'; return; }
-      msg.innerHTML = '<span style="color:var(--text-mute);">発行中...</span>';
-      const resp = await fetch(`/api/admin-licenses?secret=${encodeURIComponent(_secret)}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, company, plan, expiresAt: expiry }),
-      });
-      const data = await resp.json();
-      if (!resp.ok) {
-        if (data.error === 'duplicate_email') {
-          msg.innerHTML = `<span style="color:#d97706;">既存キーあり: <code>${esc(data.existingKey)}</code></span>`;
-        } else {
-          msg.innerHTML = `<span style="color:#dc2626;">エラー: ${esc(data.error)}</span>`;
-        }
-        return;
+    async function analyzeWithAI(issueId) {
+      const btn = document.getElementById(`ai-btn-${issueId}`);
+      if (btn) { btn.disabled = true; btn.innerHTML = '<i class="bi bi-hourglass-split"></i>解析中...'; }
+
+      const issue = _issueData[issueId];
+      try {
+        const resp = await fetch(
+          `/api/admin-licenses?secret=${encodeURIComponent(_secret)}&sentry_analyze=1`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              issueId,
+              title:      issue?.title || '',
+              errorValue: issue?.metadata?.value || '',
+              culprit:    issue?.culprit || '',
+              level:      issue?.level || 'error',
+              count:      issue?.count || '0',
+              userCount:  issue?.userCount || 0,
+              lastSeen:   issue?.lastSeen ? _relTime(issue.lastSeen) : '不明',
+            }),
+          }
+        );
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || 'AI解析に失敗しました');
+        _notesCache[issueId] = data.notes || [];
+        renderNotes(issueId);
+        updateNotesBtn(issueId);
+      } catch (err) {
+        alert('AI解析エラー: ' + err.message);
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-stars"></i>AI解析'; }
       }
-      msg.innerHTML = `<span style="color:#16a34a;"><i class="bi bi-check-circle me-1"></i>発行: <code>${esc(data.key)}</code></span>`;
-      document.getElementById('issueEmail').value   = '';
-      document.getElementById('issueCompany').value = '';
-      document.getElementById('issueExpiry').value  = _defaultExpiry();
-      _all.unshift(data);
-      updateStats();
-      render();
     }
 
+    // ── ライセンス機能 ──────────────────────────────────────
     async function load() {
       _secret = document.getElementById('inputSecret').value.trim();
       const resp = await fetch(`/api/admin-licenses?secret=${encodeURIComponent(_secret)}`);
@@ -533,6 +484,7 @@
       const data = await resp.json();
       _all = data.licenses;
       if (data.sentryToken) _sentryToken = data.sentryToken;
+      _hasGeminiKey = !!data.hasGeminiKey;
       document.getElementById('authArea').classList.add('d-none');
       document.getElementById('summary').classList.remove('d-none');
       updateStats();
@@ -542,23 +494,18 @@
     }
 
     async function loadSentry() {
-      const token = _sentryToken;
-      if (!token) return;
+      if (!_sentryToken) return;
       const section = document.getElementById('sentrySection');
       section.classList.remove('d-none');
 
       const PROJECT = '4511415628464128';
-
       const tbody = document.getElementById('sentryTableBody');
       tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:1.5rem;color:var(--text-mute);">読み込み中...</td></tr>';
-      document.getElementById('sErrorTotal').textContent    = '…';
-      document.getElementById('sErrorToday').textContent    = '…';
-      document.getElementById('sErrorUsers').textContent    = '…';
-      document.getElementById('sErrorResolved').textContent = '…';
+      ['sErrorTotal','sErrorToday','sErrorUsers','sErrorResolved'].forEach(id => document.getElementById(id).textContent = '…');
       document.getElementById('sentryUpdatedAt').textContent = '';
 
       try {
-        const proxy = (path) => `/api/admin-licenses?secret=${encodeURIComponent(_secret)}&sentry_path=${encodeURIComponent(path)}`;
+        const proxy = path => `/api/admin-licenses?secret=${encodeURIComponent(_secret)}&sentry_path=${encodeURIComponent(path)}`;
 
         let orgSlug = localStorage.getItem('keihi_sentry_org_slug') || '';
         if (!orgSlug) {
@@ -569,7 +516,7 @@
             throw new Error(`Sentry 組織取得エラー ${orgResp.status}: ${errBody.detail || JSON.stringify(errBody)}`);
           }
           const orgs = await orgResp.json();
-          if (!Array.isArray(orgs) || orgs.length === 0) throw new Error('Sentry 組織が見つかりません（org:read スコープが必要です）');
+          if (!Array.isArray(orgs) || orgs.length === 0) throw new Error('Sentry 組織が見つかりません');
           orgSlug = orgs[0].slug;
           localStorage.setItem('keihi_sentry_org_slug', orgSlug);
         }
@@ -581,31 +528,23 @@
 
         if (!unresolvedResp.ok) {
           const errBody = await unresolvedResp.json().catch(() => ({}));
-          if (unresolvedResp.status === 400 || unresolvedResp.status === 404) {
-            localStorage.removeItem('keihi_sentry_org_slug');
-          }
+          if (unresolvedResp.status === 400 || unresolvedResp.status === 404) localStorage.removeItem('keihi_sentry_org_slug');
           throw new Error(`Sentry API ${unresolvedResp.status}: ${errBody.detail || JSON.stringify(errBody)}`);
         }
 
         const unresolved = await unresolvedResp.json();
         const resolved   = resolvedResp.ok ? await resolvedResp.json() : [];
+        const totalHits  = parseInt(unresolvedResp.headers.get('X-Hits') || '0', 10) || unresolved.length;
 
-        const totalHits = parseInt(unresolvedResp.headers.get('X-Hits') || '0', 10) || unresolved.length;
-
-        let todayCount = 0;
-        let totalUsers = 0;
+        let todayCount = 0, totalUsers = 0;
         unresolved.forEach(issue => {
           totalUsers += issue.userCount || 0;
-          const buckets24h = issue.stats?.['24h'];
-          if (Array.isArray(buckets24h)) {
+          const b24 = issue.stats?.['24h'];
+          if (Array.isArray(b24)) {
             const cutoff = Date.now() - 86400000;
-            buckets24h.forEach(([ts, cnt]) => {
-              if (ts * 1000 >= cutoff) todayCount += cnt;
-            });
-          } else {
-            if (issue.lastSeen && new Date(issue.lastSeen).toDateString() === new Date().toDateString()) {
-              todayCount += parseInt(issue.count || 0, 10);
-            }
+            b24.forEach(([ts, cnt]) => { if (ts * 1000 >= cutoff) todayCount += cnt; });
+          } else if (issue.lastSeen && new Date(issue.lastSeen).toDateString() === new Date().toDateString()) {
+            todayCount += parseInt(issue.count || 0, 10);
           }
         });
 
@@ -613,34 +552,34 @@
         document.getElementById('sErrorToday').textContent    = todayCount;
         document.getElementById('sErrorUsers').textContent    = totalUsers;
         document.getElementById('sErrorResolved').textContent = resolved.length;
-        document.getElementById('sentryUpdatedAt').textContent = '更新: ' + new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+        document.getElementById('sentryUpdatedAt').textContent = '更新: ' + new Date().toLocaleTimeString('ja-JP', { hour:'2-digit', minute:'2-digit' });
 
         if (unresolved.length === 0) {
           tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:1.5rem;color:var(--text-mute);"><i class="bi bi-check-circle me-2"></i>未解決イシューはありません</td></tr>';
           return;
         }
 
-        // キャッシュ済みノート数を参照してバッジ表示
-        const rows = unresolved.map(issue => {
+        // issueデータをキャッシュ（AI解析で使用）
+        unresolved.forEach(issue => { _issueData[issue.id] = issue; });
+
+        tbody.innerHTML = unresolved.map(issue => {
           const id      = esc(issue.id || '');
           const lvl     = issue.level || 'error';
-          const lvlHtml = `<span class="lvl-${lvl}">${lvl.toUpperCase()}</span>`;
           const title   = esc(issue.title || '');
           const value   = esc(issue.metadata?.value || '');
           const count   = Number(issue.count || 0).toLocaleString('ja-JP');
           const users   = issue.userCount || 0;
           const last    = issue.lastSeen ? _relTime(issue.lastSeen) : '—';
           const envTag  = issue.tags?.find(t => t.key === 'environment');
-          const browserTag = issue.tags?.find(t => t.key === 'browser.name');
-          const envText = [envTag?.value, browserTag?.value].filter(Boolean).join(' / ') || '—';
+          const brwTag  = issue.tags?.find(t => t.key === 'browser.name');
+          const envText = [envTag?.value, brwTag?.value].filter(Boolean).join(' / ') || '—';
           const noteCount = (_notesCache[issue.id] || []).length;
           const hasCls  = noteCount > 0 ? ' has-notes' : '';
-          const badgeHtml = noteCount > 0 ? `<span class="notes-count">${noteCount}</span>` : '';
-          const isOpen  = !!_notesOpen[issue.id];
-          const openCls = isOpen ? ' open' : '';
+          const badge   = noteCount > 0 ? `<span class="notes-count">${noteCount}</span>` : '';
+          const openCls = _notesOpen[issue.id] ? ' open' : '';
           return `
             <tr>
-              <td class="ps-first">${lvlHtml}</td>
+              <td class="ps-first"><span class="lvl-${lvl}">${lvl.toUpperCase()}</span></td>
               <td>
                 <div style="font-size:0.8rem;font-weight:500;color:var(--text);line-height:1.3;">${title}</div>
                 ${value ? `<div style="font-size:0.7rem;color:var(--text-mute);margin-top:2px;">${value}</div>` : ''}
@@ -651,22 +590,19 @@
               <td style="font-size:0.72rem;color:var(--text-mute);">${esc(envText)}</td>
               <td class="pe-last" style="text-align:center;">
                 <button class="action-btn notes-btn${hasCls}${openCls}" data-issue-id="${id}" title="メモ">
-                  <i class="bi bi-chat-left-text"></i>${badgeHtml}
+                  <i class="bi bi-chat-left-text"></i>${badge}
                 </button>
               </td>
             </tr>
-            <tr class="notes-row${isOpen ? '' : ' d-none'}" id="notes-row-${id}">
+            <tr class="notes-row${_notesOpen[issue.id] ? '' : ' d-none'}" id="notes-row-${id}">
               <td colspan="7">
                 <div class="notes-panel" id="notes-panel-${id}">
                   <div style="color:var(--text-mute);font-size:0.78rem;">読み込み中...</div>
                 </div>
               </td>
             </tr>`;
-        });
+        }).join('');
 
-        tbody.innerHTML = rows.join('');
-
-        // イベント登録 & 開いていたパネルを復元
         tbody.querySelectorAll('.notes-btn').forEach(btn => {
           btn.addEventListener('click', () => toggleNotes(btn.dataset.issueId));
           const iid = btn.dataset.issueId;
@@ -678,22 +614,46 @@
 
       } catch (err) {
         tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:1.5rem;color:#dc2626;">${esc(err.message)}</td></tr>`;
-        document.getElementById('sErrorTotal').textContent    = 'ERR';
-        document.getElementById('sErrorToday').textContent    = 'ERR';
-        document.getElementById('sErrorUsers').textContent    = 'ERR';
-        document.getElementById('sErrorResolved').textContent = 'ERR';
+        ['sErrorTotal','sErrorToday','sErrorUsers','sErrorResolved'].forEach(id => document.getElementById(id).textContent = 'ERR');
       }
     }
 
     function _relTime(iso) {
       const diff = Date.now() - new Date(iso).getTime();
       const min  = Math.floor(diff / 60000);
-      if (min < 1)   return 'たった今';
-      if (min < 60)  return `${min}分前`;
+      if (min < 1)  return 'たった今';
+      if (min < 60) return `${min}分前`;
       const hr = Math.floor(min / 60);
-      if (hr < 24)   return `${hr}時間前`;
-      const day = Math.floor(hr / 24);
-      return `${day}日前`;
+      if (hr < 24)  return `${hr}時間前`;
+      return `${Math.floor(hr / 24)}日前`;
+    }
+
+    async function issueLicense() {
+      const email   = document.getElementById('issueEmail').value.trim();
+      const company = document.getElementById('issueCompany').value.trim();
+      const plan    = document.getElementById('issuePlan').value;
+      const expiry  = document.getElementById('issueExpiry').value;
+      const msg     = document.getElementById('issueMsg');
+      if (!email) { msg.innerHTML = '<span style="color:#dc2626;">メールアドレスは必須です</span>'; return; }
+      msg.innerHTML = '<span style="color:var(--text-mute);">発行中...</span>';
+      const resp = await fetch(`/api/admin-licenses?secret=${encodeURIComponent(_secret)}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, company, plan, expiresAt: expiry }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) {
+        msg.innerHTML = data.error === 'duplicate_email'
+          ? `<span style="color:#d97706;">既存キーあり: <code>${esc(data.existingKey)}</code></span>`
+          : `<span style="color:#dc2626;">エラー: ${esc(data.error)}</span>`;
+        return;
+      }
+      msg.innerHTML = `<span style="color:#16a34a;"><i class="bi bi-check-circle me-1"></i>発行: <code>${esc(data.key)}</code></span>`;
+      document.getElementById('issueEmail').value   = '';
+      document.getElementById('issueCompany').value = '';
+      document.getElementById('issueExpiry').value  = _defaultExpiry();
+      _all.unshift(data);
+      updateStats();
+      render();
     }
 
     function _customerCell(l, compact = false) {
@@ -703,27 +663,15 @@
       const subLine = (biz && name && biz !== name) ? `<div class="customer-biz">${name}</div>` : '';
       const email = esc(l.email || '');
       if (compact) return `<div class="customer-name">${displayName}</div>${subLine}`;
-      return `
-        <div style="display:flex;align-items:center;gap:4px;">
-          <div>
-            <div class="customer-name">${displayName}</div>
-            ${subLine}
-          </div>
-          ${email ? `<button class="email-btn" onclick="copyEmail(this,'${email}')" title="${email}">
-            <i class="bi bi-envelope" style="font-size:0.7rem;"></i>
-            <span class="email-tooltip">${email}</span>
-          </button>` : ''}
-        </div>`;
+      return `<div style="display:flex;align-items:center;gap:4px;"><div><div class="customer-name">${displayName}</div>${subLine}</div>${email ? `<button class="email-btn" onclick="copyEmail(this,'${email}')" title="${email}"><i class="bi bi-envelope" style="font-size:0.7rem;"></i><span class="email-tooltip">${email}</span></button>` : ''}</div>`;
     }
 
     function copyEmail(btn, email) {
       navigator.clipboard.writeText(email).then(() => {
-        btn.classList.add('email-copied');
-        btn.title = 'コピーしました';
+        btn.classList.add('email-copied'); btn.title = 'コピーしました';
         setTimeout(() => { btn.classList.remove('email-copied'); btn.title = email; }, 1500);
       });
     }
-
     function copyKey(el, key) {
       navigator.clipboard.writeText(key).then(() => {
         el.classList.add('copied');
@@ -751,17 +699,10 @@
         tbody.innerHTML = newRegs.map(l => {
           const plan = l.plan || 'standard';
           const kind = l.stripeSessionId ? '<span class="tag tag-stripe">有料</span>' : '<span class="tag tag-manual">手動</span>';
-          return `<tr>
-            <td style="color:var(--text-sub);">${(l.createdAt||'').split('T')[0]}</td>
-            <td>${_customerCell(l, true)}</td>
-            <td><span class="tag tag-${plan === 'team' ? 'team' : plan === 'solo' ? 'solo' : 'std'}">${planLabel[plan]||plan}</span></td>
-            <td>${kind}</td>
-          </tr>`;
+          return `<tr><td style="color:var(--text-sub);">${(l.createdAt||'').split('T')[0]}</td><td>${_customerCell(l,true)}</td><td><span class="tag tag-${plan==='team'?'team':plan==='solo'?'solo':'std'}">${planLabel[plan]||plan}</span></td><td>${kind}</td></tr>`;
         }).join('');
         listEl.classList.remove('d-none');
-      } else {
-        listEl.classList.add('d-none');
-      }
+      } else { listEl.classList.add('d-none'); }
     }
 
     function getStatus(lic) {
@@ -785,25 +726,19 @@
         if (status && getStatus(l) !== status) return false;
         return true;
       });
-      const countEl = document.getElementById('filteredCount');
-      countEl.textContent = (text || status) ? `${filtered.length} / ${_all.length}件` : `${_all.length}件`;
+      document.getElementById('filteredCount').textContent = (text || status) ? `${filtered.length} / ${_all.length}件` : `${_all.length}件`;
       const statusLabel = { active: '有効', expired: '期限切れ', suspended: '停止中' };
       const planLabel   = { solo: 'ソロ', team: 'チーム', standard: '標準' };
       const tbody = document.getElementById('licenseTable');
       tbody.innerHTML = filtered.map(l => {
-        const st        = getStatus(l);
-        const date      = l.createdAt ? l.createdAt.split('T')[0] : '—';
-        const plan      = l.plan || 'standard';
-        const usageThis = l.usageThis ?? 0;
-        const usageLast = l.usageLast ?? 0;
-        const isStripe  = !!l.stripeSessionId;
+        const st = getStatus(l);
+        const plan = l.plan || 'standard';
+        const usageThis = l.usageThis ?? 0, usageLast = l.usageLast ?? 0;
+        const isStripe = !!l.stripeSessionId;
         const planClass = plan === 'team' ? 'team' : plan === 'solo' ? 'solo' : 'std';
         return `<tr data-key="${esc(l.key)}">
-          <td class="ps-first" style="font-size:0.78rem;color:var(--text-sub);">${date}</td>
-          <td>
-            ${_customerCell(l)}
-            ${isStripe ? '<span class="tag tag-stripe" style="margin-top:3px;display:inline-block;">Stripe</span>' : '<span class="tag tag-manual" style="margin-top:3px;display:inline-block;">手動</span>'}
-          </td>
+          <td class="ps-first" style="font-size:0.78rem;color:var(--text-sub);">${l.createdAt ? l.createdAt.split('T')[0] : '—'}</td>
+          <td>${_customerCell(l)}${isStripe ? '<span class="tag tag-stripe" style="margin-top:3px;display:inline-block;">Stripe</span>' : '<span class="tag tag-manual" style="margin-top:3px;display:inline-block;">手動</span>'}</td>
           <td><span class="tag tag-${planClass}">${planLabel[plan]||plan}</span></td>
           <td><span class="key-chip" onclick="copyKey(this,'${esc(l.key)}')" title="クリックでコピー">${esc(l.key)}</span></td>
           <td style="font-size:0.78rem;color:var(--text-sub);">${l.expiresAt||'—'}</td>
@@ -811,15 +746,13 @@
           <td class="usage-num zero">${usageLast || '—'}</td>
           <td style="text-align:center;"><span class="status-dot ${st}">${statusLabel[st]}</span></td>
           <td class="pe-last" style="text-align:right;white-space:nowrap;">
-            ${!isStripe && !l.upgradedAt ? `<button class="action-btn upgrade btn-upgrade me-1" data-key="${esc(l.key)}" title="有料転換としてマーク"><i class="bi bi-arrow-up-circle"></i></button>` : ''}
+            ${!isStripe && !l.upgradedAt ? `<button class="action-btn upgrade btn-upgrade me-1" data-key="${esc(l.key)}" title="有料転換"><i class="bi bi-arrow-up-circle"></i></button>` : ''}
             <button class="action-btn delete btn-delete" data-key="${esc(l.key)}" title="削除"><i class="bi bi-trash"></i></button>
           </td>
         </tr>`;
       }).join('');
-      tbody.querySelectorAll('.btn-upgrade').forEach(btn =>
-        btn.addEventListener('click', () => upgradeLicense(btn.dataset.key)));
-      tbody.querySelectorAll('.btn-delete').forEach(btn =>
-        btn.addEventListener('click', () => deleteLicense(btn.dataset.key)));
+      tbody.querySelectorAll('.btn-upgrade').forEach(btn => btn.addEventListener('click', () => upgradeLicense(btn.dataset.key)));
+      tbody.querySelectorAll('.btn-delete').forEach(btn => btn.addEventListener('click', () => deleteLicense(btn.dataset.key)));
       document.getElementById('noResult').classList.toggle('d-none', filtered.length > 0);
     }
 
@@ -840,19 +773,16 @@
     }
 
     async function upgradeLicense(key) {
-      if (!confirm(`有料転換としてマークしますか？\n${key}\n\n有効期限が1年延長されます（Stripe外の決済用）。`)) return;
+      if (!confirm(`有料転換としてマークしますか？\n${key}\n\n有効期限が1年延長されます。`)) return;
       const resp = await fetch(`/api/admin-licenses?secret=${encodeURIComponent(_secret)}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key, action: 'upgrade' }),
       });
       if (!resp.ok) { alert('処理に失敗しました'); return; }
       const data = await resp.json();
       const idx = _all.findIndex(l => l.key === key);
       if (idx !== -1) _all[idx] = { ..._all[idx], ...data };
-      updateStats();
-      updateMonthly();
-      render();
+      updateStats(); updateMonthly(); render();
     }
 
     async function deleteLicense(key) {
@@ -860,8 +790,7 @@
       const resp = await fetch(`/api/admin-licenses?secret=${encodeURIComponent(_secret)}&key=${encodeURIComponent(key)}`, { method: 'DELETE' });
       if (!resp.ok) { alert('削除に失敗しました'); return; }
       _all = _all.filter(l => l.key !== key);
-      updateStats();
-      render();
+      updateStats(); render();
     }
 
     function esc(s) {
