@@ -71,15 +71,15 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'unknown action' });
   }
 
-  // SentryイシューのAI解析（Gemini）→ノートとして保存
+  // SentryイシューのAI解析（Claude Haiku）→ノートとして保存
   if (req.query.sentry_analyze) {
     const { issueId, title, errorValue, culprit, level, count, userCount, lastSeen } = req.body || {};
     if (!issueId || !title) return res.status(400).json({ error: 'issueId and title required' });
 
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) return res.status(503).json({ error: 'GEMINI_API_KEY not configured' });
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) return res.status(503).json({ error: 'ANTHROPIC_API_KEY not configured' });
 
-    const prompt = `あなたはWebアプリのエラー解析専門家です。以下のSentryエラーについて、開発者向けに日本語で解析してください。
+    const prompt = `以下のSentryエラーについて、Webアプリ開発者向けに日本語で解析してください。
 
 エラータイトル: ${title}
 エラー詳細: ${errorValue || 'なし'}
@@ -103,19 +103,24 @@ export default async function handler(req, res) {
 【優先度】高・中・低（一言で理由）`;
 
     try {
-      const geminiResp = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-        }
-      );
-      const geminiData = await geminiResp.json();
-      const analysis = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
+      const claudeResp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key':         apiKey,
+          'anthropic-version': '2023-06-01',
+          'content-type':      'application/json',
+        },
+        body: JSON.stringify({
+          model:      'claude-haiku-4-5-20251001',
+          max_tokens: 1024,
+          messages:   [{ role: 'user', content: prompt }],
+        }),
+      });
+      const claudeData = await claudeResp.json();
+      const analysis = claudeData.content?.[0]?.text;
       if (!analysis) {
-        const errMsg = geminiData.error?.message || JSON.stringify(geminiData);
-        return res.status(502).json({ error: `Gemini API error: ${errMsg}` });
+        const errMsg = claudeData.error?.message || JSON.stringify(claudeData);
+        return res.status(502).json({ error: `Claude API error: ${errMsg}` });
       }
 
       const kvKey = `sentry_notes:${issueId}`;
@@ -264,7 +269,7 @@ export default async function handler(req, res) {
       total: licenses.length,
       licenses,
       sentryToken:  process.env.SENTRY_AUTH_TOKEN  || null,
-      hasGeminiKey: !!process.env.GEMINI_API_KEY,
+      hasClaudeKey: !!process.env.ANTHROPIC_API_KEY,
     });
   } catch (err) {
     console.error(err);
