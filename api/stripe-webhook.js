@@ -271,6 +271,8 @@ async function _sendLicenseEmail(to, name, licenseKey, expiresAt) {
 }
 
 async function _sendDuplicateLicenseEmail(to, name, licenseKey, expiresAt) {
+  const soloUrl  = process.env.STRIPE_LINK_SOLO  || 'https://keihi-log.com/#pricing';
+  const teamUrl  = process.env.STRIPE_LINK_TEAM  || 'https://keihi-log.com/#pricing';
   const body = {
     from: process.env.RESEND_FROM_EMAIL || 'noreply@' + (process.env.VERCEL_PROJECT_PRODUCTION_URL || 'example.com'),
     to,
@@ -286,7 +288,14 @@ async function _sendDuplicateLicenseEmail(to, name, licenseKey, expiresAt) {
   <li>有効期限：${expiresAt}</li>
   <li>アプリURL：<a href="https://keihi-log.com/app.html">https://keihi-log.com/app.html</a></li>
 </ul>
-<p>今回の購入はStripeより返金処理いたします。ご不明な点はお気軽にお問い合わせください。</p>
+<p>今回の申し込みはStripeより自動的にキャンセル処理いたします。</p>
+<hr style="border:none;border-top:1px solid #eee;margin:1rem 0;">
+<p style="font-size:0.9em;color:#555;">
+  <strong>別の組織でもご利用になる場合は</strong>、組織ごとに別のメールアドレスでお申し込みください。<br>
+  ご継続のお申し込みはこちらから：
+  <a href="${soloUrl}">ソロプラン</a> ／ <a href="${teamUrl}">チームプラン</a>
+</p>
+<p>ご不明な点はお気軽にお問い合わせください。</p>
     `.trim(),
   };
   const resp = await fetch('https://api.resend.com/emails', {

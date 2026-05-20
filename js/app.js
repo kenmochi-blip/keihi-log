@@ -61,7 +61,15 @@ const App = (() => {
     }
     const lic = await License.verify(licKey);
     if (!lic.valid) {
-      _setupUI('submit');
+      _setupUI('settings');
+      // ライセンス無効の理由をトーストで案内
+      const reason = lic.reason === 'expired'   ? 'ライセンスの有効期限が切れています。' :
+                     lic.reason === 'suspended'  ? 'ライセンスが停止されています。' :
+                                                   'ライセンスキーが無効です。';
+      setTimeout(() => showToast(
+        `${reason}設定画面からライセンスキーを更新してください。`,
+        'danger', 8000
+      ), 500);
       return;
     }
 
