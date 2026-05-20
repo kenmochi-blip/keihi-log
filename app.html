@@ -17,6 +17,15 @@
         dsn: 'https://7e4c7c067f7b13199ecbb7ad4a9ea964@o4511415610638336.ingest.us.sentry.io/4511415628464128',
         environment: location.hostname === 'localhost' ? 'development' : 'production',
         tracesSampleRate: 0.2,
+        ignoreErrors: [
+          'スプレッドシートIDが設定されていません',
+          'ライセンスキーが設定されていません',
+          'Network request failed',
+          'Failed to fetch',
+          'Load failed',
+          'The operation was aborted',
+          'AbortError',
+        ],
       });
     }
   </script>
