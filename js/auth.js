@@ -7,10 +7,10 @@
 const Auth = (() => {
   const CLIENT_ID = window.APP_CONFIG?.clientId || '';
 
-  // プライベート状態
-  let _accessToken = null;
-  let _tokenExpiry = 0;
-  let _userInfo    = null;
+  // プライベート状態（Safari PWA再開時のlet消失バグを避けるためvar使用）
+  var _accessToken = null;
+  var _tokenExpiry = 0;
+  var _userInfo    = null;
 
   const SCOPES = [
     'https://www.googleapis.com/auth/spreadsheets',
