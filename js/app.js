@@ -58,7 +58,11 @@ const App = (() => {
         }
       } catch (_) {}
     }
-    if (!licKey || !ssId) {
+    if (!ssId) {
+      window.location.replace('/setup');
+      return;
+    }
+    if (!licKey) {
       _setupUI('submit');
       return;
     }

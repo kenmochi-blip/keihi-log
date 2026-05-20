@@ -12,9 +12,10 @@
     { "source": "/demo", "destination": "/demo.html" },
     { "source": "/login", "destination": "/login.html" },
     { "source": "/tokusho", "destination": "/tokusho.html" },
+    { "source": "/setup", "destination": "/setup.html" },
     { "source": "/app", "destination": "/app.html" },
     { "source": "/", "destination": "/index.html" },
-    { "source": "/((?!js/|css/|img/|icons/|api/|app\\.html|login\\.html|lp\\.html|tokusho\\.html|privacy\\.html|terms\\.html|success\\.html|licenses\\.html|faq\\.html|demo\\.html|index\\.html|manifest\\.json|sw\\.js|favicon).+)", "destination": "/app.html" }
+    { "source": "/((?!js/|css/|img/|icons/|api/|app\\.html|login\\.html|setup\\.html|lp\\.html|tokusho\\.html|privacy\\.html|terms\\.html|success\\.html|licenses\\.html|faq\\.html|demo\\.html|index\\.html|manifest\\.json|sw\\.js|favicon).+)", "destination": "/app.html" }
   ],
   "headers": [
     {
