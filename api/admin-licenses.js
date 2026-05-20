@@ -157,6 +157,54 @@ export default async function handler(req, res) {
     }
   }
 
+  // Cloudflare Analytics
+  if (req.query.cloudflare) {
+    const token  = process.env.CLOUDFLARE_API_TOKEN;
+    const zoneId = process.env.CLOUDFLARE_ZONE_ID;
+    if (!token || !zoneId) return res.status(503).json({ error: 'CLOUDFLARE_API_TOKEN or CLOUDFLARE_ZONE_ID not configured' });
+
+    const days = Math.min(parseInt(req.query.days || '7', 10), 30);
+    const end   = new Date(); end.setDate(end.getDate() - 1);
+    const start = new Date(end); start.setDate(start.getDate() - (days - 1));
+    const fmt   = d => d.toISOString().split('T')[0];
+
+    const query = `{
+      viewer {
+        zones(filter: {zoneTag: "${zoneId}"}) {
+          httpRequests1dGroups(
+            limit: ${days}
+            filter: {date_geq: "${fmt(start)}", date_leq: "${fmt(end)}"}
+            orderBy: [date_DESC]
+          ) {
+            dimensions { date }
+            sum {
+              requests
+              pageViews
+              cachedRequests
+              threats
+              responseStatusMap { edgeResponseStatus requests }
+            }
+            uniq { uniques }
+          }
+        }
+      }
+    }`;
+
+    try {
+      const resp = await fetch('https://api.cloudflare.com/client/v4/graphql', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query }),
+      });
+      const data = await resp.json();
+      if (data.errors) return res.status(502).json({ error: data.errors[0]?.message || 'GraphQL error' });
+      const groups = data.data?.viewer?.zones?.[0]?.httpRequests1dGroups || [];
+      return res.status(200).json({ groups });
+    } catch (err) {
+      return res.status(502).json({ error: err.message });
+    }
+  }
+
   // DELETE: ライセンス削除
   if (req.method === 'DELETE') {
     const { key } = req.query;
@@ -292,7 +340,8 @@ export default async function handler(req, res) {
       total: licenses.length,
       licenses,
       sentryToken:  process.env.SENTRY_AUTH_TOKEN  || null,
-      hasClaudeKey: !!process.env.ANTHROPIC_API_KEY,
+      hasClaudeKey:  !!process.env.ANTHROPIC_API_KEY,
+      hasCfKey:      !!(process.env.CLOUDFLARE_API_TOKEN && process.env.CLOUDFLARE_ZONE_ID),
     });
   } catch (err) {
     console.error(err);
