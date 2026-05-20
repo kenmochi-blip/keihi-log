@@ -429,6 +429,12 @@ const App = (() => {
     const token = match[1];
     // 44文字以上はシートID直指定
     if (token.length >= 44) {
+      const prevSheetId = localStorage.getItem('keihi_sheet_id');
+      if (prevSheetId && prevSheetId !== token) {
+        ['keihi_company_name', 'keihi_license_key', 'keihi_license_cache',
+         'keihi_master_cache', 'keihi_folder_id', 'keihi_setup_code',
+         'keihi_nav_color', 'keihi_gemini_key'].forEach(k => localStorage.removeItem(k));
+      }
       sessionStorage.setItem('keihi_sheet_id', token);
       localStorage.setItem('keihi_sheet_id', token);
       return;
@@ -444,6 +450,13 @@ const App = (() => {
       if (r.ok) {
         const data = await r.json();
         if (data.sheetId) {
+          const prevSheetId = localStorage.getItem('keihi_sheet_id');
+          if (prevSheetId && prevSheetId !== data.sheetId) {
+            // 別チームのシートに切り替わる場合、チーム固有データをクリア
+            ['keihi_company_name', 'keihi_license_key', 'keihi_license_cache',
+             'keihi_master_cache', 'keihi_folder_id', 'keihi_setup_code',
+             'keihi_nav_color', 'keihi_gemini_key'].forEach(k => localStorage.removeItem(k));
+          }
           sessionStorage.setItem('keihi_sheet_id', data.sheetId);
           localStorage.setItem('keihi_sheet_id', data.sheetId);
           localStorage.setItem('keihi_alias', token);
