@@ -1,10 +1,13 @@
 /**
  * 発行済みライセンス一覧 API（管理者専用）
- * GET    /api/admin-licenses?secret=ADMIN_SECRET                    一覧取得
- * GET    /api/admin-licenses?secret=ADMIN_SECRET&sentry_path=/...   Sentryプロキシ
- * POST   /api/admin-licenses?secret=ADMIN_SECRET                    手動発行
- * PATCH  /api/admin-licenses?secret=ADMIN_SECRET                    手動アップグレード
- * DELETE /api/admin-licenses?secret=ADMIN_SECRET&key=KL-            削除
+ * GET    /api/admin-licenses?secret=ADMIN_SECRET                       一覧取得
+ * GET    /api/admin-licenses?secret=ADMIN_SECRET&sentry_path=/...      Sentryプロキシ
+ * GET    /api/admin-licenses?secret=ADMIN_SECRET&sentry_notes=get&issue_id=xxx  ノート取得
+ * POST   /api/admin-licenses?secret=ADMIN_SECRET&sentry_notes=add&issue_id=xxx  ノート追加
+ * POST   /api/admin-licenses?secret=ADMIN_SECRET&sentry_notes=del&issue_id=xxx&note_idx=N  ノート削除
+ * POST   /api/admin-licenses?secret=ADMIN_SECRET                       手動発行
+ * PATCH  /api/admin-licenses?secret=ADMIN_SECRET                       手動アップグレード
+ * DELETE /api/admin-licenses?secret=ADMIN_SECRET&key=KL-               削除
  */
 
 import { kv } from '@vercel/kv';
@@ -37,6 +40,35 @@ export default async function handler(req, res) {
     } catch (err) {
       return res.status(502).json({ error: err.message });
     }
+  }
+
+  // Sentryイシューノート管理
+  if (req.query.sentry_notes) {
+    const action  = req.query.sentry_notes;
+    const issueId = req.query.issue_id;
+    if (!issueId) return res.status(400).json({ error: 'issue_id required' });
+    const kvKey = `sentry_notes:${issueId}`;
+
+    if (action === 'get') {
+      const notes = await kv.get(kvKey).catch(() => null);
+      return res.status(200).json({ notes: notes || [] });
+    }
+    if (action === 'add') {
+      const { text } = req.body || {};
+      if (!text?.trim()) return res.status(400).json({ error: 'text required' });
+      const notes = await kv.get(kvKey).catch(() => null) || [];
+      notes.push({ text: text.trim(), at: new Date().toISOString() });
+      await kv.set(kvKey, notes);
+      return res.status(200).json({ notes });
+    }
+    if (action === 'del') {
+      const idx = parseInt(req.query.note_idx, 10);
+      const notes = await kv.get(kvKey).catch(() => null) || [];
+      if (!isNaN(idx) && idx >= 0 && idx < notes.length) notes.splice(idx, 1);
+      await kv.set(kvKey, notes);
+      return res.status(200).json({ notes });
+    }
+    return res.status(400).json({ error: 'unknown action' });
   }
 
   // DELETE: ライセンス削除
