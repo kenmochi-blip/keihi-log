@@ -145,10 +145,6 @@
           <input type="password" id="inputSecret" class="filter-input" style="width:auto;flex:1;" placeholder="管理シークレット">
           <button class="btn-accent" id="btnLoad"><i class="bi bi-unlock"></i>読み込む</button>
         </div>
-        <div style="display:flex;gap:0.5rem;align-items:center;">
-          <input type="password" id="inputSentryToken" class="filter-input" style="width:auto;flex:1;" placeholder="Sentry トークン（任意）">
-          <span style="font-size:0.72rem;color:var(--text-mute);white-space:nowrap;">エラー監視</span>
-        </div>
       </div>
     </div>
 
@@ -354,10 +350,6 @@
     document.getElementById('monthPicker').value = new Date().toISOString().slice(0, 7);
     document.getElementById('monthPicker').addEventListener('change', updateMonthly);
 
-    // 前回入力値を復元
-    const _saved = localStorage.getItem('keihi_admin_sentry_token');
-    if (_saved) document.getElementById('inputSentryToken').value = _saved;
-
     const _defaultExpiry = () => {
       const d = new Date(); d.setFullYear(d.getFullYear() + 1);
       return d.toISOString().split('T')[0];
@@ -397,12 +389,11 @@
 
     async function load() {
       _secret = document.getElementById('inputSecret').value.trim();
-      _sentryToken = document.getElementById('inputSentryToken').value.trim();
-      if (_sentryToken) localStorage.setItem('keihi_admin_sentry_token', _sentryToken);
       const resp = await fetch(`/api/admin-licenses?secret=${encodeURIComponent(_secret)}`);
       if (!resp.ok) { alert('認証に失敗しました'); return; }
       const data = await resp.json();
       _all = data.licenses;
+      if (data.sentryToken) _sentryToken = data.sentryToken;
       document.getElementById('authArea').classList.add('d-none');
       document.getElementById('summary').classList.remove('d-none');
       updateStats();
@@ -429,32 +420,33 @@
       document.getElementById('sentryUpdatedAt').textContent = '';
 
       try {
-        // Org slug を自動検出（トークンに紐づく組織を取得）
+        // Org slug を自動検出（キャッシュ → API取得）
         let orgSlug = localStorage.getItem('keihi_sentry_org_slug') || '';
         if (!orgSlug) {
           const orgResp = await fetch('https://us.sentry.io/api/0/organizations/', { headers });
-          if (orgResp.status === 401) throw new Error('Sentry トークンが無効です（401 Unauthorized）');
+          if (orgResp.status === 401) throw new Error('Sentry トークンが無効です（401 Unauthorized）\n\nSentry → Settings → Auth Tokens でトークンを確認してください。');
           if (!orgResp.ok) {
             const errBody = await orgResp.json().catch(() => ({}));
             throw new Error(`Sentry 組織取得エラー ${orgResp.status}: ${errBody.detail || JSON.stringify(errBody)}`);
           }
           const orgs = await orgResp.json();
-          if (!Array.isArray(orgs) || orgs.length === 0) throw new Error('Sentry 組織が見つかりません。トークンの権限（org:read）を確認してください。');
+          if (!Array.isArray(orgs) || orgs.length === 0) throw new Error('Sentry 組織が見つかりません（org:read スコープが必要です）');
           orgSlug = orgs[0].slug;
           localStorage.setItem('keihi_sentry_org_slug', orgSlug);
         }
 
+        // プロジェクト ID（数値）で検索
         const BASE = `https://us.sentry.io/api/0/organizations/${orgSlug}`;
-
         const [unresolvedResp, resolvedResp] = await Promise.all([
-          fetch(`${BASE}/issues/?project=${PROJECT}&limit=25&query=is:unresolved`, { headers }),
+          fetch(`${BASE}/issues/?project=${PROJECT}&limit=25&query=is:unresolved&expand=owners`, { headers }),
           fetch(`${BASE}/issues/?project=${PROJECT}&limit=100&query=is:resolved&statsPeriod=30d`, { headers }),
         ]);
 
         if (!unresolvedResp.ok) {
           const errBody = await unresolvedResp.json().catch(() => ({}));
-          // org slug キャッシュをクリアして次回再取得
-          if (unresolvedResp.status === 400 || unresolvedResp.status === 404) localStorage.removeItem('keihi_sentry_org_slug');
+          if (unresolvedResp.status === 400 || unresolvedResp.status === 404) {
+            localStorage.removeItem('keihi_sentry_org_slug');
+          }
           throw new Error(`Sentry API ${unresolvedResp.status}: ${errBody.detail || JSON.stringify(errBody)}`);
         }
 

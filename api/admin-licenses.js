@@ -152,7 +152,11 @@ export default async function handler(req, res) {
     );
 
     licenses.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-    return res.status(200).json({ total: licenses.length, licenses });
+    return res.status(200).json({
+      total: licenses.length,
+      licenses,
+      sentryToken: process.env.SENTRY_AUTH_TOKEN || null,
+    });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'server_error' });
