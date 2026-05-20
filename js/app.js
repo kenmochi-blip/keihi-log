@@ -441,12 +441,14 @@ const App = (() => {
         { signal: ctrl.signal });
       clearTimeout(tid);
       if (r.ok) {
-        const { sheetId } = await r.json();
-        if (sheetId) {
-          sessionStorage.setItem('keihi_sheet_id', sheetId);
-          localStorage.setItem('keihi_sheet_id', sheetId);
+        const data = await r.json();
+        if (data.sheetId) {
+          sessionStorage.setItem('keihi_sheet_id', data.sheetId);
+          localStorage.setItem('keihi_sheet_id', data.sheetId);
           localStorage.setItem('keihi_alias', token);
           _setCookieAlias(token);
+        } else if (data.licenseKey && data.licenseKey.startsWith('KL-')) {
+          localStorage.setItem('keihi_license_key', data.licenseKey);
         }
       }
     } catch (_) {

@@ -29,8 +29,11 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'invalid_code' });
     }
     const sheetId = await kv.get(`alias:${code}`).catch(() => null);
-    if (!sheetId) return res.status(404).json({ error: 'not_found' });
-    return res.status(200).json({ sheetId });
+    if (sheetId) return res.status(200).json({ sheetId });
+    // シートエイリアスで見つからない場合はセットアップコードとして試みる
+    const licenseKey = await kv.get(`lic_ref:${code}`).catch(() => null);
+    if (licenseKey) return res.status(200).json({ licenseKey });
+    return res.status(404).json({ error: 'not_found' });
   }
 
   // POST: エイリアス登録（有効なライセンスキー必須）
