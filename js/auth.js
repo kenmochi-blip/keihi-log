@@ -322,6 +322,8 @@ async function initLogin() {
     return '/app';
   })();
 
+  const forceConsent = localStorage.getItem('keihi_force_consent') === '1';
+
   const _showLoginBtn = (errMsg) => {
     document.getElementById('loadingArea').classList.add('d-none');
     document.getElementById('loginArea').classList.remove('d-none');
@@ -329,6 +331,10 @@ async function initLogin() {
       document.getElementById('loginError').textContent = errMsg;
       document.getElementById('loginError').classList.remove('d-none');
     }
+    document.getElementById('signInBtn').onclick = () => {
+      document.getElementById('loginError').classList.add('d-none');
+      Auth.initiateLogin(_returnUrl, forceConsent);
+    };
   };
 
   // OAuthコールバック処理（?code= が URL にある場合）
@@ -365,15 +371,10 @@ async function initLogin() {
 
   // ログインボタンを表示
   // keihi_force_consent が立っている場合は consent でリフレッシュトークンを強制取得
-  const forceConsent = localStorage.getItem('keihi_force_consent') === '1';
   if (forceConsent) {
     localStorage.removeItem('keihi_force_consent');
     _showLoginBtn('セッションの有効期限が切れました。もう一度ログインしてください。');
   } else {
     _showLoginBtn(null);
   }
-  document.getElementById('signInBtn').addEventListener('click', () => {
-    document.getElementById('loginError').classList.add('d-none');
-    Auth.initiateLogin(_returnUrl, forceConsent);
-  });
 }
