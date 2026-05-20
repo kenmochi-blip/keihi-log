@@ -382,7 +382,7 @@ const SummaryView = (() => {
          </a>`
       ).join('');
       const approveBtn = isAdmin && status === '申請済'
-        ? `<button class="btn btn-outline-success btn-sm py-0 px-2 drill-approve-btn" data-id="${_escape(e.id)}" title="登録済にする" style="font-size:0.75rem;"><i class="bi bi-check-lg me-1"></i>登録済</button>` : '';
+        ? `<button class="btn btn-outline-success btn-sm py-0 px-1 drill-approve-btn" data-id="${_escape(e.id)}" title="登録済にする"><i class="bi bi-check-lg"></i></button>` : '';
       const editBtn = canEdit
         ? `<button class="btn btn-outline-secondary btn-sm py-0 px-1 drill-edit-btn" data-id="${_escape(e.id)}" title="編集"><i class="bi bi-pencil"></i></button>` : '';
       const delBtn  = canEdit
