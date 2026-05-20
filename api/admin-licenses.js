@@ -1,13 +1,14 @@
 /**
  * 発行済みライセンス一覧 API（管理者専用）
- * GET    /api/admin-licenses?secret=ADMIN_SECRET                       一覧取得
- * GET    /api/admin-licenses?secret=ADMIN_SECRET&sentry_path=/...      Sentryプロキシ
- * GET    /api/admin-licenses?secret=ADMIN_SECRET&sentry_notes=get&issue_id=xxx  ノート取得
- * POST   /api/admin-licenses?secret=ADMIN_SECRET&sentry_notes=add&issue_id=xxx  ノート追加
- * POST   /api/admin-licenses?secret=ADMIN_SECRET&sentry_notes=del&issue_id=xxx&note_idx=N  ノート削除
- * POST   /api/admin-licenses?secret=ADMIN_SECRET                       手動発行
- * PATCH  /api/admin-licenses?secret=ADMIN_SECRET                       手動アップグレード
- * DELETE /api/admin-licenses?secret=ADMIN_SECRET&key=KL-               削除
+ * GET    /api/admin-licenses?secret=ADMIN_SECRET                          一覧取得
+ * GET    /api/admin-licenses?secret=ADMIN_SECRET&sentry_path=/...         Sentryプロキシ
+ * GET    /api/admin-licenses?secret=ADMIN_SECRET&sentry_notes=get&issue_id=xxx
+ * POST   /api/admin-licenses?secret=ADMIN_SECRET&sentry_notes=add&issue_id=xxx
+ * POST   /api/admin-licenses?secret=ADMIN_SECRET&sentry_notes=del&issue_id=xxx&note_idx=N
+ * POST   /api/admin-licenses?secret=ADMIN_SECRET&sentry_analyze=1         AI解析→ノート保存
+ * POST   /api/admin-licenses?secret=ADMIN_SECRET                          手動発行
+ * PATCH  /api/admin-licenses?secret=ADMIN_SECRET                          手動アップグレード
+ * DELETE /api/admin-licenses?secret=ADMIN_SECRET&key=KL-                  削除
  */
 
 import { kv } from '@vercel/kv';
@@ -15,7 +16,6 @@ import crypto from 'crypto';
 import { rateLimit } from './_rateLimit.js';
 
 export default async function handler(req, res) {
-  // 認証前にレートリミット（ブルートフォース対策）
   const { ok } = await rateLimit(req, { prefix: 'rl:admin', limit: 10, window: 60 });
   if (!ok) return res.status(429).json({ error: 'too_many_requests' });
 
@@ -23,7 +23,7 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  // Sentryプロキシ（sentry_path パラメータがある場合）
+  // Sentryプロキシ
   if (req.query.sentry_path) {
     const sentryPath = req.query.sentry_path;
     if (!sentryPath.startsWith('/')) return res.status(400).json({ error: 'invalid path' });
@@ -42,7 +42,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // Sentryイシューノート管理
+  // Sentryノート管理
   if (req.query.sentry_notes) {
     const action  = req.query.sentry_notes;
     const issueId = req.query.issue_id;
@@ -71,6 +71,64 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'unknown action' });
   }
 
+  // SentryイシューのAI解析（Gemini）→ノートとして保存
+  if (req.query.sentry_analyze) {
+    const { issueId, title, errorValue, culprit, level, count, userCount, lastSeen } = req.body || {};
+    if (!issueId || !title) return res.status(400).json({ error: 'issueId and title required' });
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) return res.status(503).json({ error: 'GEMINI_API_KEY not configured' });
+
+    const prompt = `あなたはWebアプリのエラー解析専門家です。以下のSentryエラーについて、開発者向けに日本語で解析してください。
+
+エラータイトル: ${title}
+エラー詳細: ${errorValue || 'なし'}
+発生箇所: ${culprit || 'なし'}
+レベル: ${level || 'error'}
+発生回数: ${count || '不明'}件
+影響ユーザー数: ${userCount || '不明'}人
+最終発生: ${lastSeen || '不明'}
+
+以下の形式で簡潔に回答してください：
+
+【推定原因】
+（技術的な原因を2〜3文で）
+
+【確認ポイント】
+・（確認すべき点を箇条書きで）
+
+【推奨対応】
+（具体的な修正方針）
+
+【優先度】高・中・低（一言で理由）`;
+
+    try {
+      const geminiResp = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+        }
+      );
+      const geminiData = await geminiResp.json();
+      const analysis = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!analysis) {
+        const errMsg = geminiData.error?.message || JSON.stringify(geminiData);
+        return res.status(502).json({ error: `Gemini API error: ${errMsg}` });
+      }
+
+      const kvKey = `sentry_notes:${issueId}`;
+      const notes = await kv.get(kvKey).catch(() => null) || [];
+      notes.push({ text: analysis.trim(), at: new Date().toISOString(), ai: true });
+      await kv.set(kvKey, notes);
+
+      return res.status(200).json({ notes });
+    } catch (err) {
+      return res.status(502).json({ error: err.message });
+    }
+  }
+
   // DELETE: ライセンス削除
   if (req.method === 'DELETE') {
     const { key } = req.query;
@@ -83,7 +141,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ deleted: true });
   }
 
-  // PATCH: 手動アップグレード（Stripe外決済用）
+  // PATCH: 手動アップグレード
   if (req.method === 'PATCH') {
     const { key, action } = req.body || {};
     if (!key) return res.status(400).json({ error: 'key required' });
@@ -112,7 +170,6 @@ export default async function handler(req, res) {
     const { company, email, plan, expiresAt, note } = req.body || {};
     if (!email) return res.status(400).json({ error: 'email required' });
 
-    // 同一メールで既存ライセンスがある場合はエラー
     const existing = await kv.get(`email_to_license:${email}`).catch(() => null);
     if (existing) {
       const existingData = await kv.get(`license:${existing}`).catch(() => null);
@@ -139,7 +196,6 @@ export default async function handler(req, res) {
     await kv.set(`email_to_license:${email}`, licenseKey);
     console.log(`License manually issued: ${licenseKey} for ${email}`);
 
-    // メール送信（RESEND_API_KEY が設定されている場合のみ）
     if (process.env.RESEND_API_KEY) {
       const from   = process.env.RESEND_FROM_EMAIL || 'noreply@' + (process.env.VERCEL_PROJECT_PRODUCTION_URL || 'example.com');
       const appUrl = 'https://keihi-log.com/app.html';
@@ -207,7 +263,8 @@ export default async function handler(req, res) {
     return res.status(200).json({
       total: licenses.length,
       licenses,
-      sentryToken: process.env.SENTRY_AUTH_TOKEN || null,
+      sentryToken:  process.env.SENTRY_AUTH_TOKEN  || null,
+      hasGeminiKey: !!process.env.GEMINI_API_KEY,
     });
   } catch (err) {
     console.error(err);
