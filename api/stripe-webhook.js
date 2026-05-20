@@ -90,7 +90,17 @@ async function _issueNewLicense(session) {
                     || '';
   // 表示用 company: ビジネス名 → 氏名 → メール の優先順
   const company = businessName || customerName || customerEmail;
-  const plan = session.metadata?.plan || 'standard';
+  const plan = session.metadata?.plan || 'solo';
+
+  // サブスクリプションの請求間隔（month/year）を取得
+  let interval = 'month';
+  if (session.subscription) {
+    try {
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY?.trim());
+      const sub = await stripe.subscriptions.retrieve(session.subscription);
+      interval = sub.items.data[0]?.price?.recurring?.interval || 'month';
+    } catch (_) {}
+  }
 
   // 同一メールアドレスで既存ライセンスがある場合
   const existingKey = await kv.get(`email_to_license:${customerEmail}`);
@@ -99,7 +109,7 @@ async function _issueNewLicense(session) {
     if (existingData && !existingData.suspended) {
       if (!existingData.stripeSessionId) {
         // トライアル（TR-xxx）または手動ライセンス → 有料アップグレード（キーはそのまま延長）
-        await _upgradeLicense(existingKey, existingData, session, customerEmail, customerName, plan);
+        await _upgradeLicense(existingKey, existingData, session, customerEmail, customerName, plan, interval);
       } else {
         // 既に有料ライセンスあり → セッションキーを更新してから再送メール
         // （session:xxx が 'issuing' のままだと get-license が 404 を返すため必ず上書きする）
@@ -125,6 +135,7 @@ async function _issueNewLicense(session) {
     customerName:    customerName,
     businessName:    businessName,
     plan,
+    interval,
     expiresAt:       expiresAt.toISOString().split('T')[0],
     email:           customerEmail,
     stripeSessionId: session.id,
@@ -153,7 +164,7 @@ async function _issueNewLicense(session) {
   }
 }
 
-async function _upgradeLicense(key, oldData, session, email, name, plan) {
+async function _upgradeLicense(key, oldData, session, email, name, plan, interval = 'month') {
   const expiresAt = new Date();
   expiresAt.setFullYear(expiresAt.getFullYear() + 1);
   const expiresAtStr = expiresAt.toISOString().split('T')[0];
@@ -161,6 +172,7 @@ async function _upgradeLicense(key, oldData, session, email, name, plan) {
   const updated = {
     ...oldData,
     plan,
+    interval,
     expiresAt:       expiresAtStr,
     stripeSessionId: session.id,
     upgradedAt:      new Date().toISOString(),
