@@ -361,22 +361,34 @@ const SummaryView = (() => {
   function _showDrill(title, expenses, settleCallback = null, showName = true) {
     const total = expenses.reduce((s, e) => s + e.amount, 0);
     const sorted = expenses.slice().sort((a, b) => a.date.localeCompare(b.date));
+    const isAdmin = App.getUserRole() === 'admin';
+    const myEmail = Auth.getUserEmail();
     // 列数：日付・支払先・金額・状態 (4) + 申請者 (showName時+1)
     const colCount = showName ? 5 : 4;
 
     const rows = sorted.map((e, i) => {
       const imgUrls = (e.imageLinks || '').split(',').map(s => s.trim()).filter(Boolean);
-      const hasExtra = e.note || imgUrls.length > 0;
+      // 日付を M/D 形式に短縮（例: 2026-04-18 → 4/18）
+      const shortDate = e.date ? e.date.replace(/^\d{4}-0?(\d+)-0?(\d+)$/, '$1/$2') : e.date;
+      const status  = e.settlementDate ? '精算済' : e.confirmed ? '登録済' : '申請済';
+      const canEdit = isAdmin || (status === '申請済' && e.email === myEmail);
+      // アコーディオンは備考・証票・各種ボタンのいずれかがある場合に表示
+      const hasExtra = !!(e.note || imgUrls.length > 0 || canEdit || (isAdmin && status === '申請済'));
+
       const receiptBtns = imgUrls.map((url, j) =>
         `<a href="${_escape(url)}" target="_blank" rel="noopener"
             class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size:0.75rem;">
            <i class="bi bi-image me-1"></i>証票${imgUrls.length > 1 ? j + 1 : ''}
          </a>`
       ).join('');
-      // 日付を M/D 形式に短縮（例: 2026-04-18 → 4/18）
-      const shortDate = e.date ? e.date.replace(/^\d{4}-0?(\d+)-0?(\d+)$/, '$1/$2') : e.date;
+      const approveBtn = isAdmin && status === '申請済'
+        ? `<button class="btn btn-outline-success btn-sm py-0 px-1 drill-approve-btn" data-id="${_escape(e.id)}" title="登録済にする"><i class="bi bi-check-lg"></i></button>` : '';
+      const editBtn = canEdit
+        ? `<button class="btn btn-outline-secondary btn-sm py-0 px-1 drill-edit-btn" data-id="${_escape(e.id)}" title="編集"><i class="bi bi-pencil"></i></button>` : '';
+      const delBtn  = canEdit
+        ? `<button class="btn btn-outline-danger btn-sm py-0 px-1 drill-del-btn" data-id="${_escape(e.id)}" title="削除"><i class="bi bi-trash"></i></button>` : '';
 
-      return `<tr>
+      return `<tr data-expense-id="${_escape(e.id)}">
         <td style="white-space:nowrap;">${shortDate}</td>
         <td>${_escape(e.place)}</td>
         <td class="text-end${hasExtra ? ' drill-amount-toggle' : ''}" data-row="${i}"
@@ -394,11 +406,13 @@ const SummaryView = (() => {
         </td>
       </tr>
       ${hasExtra ? `<tr class="drill-detail-row d-none" data-row="${i}">
-        <td colspan="${colCount}" style="background:#f8f9fa;border-top:none;padding:0.4rem 0.75rem 0.5rem;">
-          ${e.note ? `<div style="font-size:0.78rem;color:#495057;white-space:pre-wrap;word-break:break-all;margin-bottom:${imgUrls.length ? '0.3rem' : '0'};">
-            <i class="bi bi-chat-text me-1 text-secondary"></i>${_escape(e.note)}
-          </div>` : ''}
-          ${receiptBtns ? `<div class="d-flex gap-1 flex-wrap">${receiptBtns}</div>` : ''}
+        <td colspan="${colCount}" style="background:#f8f9fa;border-top:none;padding:0.35rem 0.75rem 0.4rem;">
+          <div style="display:flex;align-items:center;gap:0.5rem;">
+            <div style="flex:1;font-size:0.78rem;color:#495057;white-space:pre-wrap;word-break:break-all;min-width:0;">
+              ${e.note ? `<i class="bi bi-chat-text me-1 text-secondary"></i>${_escape(e.note)}` : ''}
+            </div>
+            <div style="display:flex;gap:0.3rem;flex-shrink:0;">${receiptBtns}${approveBtn}${editBtn}${delBtn}</div>
+          </div>
         </td>
       </tr>` : ''}`;
     }).join('');
@@ -433,7 +447,7 @@ const SummaryView = (() => {
                     <tr>
                       <td colspan="2" class="fw-bold">合計 ${expenses.length}件</td>
                       <td class="text-end fw-bold">¥${total.toLocaleString()}</td>
-                      <td colspan="${colCount - 3}"></td>
+                      <td colspan="${colCount - 2}"></td>
                     </tr>
                   </tfoot>
                 </table>
@@ -469,6 +483,65 @@ const SummaryView = (() => {
         settleCallback(() => modal.hide());
       });
     }
+
+    // 承認ボタン（申請済→登録済）
+    div.querySelectorAll('.drill-approve-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const ok = await App.confirm('この申請を登録済にしますか？');
+        if (!ok) return;
+        App.showLoading('承認中...');
+        try {
+          await ListView.approveExpense(btn.dataset.id);
+          const e = _expenses.find(x => x.id === btn.dataset.id);
+          if (e) e.confirmed = true;
+          // 行の状態バッジを更新
+          const tr = div.querySelector(`tr[data-expense-id="${btn.dataset.id}"]`);
+          if (tr) {
+            const badge = tr.querySelector('.badge-pending');
+            if (badge) { badge.className = 'badge badge-confirmed rounded-pill px-2'; badge.textContent = '登録済'; }
+          }
+          btn.closest('.drill-detail-row')?.querySelector('.drill-approve-btn')?.remove();
+          App.showToast('登録済にしました', 'success');
+        } catch (err) {
+          App.showToast('承認エラー: ' + err.message, 'danger');
+        } finally {
+          App.hideLoading();
+        }
+      });
+    });
+
+    // 編集ボタン
+    div.querySelectorAll('.drill-edit-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        modal.hide();
+        SubmitView.queueEdit(btn.dataset.id, _expenses, 'summary');
+        Router.navigate('submit');
+      });
+    });
+
+    // 削除ボタン
+    div.querySelectorAll('.drill-del-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const ok = await App.confirm('この申請を削除しますか？削除後は元に戻せません。');
+        if (!ok) return;
+        App.showLoading('削除中...');
+        try {
+          await ListView.deleteExpense(btn.dataset.id);
+          _expenses = _expenses.filter(e => e.id !== btn.dataset.id);
+          const row = div.querySelector(`tr[data-expense-id="${btn.dataset.id}"]`);
+          if (row) {
+            const detailRow = row.nextElementSibling;
+            if (detailRow?.classList.contains('drill-detail-row')) detailRow.remove();
+            row.remove();
+          }
+          App.showToast('削除しました', 'success');
+        } catch (err) {
+          App.showToast('削除エラー: ' + err.message, 'danger');
+        } finally {
+          App.hideLoading();
+        }
+      });
+    });
   }
 
   // ─── ユーティリティ ───────────────────────────────────────

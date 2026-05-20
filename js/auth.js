@@ -7,10 +7,10 @@
 const Auth = (() => {
   const CLIENT_ID = window.APP_CONFIG?.clientId || '';
 
-  // プライベート状態
-  let _accessToken = null;
-  let _tokenExpiry = 0;
-  let _userInfo    = null;
+  // プライベート状態（Safari PWA再開時のlet消失バグを避けるためvar使用）
+  var _accessToken = null;
+  var _tokenExpiry = 0;
+  var _userInfo    = null;
 
   const SCOPES = [
     'https://www.googleapis.com/auth/spreadsheets',
@@ -81,13 +81,16 @@ const Auth = (() => {
 
   // ── ログイン開始 ────────────────────────────────────────
   /** Google OAuth ページにリダイレクト（ポップアップなし） */
-  async function initiateLogin(returnUrl) {
+  async function initiateLogin(returnUrl, forceConsent = false) {
     const verifier  = await _generateVerifier();
     const challenge = await _generateChallenge(verifier);
     const state     = btoa(encodeURIComponent(returnUrl || '/app'));
 
     localStorage.setItem('keihi_pkce_verifier', verifier);
     localStorage.setItem('keihi_oauth_state',   state);
+
+    // forceConsent=true のとき consent を要求してリフレッシュトークンを確実に取得する
+    const prompt = forceConsent ? 'consent' : 'select_account';
 
     const params = new URLSearchParams({
       client_id:             CLIENT_ID,
@@ -98,7 +101,7 @@ const Auth = (() => {
       code_challenge_method: 'S256',
       state,
       access_type:           'offline',
-      prompt:                'select_account',
+      prompt,
     });
     location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
   }
@@ -115,7 +118,12 @@ const Auth = (() => {
     if (!code) return null;
 
     const savedState = localStorage.getItem('keihi_oauth_state');
-    if (state !== savedState) throw new Error('state_mismatch');
+    if (state !== savedState) {
+      // ページリロード・複数タブ等で state が上書きされた場合は古いデータをクリアして再試行可能にする
+      localStorage.removeItem('keihi_pkce_verifier');
+      localStorage.removeItem('keihi_oauth_state');
+      throw new Error('state_mismatch');
+    }
 
     const verifier = localStorage.getItem('keihi_pkce_verifier');
     if (!verifier) throw new Error('no_verifier');
@@ -179,9 +187,29 @@ const Auth = (() => {
     }
   }
 
+  /** リフレッシュトークンがない場合、consent付き再ログインに自動リダイレクト */
+  function _forceRelogin() {
+    _accessToken = null;
+    _userInfo    = null;
+    _tokenExpiry = 0;
+    localStorage.removeItem(SESSION_KEY);
+    localStorage.setItem('keihi_force_consent', '1');
+    // ログインページ上での呼び出しはリダイレクトループを引き起こすため早期リターン
+    if (location.pathname === '/login' || location.pathname.endsWith('/login.html')) {
+      return;
+    }
+    const ret = encodeURIComponent(location.pathname + location.search);
+    location.href = `/login?return=${ret}`;
+  }
+
   async function _refreshToken() {
     const saved = _loadSession();
-    if (!saved?.refresh_token) throw new Error('no_refresh_token');
+    if (!saved?.refresh_token) {
+      // リフレッシュトークンがない（初回ログイン時にGoogleが返さなかった等）
+      // → consent付きで再ログインし、確実にリフレッシュトークンを取得する
+      _forceRelogin();
+      throw new Error('no_refresh_token');
+    }
 
     const ctrl = new AbortController();
     const tid  = setTimeout(() => ctrl.abort(), 8000);
@@ -294,13 +322,20 @@ async function initLogin() {
     return '/app';
   })();
 
-  const _showLoginBtn = (errMsg) => {
+  const forceConsent = localStorage.getItem('keihi_force_consent') === '1';
+
+  const _showLoginBtn = (errMsg, overrideReturnUrl) => {
     document.getElementById('loadingArea').classList.add('d-none');
     document.getElementById('loginArea').classList.remove('d-none');
     if (errMsg) {
       document.getElementById('loginError').textContent = errMsg;
       document.getElementById('loginError').classList.remove('d-none');
     }
+    const dest = overrideReturnUrl || _returnUrl;
+    document.getElementById('signInBtn').onclick = () => {
+      document.getElementById('loginError').classList.add('d-none');
+      Auth.initiateLogin(dest, forceConsent);
+    };
   };
 
   // OAuthコールバック処理（?code= が URL にある場合）
@@ -311,7 +346,21 @@ async function initLogin() {
       const returnUrl = await Auth.handleCallback();
       if (returnUrl) { window.location.replace(returnUrl); return; }
     } catch (err) {
-      _showLoginBtn('ログインに失敗しました: ' + err.message);
+      // state_mismatch 時でも state から元のリターン先を回収して再試行に引き継ぐ
+      // （state の信頼性は失われているが、ナビゲーション先として使うだけなので安全）
+      let recoveredReturnUrl = null;
+      if (err.message === 'state_mismatch') {
+        const rawState = new URLSearchParams(location.search).get('state');
+        if (rawState) {
+          try { recoveredReturnUrl = decodeURIComponent(atob(rawState)); } catch (_) {}
+        }
+      }
+      const msg = err.message === 'state_mismatch'
+        ? 'ページの再読み込みや複数タブが原因でログインに失敗しました。もう一度「Googleでログイン」を押してください。'
+        : err.message === 'access_denied'
+        ? 'Googleアカウントへのアクセスが拒否されました。もう一度お試しください。'
+        : 'ログインに失敗しました: ' + err.message;
+      _showLoginBtn(msg, recoveredReturnUrl);
       return;
     }
   }
@@ -331,9 +380,11 @@ async function initLogin() {
   } catch (_) {}
 
   // ログインボタンを表示
-  _showLoginBtn(null);
-  document.getElementById('signInBtn').addEventListener('click', () => {
-    document.getElementById('loginError').classList.add('d-none');
-    Auth.initiateLogin(_returnUrl);
-  });
+  // keihi_force_consent が立っている場合は consent でリフレッシュトークンを強制取得
+  if (forceConsent) {
+    localStorage.removeItem('keihi_force_consent');
+    _showLoginBtn('セッションの有効期限が切れました。もう一度ログインしてください。');
+  } else {
+    _showLoginBtn(null);
+  }
 }

@@ -11,7 +11,7 @@ const Setup = (() => {
    * @param {string} companyName 会社名（シートタイトルに使用）
    * @returns {string} 作成されたスプレッドシートID
    */
-  async function createSpreadsheet(companyName, parentFolderId) {
+  async function createSpreadsheet(companyName, parentFolderId, customAlias = '') {
     const title = `経費ログ - ${companyName || ''}`.trim();
 
     // 1. スプレッドシート作成（シート構成まで一括で作成）
@@ -57,7 +57,7 @@ const Setup = (() => {
     await Sheets.update('設定!B4', [[folderId]], ssId);
 
     // 7. エイリアス生成・登録（スプレッドシートIDをURLに露出させない）
-    const alias = _generateAlias();
+    const alias = customAlias || _generateAlias();
     const licenseKey = localStorage.getItem('keihi_license_key') || '';
     await _registerAlias(alias, ssId, licenseKey).catch(() => {});
 
@@ -79,10 +79,11 @@ const Setup = (() => {
 
   async function _registerAlias(alias, sheetId, licenseKey) {
     const base = window.APP_CONFIG?.apiBase || '';
+    const setupCode = localStorage.getItem('keihi_setup_code') || '';
     await fetch(`${base}/api/alias`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code: alias, sheetId, licenseKey }),
+      body: JSON.stringify({ code: alias, sheetId, licenseKey, setupCode }),
     });
   }
 

@@ -10,7 +10,7 @@ const SettingsView = (() => {
   function render() {
     const isDemo = typeof Demo !== 'undefined' && Demo.isActive();
     const ssId   = isDemo ? Demo.SHEET_ID : (localStorage.getItem('keihi_sheet_id') || '');
-    const licKey = localStorage.getItem('keihi_license_key') || '';
+    const licKey = isDemo ? 'KL-XXXXXXXXXXXXXXXXXXXX（デモ）' : (localStorage.getItem('keihi_license_key') || '');
     const email  = Auth.getUserEmail();
     const isAdmin = App.isAdmin();
 
@@ -63,9 +63,22 @@ const SettingsView = (() => {
           <div id="companyNameMsg" class="form-text" style="margin-top:-0.75rem;"></div>
           ` : ''}
 
-          <!-- ② 証票データ・スプレッドシート保存先フォルダ（管理者のみ） -->
+          <!-- ② チームURL（管理者・シート未設定時のみ） -->
+          ${isAdmin && !ssId ? `
+          <div class="settings-step-title">② チームURL <span style="font-size:0.75rem;font-weight:400;color:#888;">任意・設定後変更不可</span></div>
+          <div class="settings-step-hint">メンバーがアプリを開く共有URLのパスを決めます。空欄の場合はランダムで自動生成されます。</div>
+          <div class="input-group input-group-sm mb-1">
+            <span class="input-group-text" style="font-size:0.78rem;">${location.origin}/</span>
+            <input type="text" class="form-control form-control-sm" id="inputAliasCode"
+              placeholder="例: yamada-trading（英数字・ハイフン、6文字以上）"
+              pattern="[a-zA-Z0-9\\-]{6,}" maxlength="40">
+          </div>
+          <div id="aliasCheckMsg" class="form-text mb-3"></div>
+          ` : ''}
+
+          <!-- ③ 証票データ・スプレッドシート保存先フォルダ（管理者のみ） -->
           ${isAdmin ? `
-          <div class="settings-step-title">② 証票データ・スプレッドシート保存先フォルダ</div>
+          <div class="settings-step-title">${!ssId ? '③' : '②'} 証票データ・スプレッドシート保存先フォルダ</div>
           ${!ssId ? `
           <div class="settings-step-hint">スプレッドシートと証票画像の保存先（空欄でマイドライブのルートに作成）</div>
           <input type="text" class="form-control form-control-sm mb-2" id="inputFolderUrl"
@@ -88,20 +101,23 @@ const SettingsView = (() => {
           `}
           ` : ''}
 
-          <!-- ③ ライセンスキー -->
-          <div class="settings-step-title">${isAdmin ? '③ ' : ''}ライセンスキー</div>
+          <!-- ④ ライセンスキー -->
+          <div class="settings-step-title">${isAdmin ? (!ssId ? '④ ' : '③ ') : ''}ライセンスキー</div>
           <div id="licenseStatus" class="mb-2"></div>
           ${!licKey ? `<div class="settings-step-hint mb-2">メールにて通知されたライセンスキーを入力してください<br>例：<code>KL-XXXXXXXXXXXXXXXXXXXX</code></div>` : ''}
           <div class="input-group mb-1">
             <input type="password" class="form-control form-control-sm" id="inputLicenseKey"
               placeholder="KL-XXXXXXXXXXXXXXXXXXXX" value="${_escape(licKey)}">
+            <button class="btn btn-outline-secondary btn-sm" id="btnToggleLicenseKey" type="button" tabindex="-1">
+              <i class="bi bi-eye"></i>
+            </button>
             <button class="btn btn-outline-primary btn-sm" id="btnVerifyLicense">確認</button>
           </div>
           <div id="licenseMsg" class="form-text mb-2"></div>
 
-          <!-- ④ Gemini APIキー（管理者のみ） -->
+          <!-- ⑤ Gemini APIキー（管理者のみ） -->
           ${isAdmin ? `
-          <div class="settings-step-title">④ Gemini APIキー</div>
+          <div class="settings-step-title">${!ssId ? '⑤' : '④'} Gemini APIキー</div>
           <div class="settings-step-hint">全メンバー共用 — メンバーは個別取得不要です。</div>
           <div class="card bg-light border-0 p-2 mb-2" style="font-size:0.82rem;line-height:1.6;">
             <div class="fw-semibold mb-1"><i class="bi bi-key me-1 text-warning"></i>APIキーの取得手順</div>
@@ -116,17 +132,29 @@ const SettingsView = (() => {
               <i class="bi bi-box-arrow-up-right me-1"></i>Google AI Studioでキーを取得する
             </a>
           </div>
-          <div class="card border-warning border-opacity-50 p-2 mb-2" style="font-size:0.82rem;line-height:1.6;background:#fffdf0;">
-            <div class="fw-semibold mb-1"><i class="bi bi-shield-check me-1 text-warning"></i>セキュリティ推奨設定（任意）</div>
-            <p class="mb-1">APIキーに利用元ドメインの制限をかけると、万一キーが流出しても悪用を防げます。</p>
-            <ol class="mb-1 ps-3">
-              <li>Google AI Studioでキー一覧を開く</li>
-              <li>作成したキーの「編集」→「APIの制限」を選択</li>
-              <li>「HTTPリファラー（ウェブサイト）」を選び <code>keihi-log.com/*</code> を追加</li>
-            </ol>
-            <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" class="text-warning fw-semibold" style="font-size:0.82rem;">
-              <i class="bi bi-box-arrow-up-right me-1"></i>Google AI Studioでキーを編集する
-            </a>
+          <div class="accordion accordion-flush mb-2" id="geminiSecAccordion">
+            <div class="accordion-item border border-warning border-opacity-50 rounded" style="background:#fffdf0;">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed py-2 px-3 rounded" type="button"
+                  data-bs-toggle="collapse" data-bs-target="#geminiSecBody"
+                  style="background:transparent;font-size:0.82rem;font-weight:600;color:inherit;">
+                  <i class="bi bi-shield-check me-1 text-warning"></i>セキュリティ推奨設定（任意）
+                </button>
+              </h2>
+              <div id="geminiSecBody" class="accordion-collapse collapse">
+                <div class="accordion-body py-2 px-3" style="font-size:0.82rem;line-height:1.6;">
+                  <p class="mb-1">APIキーに利用元ドメインの制限をかけると、万一キーが流出しても悪用を防げます。</p>
+                  <ol class="mb-1 ps-3">
+                    <li>Google Cloud Console で APIキーを開く</li>
+                    <li>「APIの制限」→「HTTPリファラー（ウェブサイト）」を選択</li>
+                    <li><code>keihi-log.com/*</code> を追加して保存</li>
+                  </ol>
+                  <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener" class="text-warning fw-semibold" style="font-size:0.82rem;">
+                    <i class="bi bi-box-arrow-up-right me-1"></i>Google Cloud Consoleでキーを編集する
+                  </a>
+                </div>
+              </div>
+            </div>
           </div>
           <div class="input-group mb-1">
             <input type="password" class="form-control form-control-sm" id="inputGeminiKey" placeholder="AIzaSy...">
@@ -318,6 +346,18 @@ const SettingsView = (() => {
     });
 
     // ライセンス確認
+    el.querySelector('#btnToggleLicenseKey')?.addEventListener('click', () => {
+      const inp = el.querySelector('#inputLicenseKey');
+      const icon = el.querySelector('#btnToggleLicenseKey i');
+      if (inp.type === 'password') {
+        inp.type = 'text';
+        icon.className = 'bi bi-eye-slash';
+      } else {
+        inp.type = 'password';
+        icon.className = 'bi bi-eye';
+      }
+    });
+
     el.querySelector('#btnVerifyLicense')?.addEventListener('click', async () => {
       const key = el.querySelector('#inputLicenseKey').value.trim();
       if (!key) return;
@@ -329,6 +369,10 @@ const SettingsView = (() => {
       const msg = el.querySelector('#licenseMsg');
       if (result.valid) {
         localStorage.setItem('keihi_license_key', key);
+        // シートが接続済みならB3にも書き込み（メンバーが自動取得できるようにする）
+        if (localStorage.getItem('keihi_sheet_id')) {
+          Sheets.update('設定!B3', [[key]]).catch(() => {});
+        }
         msg.innerHTML = `<span class="text-success"><i class="bi bi-check-circle me-1"></i>有効（${result.company || ''}）${result.expiresAt ? ' 期限: ' + result.expiresAt.split('T')[0] : ''}</span>`;
         App.showToast('ライセンスを確認しました', 'success');
         // 社名が未入力なら Stripe 登録の会社名を自動入力
@@ -358,14 +402,36 @@ const SettingsView = (() => {
       const folderUrl = el.querySelector('#inputFolderUrl')?.value.trim() || '';
       const parentFolderId = folderUrl.match(/folders\/([a-zA-Z0-9_-]+)/)?.[1] || null;
 
+      // カスタムエイリアスの検証
+      const aliasInput = el.querySelector('#inputAliasCode');
+      const aliasCheckMsg = el.querySelector('#aliasCheckMsg');
+      const customAlias = aliasInput?.value.trim().toLowerCase() || '';
+      if (customAlias) {
+        if (!/^[a-zA-Z0-9-]{6,40}$/.test(customAlias)) {
+          aliasCheckMsg.innerHTML = '<span class="text-danger">英数字・ハイフンのみ、6〜40文字で入力してください</span>';
+          return;
+        }
+        const base = window.APP_CONFIG?.apiBase || '';
+        const chk = await fetch(`${base}/api/alias?code=${encodeURIComponent(customAlias)}`);
+        if (chk.ok) {
+          aliasCheckMsg.innerHTML = '<span class="text-danger">このURLはすでに使われています。別の文字列を入力してください</span>';
+          return;
+        }
+        if (aliasCheckMsg) aliasCheckMsg.textContent = '';
+      }
+
       const msg = el.querySelector('#createSheetMsg');
       const btn = el.querySelector('#btnCreateSheet');
       btn.disabled = true;
       btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>作成中...';
       msg.textContent = '';
       try {
-        const ssId    = await Setup.createSpreadsheet(name, parentFolderId);
+        const ssId    = await Setup.createSpreadsheet(name, parentFolderId, customAlias);
         localStorage.setItem('keihi_company_name', name);
+        // シート作成後、localStorageにライセンスキーがあればB3に確実に書き込む
+        // （_writeInitialDataでも書くが、タイミングによっては空になる場合の保険）
+        const _lic = localStorage.getItem('keihi_license_key');
+        if (_lic) Sheets.update('設定!B3', [[_lic]]).catch(() => {});
         // 作成されたフォルダURLをフォルダURL欄に反映
         const createdFolderId = localStorage.getItem('keihi_folder_id') || '';
         if (createdFolderId) {
@@ -518,6 +584,34 @@ const SettingsView = (() => {
       folderInput.value = `https://drive.google.com/drive/folders/${currentFolderId}`;
     }
     _setFolderLink(currentFolderId);
+
+    // チームURLリアルタイム重複チェック
+    let _aliasCheckTimer = null;
+    el.querySelector('#inputAliasCode')?.addEventListener('input', (e) => {
+      clearTimeout(_aliasCheckTimer);
+      const val = e.target.value.trim().toLowerCase();
+      const msgEl = el.querySelector('#aliasCheckMsg');
+      if (!val) { msgEl.textContent = ''; return; }
+      if (!/^[a-zA-Z0-9-]{1,40}$/.test(val)) {
+        msgEl.innerHTML = '<span class="text-danger">英数字・ハイフンのみ使用できます</span>';
+        return;
+      }
+      if (val.length < 6) {
+        msgEl.innerHTML = '<span class="text-muted">6文字以上必要です</span>';
+        return;
+      }
+      msgEl.innerHTML = '<span class="text-muted">確認中…</span>';
+      _aliasCheckTimer = setTimeout(async () => {
+        const base = window.APP_CONFIG?.apiBase || '';
+        const r = await fetch(`${base}/api/alias?code=${encodeURIComponent(val)}`).catch(() => null);
+        if (!r) { msgEl.textContent = ''; return; }
+        if (r.ok) {
+          msgEl.innerHTML = '<span class="text-danger"><i class="bi bi-x-circle me-1"></i>このURLはすでに使われています</span>';
+        } else {
+          msgEl.innerHTML = `<span class="text-success"><i class="bi bi-check-circle me-1"></i>${location.origin}/${val} は使用可能です</span>`;
+        }
+      }, 600);
+    });
 
     el.querySelector('#btnCreateFolder')?.addEventListener('click', async () => {
       const btn = el.querySelector('#btnCreateFolder');

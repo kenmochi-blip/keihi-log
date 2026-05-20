@@ -1,9 +1,14 @@
 /**
  * 発行済みライセンス一覧 API（管理者専用）
- * GET    /api/admin-licenses?secret=ADMIN_SECRET          一覧取得
- * POST   /api/admin-licenses?secret=ADMIN_SECRET          手動発行
- * PATCH  /api/admin-licenses?secret=ADMIN_SECRET          手動アップグレード
- * DELETE /api/admin-licenses?secret=ADMIN_SECRET&key=KL-  削除
+ * GET    /api/admin-licenses?secret=ADMIN_SECRET                          一覧取得
+ * GET    /api/admin-licenses?secret=ADMIN_SECRET&sentry_path=/...         Sentryプロキシ
+ * GET    /api/admin-licenses?secret=ADMIN_SECRET&sentry_notes=get&issue_id=xxx
+ * POST   /api/admin-licenses?secret=ADMIN_SECRET&sentry_notes=add&issue_id=xxx
+ * POST   /api/admin-licenses?secret=ADMIN_SECRET&sentry_notes=del&issue_id=xxx&note_idx=N
+ * POST   /api/admin-licenses?secret=ADMIN_SECRET&sentry_analyze=1         AI解析→ノート保存
+ * POST   /api/admin-licenses?secret=ADMIN_SECRET                          手動発行
+ * PATCH  /api/admin-licenses?secret=ADMIN_SECRET                          手動アップグレード
+ * DELETE /api/admin-licenses?secret=ADMIN_SECRET&key=KL-                  削除
  */
 
 import { kv } from '@vercel/kv';
@@ -11,12 +16,276 @@ import crypto from 'crypto';
 import { rateLimit } from './_rateLimit.js';
 
 export default async function handler(req, res) {
-  // 認証前にレートリミット（ブルートフォース対策）
   const { ok } = await rateLimit(req, { prefix: 'rl:admin', limit: 10, window: 60 });
   if (!ok) return res.status(429).json({ error: 'too_many_requests' });
 
   if (req.query.secret !== process.env.ADMIN_SECRET) {
     return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  // Sentryプロキシ
+  if (req.query.sentry_path) {
+    const sentryPath = req.query.sentry_path;
+    if (!sentryPath.startsWith('/')) return res.status(400).json({ error: 'invalid path' });
+    const token = process.env.SENTRY_AUTH_TOKEN;
+    if (!token) return res.status(503).json({ error: 'SENTRY_AUTH_TOKEN not configured' });
+    try {
+      const resp = await fetch(`https://us.sentry.io/api/0${sentryPath}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await resp.json();
+      const hits = resp.headers.get('X-Hits');
+      if (hits) res.setHeader('X-Hits', hits);
+      return res.status(resp.status).json(data);
+    } catch (err) {
+      await _logToKV('sentry_proxy', 'error', err.message);
+      return res.status(502).json({ error: err.message });
+    }
+  }
+
+  // Sentryイシュー解決済みマーク
+  if (req.query.sentry_resolve) {
+    const issueId = req.query.issue_id;
+    if (!issueId) return res.status(400).json({ error: 'issue_id required' });
+    const token = process.env.SENTRY_AUTH_TOKEN;
+    if (!token) return res.status(503).json({ error: 'SENTRY_AUTH_TOKEN not configured' });
+    try {
+      const resp = await fetch(`https://us.sentry.io/api/0/issues/${issueId}/`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'resolved' }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) {
+        const detail = data?.detail || data?.status || JSON.stringify(data);
+        await _logToKV('sentry_resolve', 'error', `Sentry ${resp.status}: ${detail}`, { issueId });
+        return res.status(resp.status).json({ error: `Sentry ${resp.status}: ${detail}` });
+      }
+      return res.status(200).json({ ok: true });
+    } catch (err) {
+      await _logToKV('sentry_resolve', 'error', err.message, { issueId });
+      return res.status(502).json({ error: err.message });
+    }
+  }
+
+  // Sentryノート管理
+  if (req.query.sentry_notes) {
+    const action  = req.query.sentry_notes;
+    const issueId = req.query.issue_id;
+    if (!issueId) return res.status(400).json({ error: 'issue_id required' });
+    const kvKey = `sentry_notes:${issueId}`;
+
+    if (action === 'get') {
+      const notes = await kv.get(kvKey).catch(() => null);
+      return res.status(200).json({ notes: notes || [] });
+    }
+    if (action === 'add') {
+      const { text } = req.body || {};
+      if (!text?.trim()) return res.status(400).json({ error: 'text required' });
+      const notes = await kv.get(kvKey).catch(() => null) || [];
+      notes.push({ text: text.trim(), at: new Date().toISOString() });
+      await kv.set(kvKey, notes);
+      return res.status(200).json({ notes });
+    }
+    if (action === 'del') {
+      const idx = parseInt(req.query.note_idx, 10);
+      const notes = await kv.get(kvKey).catch(() => null) || [];
+      if (!isNaN(idx) && idx >= 0 && idx < notes.length) notes.splice(idx, 1);
+      await kv.set(kvKey, notes);
+      return res.status(200).json({ notes });
+    }
+    return res.status(400).json({ error: 'unknown action' });
+  }
+
+  // SentryイシューのAI解析（Claude Haiku）→ノートとして保存
+  if (req.query.sentry_analyze) {
+    const { issueId, title, errorValue, culprit, level, count, userCount, lastSeen } = req.body || {};
+    if (!issueId || !title) return res.status(400).json({ error: 'issueId and title required' });
+
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) return res.status(503).json({ error: 'ANTHROPIC_API_KEY not configured' });
+
+    const prompt = `以下のSentryエラーについて、Webアプリ開発者向けに日本語で解析してください。
+
+エラータイトル: ${title}
+エラー詳細: ${errorValue || 'なし'}
+発生箇所: ${culprit || 'なし'}
+レベル: ${level || 'error'}
+発生回数: ${count || '不明'}件
+影響ユーザー数: ${userCount || '不明'}人
+最終発生: ${lastSeen || '不明'}
+
+以下の形式で簡潔に回答してください：
+
+【推定原因】
+（技術的な原因を2〜3文で）
+
+【確認ポイント】
+・（確認すべき点を箇条書きで）
+
+【推奨対応】
+（具体的な修正方針）
+
+【優先度】高・中・低（一言で理由）`;
+
+    try {
+      const claudeResp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key':         apiKey,
+          'anthropic-version': '2023-06-01',
+          'content-type':      'application/json',
+        },
+        body: JSON.stringify({
+          model:      'claude-haiku-4-5-20251001',
+          max_tokens: 1024,
+          messages:   [{ role: 'user', content: prompt }],
+        }),
+      });
+      const claudeData = await claudeResp.json();
+      const analysis = claudeData.content?.[0]?.text;
+      if (!analysis) {
+        const errMsg = claudeData.error?.message || JSON.stringify(claudeData);
+        await _logToKV('sentry_analyze', 'error', `Claude API error: ${errMsg}`, { issueId });
+        return res.status(502).json({ error: `Claude API error: ${errMsg}` });
+      }
+
+      const kvKey = `sentry_notes:${issueId}`;
+      const notes = await kv.get(kvKey).catch(() => null) || [];
+      notes.push({ text: analysis.trim(), at: new Date().toISOString(), ai: true });
+      await kv.set(kvKey, notes);
+
+      return res.status(200).json({ notes });
+    } catch (err) {
+      await _logToKV('sentry_analyze', 'error', err.message, { issueId });
+      return res.status(502).json({ error: err.message });
+    }
+  }
+
+  // Cloudflare Analytics
+  if (req.query.cloudflare) {
+    const token  = process.env.CLOUDFLARE_API_TOKEN;
+    const zoneId = process.env.CLOUDFLARE_ZONE_ID;
+    if (!token || !zoneId) return res.status(503).json({ error: 'CLOUDFLARE_API_TOKEN or CLOUDFLARE_ZONE_ID not configured' });
+
+    const days = Math.min(parseInt(req.query.days || '7', 10), 30);
+    const end   = new Date(); end.setDate(end.getDate() - 1);
+    const start = new Date(end); start.setDate(start.getDate() - (days - 1));
+    const fmt   = d => d.toISOString().split('T')[0];
+
+    const query = `{
+      viewer {
+        zones(filter: {zoneTag: "${zoneId}"}) {
+          httpRequests1dGroups(
+            limit: ${days}
+            filter: {date_geq: "${fmt(start)}", date_leq: "${fmt(end)}"}
+            orderBy: [date_DESC]
+          ) {
+            dimensions { date }
+            sum {
+              requests
+              pageViews
+              cachedRequests
+              threats
+              responseStatusMap { edgeResponseStatus requests }
+            }
+            uniq { uniques }
+          }
+        }
+      }
+    }`;
+
+    try {
+      const resp = await fetch('https://api.cloudflare.com/client/v4/graphql', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query }),
+      });
+      const data = await resp.json();
+      if (data.errors) return res.status(502).json({ error: data.errors[0]?.message || 'GraphQL error' });
+      const groups = data.data?.viewer?.zones?.[0]?.httpRequests1dGroups || [];
+      return res.status(200).json({ groups });
+    } catch (err) {
+      await _logToKV('cloudflare', 'error', err.message);
+      return res.status(502).json({ error: err.message });
+    }
+  }
+
+  // アプリログ管理
+  if (req.query.app_logs) {
+    const action = req.query.app_logs;
+
+    if (action === 'get') {
+      const [logs, analysis] = await Promise.all([
+        kv.lrange('app_log_list', 0, 49).catch(() => []),
+        kv.get('app_log_analysis').catch(() => null),
+      ]);
+      return res.status(200).json({ logs, analysis });
+    }
+
+    if (action === 'clear' && req.method === 'POST') {
+      await Promise.all([
+        kv.del('app_log_list').catch(() => {}),
+        kv.del('app_log_analysis').catch(() => {}),
+      ]);
+      return res.status(200).json({ ok: true });
+    }
+
+    if (action === 'analyze' && req.method === 'POST') {
+      const apiKey = process.env.ANTHROPIC_API_KEY;
+      if (!apiKey) return res.status(503).json({ error: 'ANTHROPIC_API_KEY not configured' });
+
+      const logs = await kv.lrange('app_log_list', 0, 19).catch(() => []);
+      const errorLogs = logs.filter(l => l.level === 'error' || l.level === 'warn');
+      if (errorLogs.length === 0) return res.status(200).json({ analysis: null, skipped: true });
+
+      const logText = errorLogs.map(l =>
+        `[${l.at}] ${l.level.toUpperCase()} [${l.handler}] ${l.message}${l.details ? ' / ' + JSON.stringify(l.details) : ''}`
+      ).join('\n');
+
+      const prompt = `以下は経費ログWebアプリ（Vercel Serverless Functions）のエラーログです。開発者向けに日本語で解析してください。
+
+${logText}
+
+以下の形式で簡潔に回答してください：
+
+【ログ概要】
+（何が起きているかを2〜3文で）
+
+【主な問題】
+・（問題点を箇条書きで）
+
+【推奨対応】
+（具体的な確認・修正事項）
+
+【優先度】高・中・低（一言で理由）`;
+
+      try {
+        const claudeResp = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'x-api-key':         apiKey,
+            'anthropic-version': '2023-06-01',
+            'content-type':      'application/json',
+          },
+          body: JSON.stringify({
+            model:      'claude-haiku-4-5-20251001',
+            max_tokens: 1024,
+            messages:   [{ role: 'user', content: prompt }],
+          }),
+        });
+        const claudeData = await claudeResp.json();
+        const text = claudeData.content?.[0]?.text;
+        if (!text) return res.status(502).json({ error: claudeData.error?.message || 'Claude API error' });
+        const analysis = { text: text.trim(), at: new Date().toISOString(), count: errorLogs.length };
+        await kv.set('app_log_analysis', analysis);
+        return res.status(200).json({ analysis });
+      } catch (err) {
+        return res.status(502).json({ error: err.message });
+      }
+    }
+
+    return res.status(400).json({ error: 'unknown action' });
   }
 
   // DELETE: ライセンス削除
@@ -31,7 +300,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ deleted: true });
   }
 
-  // PATCH: 手動アップグレード（Stripe外決済用）
+  // PATCH: 手動アップグレード
   if (req.method === 'PATCH') {
     const { key, action } = req.body || {};
     if (!key) return res.status(400).json({ error: 'key required' });
@@ -60,7 +329,6 @@ export default async function handler(req, res) {
     const { company, email, plan, expiresAt, note } = req.body || {};
     if (!email) return res.status(400).json({ error: 'email required' });
 
-    // 同一メールで既存ライセンスがある場合はエラー
     const existing = await kv.get(`email_to_license:${email}`).catch(() => null);
     if (existing) {
       const existingData = await kv.get(`license:${existing}`).catch(() => null);
@@ -87,10 +355,9 @@ export default async function handler(req, res) {
     await kv.set(`email_to_license:${email}`, licenseKey);
     console.log(`License manually issued: ${licenseKey} for ${email}`);
 
-    // メール送信（RESEND_API_KEY が設定されている場合のみ）
     if (process.env.RESEND_API_KEY) {
       const from   = process.env.RESEND_FROM_EMAIL || 'noreply@' + (process.env.VERCEL_PROJECT_PRODUCTION_URL || 'example.com');
-      const appUrl = 'https://keihi-log.com/app.html';
+      const appUrl = 'https://keihi-log.com/app';
 
       await _sendEmail(from, email, '【経費ログ】ライセンスキーのご案内', `
 <p>${licenseData.company} 様</p>
@@ -155,12 +422,24 @@ export default async function handler(req, res) {
     return res.status(200).json({
       total: licenses.length,
       licenses,
-      sentryToken: process.env.SENTRY_AUTH_TOKEN || null,
+      sentryToken:  process.env.SENTRY_AUTH_TOKEN  || null,
+      hasClaudeKey:  !!process.env.ANTHROPIC_API_KEY,
+      hasCfKey:      !!(process.env.CLOUDFLARE_API_TOKEN && process.env.CLOUDFLARE_ZONE_ID),
     });
   } catch (err) {
     console.error(err);
+    await _logToKV('license_get', 'error', err.message);
     return res.status(500).json({ error: 'server_error' });
   }
+}
+
+async function _logToKV(handler, level, message, details = null) {
+  try {
+    const entry = { at: new Date().toISOString(), level, handler, message };
+    if (details) entry.details = details;
+    await kv.lpush('app_log_list', entry);
+    await kv.ltrim('app_log_list', 0, 99);
+  } catch (_) {}
 }
 
 async function _sendEmail(from, to, subject, html) {

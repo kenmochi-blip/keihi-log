@@ -18,6 +18,7 @@ const SubmitView = (() => {
   let _paySources       = [];
   let _customFlags      = [];
   let _pendingEdit   = null; // 一覧表からの編集キュー {id, expenses}
+  let _returnAfterEdit = null; // 編集保存後の遷移先ビュー名
   let _historyAll      = []; // 自分の全履歴（ソート済）
   let _historyExpenses = []; // 全経費データ（編集用）
   let _historyShown    = 15;
@@ -1075,8 +1076,10 @@ function _bindTypeButtons(el) {
       }
 
       App.showToast(_editId ? '修正しました' : '登録しました', 'success');
+      const returnTo = _editId ? _returnAfterEdit : null;
       _resetForm(el);
       _loadHistory(el);
+      if (returnTo) Router.navigate(returnTo);
     } catch (err) {
       App.showToast('登録エラー: ' + err.message, 'danger');
     } finally {
@@ -1412,6 +1415,7 @@ function _bindTypeButtons(el) {
   function _resetForm(el) {
     _selectedFiles = []; _compressedFiles = []; _compressPromise = null;
     _editId = null;
+    _returnAfterEdit = null;
     _withholdingAmount = 0;
     el.querySelector('#editBanner')?.classList.add('d-none');
     const btn = el.querySelector('#btnSubmit');
@@ -1442,7 +1446,10 @@ function _bindTypeButtons(el) {
     return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
-  function queueEdit(id, expenses) { _pendingEdit = { id, expenses }; }
+  function queueEdit(id, expenses, returnTo = null) {
+    _pendingEdit = { id, expenses };
+    _returnAfterEdit = returnTo;
+  }
 
   return { render, bindEvents, queueEdit };
 })();

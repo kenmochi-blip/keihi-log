@@ -29,7 +29,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ valid: false, reason: 'invalid_key_format' });
   }
   // このシステムが発行するキーのみ受け付ける（旧システムのSS-プレフィックス等を排除）
-  if (!key.startsWith('KL-') && !key.startsWith('TR-')) {
+  if (!key.startsWith('KL-')) {
     return res.status(200).json({ valid: false, reason: 'not_found' });
   }
 

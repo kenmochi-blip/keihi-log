@@ -28,6 +28,9 @@ const App = (() => {
       return;
     }
 
+    // ?setup= パラメータがあればライセンスキーをlocalStorageに自動入力
+    await _resolveSetupParam();
+
     // URLパスからエイリアス/シートIDを解決してlocalStorageに反映
     await _resolvePathAlias();
 
@@ -55,13 +58,25 @@ const App = (() => {
         }
       } catch (_) {}
     }
-    if (!licKey || !ssId) {
+    if (!ssId) {
+      window.location.replace('/setup');
+      return;
+    }
+    if (!licKey) {
       _setupUI('submit');
       return;
     }
     const lic = await License.verify(licKey);
     if (!lic.valid) {
-      _setupUI('submit');
+      _setupUI('settings');
+      // ライセンス無効の理由をトーストで案内
+      const reason = lic.reason === 'expired'   ? 'ライセンスの有効期限が切れています。' :
+                     lic.reason === 'suspended'  ? 'ライセンスが停止されています。' :
+                                                   'ライセンスキーが無効です。';
+      setTimeout(() => showToast(
+        `${reason}設定画面からライセンスキーを更新してください。`,
+        'danger', 8000
+      ), 500);
       return;
     }
 
@@ -378,6 +393,28 @@ const App = (() => {
     setTimeout(() => { div.style.opacity = '0'; div.style.transition = 'opacity 0.3s'; setTimeout(() => div.remove(), 300); }, duration);
   }
 
+  async function _resolveSetupParam() {
+    const setupCode = new URLSearchParams(location.search).get('setup');
+    if (!setupCode) return;
+    try {
+      const base = (window.APP_CONFIG && window.APP_CONFIG.apiBase) || '';
+      const r = await fetch(`${base}/api/alias?setup=${encodeURIComponent(setupCode)}`);
+      if (r.ok) {
+        const { licenseKey } = await r.json();
+        if (licenseKey && licenseKey.startsWith('KL-')) {
+          localStorage.setItem('keihi_license_key', licenseKey);
+          localStorage.setItem('keihi_setup_code', setupCode);
+        }
+      }
+    } catch (_) {}
+    // URLからsetupパラメータを除去
+    try {
+      const url = new URL(location.href);
+      url.searchParams.delete('setup');
+      history.replaceState(null, '', url.pathname + (url.searchParams.size ? '?' + url.searchParams : ''));
+    } catch (_) {}
+  }
+
   async function _resolvePathAlias() {
     const match = location.pathname.match(/^\/([a-zA-Z0-9_-]{6,})$/);
     if (!match) {
@@ -396,6 +433,12 @@ const App = (() => {
     const token = match[1];
     // 44文字以上はシートID直指定
     if (token.length >= 44) {
+      const prevSheetId = localStorage.getItem('keihi_sheet_id');
+      if (prevSheetId && prevSheetId !== token) {
+        ['keihi_company_name', 'keihi_license_key', 'keihi_license_cache',
+         'keihi_master_cache', 'keihi_folder_id', 'keihi_setup_code',
+         'keihi_nav_color', 'keihi_gemini_key'].forEach(k => localStorage.removeItem(k));
+      }
       sessionStorage.setItem('keihi_sheet_id', token);
       localStorage.setItem('keihi_sheet_id', token);
       return;
@@ -409,12 +452,22 @@ const App = (() => {
         { signal: ctrl.signal });
       clearTimeout(tid);
       if (r.ok) {
-        const { sheetId } = await r.json();
-        if (sheetId) {
-          sessionStorage.setItem('keihi_sheet_id', sheetId);
-          localStorage.setItem('keihi_sheet_id', sheetId);
+        const data = await r.json();
+        if (data.sheetId) {
+          const prevSheetId = localStorage.getItem('keihi_sheet_id');
+          if (prevSheetId && prevSheetId !== data.sheetId) {
+            // 別チームのシートに切り替わる場合、チーム固有データをクリア
+            ['keihi_company_name', 'keihi_license_key', 'keihi_license_cache',
+             'keihi_master_cache', 'keihi_folder_id', 'keihi_setup_code',
+             'keihi_nav_color', 'keihi_gemini_key'].forEach(k => localStorage.removeItem(k));
+          }
+          sessionStorage.setItem('keihi_sheet_id', data.sheetId);
+          localStorage.setItem('keihi_sheet_id', data.sheetId);
           localStorage.setItem('keihi_alias', token);
           _setCookieAlias(token);
+        } else if (data.licenseKey && data.licenseKey.startsWith('KL-')) {
+          localStorage.setItem('keihi_license_key', data.licenseKey);
+          localStorage.setItem('keihi_setup_code', token); // setupCodeとしてパスのトークンを保存
         }
       }
     } catch (_) {

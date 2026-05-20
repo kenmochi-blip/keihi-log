@@ -16,22 +16,15 @@
       --text-sub: #64748b;
       --text-mute: #94a3b8;
       --shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
-      --shadow-md: 0 4px 12px rgba(0,0,0,.06);
     }
     * { box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f4f8; color: var(--text); font-size: 0.875rem; }
-
-    /* Nav */
     .top-nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 1.5rem; height: 52px; display: flex; align-items: center; gap: 0.5rem; box-shadow: var(--shadow); }
     .top-nav .brand { font-weight: 700; font-size: 0.95rem; color: var(--accent); display: flex; align-items: center; gap: 0.4rem; }
-
-    /* Cards */
     .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); }
     .panel-header { padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 0.5rem; }
     .panel-header .title { font-weight: 600; font-size: 0.82rem; color: var(--text-sub); letter-spacing: 0.02em; }
     .panel-body { padding: 1.25rem; }
-
-    /* KPI */
     .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; }
     .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.25rem; box-shadow: var(--shadow); }
     .kpi .value { font-size: 1.9rem; font-weight: 700; line-height: 1; }
@@ -40,8 +33,6 @@
     .kpi.c-green .value { color: #16a34a; }
     .kpi.c-amber .value { color: #d97706; }
     .kpi.c-red   .value { color: #dc2626; }
-
-    /* Table */
     .data-table { width: 100%; border-collapse: collapse; }
     .data-table thead th { padding: 0.55rem 0.75rem; font-size: 0.72rem; font-weight: 600; color: var(--text-mute); text-transform: uppercase; letter-spacing: 0.06em; background: var(--surface-sub); border-bottom: 1px solid var(--border); white-space: nowrap; }
     .data-table tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
@@ -50,8 +41,6 @@
     .data-table td { padding: 0.6rem 0.75rem; vertical-align: middle; }
     .data-table .ps-first { padding-left: 1.25rem; }
     .data-table .pe-last  { padding-right: 1.25rem; }
-
-    /* Customer cell */
     .customer-name { font-weight: 500; font-size: 0.82rem; color: var(--text); }
     .customer-biz  { font-size: 0.72rem; color: var(--text-sub); margin-top: 1px; }
     .email-btn { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 4px; border: 1px solid var(--border); background: var(--surface); color: var(--text-mute); cursor: pointer; transition: all 0.15s; position: relative; margin-left: 2px; }
@@ -59,36 +48,25 @@
     .email-tooltip { position: absolute; left: 26px; top: 50%; transform: translateY(-50%); background: #1e293b; color: #fff; font-size: 0.7rem; white-space: nowrap; padding: 3px 8px; border-radius: 4px; pointer-events: none; opacity: 0; transition: opacity 0.15s; z-index: 100; }
     .email-btn:hover .email-tooltip { opacity: 1; }
     .email-copied { background: #16a34a !important; border-color: #16a34a !important; color: #fff !important; }
-
-    /* Key */
     .key-chip { font-family: 'Menlo','Consolas',monospace; font-size: 0.69rem; color: var(--text-sub); background: var(--surface-sub); border: 1px solid var(--border); padding: 2px 7px; border-radius: 4px; letter-spacing: 0.03em; cursor: pointer; transition: background 0.15s; }
     .key-chip:hover { background: #e8ecf0; }
     .key-chip.copied { background: #dcfce7; border-color: #86efac; color: #166534; }
-
-    /* Badges */
     .tag { display: inline-block; font-size: 0.65rem; font-weight: 600; padding: 2px 7px; border-radius: 100px; }
     .tag-stripe  { background: #dbeafe; color: #1d4ed8; }
     .tag-manual  { background: #f1f5f9; color: #64748b; border: 1px solid var(--border); }
     .tag-solo    { background: #f1f5f9; color: #475569; }
     .tag-team    { background: #ede9fe; color: #6d28d9; }
-    .tag-std     { background: #f1f5f9; color: #64748b; }
     .status-dot  { display: inline-flex; align-items: center; gap: 5px; font-size: 0.75rem; font-weight: 500; }
     .status-dot::before { content:''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
     .status-dot.active   { color: #16a34a; } .status-dot.active::before   { background: #16a34a; }
     .status-dot.expired  { color: #d97706; } .status-dot.expired::before  { background: #d97706; }
     .status-dot.suspended{ color: #dc2626; } .status-dot.suspended::before{ background: #dc2626; }
-
-    /* Action buttons */
     .action-btn { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 5px; border: 1px solid var(--border); background: transparent; color: var(--text-mute); cursor: pointer; transition: all 0.15s; font-size: 0.8rem; }
     .action-btn:hover.upgrade { background: #fef3c7; border-color: #fbbf24; color: #92400e; }
     .action-btn:hover.delete  { background: #fee2e2; border-color: #fca5a5; color: #991b1b; }
-
-    /* Mini stats */
     .mini-stat { background: var(--surface-sub); border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem 0.75rem; text-align: center; }
     .mini-stat .v { font-size: 1.3rem; font-weight: 700; line-height: 1; }
     .mini-stat .l { font-size: 0.68rem; color: var(--text-mute); margin-top: 3px; }
-
-    /* Filter bar */
     .filter-bar { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
     .filter-input { border: 1px solid var(--border); border-radius: 6px; padding: 0.35rem 0.75rem; font-size: 0.8rem; outline: none; background: var(--surface-sub); transition: border 0.15s, background 0.15s; width: 200px; }
     .filter-input:focus { border-color: var(--accent); background: #fff; }
@@ -98,19 +76,14 @@
     .btn-accent { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.35rem 0.9rem; border: none; border-radius: 6px; background: var(--accent); font-size: 0.8rem; color: #fff; cursor: pointer; font-weight: 500; transition: background 0.15s; }
     .btn-accent:hover { background: #1d4ed8; }
     .btn-success-solid { background: #16a34a; } .btn-success-solid:hover { background: #15803d; }
-
-    /* Month summary table */
     .month-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
     .month-table th { padding: 0.4rem 0.6rem; color: var(--text-mute); font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); }
     .month-table td { padding: 0.45rem 0.6rem; border-bottom: 1px solid var(--border); }
     .month-table tr:last-child td { border-bottom: none; }
-
-    /* Usage numbers */
     .usage-num { font-size: 0.8rem; font-variant-numeric: tabular-nums; text-align: right; }
     .usage-num.active { font-weight: 600; color: var(--text); }
     .usage-num.zero   { color: var(--text-mute); }
-
-    /* Sentry */
+    /* Sentry KPI */
     .sentry-kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-bottom: 1rem; }
     .sentry-kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 0.85rem 1.1rem; box-shadow: var(--shadow); }
     .sentry-kpi .sv { font-size: 1.6rem; font-weight: 700; line-height: 1; }
@@ -123,9 +96,40 @@
     .lvl-error   { background:#fee2e2;color:#991b1b;font-size:0.6rem;font-weight:700;padding:2px 6px;border-radius:4px; }
     .lvl-warning { background:#fef3c7;color:#92400e;font-size:0.6rem;font-weight:700;padding:2px 6px;border-radius:4px; }
     .lvl-info    { background:#dbeafe;color:#1d4ed8;font-size:0.6rem;font-weight:700;padding:2px 6px;border-radius:4px; }
-
-    /* Responsive */
+    /* Notes */
+    .notes-btn { position: relative; }
+    .notes-btn.has-notes { border-color: var(--accent); color: var(--accent); background: #eff6ff; }
+    .notes-btn.open { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .notes-count { position: absolute; top: -5px; right: -5px; background: var(--accent); color: #fff; font-size: 0.55rem; font-weight: 700; min-width: 14px; height: 14px; border-radius: 7px; display: flex; align-items: center; justify-content: center; padding: 0 3px; }
+    .notes-row td { padding: 0 !important; background: #f8fafc; }
+    .notes-panel { padding: 0.85rem 1.25rem; border-top: 1px dashed var(--border); }
+    /* Note items */
+    .note-item { display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.6rem 0; border-bottom: 1px solid var(--border); }
+    .note-item:last-child { border-bottom: none; }
+    .note-item.ai-note { background: #fefce8; margin: 0 -1.25rem; padding: 0.6rem 1.25rem; border-left: 3px solid #eab308; }
+    .note-item.ai-note:last-child { border-bottom: none; }
+    .note-body { flex: 1; min-width: 0; }
+    .note-text { font-size: 0.82rem; color: var(--text); white-space: pre-wrap; line-height: 1.6; }
+    .note-meta { font-size: 0.7rem; color: var(--text-mute); margin-top: 4px; display: flex; align-items: center; gap: 0.4rem; }
+    .ai-badge { background: #eab308; color: #fff; font-size: 0.6rem; font-weight: 700; padding: 1px 5px; border-radius: 3px; }
+    .note-del { border: none; background: none; color: var(--text-mute); cursor: pointer; padding: 3px 5px; border-radius: 4px; font-size: 0.75rem; line-height: 1; flex-shrink: 0; }
+    .note-del:hover { background: #fee2e2; color: #991b1b; }
+    /* Note input */
+    .note-input-row { display: flex; gap: 0.5rem; align-items: flex-end; margin-top: 0.75rem; border-top: 1px solid var(--border); padding-top: 0.75rem; }
+    .note-textarea { flex: 1; border: 1px solid var(--border); border-radius: 6px; padding: 0.4rem 0.6rem; font-size: 0.8rem; resize: vertical; min-height: 52px; outline: none; font-family: inherit; background: var(--surface); transition: border 0.15s; }
+    .note-textarea:focus { border-color: var(--accent); }
+    .btn-ai { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.35rem 0.75rem; border: 1px solid #eab308; border-radius: 6px; background: #fefce8; font-size: 0.78rem; color: #92400e; cursor: pointer; font-weight: 500; transition: all 0.15s; white-space: nowrap; }
+    .btn-ai:hover:not(:disabled) { background: #fef08a; border-color: #ca8a04; }
+    .btn-ai:disabled { opacity: 0.6; cursor: not-allowed; }
     @media (max-width: 768px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } .sentry-kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+    .cf-bar-wrap { display:flex; align-items:center; gap:6px; }
+    .cf-bar { height:6px; border-radius:3px; background:#e2e8f0; flex:1; overflow:hidden; }
+    .cf-bar-fill { height:100%; border-radius:3px; background:var(--accent); transition:width 0.4s; }
+    .log-level-error { background:#fee2e2;color:#991b1b;font-size:0.6rem;font-weight:700;padding:2px 6px;border-radius:4px; }
+    .log-level-warn  { background:#fef3c7;color:#92400e;font-size:0.6rem;font-weight:700;padding:2px 6px;border-radius:4px; }
+    .log-level-info  { background:#dbeafe;color:#1d4ed8;font-size:0.6rem;font-weight:700;padding:2px 6px;border-radius:4px; }
+    .log-analysis-card { background:#fefce8;border:1px solid #fde68a;border-left:3px solid #eab308;border-radius:8px;padding:0.85rem 1.1rem;margin-bottom:1rem; }
+    .log-analysis-card .la-text { font-size:0.82rem;color:var(--text);white-space:pre-wrap;line-height:1.6; }
   </style>
 </head>
 <body>
@@ -137,11 +141,10 @@
 
   <div style="max-width:1280px;margin:0 auto;padding:1.5rem 1.25rem;">
 
-    <!-- 認証 -->
     <div id="authArea" class="panel" style="max-width:440px;">
       <div class="panel-body">
         <p style="font-size:0.8rem;color:var(--text-sub);margin-bottom:0.75rem;">管理シークレットを入力してください</p>
-        <div style="display:flex;gap:0.5rem;margin-bottom:0.5rem;">
+        <div style="display:flex;gap:0.5rem;">
           <input type="password" id="inputSecret" class="filter-input" style="width:auto;flex:1;" placeholder="管理シークレット">
           <button class="btn-accent" id="btnLoad"><i class="bi bi-unlock"></i>読み込む</button>
         </div>
@@ -150,27 +153,108 @@
 
     <div id="summary" class="d-none">
 
-      <!-- KPI -->
       <div class="kpi-grid mb-4">
-        <div class="kpi c-blue">
-          <div class="value" id="statTotal">—</div>
-          <div class="label">総発行数</div>
-        </div>
-        <div class="kpi c-green">
-          <div class="value" id="statActive">—</div>
-          <div class="label">有効</div>
-        </div>
-        <div class="kpi c-amber">
-          <div class="value" id="statExpired">—</div>
-          <div class="label">期限切れ</div>
-        </div>
-        <div class="kpi c-red">
-          <div class="value" id="statSuspended">—</div>
-          <div class="label">停止中</div>
+        <div class="kpi c-blue"><div class="value" id="statTotal">—</div><div class="label">総発行数</div></div>
+        <div class="kpi c-green"><div class="value" id="statActive">—</div><div class="label">有効</div></div>
+        <div class="kpi c-amber"><div class="value" id="statExpired">—</div><div class="label">期限切れ</div></div>
+        <div class="kpi c-red"><div class="value" id="statSuspended">—</div><div class="label">停止中</div></div>
+      </div>
+
+      <!-- アプリログ -->
+      <div id="appLogSection" style="margin-bottom:1rem;">
+        <div class="panel">
+          <div class="panel-header" style="justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:0.5rem;">
+              <i class="bi bi-terminal" style="color:#6d28d9;"></i>
+              <span class="title">アプリログ（自動エラー記録）</span>
+              <span id="appLogUpdatedAt" style="font-size:0.7rem;color:var(--text-mute);"></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:0.5rem;">
+              <button class="btn-ghost" id="btnAppLogAnalyze" style="font-size:0.75rem;padding:0.25rem 0.6rem;border-color:#eab308;color:#92400e;background:#fefce8;">
+                <i class="bi bi-stars"></i>AI解析
+              </button>
+              <button class="btn-ghost" id="btnAppLogClear" style="font-size:0.75rem;padding:0.25rem 0.6rem;">
+                <i class="bi bi-trash"></i>クリア
+              </button>
+              <button class="btn-ghost" id="btnAppLogRefresh" style="font-size:0.75rem;padding:0.25rem 0.6rem;">
+                <i class="bi bi-arrow-clockwise"></i>更新
+              </button>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div id="appLogAnalysis"></div>
+            <div style="overflow-x:auto;">
+              <table class="data-table" id="appLogTable">
+                <thead>
+                  <tr>
+                    <th class="ps-first" style="width:150px;">時刻</th>
+                    <th style="width:60px;">レベル</th>
+                    <th style="width:120px;">機能</th>
+                    <th class="pe-last">メッセージ</th>
+                  </tr>
+                </thead>
+                <tbody id="appLogTableBody">
+                  <tr><td colspan="4" style="text-align:center;padding:1.5rem;color:var(--text-mute);">読み込み中...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- Sentry モニタリング -->
+      <!-- Cloudflare -->
+      <div id="cfSection" class="d-none" style="margin-bottom:1rem;">
+        <div class="panel">
+          <div class="panel-header" style="justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:0.5rem;">
+              <svg width="16" height="16" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M62 44c-1-4-4.5-6.5-8.5-6.5-1.2 0-2.5.3-3.7.9C46.7 31 40 26.5 32 26.5c-10.8 0-19.5 8.7-19.5 19.5v.2C6.5 47.5 2 52.5 2 58.5 2 65 7 70 13.5 70H64c6.2 0 11.5-5.2 11.5-11.5C75.5 51.9 69.7 45.5 62 44Z" fill="#F38020"/>
+                <path d="M79.5 44.5c-.6 0-1.2 0-1.8.1C76 38 70 33 62.8 33c-2 0-3.9.4-5.6 1.2 1.2 2.6 1.8 5.5 1.8 8.5 0 .1 0 .2 0 .3h1c5.2 0 9.5 4.3 9.5 9.5S65.2 62 60 62H79.5C85.3 62 90 57.3 90 51.5S85.3 44.5 79.5 44.5Z" fill="#FBAD41"/>
+              </svg>
+              <span class="title">Cloudflare アクセス解析</span>
+              <span id="cfUpdatedAt" style="font-size:0.7rem;color:var(--text-mute);"></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:0.5rem;">
+              <select id="cfDays" class="filter-select" style="font-size:0.75rem;padding:0.2rem 0.5rem;">
+                <option value="7">7日間</option>
+                <option value="14">14日間</option>
+                <option value="30">30日間</option>
+              </select>
+              <button class="btn-ghost" id="btnCfRefresh" style="font-size:0.75rem;padding:0.25rem 0.6rem;">
+                <i class="bi bi-arrow-clockwise"></i>更新
+              </button>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="sentry-kpi-grid" style="margin-bottom:1rem;">
+              <div class="sentry-kpi c-blue"><div class="sv" id="cfRequests">—</div><div class="sl">総リクエスト</div></div>
+              <div class="sentry-kpi c-red"><div class="sv" id="cf4xx">—</div><div class="sl">4xxエラー</div></div>
+              <div class="sentry-kpi c-mute"><div class="sv" id="cfUniques">—</div><div class="sl">ユニーク訪問者</div></div>
+              <div class="sentry-kpi c-green"><div class="sv" id="cfCacheRate">—</div><div class="sl">キャッシュヒット率</div></div>
+            </div>
+            <div style="overflow-x:auto;">
+              <table class="data-table" id="cfTable">
+                <thead>
+                  <tr>
+                    <th class="ps-first" style="width:110px;">日付</th>
+                    <th style="text-align:right;width:100px;">リクエスト</th>
+                    <th style="text-align:right;width:90px;">4xxエラー</th>
+                    <th style="text-align:right;width:90px;">5xxエラー</th>
+                    <th style="text-align:right;width:90px;">脅威</th>
+                    <th class="pe-last" style="width:180px;">キャッシュ率</th>
+                    <th style="text-align:right;width:110px;">ユニーク訪問者</th>
+                  </tr>
+                </thead>
+                <tbody id="cfTableBody">
+                  <tr><td colspan="7" style="text-align:center;padding:1.5rem;color:var(--text-mute);">読み込み中...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sentry -->
       <div id="sentrySection" class="d-none" style="margin-bottom:1rem;">
         <div class="panel">
           <div class="panel-header" style="justify-content:space-between;">
@@ -185,22 +269,10 @@
           </div>
           <div class="panel-body">
             <div class="sentry-kpi-grid">
-              <div class="sentry-kpi c-red">
-                <div class="sv" id="sErrorTotal">—</div>
-                <div class="sl">未解決イシュー</div>
-              </div>
-              <div class="sentry-kpi c-amber">
-                <div class="sv" id="sErrorToday">—</div>
-                <div class="sl">今日の発生件数</div>
-              </div>
-              <div class="sentry-kpi c-mute">
-                <div class="sv" id="sErrorUsers">—</div>
-                <div class="sl">影響ユーザー数</div>
-              </div>
-              <div class="sentry-kpi c-green">
-                <div class="sv" id="sErrorResolved">—</div>
-                <div class="sl">解決済み（30日）</div>
-              </div>
+              <div class="sentry-kpi c-red"><div class="sv" id="sErrorTotal">—</div><div class="sl">未解決イシュー</div></div>
+              <div class="sentry-kpi c-amber"><div class="sv" id="sErrorToday">—</div><div class="sl">今日の発生件数</div></div>
+              <div class="sentry-kpi c-mute"><div class="sv" id="sErrorUsers">—</div><div class="sl">影響ユーザー数</div></div>
+              <div class="sentry-kpi c-green"><div class="sv" id="sErrorResolved">—</div><div class="sl">解決済み（30日）</div></div>
             </div>
             <div style="overflow-x:auto;">
               <table class="data-table" id="sentryTable">
@@ -211,11 +283,13 @@
                     <th style="width:70px;text-align:right;">発生数</th>
                     <th style="width:60px;text-align:right;">ユーザー</th>
                     <th style="width:110px;">最終発生</th>
-                    <th class="pe-last" style="width:120px;">環境</th>
+                    <th style="width:120px;">環境</th>
+                    <th style="width:52px;text-align:center;">優先度</th>
+                    <th class="pe-last" style="width:48px;text-align:center;">メモ</th>
                   </tr>
                 </thead>
                 <tbody id="sentryTableBody">
-                  <tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--text-mute);">読み込み中...</td></tr>
+                  <tr><td colspan="8" style="text-align:center;padding:1.5rem;color:var(--text-mute);">読み込み中...</td></tr>
                 </tbody>
               </table>
             </div>
@@ -223,37 +297,19 @@
         </div>
       </div>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1rem;">
-
-        <!-- 月次サマリー -->
-        <div class="panel">
+      <div class="panel" style="margin-bottom:1rem;">
           <div class="panel-header">
             <i class="bi bi-bar-chart-line" style="color:var(--accent);"></i>
             <span class="title">月次サマリー</span>
             <input type="month" id="monthPicker" class="filter-input ms-auto" style="width:auto;">
           </div>
           <div class="panel-body">
-            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;margin-bottom:1rem;">
-              <div class="mini-stat">
-                <div class="v" id="mNew" style="color:var(--accent);">—</div>
-                <div class="l">新規登録</div>
-              </div>
-              <div class="mini-stat">
-                <div class="v" id="mPaid" style="color:#16a34a;">—</div>
-                <div class="l">有料 <span style="font-size:0.6rem;background:#dcfce7;color:#166534;padding:1px 4px;border-radius:3px;">Stripe</span></div>
-              </div>
-              <div class="mini-stat">
-                <div class="v" id="mManual" style="color:var(--text-sub);">—</div>
-                <div class="l">手動発行</div>
-              </div>
-              <div class="mini-stat">
-                <div class="v" id="mUpgrade" style="color:#d97706;">—</div>
-                <div class="l">有料転換</div>
-              </div>
-              <div class="mini-stat">
-                <div class="v" id="mChurn" style="color:#dc2626;">—</div>
-                <div class="l">離脱</div>
-              </div>
+            <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0.5rem;margin-bottom:1rem;">
+              <div class="mini-stat"><div class="v" id="mNew" style="color:var(--accent);">—</div><div class="l">新規登録</div></div>
+              <div class="mini-stat"><div class="v" id="mPaid" style="color:#16a34a;">—</div><div class="l">有料 <span style="font-size:0.6rem;background:#dcfce7;color:#166534;padding:1px 4px;border-radius:3px;">Stripe</span></div></div>
+              <div class="mini-stat"><div class="v" id="mManual" style="color:var(--text-sub);">—</div><div class="l">手動発行</div></div>
+              <div class="mini-stat"><div class="v" id="mUpgrade" style="color:#d97706;">—</div><div class="l">有料転換</div></div>
+              <div class="mini-stat"><div class="v" id="mChurn" style="color:#dc2626;">—</div><div class="l">離脱</div></div>
             </div>
             <div id="mNewList" class="d-none">
               <div style="font-size:0.72rem;font-weight:600;color:var(--text-mute);text-transform:uppercase;letter-spacing:0.06em;border-top:1px solid var(--border);padding-top:0.75rem;margin-bottom:0.5rem;">当月新規登録</div>
@@ -267,32 +323,6 @@
           </div>
         </div>
 
-        <!-- 手動発行 -->
-        <div class="panel">
-          <div class="panel-header">
-            <i class="bi bi-plus-circle" style="color:#16a34a;"></i>
-            <span class="title">手動発行</span>
-          </div>
-          <div class="panel-body">
-            <div style="display:flex;flex-direction:column;gap:0.5rem;">
-              <input type="email" class="filter-input" id="issueEmail" style="width:100%;" placeholder="メールアドレス *">
-              <input type="text" class="filter-input" id="issueCompany" style="width:100%;" placeholder="会社名・氏名（任意）">
-              <div style="display:flex;gap:0.5rem;">
-                <select class="filter-select" id="issuePlan" style="flex:1;">
-                  <option value="standard">標準</option>
-                  <option value="solo">ソロ</option>
-                  <option value="team">チーム</option>
-                </select>
-                <input type="date" class="filter-input" id="issueExpiry" style="flex:1.5;">
-                <button class="btn-accent btn-success-solid" id="btnIssue">発行</button>
-              </div>
-            </div>
-            <div style="margin-top:0.5rem;font-size:0.78rem;" id="issueMsg"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- テーブル -->
       <div class="panel">
         <div class="panel-header">
           <i class="bi bi-list-ul" style="color:var(--accent);"></i>
@@ -314,9 +344,8 @@
             <thead>
               <tr>
                 <th class="ps-first" style="width:90px;">発行日</th>
-                <th style="width:220px;">顧客</th>
+                <th style="width:280px;">顧客</th>
                 <th style="width:70px;">プラン</th>
-                <th style="width:200px;">ライセンスキー</th>
                 <th style="width:90px;">有効期限</th>
                 <th style="width:60px;text-align:right;">今月</th>
                 <th style="width:60px;text-align:right;">先月</th>
@@ -332,6 +361,26 @@
         </div>
       </div>
 
+      <div class="panel" style="margin-top:1rem;">
+        <div class="panel-header">
+          <i class="bi bi-plus-circle" style="color:#16a34a;"></i>
+          <span class="title">手動発行</span>
+        </div>
+        <div class="panel-body">
+          <div style="display:flex;gap:0.5rem;align-items:flex-end;flex-wrap:wrap;">
+            <input type="email" class="filter-input" id="issueEmail" style="flex:2;min-width:180px;" placeholder="メールアドレス *">
+            <input type="text" class="filter-input" id="issueCompany" style="flex:2;min-width:160px;" placeholder="会社名・氏名（任意）">
+            <select class="filter-select" id="issuePlan" style="flex:1;min-width:100px;">
+              <option value="solo">ソロ</option>
+              <option value="team">チーム</option>
+            </select>
+            <input type="date" class="filter-input" id="issueExpiry" style="flex:1.2;min-width:130px;">
+            <button class="btn-accent btn-success-solid" id="btnIssue">発行</button>
+          </div>
+          <div style="margin-top:0.5rem;font-size:0.78rem;" id="issueMsg"></div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -339,10 +388,22 @@
     let _all = [];
     let _secret = '';
     let _sentryToken = '';
+    let _hasClaudeKey = false;
+    let _hasCfKey = false;
+    const _notesCache = {};
+    const _notesOpen  = {};
+    const _analyzing     = {};
+    const _priorityCache = {};
+    const _issueData  = {};   // issueId → issue object (for AI analysis)
 
     document.getElementById('btnLoad').addEventListener('click', load);
     document.getElementById('inputSecret').addEventListener('keydown', e => { if (e.key === 'Enter') load(); });
     document.getElementById('btnSentryRefresh').addEventListener('click', () => loadSentry());
+    document.getElementById('btnCfRefresh').addEventListener('click', () => loadCloudflare());
+    document.getElementById('cfDays').addEventListener('change', () => loadCloudflare());
+    document.getElementById('btnAppLogRefresh').addEventListener('click', () => loadAppLogs());
+    document.getElementById('btnAppLogAnalyze').addEventListener('click', () => analyzeAppLogs());
+    document.getElementById('btnAppLogClear').addEventListener('click', () => clearAppLogs());
     document.getElementById('btnIssue').addEventListener('click', issueLicense);
     document.getElementById('filterText').addEventListener('input', render);
     document.getElementById('filterStatus').addEventListener('change', render);
@@ -356,6 +417,579 @@
     };
     document.getElementById('issueExpiry').value = _defaultExpiry();
 
+    // ── ノート機能 ──────────────────────────────────────────
+    async function toggleNotes(issueId) {
+      const row = document.getElementById(`notes-row-${issueId}`);
+      const btn = document.querySelector(`.notes-btn[data-issue-id="${issueId}"]`);
+      if (!row) return;
+      const isOpen = !row.classList.contains('d-none');
+      if (isOpen) {
+        row.classList.add('d-none');
+        btn?.classList.remove('open');
+        _notesOpen[issueId] = false;
+      } else {
+        row.classList.remove('d-none');
+        btn?.classList.add('open');
+        _notesOpen[issueId] = true;
+        if (_notesCache[issueId] == null) await loadNotes(issueId);
+        else renderNotes(issueId);
+      }
+    }
+
+    async function loadNotes(issueId) {
+      const panel = document.getElementById(`notes-panel-${issueId}`);
+      if (panel) panel.innerHTML = '<div style="color:var(--text-mute);font-size:0.78rem;">読み込み中...</div>';
+      try {
+        const resp = await fetch(`/api/admin-licenses?secret=${encodeURIComponent(_secret)}&sentry_notes=get&issue_id=${encodeURIComponent(issueId)}`);
+        const data = await resp.json();
+        _notesCache[issueId] = data.notes || [];
+        renderNotes(issueId);
+        updateNotesBtn(issueId);
+      } catch (err) {
+        if (panel) panel.innerHTML = `<div style="color:#dc2626;font-size:0.78rem;">読み込みエラー: ${esc(err.message)}</div>`;
+      }
+    }
+
+    function renderNotes(issueId) {
+      const panel = document.getElementById(`notes-panel-${issueId}`);
+      if (!panel) return;
+      const notes = _notesCache[issueId] || [];
+
+      const notesHtml = notes.length === 0
+        ? '<div style="color:var(--text-mute);font-size:0.78rem;font-style:italic;padding-bottom:0.5rem;">メモはまだありません</div>'
+        : notes.map((n, i) => {
+            const isAi  = !!n.ai;
+            const cls   = isAi ? ' ai-note' : '';
+            const badge = isAi ? '<span class="ai-badge">AI</span>' : '';
+            const dt    = new Date(n.at).toLocaleString('ja-JP', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+            return `<div class="note-item${cls}">
+              <div class="note-body">
+                <div class="note-text">${esc(n.text)}</div>
+                <div class="note-meta">${badge}<span>${dt}</span></div>
+              </div>
+              <button class="note-del" onclick="deleteNote('${esc(issueId)}',${i})" title="削除"><i class="bi bi-x"></i></button>
+            </div>`;
+          }).join('');
+
+      const aiStatus = _analyzing[issueId]
+        ? `<div style="color:var(--text-mute);font-size:0.78rem;font-style:italic;display:flex;align-items:center;gap:0.5rem;padding:0.4rem 0;">
+             <span class="spinner-border spinner-border-sm" style="width:0.75rem;height:0.75rem;border-width:2px;"></span>AI解析中...
+           </div>`
+        : '';
+
+      panel.innerHTML = `
+        <div>${notesHtml}${aiStatus}</div>
+        <div class="note-input-row">
+          <textarea class="note-textarea" id="note-input-${esc(issueId)}" placeholder="メモを追加（Ctrl+Enterで送信）..."></textarea>
+          <div style="display:flex;flex-direction:column;gap:0.4rem;">
+            <button class="btn-accent" onclick="addNote('${esc(issueId)}')" style="height:auto;padding:0.35rem 0.75rem;white-space:nowrap;">
+              <i class="bi bi-send"></i>追加
+            </button>
+            <button onclick="resolveIssue('${esc(issueId)}')" style="height:auto;padding:0.35rem 0.75rem;white-space:nowrap;background:#16a34a;color:#fff;border:none;border-radius:6px;font-size:0.78rem;cursor:pointer;">
+              <i class="bi bi-check-circle"></i> 解決済み
+            </button>
+          </div>
+        </div>`;
+
+      const ta = document.getElementById(`note-input-${issueId}`);
+      if (ta) ta.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); addNote(issueId); }
+      });
+    }
+
+    function updateNotesBtn(issueId) {
+      const btn = document.querySelector(`.notes-btn[data-issue-id="${issueId}"]`);
+      if (!btn) return;
+      const count = (_notesCache[issueId] || []).length;
+      const badge = btn.querySelector('.notes-count');
+      if (count > 0) {
+        btn.classList.add('has-notes');
+        if (badge) badge.textContent = count;
+        else btn.insertAdjacentHTML('beforeend', `<span class="notes-count">${count}</span>`);
+      } else {
+        btn.classList.remove('has-notes');
+        if (badge) badge.remove();
+      }
+    }
+
+    async function addNote(issueId) {
+      const input = document.getElementById(`note-input-${issueId}`);
+      const text = input?.value?.trim();
+      if (!text) return;
+      input.disabled = true;
+      try {
+        const resp = await fetch(
+          `/api/admin-licenses?secret=${encodeURIComponent(_secret)}&sentry_notes=add&issue_id=${encodeURIComponent(issueId)}`,
+          { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) }
+        );
+        const data = await resp.json();
+        _notesCache[issueId] = data.notes || [];
+        renderNotes(issueId);
+        updateNotesBtn(issueId);
+      } catch (err) {
+        alert('メモの追加に失敗しました: ' + err.message);
+        input.disabled = false;
+      }
+    }
+
+    async function deleteNote(issueId, idx) {
+      if (!confirm('このメモを削除しますか？')) return;
+      try {
+        const resp = await fetch(
+          `/api/admin-licenses?secret=${encodeURIComponent(_secret)}&sentry_notes=del&issue_id=${encodeURIComponent(issueId)}&note_idx=${idx}`,
+          { method: 'POST' }
+        );
+        const data = await resp.json();
+        _notesCache[issueId] = data.notes || [];
+        renderNotes(issueId);
+        updateNotesBtn(issueId);
+      } catch (err) {
+        alert('削除に失敗しました: ' + err.message);
+      }
+    }
+
+    async function analyzeWithAI(issueId) {
+      _analyzing[issueId] = true;
+      renderPriority(issueId);
+      renderNotes(issueId);
+
+      const issue = _issueData[issueId];
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 28000);
+        const resp = await fetch(
+          `/api/admin-licenses?secret=${encodeURIComponent(_secret)}&sentry_analyze=1`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            signal: controller.signal,
+            body: JSON.stringify({
+              issueId,
+              title:      issue?.title || '',
+              errorValue: issue?.metadata?.value || '',
+              culprit:    issue?.culprit || '',
+              level:      issue?.level || 'error',
+              count:      issue?.count || '0',
+              userCount:  issue?.userCount || 0,
+              lastSeen:   issue?.lastSeen ? _relTime(issue.lastSeen) : '不明',
+            }),
+          }
+        );
+        clearTimeout(timer);
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || 'AI解析に失敗しました');
+        _notesCache[issueId] = data.notes || [];
+        const aiNote = (data.notes || []).find(n => n.ai);
+        if (aiNote) _priorityCache[issueId] = _extractPriority(aiNote.text);
+      } catch (err) {
+        console.error('AI解析エラー:', issueId, err.message);
+      } finally {
+        _analyzing[issueId] = false;
+        renderPriority(issueId);
+        renderNotes(issueId);
+        updateNotesBtn(issueId);
+      }
+    }
+
+    function _extractPriority(text) {
+      // 「【優先度】高」「【優先度】\n**高**」など複数フォーマットに対応
+      const m = (text || '').match(/【優先度】[\s\S]{0,30}?(高|中|低)/);
+      return m ? m[1] : null;
+    }
+
+    function renderPriority(issueId) {
+      const cell = document.getElementById(`priority-${issueId}`);
+      if (!cell) return;
+      const pri = _priorityCache[issueId];
+      if (_analyzing[issueId]) {
+        cell.innerHTML = '<span class="spinner-border spinner-border-sm" style="width:0.65rem;height:0.65rem;border-width:2px;color:var(--text-mute);"></span>';
+        return;
+      }
+      if (!pri) { cell.innerHTML = '<span style="color:var(--text-mute);">—</span>'; return; }
+      const cfg = { '高': ['#dc2626','#fee2e2'], '中': ['#d97706','#fef3c7'], '低': ['#16a34a','#dcfce7'] };
+      const [fg, bg] = cfg[pri] || ['#64748b','#f1f5f9'];
+      cell.innerHTML = `<span style="font-size:0.72rem;font-weight:700;color:${fg};background:${bg};padding:1px 7px;border-radius:4px;">${pri}</span>`;
+    }
+
+    async function _autoAnalyzeAll(issues) {
+      if (!_hasClaudeKey) return;
+      // 全イシューのノートを並列取得
+      await Promise.all(issues.map(async issue => {
+        if (_notesCache[issue.id] != null) return;
+        try {
+          const resp = await fetch(`/api/admin-licenses?secret=${encodeURIComponent(_secret)}&sentry_notes=get&issue_id=${encodeURIComponent(issue.id)}`);
+          const data = await resp.json();
+          _notesCache[issue.id] = data.notes || [];
+          updateNotesBtn(issue.id);
+        } catch {}
+      }));
+      // 既存AIノートから優先度表示 → 未解析は順次解析
+      for (const issue of issues) {
+        const aiNote = (_notesCache[issue.id] || []).find(n => n.ai);
+        if (aiNote) {
+          _priorityCache[issue.id] = _extractPriority(aiNote.text);
+          renderPriority(issue.id);
+        } else {
+          await analyzeWithAI(issue.id);
+          await new Promise(r => setTimeout(r, 500));
+        }
+      }
+    }
+
+    async function resolveIssue(issueId) {
+      if (!confirm('このイシューを解決済みにしますか？\nSentry上のステータスも変更されます。')) return;
+      try {
+        const resp = await fetch(
+          `/api/admin-licenses?secret=${encodeURIComponent(_secret)}&sentry_resolve=1&issue_id=${encodeURIComponent(issueId)}`,
+          { method: 'POST' }
+        );
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || '解決済みへの変更に失敗しました');
+        delete _notesCache[issueId];
+        delete _notesOpen[issueId];
+        loadSentry();
+      } catch (err) {
+        alert('エラー: ' + err.message);
+      }
+    }
+
+    // ── アプリログ ────────────────────────────────────────────
+    async function loadAppLogs() {
+      const tbody   = document.getElementById('appLogTableBody');
+      const anaDiv  = document.getElementById('appLogAnalysis');
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:1.5rem;color:var(--text-mute);">読み込み中...</td></tr>`;
+      anaDiv.innerHTML = '';
+
+      try {
+        const resp = await fetch(`/api/admin-licenses?secret=${encodeURIComponent(_secret)}&app_logs=get`);
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || 'ログ取得エラー');
+
+        const logs = data.logs || [];
+        document.getElementById('appLogUpdatedAt').textContent = '更新: ' + new Date().toLocaleTimeString('ja-JP', { hour:'2-digit', minute:'2-digit' });
+
+        // AI解析結果表示
+        if (data.analysis) renderAppLogAnalysis(data.analysis);
+
+        if (logs.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:1.5rem;color:var(--text-mute);"><i class="bi bi-check-circle me-2"></i>エラーログはありません</td></tr>`;
+          return;
+        }
+
+        const handlerLabel = {
+          sentry_proxy:    'Sentryプロキシ',
+          sentry_resolve:  'Sentry解決',
+          sentry_analyze:  'Sentry AI解析',
+          cloudflare:      'Cloudflare',
+          license_get:     'ライセンス取得',
+        };
+        tbody.innerHTML = logs.map(log => {
+          const dt  = new Date(log.at).toLocaleString('ja-JP', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit' });
+          const lvl = log.level || 'error';
+          const lbl = handlerLabel[log.handler] || log.handler || '—';
+          const det = log.details ? ` <span style="font-size:0.7rem;color:var(--text-mute);">${esc(JSON.stringify(log.details))}</span>` : '';
+          return `<tr>
+            <td class="ps-first" style="font-size:0.75rem;color:var(--text-sub);white-space:nowrap;">${dt}</td>
+            <td><span class="log-level-${lvl}">${lvl.toUpperCase()}</span></td>
+            <td style="font-size:0.75rem;color:var(--text-sub);">${esc(lbl)}</td>
+            <td class="pe-last" style="font-size:0.78rem;">${esc(log.message)}${det}</td>
+          </tr>`;
+        }).join('');
+
+        // エラーがあり未解析なら自動解析
+        const hasErrors = logs.some(l => l.level === 'error' || l.level === 'warn');
+        if (hasErrors && !data.analysis && _hasClaudeKey) analyzeAppLogs();
+
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:1.5rem;color:#dc2626;">${esc(err.message)}</td></tr>`;
+      }
+    }
+
+    function renderAppLogAnalysis(analysis) {
+      const div = document.getElementById('appLogAnalysis');
+      if (!analysis) { div.innerHTML = ''; return; }
+      const dt = new Date(analysis.at).toLocaleString('ja-JP', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+      div.innerHTML = `<div class="log-analysis-card">
+        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;">
+          <span class="ai-badge">AI</span>
+          <span style="font-size:0.72rem;color:var(--text-mute);">解析対象: ${analysis.count || '?'}件のエラー ／ ${dt}</span>
+        </div>
+        <div class="la-text">${esc(analysis.text)}</div>
+      </div>`;
+    }
+
+    async function analyzeAppLogs() {
+      const btn = document.getElementById('btnAppLogAnalyze');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm" style="width:0.7rem;height:0.7rem;border-width:2px;"></span> 解析中...';
+      try {
+        const resp = await fetch(
+          `/api/admin-licenses?secret=${encodeURIComponent(_secret)}&app_logs=analyze`,
+          { method: 'POST' }
+        );
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || 'AI解析エラー');
+        if (data.analysis) renderAppLogAnalysis(data.analysis);
+        else if (data.skipped) {
+          document.getElementById('appLogAnalysis').innerHTML =
+            `<div style="color:var(--text-mute);font-size:0.78rem;margin-bottom:0.75rem;">解析対象のエラー・警告ログがありません</div>`;
+        }
+      } catch (err) {
+        alert('AI解析エラー: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-stars"></i>AI解析';
+      }
+    }
+
+    async function clearAppLogs() {
+      if (!confirm('ログと解析結果をすべてクリアしますか？')) return;
+      await fetch(
+        `/api/admin-licenses?secret=${encodeURIComponent(_secret)}&app_logs=clear`,
+        { method: 'POST' }
+      );
+      loadAppLogs();
+    }
+
+    // ── Cloudflare Analytics ──────────────────────────────────
+    async function loadCloudflare() {
+      if (!_hasCfKey) return;
+      const section = document.getElementById('cfSection');
+      section.classList.remove('d-none');
+
+      const days = parseInt(document.getElementById('cfDays').value || '7', 10);
+      const tbody = document.getElementById('cfTableBody');
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:1.5rem;color:var(--text-mute);">読み込み中...</td></tr>`;
+      ['cfRequests','cf4xx','cfUniques','cfCacheRate'].forEach(id => document.getElementById(id).textContent = '…');
+      document.getElementById('cfUpdatedAt').textContent = '';
+
+      try {
+        const resp = await fetch(`/api/admin-licenses?secret=${encodeURIComponent(_secret)}&cloudflare=1&days=${days}`);
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || 'Cloudflare APIエラー');
+
+        const groups = data.groups || [];
+        if (groups.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:1.5rem;color:var(--text-mute);">データがありません（前日以前のデータが対象です）</td></tr>`;
+          return;
+        }
+
+        let totalReq = 0, total4xx = 0, total5xx = 0, totalThreats = 0, totalUniq = 0, totalCached = 0;
+        groups.forEach(g => {
+          const req     = g.sum?.requests || 0;
+          const cached  = g.sum?.cachedRequests || 0;
+          const threats = g.sum?.threats || 0;
+          const uniq    = g.uniq?.uniques || 0;
+          const s4xx = (g.sum?.responseStatusMap || []).filter(s => s.edgeResponseStatus >= 400 && s.edgeResponseStatus < 500).reduce((a, s) => a + s.requests, 0);
+          const s5xx = (g.sum?.responseStatusMap || []).filter(s => s.edgeResponseStatus >= 500).reduce((a, s) => a + s.requests, 0);
+          totalReq     += req;
+          total4xx     += s4xx;
+          total5xx     += s5xx;
+          totalThreats += threats;
+          totalUniq    += uniq;
+          totalCached  += cached;
+        });
+
+        const cacheRate = totalReq > 0 ? Math.round(totalCached / totalReq * 100) : 0;
+        const fmt = n => n >= 10000 ? (n / 1000).toFixed(1) + 'k' : n.toLocaleString('ja-JP');
+        document.getElementById('cfRequests').textContent = fmt(totalReq);
+        document.getElementById('cf4xx').textContent      = fmt(total4xx);
+        document.getElementById('cfUniques').textContent  = fmt(totalUniq);
+        document.getElementById('cfCacheRate').textContent = cacheRate + '%';
+        document.getElementById('cfUpdatedAt').textContent = '更新: ' + new Date().toLocaleTimeString('ja-JP', { hour:'2-digit', minute:'2-digit' });
+
+        const maxReq = Math.max(...groups.map(g => g.sum?.requests || 0), 1);
+        tbody.innerHTML = groups.map(g => {
+          const date    = g.dimensions?.date || '';
+          const req     = g.sum?.requests || 0;
+          const cached  = g.sum?.cachedRequests || 0;
+          const threats = g.sum?.threats || 0;
+          const uniq    = g.uniq?.uniques || 0;
+          const s4xx    = (g.sum?.responseStatusMap || []).filter(s => s.edgeResponseStatus >= 400 && s.edgeResponseStatus < 500).reduce((a, s) => a + s.requests, 0);
+          const s5xx    = (g.sum?.responseStatusMap || []).filter(s => s.edgeResponseStatus >= 500).reduce((a, s) => a + s.requests, 0);
+          const rate    = req > 0 ? Math.round(cached / req * 100) : 0;
+          const barW    = Math.round(req / maxReq * 100);
+          const err4cls = s4xx > 0 ? 'color:#dc2626;font-weight:600;' : 'color:var(--text-mute);';
+          const err5cls = s5xx > 0 ? 'color:#dc2626;font-weight:600;' : 'color:var(--text-mute);';
+          return `<tr>
+            <td class="ps-first" style="font-size:0.78rem;color:var(--text-sub);">${date}</td>
+            <td style="text-align:right;font-variant-numeric:tabular-nums;font-size:0.8rem;">${req.toLocaleString('ja-JP')}</td>
+            <td style="text-align:right;font-variant-numeric:tabular-nums;font-size:0.8rem;${err4cls}">${s4xx > 0 ? s4xx.toLocaleString('ja-JP') : '—'}</td>
+            <td style="text-align:right;font-variant-numeric:tabular-nums;font-size:0.8rem;${err5cls}">${s5xx > 0 ? s5xx.toLocaleString('ja-JP') : '—'}</td>
+            <td style="text-align:right;font-variant-numeric:tabular-nums;font-size:0.8rem;${threats > 0 ? 'color:#d97706;' : 'color:var(--text-mute);'}">${threats > 0 ? threats.toLocaleString('ja-JP') : '—'}</td>
+            <td class="pe-last">
+              <div class="cf-bar-wrap">
+                <div class="cf-bar"><div class="cf-bar-fill" style="width:${barW}%;"></div></div>
+                <span style="font-size:0.72rem;color:var(--text-sub);min-width:32px;text-align:right;">${rate}%</span>
+              </div>
+            </td>
+            <td style="text-align:right;font-variant-numeric:tabular-nums;font-size:0.8rem;color:var(--text-sub);">${uniq.toLocaleString('ja-JP')}</td>
+          </tr>`;
+        }).join('');
+
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:1.5rem;color:#dc2626;">${esc(err.message)}</td></tr>`;
+      }
+    }
+
+    // ── ライセンス機能 ──────────────────────────────────────
+    async function load() {
+      _secret = document.getElementById('inputSecret').value.trim();
+      const resp = await fetch(`/api/admin-licenses?secret=${encodeURIComponent(_secret)}`);
+      if (!resp.ok) { alert('認証に失敗しました'); return; }
+      const data = await resp.json();
+      _all = data.licenses;
+      if (data.sentryToken) _sentryToken = data.sentryToken;
+      _hasClaudeKey = !!data.hasClaudeKey;
+      _hasCfKey     = !!data.hasCfKey;
+      document.getElementById('authArea').classList.add('d-none');
+      document.getElementById('summary').classList.remove('d-none');
+      updateStats();
+      updateMonthly();
+      render();
+      loadAppLogs();
+      if (_hasCfKey) loadCloudflare();
+      if (_sentryToken) loadSentry();
+    }
+
+    async function loadSentry() {
+      if (!_sentryToken) return;
+      const section = document.getElementById('sentrySection');
+      section.classList.remove('d-none');
+
+      const PROJECT = '4511415628464128';
+      const tbody = document.getElementById('sentryTableBody');
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:1.5rem;color:var(--text-mute);">読み込み中...</td></tr>';
+      ['sErrorTotal','sErrorToday','sErrorUsers','sErrorResolved'].forEach(id => document.getElementById(id).textContent = '…');
+      document.getElementById('sentryUpdatedAt').textContent = '';
+
+      try {
+        const proxy = path => `/api/admin-licenses?secret=${encodeURIComponent(_secret)}&sentry_path=${encodeURIComponent(path)}`;
+
+        let orgSlug = localStorage.getItem('keihi_sentry_org_slug') || '';
+        if (!orgSlug) {
+          const orgResp = await fetch(proxy('/organizations/'));
+          if (orgResp.status === 401) throw new Error('Sentry トークンが無効です（SENTRY_AUTH_TOKEN を確認してください）');
+          if (!orgResp.ok) {
+            const errBody = await orgResp.json().catch(() => ({}));
+            throw new Error(`Sentry 組織取得エラー ${orgResp.status}: ${errBody.detail || JSON.stringify(errBody)}`);
+          }
+          const orgs = await orgResp.json();
+          if (!Array.isArray(orgs) || orgs.length === 0) throw new Error('Sentry 組織が見つかりません');
+          orgSlug = orgs[0].slug;
+          localStorage.setItem('keihi_sentry_org_slug', orgSlug);
+        }
+
+        const [unresolvedResp, resolvedResp] = await Promise.all([
+          fetch(proxy(`/organizations/${orgSlug}/issues/?project=${PROJECT}&limit=25&query=is:unresolved`)),
+          fetch(proxy(`/organizations/${orgSlug}/issues/?project=${PROJECT}&limit=100&query=is:resolved&statsPeriod=30d`)),
+        ]);
+
+        if (!unresolvedResp.ok) {
+          const errBody = await unresolvedResp.json().catch(() => ({}));
+          if (unresolvedResp.status === 400 || unresolvedResp.status === 404) localStorage.removeItem('keihi_sentry_org_slug');
+          throw new Error(`Sentry API ${unresolvedResp.status}: ${errBody.detail || JSON.stringify(errBody)}`);
+        }
+
+        const unresolved = await unresolvedResp.json();
+        const resolved   = resolvedResp.ok ? await resolvedResp.json() : [];
+        const totalHits  = parseInt(unresolvedResp.headers.get('X-Hits') || '0', 10) || unresolved.length;
+
+        let todayCount = 0, totalUsers = 0;
+        unresolved.forEach(issue => {
+          totalUsers += issue.userCount || 0;
+          const b24 = issue.stats?.['24h'];
+          if (Array.isArray(b24)) {
+            const cutoff = Date.now() - 86400000;
+            b24.forEach(([ts, cnt]) => { if (ts * 1000 >= cutoff) todayCount += cnt; });
+          } else if (issue.lastSeen && new Date(issue.lastSeen).toDateString() === new Date().toDateString()) {
+            todayCount += parseInt(issue.count || 0, 10);
+          }
+        });
+
+        document.getElementById('sErrorTotal').textContent    = totalHits;
+        document.getElementById('sErrorToday').textContent    = todayCount;
+        document.getElementById('sErrorUsers').textContent    = totalUsers;
+        document.getElementById('sErrorResolved').textContent = resolved.length;
+        document.getElementById('sentryUpdatedAt').textContent = '更新: ' + new Date().toLocaleTimeString('ja-JP', { hour:'2-digit', minute:'2-digit' });
+
+        if (unresolved.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:1.5rem;color:var(--text-mute);"><i class="bi bi-check-circle me-2"></i>未解決イシューはありません</td></tr>';
+          return;
+        }
+
+        // issueデータをキャッシュ（AI解析で使用）
+        unresolved.forEach(issue => { _issueData[issue.id] = issue; });
+
+        tbody.innerHTML = unresolved.map(issue => {
+          const id      = esc(issue.id || '');
+          const lvl     = issue.level || 'error';
+          const title   = esc(issue.title || '');
+          const value   = esc(issue.metadata?.value || '');
+          const count   = Number(issue.count || 0).toLocaleString('ja-JP');
+          const users   = issue.userCount || 0;
+          const last    = issue.lastSeen ? _relTime(issue.lastSeen) : '—';
+          const envTag  = issue.tags?.find(t => t.key === 'environment');
+          const brwTag  = issue.tags?.find(t => t.key === 'browser.name');
+          const envText = [envTag?.value, brwTag?.value].filter(Boolean).join(' / ') || '—';
+          const noteCount = (_notesCache[issue.id] || []).length;
+          const hasCls  = noteCount > 0 ? ' has-notes' : '';
+          const badge   = noteCount > 0 ? `<span class="notes-count">${noteCount}</span>` : '';
+          const openCls = _notesOpen[issue.id] ? ' open' : '';
+          return `
+            <tr>
+              <td class="ps-first"><span class="lvl-${lvl}">${lvl.toUpperCase()}</span></td>
+              <td>
+                <div style="font-size:0.8rem;font-weight:500;color:var(--text);line-height:1.3;">${title}</div>
+                ${value ? `<div style="font-size:0.7rem;color:var(--text-mute);margin-top:2px;">${value}</div>` : ''}
+              </td>
+              <td style="text-align:right;font-variant-numeric:tabular-nums;font-size:0.8rem;">${count}</td>
+              <td style="text-align:right;font-size:0.8rem;">${users > 0 ? users : '—'}</td>
+              <td style="font-size:0.75rem;color:var(--text-sub);">${last}</td>
+              <td style="font-size:0.72rem;color:var(--text-mute);">${esc(envText)}</td>
+              <td id="priority-${id}" style="text-align:center;"><span style="color:var(--text-mute);">—</span></td>
+              <td class="pe-last" style="text-align:center;">
+                <button class="action-btn notes-btn${hasCls}${openCls}" data-issue-id="${id}" title="メモ">
+                  <i class="bi bi-chat-left-text"></i>${badge}
+                </button>
+              </td>
+            </tr>
+            <tr class="notes-row${_notesOpen[issue.id] ? '' : ' d-none'}" id="notes-row-${id}">
+              <td colspan="8">
+                <div class="notes-panel" id="notes-panel-${id}">
+                  <div style="color:var(--text-mute);font-size:0.78rem;">読み込み中...</div>
+                </div>
+              </td>
+            </tr>`;
+        }).join('');
+
+        tbody.querySelectorAll('.notes-btn').forEach(btn => {
+          btn.addEventListener('click', () => toggleNotes(btn.dataset.issueId));
+          const iid = btn.dataset.issueId;
+          if (_notesOpen[iid]) {
+            if (_notesCache[iid] != null) renderNotes(iid);
+            else loadNotes(iid);
+          }
+        });
+
+        _autoAnalyzeAll(unresolved);
+
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:1.5rem;color:#dc2626;">${esc(err.message)}</td></tr>`;
+        ['sErrorTotal','sErrorToday','sErrorUsers','sErrorResolved'].forEach(id => document.getElementById(id).textContent = 'ERR');
+      }
+    }
+
+    function _relTime(iso) {
+      const diff = Date.now() - new Date(iso).getTime();
+      const min  = Math.floor(diff / 60000);
+      if (min < 1)  return 'たった今';
+      if (min < 60) return `${min}分前`;
+      const hr = Math.floor(min / 60);
+      if (hr < 24)  return `${hr}時間前`;
+      return `${Math.floor(hr / 24)}日前`;
+    }
+
     async function issueLicense() {
       const email   = document.getElementById('issueEmail').value.trim();
       const company = document.getElementById('issueCompany').value.trim();
@@ -365,17 +999,14 @@
       if (!email) { msg.innerHTML = '<span style="color:#dc2626;">メールアドレスは必須です</span>'; return; }
       msg.innerHTML = '<span style="color:var(--text-mute);">発行中...</span>';
       const resp = await fetch(`/api/admin-licenses?secret=${encodeURIComponent(_secret)}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, company, plan, expiresAt: expiry }),
       });
       const data = await resp.json();
       if (!resp.ok) {
-        if (data.error === 'duplicate_email') {
-          msg.innerHTML = `<span style="color:#d97706;">既存キーあり: <code>${esc(data.existingKey)}</code></span>`;
-        } else {
-          msg.innerHTML = `<span style="color:#dc2626;">エラー: ${esc(data.error)}</span>`;
-        }
+        msg.innerHTML = data.error === 'duplicate_email'
+          ? `<span style="color:#d97706;">既存キーあり: <code>${esc(data.existingKey)}</code></span>`
+          : `<span style="color:#dc2626;">エラー: ${esc(data.error)}</span>`;
         return;
       }
       msg.innerHTML = `<span style="color:#16a34a;"><i class="bi bi-check-circle me-1"></i>発行: <code>${esc(data.key)}</code></span>`;
@@ -387,182 +1018,22 @@
       render();
     }
 
-    async function load() {
-      _secret = document.getElementById('inputSecret').value.trim();
-      const resp = await fetch(`/api/admin-licenses?secret=${encodeURIComponent(_secret)}`);
-      if (!resp.ok) { alert('認証に失敗しました'); return; }
-      const data = await resp.json();
-      _all = data.licenses;
-      if (data.sentryToken) _sentryToken = data.sentryToken;
-      document.getElementById('authArea').classList.add('d-none');
-      document.getElementById('summary').classList.remove('d-none');
-      updateStats();
-      updateMonthly();
-      render();
-      if (_sentryToken) loadSentry();
-    }
-
-    async function loadSentry() {
-      const token = _sentryToken;
-      if (!token) return;
-      const section = document.getElementById('sentrySection');
-      section.classList.remove('d-none');
-
-      const PROJECT = '4511415628464128';
-      const headers = { Authorization: `Bearer ${token}` };
-
-      const tbody = document.getElementById('sentryTableBody');
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--text-mute);">読み込み中...</td></tr>';
-      document.getElementById('sErrorTotal').textContent    = '…';
-      document.getElementById('sErrorToday').textContent    = '…';
-      document.getElementById('sErrorUsers').textContent    = '…';
-      document.getElementById('sErrorResolved').textContent = '…';
-      document.getElementById('sentryUpdatedAt').textContent = '';
-
-      try {
-        // Org slug を自動検出（キャッシュ → API取得）
-        let orgSlug = localStorage.getItem('keihi_sentry_org_slug') || '';
-        if (!orgSlug) {
-          const orgResp = await fetch('https://us.sentry.io/api/0/organizations/', { headers });
-          if (orgResp.status === 401) throw new Error('Sentry トークンが無効です（401 Unauthorized）\n\nSentry → Settings → Auth Tokens でトークンを確認してください。');
-          if (!orgResp.ok) {
-            const errBody = await orgResp.json().catch(() => ({}));
-            throw new Error(`Sentry 組織取得エラー ${orgResp.status}: ${errBody.detail || JSON.stringify(errBody)}`);
-          }
-          const orgs = await orgResp.json();
-          if (!Array.isArray(orgs) || orgs.length === 0) throw new Error('Sentry 組織が見つかりません（org:read スコープが必要です）');
-          orgSlug = orgs[0].slug;
-          localStorage.setItem('keihi_sentry_org_slug', orgSlug);
-        }
-
-        // プロジェクト ID（数値）で検索
-        const BASE = `https://us.sentry.io/api/0/organizations/${orgSlug}`;
-        const [unresolvedResp, resolvedResp] = await Promise.all([
-          fetch(`${BASE}/issues/?project=${PROJECT}&limit=25&query=is:unresolved&expand=owners`, { headers }),
-          fetch(`${BASE}/issues/?project=${PROJECT}&limit=100&query=is:resolved&statsPeriod=30d`, { headers }),
-        ]);
-
-        if (!unresolvedResp.ok) {
-          const errBody = await unresolvedResp.json().catch(() => ({}));
-          if (unresolvedResp.status === 400 || unresolvedResp.status === 404) {
-            localStorage.removeItem('keihi_sentry_org_slug');
-          }
-          throw new Error(`Sentry API ${unresolvedResp.status}: ${errBody.detail || JSON.stringify(errBody)}`);
-        }
-
-        const unresolved = await unresolvedResp.json();
-        const resolved   = resolvedResp.ok ? await resolvedResp.json() : [];
-
-        // KPI: unresolved count (use X-Hits header if available, else array length)
-        const totalHits = parseInt(unresolvedResp.headers.get('X-Hits') || '0', 10) || unresolved.length;
-
-        // Today's event count: sum last 24h buckets from each issue's stats
-        let todayCount = 0;
-        let totalUsers = 0;
-        unresolved.forEach(issue => {
-          totalUsers += issue.userCount || 0;
-          const buckets24h = issue.stats?.['24h'];
-          if (Array.isArray(buckets24h)) {
-            const cutoff = Date.now() - 86400000;
-            buckets24h.forEach(([ts, cnt]) => {
-              if (ts * 1000 >= cutoff) todayCount += cnt;
-            });
-          } else {
-            // Fallback: if no stats, count issues seen today
-            if (issue.lastSeen && new Date(issue.lastSeen).toDateString() === new Date().toDateString()) {
-              todayCount += parseInt(issue.count || 0, 10);
-            }
-          }
-        });
-
-        document.getElementById('sErrorTotal').textContent    = totalHits;
-        document.getElementById('sErrorToday').textContent    = todayCount;
-        document.getElementById('sErrorUsers').textContent    = totalUsers;
-        document.getElementById('sErrorResolved').textContent = resolved.length;
-        document.getElementById('sentryUpdatedAt').textContent = '更新: ' + new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
-
-        if (unresolved.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--text-mute);"><i class="bi bi-check-circle me-2"></i>未解決イシューはありません</td></tr>';
-          return;
-        }
-
-        tbody.innerHTML = unresolved.map(issue => {
-          const lvl   = issue.level || 'error';
-          const lvlHtml = `<span class="lvl-${lvl}">${lvl.toUpperCase()}</span>`;
-          const title = esc(issue.title || '');
-          const value = esc(issue.metadata?.value || '');
-          const count = Number(issue.count || 0).toLocaleString('ja-JP');
-          const users = issue.userCount || 0;
-          const last  = issue.lastSeen ? _relTime(issue.lastSeen) : '—';
-
-          // Environment / browser tag
-          const envTag  = issue.tags?.find(t => t.key === 'environment');
-          const browserTag = issue.tags?.find(t => t.key === 'browser.name');
-          const envText = [envTag?.value, browserTag?.value].filter(Boolean).join(' / ') || '—';
-
-          return `<tr>
-            <td class="ps-first">${lvlHtml}</td>
-            <td>
-              <div style="font-size:0.8rem;font-weight:500;color:var(--text);line-height:1.3;">${title}</div>
-              ${value ? `<div style="font-size:0.7rem;color:var(--text-mute);margin-top:2px;">${value}</div>` : ''}
-            </td>
-            <td style="text-align:right;font-variant-numeric:tabular-nums;font-size:0.8rem;">${count}</td>
-            <td style="text-align:right;font-size:0.8rem;">${users > 0 ? users : '—'}</td>
-            <td style="font-size:0.75rem;color:var(--text-sub);">${last}</td>
-            <td class="pe-last" style="font-size:0.72rem;color:var(--text-mute);">${esc(envText)}</td>
-          </tr>`;
-        }).join('');
-
-      } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:#dc2626;">${esc(err.message)}</td></tr>`;
-        document.getElementById('sErrorTotal').textContent    = 'ERR';
-        document.getElementById('sErrorToday').textContent    = 'ERR';
-        document.getElementById('sErrorUsers').textContent    = 'ERR';
-        document.getElementById('sErrorResolved').textContent = 'ERR';
-      }
-    }
-
-    function _relTime(iso) {
-      const diff = Date.now() - new Date(iso).getTime();
-      const min  = Math.floor(diff / 60000);
-      if (min < 1)   return 'たった今';
-      if (min < 60)  return `${min}分前`;
-      const hr = Math.floor(min / 60);
-      if (hr < 24)   return `${hr}時間前`;
-      const day = Math.floor(hr / 24);
-      return `${day}日前`;
-    }
-
     function _customerCell(l, compact = false) {
       const name = esc(l.customerName || l.company || '');
       const biz  = esc(l.businessName || '');
       const displayName = biz || name || '<span style="color:var(--text-mute);">—</span>';
       const subLine = (biz && name && biz !== name) ? `<div class="customer-biz">${name}</div>` : '';
       const email = esc(l.email || '');
-      if (compact) {
-        return `<div class="customer-name">${displayName}</div>${subLine}`;
-      }
-      return `
-        <div style="display:flex;align-items:center;gap:4px;">
-          <div>
-            <div class="customer-name">${displayName}</div>
-            ${subLine}
-          </div>
-          ${email ? `<button class="email-btn" onclick="copyEmail(this,'${email}')" title="${email}">
-            <i class="bi bi-envelope" style="font-size:0.7rem;"></i>
-            <span class="email-tooltip">${email}</span>
-          </button>` : ''}
-        </div>`;
+      if (compact) return `<div class="customer-name">${displayName}</div>${subLine}`;
+      return `<div style="display:flex;align-items:center;gap:4px;"><div><div class="customer-name">${displayName}</div>${subLine}</div>${email ? `<button class="email-btn" onclick="copyEmail(this,'${email}')" title="${email}"><i class="bi bi-envelope" style="font-size:0.7rem;"></i><span class="email-tooltip">${email}</span></button>` : ''}</div>`;
     }
 
     function copyEmail(btn, email) {
       navigator.clipboard.writeText(email).then(() => {
-        btn.classList.add('email-copied');
-        btn.title = 'コピーしました';
+        btn.classList.add('email-copied'); btn.title = 'コピーしました';
         setTimeout(() => { btn.classList.remove('email-copied'); btn.title = email; }, 1500);
       });
     }
-
     function copyKey(el, key) {
       navigator.clipboard.writeText(key).then(() => {
         el.classList.add('copied');
@@ -573,38 +1044,27 @@
     function updateMonthly() {
       const ym = document.getElementById('monthPicker').value;
       if (!ym) return;
-      const planLabel = { solo: 'ソロ', team: 'チーム', standard: '標準' };
+      const planLabel = { solo: 'ソロ', team: 'チーム' };
       const newRegs  = _all.filter(l => (l.createdAt || '').startsWith(ym));
       const paid     = newRegs.filter(l => !!l.stripeSessionId);
       const manual   = newRegs.filter(l => !l.stripeSessionId);
       const upgrades = _all.filter(l => (l.upgradedAt || '').startsWith(ym));
       const churn    = _all.filter(l => (l.expiresAt || '').startsWith(ym) && getStatus(l) !== 'active');
-
       document.getElementById('mNew').textContent     = newRegs.length;
       document.getElementById('mPaid').textContent    = paid.length;
       document.getElementById('mManual').textContent  = manual.length;
       document.getElementById('mUpgrade').textContent = upgrades.length;
       document.getElementById('mChurn').textContent   = churn.length;
-
       const listEl = document.getElementById('mNewList');
       const tbody  = document.getElementById('mNewTable');
       if (newRegs.length > 0) {
         tbody.innerHTML = newRegs.map(l => {
-          const plan = l.plan || 'standard';
-          const kind = l.stripeSessionId
-            ? '<span class="tag tag-stripe">有料</span>'
-            : '<span class="tag tag-manual">手動</span>';
-          return `<tr>
-            <td style="color:var(--text-sub);">${(l.createdAt||'').split('T')[0]}</td>
-            <td>${_customerCell(l, true)}</td>
-            <td><span class="tag tag-${plan === 'team' ? 'team' : plan === 'solo' ? 'solo' : 'std'}">${planLabel[plan]||plan}</span></td>
-            <td>${kind}</td>
-          </tr>`;
+          const plan = l.plan === 'team' ? 'team' : 'solo';
+          const kind = l.stripeSessionId ? '<span class="tag tag-stripe">有料</span>' : '<span class="tag tag-manual">手動</span>';
+          return `<tr><td style="color:var(--text-sub);">${(l.createdAt||'').split('T')[0]}</td><td>${_customerCell(l,true)}</td><td><span class="tag tag-${plan}">${planLabel[plan]}</span></td><td>${kind}</td></tr>`;
         }).join('');
         listEl.classList.remove('d-none');
-      } else {
-        listEl.classList.add('d-none');
-      }
+      } else { listEl.classList.add('d-none'); }
     }
 
     function getStatus(lic) {
@@ -628,58 +1088,41 @@
         if (status && getStatus(l) !== status) return false;
         return true;
       });
-
-      const countEl = document.getElementById('filteredCount');
-      countEl.textContent = (text || status)
-        ? `${filtered.length} / ${_all.length}件`
-        : `${_all.length}件`;
-
+      document.getElementById('filteredCount').textContent = (text || status) ? `${filtered.length} / ${_all.length}件` : `${_all.length}件`;
       const statusLabel = { active: '有効', expired: '期限切れ', suspended: '停止中' };
-      const planLabel   = { solo: 'ソロ', team: 'チーム', standard: '標準' };
-
+      const planLabel   = { solo: 'ソロ', team: 'チーム' };
       const tbody = document.getElementById('licenseTable');
       tbody.innerHTML = filtered.map(l => {
-        const st         = getStatus(l);
-        const date       = l.createdAt ? l.createdAt.split('T')[0] : '—';
-        const plan       = l.plan || 'standard';
-        const usageThis  = l.usageThis ?? 0;
-        const usageLast  = l.usageLast ?? 0;
-        const isStripe   = !!l.stripeSessionId;
-        const planClass  = plan === 'team' ? 'team' : plan === 'solo' ? 'solo' : 'std';
+        const st = getStatus(l);
+        const plan = l.plan === 'team' ? 'team' : 'solo';
+        const usageThis = l.usageThis ?? 0, usageLast = l.usageLast ?? 0;
+        const isStripe = !!l.stripeSessionId;
         return `<tr data-key="${esc(l.key)}">
-          <td class="ps-first" style="font-size:0.78rem;color:var(--text-sub);">${date}</td>
-          <td>
-            ${_customerCell(l)}
-            ${isStripe ? '<span class="tag tag-stripe" style="margin-top:3px;display:inline-block;">Stripe</span>' : '<span class="tag tag-manual" style="margin-top:3px;display:inline-block;">手動</span>'}
-          </td>
-          <td><span class="tag tag-${planClass}">${planLabel[plan]||plan}</span></td>
-          <td><span class="key-chip" onclick="copyKey(this,'${esc(l.key)}')" title="クリックでコピー">${esc(l.key)}</span></td>
+          <td class="ps-first" style="font-size:0.78rem;color:var(--text-sub);">${l.createdAt ? l.createdAt.split('T')[0] : '—'}</td>
+          <td>${_customerCell(l)}${isStripe ? '<span class="tag tag-stripe" style="margin-top:3px;display:inline-block;">Stripe</span>' : '<span class="tag tag-manual" style="margin-top:3px;display:inline-block;">手動</span>'}</td>
+          <td><span class="tag tag-${plan}">${planLabel[plan]}</span></td>
           <td style="font-size:0.78rem;color:var(--text-sub);">${l.expiresAt||'—'}</td>
           <td class="usage-num ${usageThis > 0 ? 'active' : 'zero'}">${usageThis || '—'}</td>
           <td class="usage-num zero">${usageLast || '—'}</td>
           <td style="text-align:center;"><span class="status-dot ${st}">${statusLabel[st]}</span></td>
           <td class="pe-last" style="text-align:right;white-space:nowrap;">
-            ${!isStripe && !l.upgradedAt ? `<button class="action-btn upgrade btn-upgrade me-1" data-key="${esc(l.key)}" title="有料転換としてマーク"><i class="bi bi-arrow-up-circle"></i></button>` : ''}
+            ${!isStripe && !l.upgradedAt ? `<button class="action-btn upgrade btn-upgrade me-1" data-key="${esc(l.key)}" title="有料転換"><i class="bi bi-arrow-up-circle"></i></button>` : ''}
             <button class="action-btn delete btn-delete" data-key="${esc(l.key)}" title="削除"><i class="bi bi-trash"></i></button>
           </td>
         </tr>`;
       }).join('');
-
-      tbody.querySelectorAll('.btn-upgrade').forEach(btn =>
-        btn.addEventListener('click', () => upgradeLicense(btn.dataset.key)));
-      tbody.querySelectorAll('.btn-delete').forEach(btn =>
-        btn.addEventListener('click', () => deleteLicense(btn.dataset.key)));
-
+      tbody.querySelectorAll('.btn-upgrade').forEach(btn => btn.addEventListener('click', () => upgradeLicense(btn.dataset.key)));
+      tbody.querySelectorAll('.btn-delete').forEach(btn => btn.addEventListener('click', () => deleteLicense(btn.dataset.key)));
       document.getElementById('noResult').classList.toggle('d-none', filtered.length > 0);
     }
 
     function exportCsv() {
       const header = ['発行日','氏名','ビジネス名','メール','ライセンスキー','プラン','有効期限','今月申請数','先月申請数','ステータス'];
       const statusLabel = { active: '有効', expired: '期限切れ', suspended: '停止中' };
-      const planLabel   = { solo: 'ソロ', team: 'チーム', standard: '標準' };
+      const planLabel   = { solo: 'ソロ', team: 'チーム' };
       const rows = _all.map(l => [
         l.createdAt?.split('T')[0]||'', l.customerName||l.company||'', l.businessName||'',
-        l.email||'', l.key, planLabel[l.plan]||l.plan||'', l.expiresAt||'',
+        l.email||'', l.key, planLabel[l.plan === 'team' ? 'team' : 'solo'], l.expiresAt||'',
         l.usageThis??'', l.usageLast??'', statusLabel[getStatus(l)]
       ]);
       const csv = [header,...rows].map(r => r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
@@ -690,19 +1133,16 @@
     }
 
     async function upgradeLicense(key) {
-      if (!confirm(`有料転換としてマークしますか？\n${key}\n\n有効期限が1年延長されます（Stripe外の決済用）。`)) return;
+      if (!confirm(`有料転換としてマークしますか？\n${key}\n\n有効期限が1年延長されます。`)) return;
       const resp = await fetch(`/api/admin-licenses?secret=${encodeURIComponent(_secret)}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key, action: 'upgrade' }),
       });
       if (!resp.ok) { alert('処理に失敗しました'); return; }
       const data = await resp.json();
       const idx = _all.findIndex(l => l.key === key);
       if (idx !== -1) _all[idx] = { ..._all[idx], ...data };
-      updateStats();
-      updateMonthly();
-      render();
+      updateStats(); updateMonthly(); render();
     }
 
     async function deleteLicense(key) {
@@ -710,8 +1150,7 @@
       const resp = await fetch(`/api/admin-licenses?secret=${encodeURIComponent(_secret)}&key=${encodeURIComponent(key)}`, { method: 'DELETE' });
       if (!resp.ok) { alert('削除に失敗しました'); return; }
       _all = _all.filter(l => l.key !== key);
-      updateStats();
-      render();
+      updateStats(); render();
     }
 
     function esc(s) {

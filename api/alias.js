@@ -15,18 +15,30 @@ export default async function handler(req, res) {
 
   // GET: エイリアス解決
   if (req.method === 'GET') {
-    const { code } = req.query;
+    const { code, setup } = req.query;
+
+    // セットアップリンク解決（ライセンスキー自動入力用）
+    if (setup) {
+      if (setup.length < 6) return res.status(400).json({ error: 'invalid_code' });
+      const licenseKey = await kv.get(`lic_ref:${setup}`).catch(() => null);
+      if (!licenseKey) return res.status(404).json({ error: 'not_found' });
+      return res.status(200).json({ licenseKey });
+    }
+
     if (!code || code.length < 6) {
       return res.status(400).json({ error: 'invalid_code' });
     }
     const sheetId = await kv.get(`alias:${code}`).catch(() => null);
-    if (!sheetId) return res.status(404).json({ error: 'not_found' });
-    return res.status(200).json({ sheetId });
+    if (sheetId) return res.status(200).json({ sheetId });
+    // シートエイリアスで見つからない場合はセットアップコードとして試みる
+    const licenseKey = await kv.get(`lic_ref:${code}`).catch(() => null);
+    if (licenseKey) return res.status(200).json({ licenseKey });
+    return res.status(404).json({ error: 'not_found' });
   }
 
-  // POST: エイリアス登録（有効なライセンスキー必須）
+  // POST: エイリアス登録（有効なライセンスキー＋setupCode必須）
   if (req.method === 'POST') {
-    const { code, sheetId, licenseKey } = req.body || {};
+    const { code, sheetId, licenseKey, setupCode } = req.body || {};
     if (!code || !sheetId || !licenseKey) {
       return res.status(400).json({ error: 'missing_fields' });
     }
@@ -40,10 +52,22 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: 'invalid_license' });
     }
 
-    // 既存のエイリアスがあれば古いものを削除
+    // setupCode の照合（手動発行ライセンスは license_ref が存在しないためスキップ）
+    const boundSetupCode = await kv.get(`license_ref:${licenseKey}`).catch(() => null);
+    if (boundSetupCode && setupCode !== boundSetupCode) {
+      return res.status(403).json({ error: 'setup_code_mismatch' });
+    }
+
+    // 一度登録したエイリアスは変更不可
     const existingCode = await kv.get(`alias_by_sheet:${sheetId}`).catch(() => null);
     if (existingCode && existingCode !== code) {
-      await kv.del(`alias:${existingCode}`).catch(() => {});
+      return res.status(409).json({ error: 'alias_already_set', alias: existingCode });
+    }
+
+    // 指定コードが別のシートで使われていないか確認
+    const existingSheet = await kv.get(`alias:${code}`).catch(() => null);
+    if (existingSheet && existingSheet !== sheetId) {
+      return res.status(409).json({ error: 'code_taken' });
     }
 
     await kv.set(`alias:${code}`, sheetId);

@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>初期セットアップ｜経費ログ</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <style>
+    body { background: #f8f9fa; font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif; }
+    .setup-card { max-width: 480px; margin: 0 auto; }
+    .step-dot { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0; }
+    .step-dot.done  { background: #0d6efd; color: #fff; }
+    .step-dot.active { background: #0d6efd; color: #fff; box-shadow: 0 0 0 4px rgba(13,110,253,.2); }
+    .step-dot.todo  { background: #dee2e6; color: #6c757d; }
+    .step-line { flex: 1; height: 2px; background: #dee2e6; margin: 0 4px; }
+    .step-line.done { background: #0d6efd; }
+    .step-panel { display: none; }
+    .step-panel.active { display: block; }
+    .progress-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; font-size: 0.9rem; }
+    .progress-item .icon { width: 22px; text-align: center; }
+  </style>
+</head>
+<body class="py-4 px-3">
+
+  <div class="setup-card">
+    <!-- ロゴ -->
+    <div class="text-center mb-4">
+      <div class="fw-bold fs-5 mb-1">🗂 経費ログ</div>
+      <div class="text-muted" style="font-size:0.85rem;">初期セットアップ</div>
+    </div>
+
+    <!-- ステップインジケーター -->
+    <div class="d-flex align-items-center mb-4 px-1" id="stepIndicator">
+      <div class="step-dot active" id="dot1">1</div>
+      <div class="step-line" id="line1"></div>
+      <div class="step-dot todo" id="dot2">2</div>
+      <div class="step-line" id="line2"></div>
+      <div class="step-dot todo" id="dot3">3</div>
+      <div class="step-line" id="line3"></div>
+      <div class="step-dot todo" id="dot4"><i class="bi bi-check"></i></div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+      <div class="card-body p-4">
+
+        <!-- Step 1: ライセンスキー -->
+        <div class="step-panel active" id="panel1">
+          <h5 class="fw-bold mb-1">ライセンスキーの確認</h5>
+          <p class="text-muted mb-3" style="font-size:0.85rem;">お申し込み後に届いたメールに記載されています。</p>
+          <div class="input-group mb-1">
+            <input type="password" class="form-control" id="inputLic" placeholder="KL-XXXXXXXXXXXXXXXXXXXX">
+            <button class="btn btn-outline-secondary" id="btnToggleLic" type="button" tabindex="-1">
+              <i class="bi bi-eye"></i>
+            </button>
+          </div>
+          <div id="licMsg" class="form-text mb-3"></div>
+          <button class="btn btn-primary w-100" id="btnVerifyLic">
+            確認して次へ <i class="bi bi-arrow-right ms-1"></i>
+          </button>
+          <hr class="my-3">
+          <p class="text-muted text-center mb-0" style="font-size:0.8rem;">
+            <i class="bi bi-people me-1"></i>チームメンバーの方は、管理者から受け取った<br>
+            チームURL（keihi-log.com/チーム名）からアクセスしてください。
+          </p>
+        </div>
+
+        <!-- Step 2: 基本情報 -->
+        <div class="step-panel" id="panel2">
+          <h5 class="fw-bold mb-1">チームの基本情報</h5>
+          <p class="text-muted mb-3" style="font-size:0.85rem;">スプレッドシートのタイトルとアプリのURLに使用します。</p>
+          <label class="form-label fw-semibold">会社名・チーム名 <span class="text-danger">*</span></label>
+          <input type="text" class="form-control mb-3" id="inputCompany" placeholder="例：山田商事、デザインチーム">
+          <label class="form-label fw-semibold">
+            チームURL
+            <span class="text-muted fw-normal" style="font-size:0.8rem;">（任意・設定後変更不可）</span>
+          </label>
+          <div class="input-group mb-1">
+            <span class="input-group-text" style="font-size:0.8rem;" id="originLabel"></span>
+            <input type="text" class="form-control" id="inputAlias"
+              placeholder="例: yamada-trading（英数字・ハイフン）" maxlength="40">
+          </div>
+          <div id="aliasMsg" class="form-text mb-3"></div>
+          <button class="btn btn-primary w-100" id="btnGoStep3">
+            次へ <i class="bi bi-arrow-right ms-1"></i>
+          </button>
+          <button class="btn btn-link w-100 text-muted mt-1" id="btnBack1">
+            <i class="bi bi-arrow-left me-1"></i>戻る
+          </button>
+        </div>
+
+        <!-- Step 3: セットアップ実行 -->
+        <div class="step-panel" id="panel3">
+          <h5 class="fw-bold mb-1">セットアップ実行</h5>
+          <p class="text-muted mb-3" style="font-size:0.85rem;">スプレッドシートと証票フォルダを自動作成します。</p>
+
+          <div class="bg-light rounded p-3 mb-3" id="confirmBox">
+            <div class="d-flex justify-content-between mb-1">
+              <span class="text-muted" style="font-size:0.83rem;">会社名・チーム名</span>
+              <span class="fw-semibold" id="confirmCompany" style="font-size:0.83rem;"></span>
+            </div>
+            <div class="d-flex justify-content-between">
+              <span class="text-muted" style="font-size:0.83rem;">チームURL</span>
+              <span class="fw-semibold text-primary" id="confirmUrl" style="font-size:0.83rem;"></span>
+            </div>
+          </div>
+
+          <div id="progressBox" class="mb-3" style="display:none;">
+            <div class="progress-item" id="prog1">
+              <span class="icon text-muted"><i class="bi bi-circle"></i></span>
+              <span>スプレッドシート作成</span>
+            </div>
+            <div class="progress-item" id="prog2">
+              <span class="icon text-muted"><i class="bi bi-circle"></i></span>
+              <span>証票フォルダ作成</span>
+            </div>
+            <div class="progress-item" id="prog3">
+              <span class="icon text-muted"><i class="bi bi-circle"></i></span>
+              <span>チームURL登録</span>
+            </div>
+          </div>
+          <div id="setupErrMsg" class="alert alert-danger py-2 mb-3" style="display:none;font-size:0.85rem;"></div>
+
+          <button class="btn btn-primary w-100" id="btnStartSetup">
+            <i class="bi bi-rocket-takeoff me-1"></i>セットアップ開始
+          </button>
+          <button class="btn btn-link w-100 text-muted mt-1" id="btnBack2">
+            <i class="bi bi-arrow-left me-1"></i>戻る
+          </button>
+        </div>
+
+        <!-- Step 4: 完了 -->
+        <div class="step-panel" id="panel4">
+          <div class="text-center mb-3">
+            <div style="font-size:2.5rem;">🎉</div>
+            <h5 class="fw-bold mt-2 mb-1">セットアップ完了！</h5>
+            <p class="text-muted mb-0" style="font-size:0.85rem;">以下のURLをメンバーに共有してください。</p>
+          </div>
+
+          <label class="form-label fw-semibold">チームURL</label>
+          <div class="input-group mb-1">
+            <input type="text" class="form-control bg-light" id="shareUrlInput" readonly>
+            <button class="btn btn-outline-secondary" id="btnCopyUrl" type="button">
+              <i class="bi bi-clipboard"></i>
+            </button>
+          </div>
+          <p class="text-muted mb-3" style="font-size:0.78rem;">
+            <i class="bi bi-info-circle me-1"></i>メンバーがこのURLを開いてGoogleログインするだけで使い始められます。
+          </p>
+
+          <div class="text-center mb-3">
+            <img id="qrImg" src="" alt="QRコード" width="150" height="150" class="rounded border">
+            <div class="text-muted mt-1" style="font-size:0.72rem;">スクリーンショットしてSlack等で共有できます</div>
+          </div>
+
+          <button class="btn btn-primary w-100 btn-lg" id="btnOpenApp">
+            <i class="bi bi-check-circle me-1"></i>アプリを開く
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/sheets.js"></script>
+  <script src="js/drive.js"></script>
+  <script src="js/license.js"></script>
+  <script src="js/setup.js"></script>
+  <script>
+  (async () => {
+    // ── 認証確認 ──────────────────────────────────────────
+    Auth.init();
+    try {
+      await Auth.getToken();
+    } catch (_) {
+      window.location.href = '/login?return=' + encodeURIComponent('/setup');
+      return;
+    }
+
+    // ── DOM refs ──────────────────────────────────────────
+    const $ = id => document.getElementById(id);
+    let _licKey = '', _alias = '', _companyName = '';
+
+    // originラベル
+    $('originLabel').textContent = location.origin + '/';
+
+    // ── Step ユーティリティ ────────────────────────────────
+    function goStep(n) {
+      [1,2,3,4].forEach(i => {
+        $('panel' + i).classList.toggle('active', i === n);
+        const dot = $('dot' + i);
+        dot.className = 'step-dot ' + (i < n ? 'done' : i === n ? 'active' : 'todo');
+        if (i < n) dot.innerHTML = '<i class="bi bi-check"></i>';
+        else if (i < 4) dot.textContent = i;
+        if (i < 4) $('line' + i).classList.toggle('done', i < n);
+      });
+    }
+
+    // ── Step 1: ライセンスキー ────────────────────────────
+    const savedLic = localStorage.getItem('keihi_license_key') || '';
+    if (savedLic) $('inputLic').value = savedLic;
+
+    $('btnToggleLic').addEventListener('click', () => {
+      const inp = $('inputLic');
+      const icon = $('btnToggleLic').querySelector('i');
+      inp.type = inp.type === 'password' ? 'text' : 'password';
+      icon.className = inp.type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
+    });
+
+    $('btnVerifyLic').addEventListener('click', async () => {
+      const key = $('inputLic').value.trim();
+      if (!key) { $('licMsg').innerHTML = '<span class="text-danger">ライセンスキーを入力してください</span>'; return; }
+      const btn = $('btnVerifyLic');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>確認中...';
+      $('licMsg').textContent = '';
+      License.clearCache?.();
+      const result = await License.verify(key);
+      btn.disabled = false;
+      btn.innerHTML = '確認して次へ <i class="bi bi-arrow-right ms-1"></i>';
+      if (result.valid) {
+        _licKey = key;
+        localStorage.setItem('keihi_license_key', key);
+        goStep(2);
+      } else {
+        const reason = result.reason === 'expired'   ? '有効期限切れです。' :
+                       result.reason === 'suspended' ? '停止されています。' : '無効なライセンスキーです。';
+        $('licMsg').innerHTML = `<span class="text-danger"><i class="bi bi-x-circle me-1"></i>${reason}</span>`;
+      }
+    });
+
+    // ── Step 2: 基本情報 ──────────────────────────────────
+    let _aliasTimer = null;
+    $('inputAlias').addEventListener('input', e => {
+      clearTimeout(_aliasTimer);
+      const val = e.target.value.trim().toLowerCase();
+      const msg = $('aliasMsg');
+      if (!val) { msg.textContent = ''; return; }
+      if (!/^[a-zA-Z0-9-]+$/.test(val)) {
+        msg.innerHTML = '<span class="text-danger">英数字・ハイフンのみ使用できます</span>'; return;
+      }
+      if (val.length < 6) {
+        msg.innerHTML = '<span class="text-muted">6文字以上必要です</span>'; return;
+      }
+      msg.innerHTML = '<span class="text-muted">確認中…</span>';
+      _aliasTimer = setTimeout(async () => {
+        const base = window.APP_CONFIG?.apiBase || '';
+        const r = await fetch(`${base}/api/alias?code=${encodeURIComponent(val)}`).catch(() => null);
+        if (!r) { msg.textContent = ''; return; }
+        msg.innerHTML = r.ok
+          ? '<span class="text-danger"><i class="bi bi-x-circle me-1"></i>このURLはすでに使われています</span>'
+          : `<span class="text-success"><i class="bi bi-check-circle me-1"></i>${location.origin}/${val} は使用可能です</span>`;
+      }, 600);
+    });
+
+    $('btnGoStep3').addEventListener('click', async () => {
+      const name = $('inputCompany').value.trim();
+      if (!name) { $('inputCompany').classList.add('is-invalid'); return; }
+      $('inputCompany').classList.remove('is-invalid');
+      const aliasVal = $('inputAlias').value.trim().toLowerCase();
+      if (aliasVal) {
+        if (!/^[a-zA-Z0-9-]{6,40}$/.test(aliasVal)) {
+          $('aliasMsg').innerHTML = '<span class="text-danger">英数字・ハイフンのみ、6〜40文字で入力してください</span>'; return;
+        }
+        const base = window.APP_CONFIG?.apiBase || '';
+        const r = await fetch(`${base}/api/alias?code=${encodeURIComponent(aliasVal)}`).catch(() => null);
+        if (r?.ok) {
+          $('aliasMsg').innerHTML = '<span class="text-danger">このURLはすでに使われています</span>'; return;
+        }
+      }
+      _companyName = name;
+      _alias = aliasVal;
+      $('confirmCompany').textContent = name;
+      $('confirmUrl').textContent = aliasVal ? `${location.origin}/${aliasVal}` : '（ランダム自動生成）';
+      goStep(3);
+    });
+
+    $('btnBack1').addEventListener('click', () => goStep(1));
+
+    // ── Step 3: セットアップ実行 ──────────────────────────
+    function setProgState(id, state) {
+      const el = $(id);
+      const icon = el.querySelector('.icon');
+      if (state === 'running') icon.innerHTML = '<span class="spinner-border spinner-border-sm text-primary"></span>';
+      else if (state === 'done')  icon.innerHTML = '<i class="bi bi-check-circle-fill text-success"></i>';
+      else if (state === 'error') icon.innerHTML = '<i class="bi bi-x-circle-fill text-danger"></i>';
+      else icon.innerHTML = '<i class="bi bi-circle text-muted"></i>';
+    }
+
+    $('btnStartSetup').addEventListener('click', async () => {
+      $('btnStartSetup').disabled = true;
+      $('btnBack2').style.display = 'none';
+      $('confirmBox').style.display = 'none';
+      $('progressBox').style.display = 'block';
+      $('setupErrMsg').style.display = 'none';
+
+      try {
+        setProgState('prog1', 'running');
+        setProgState('prog2', 'running');
+        const ssId = await Setup.createSpreadsheet(_companyName, null, _alias);
+        setProgState('prog1', 'done');
+        setProgState('prog2', 'done');
+
+        setProgState('prog3', 'running');
+        // エイリアスはcreateSpreadsheet内で登録済み
+        setProgState('prog3', 'done');
+
+        // ライセンスキーをB3に書き込み
+        const licVal = localStorage.getItem('keihi_license_key');
+        if (licVal) Sheets.update('設定!B3', [[licVal]]).catch(() => {});
+
+        // 完了画面へ
+        const finalAlias = localStorage.getItem('keihi_alias') || '';
+        const shareUrl = finalAlias ? `${location.origin}/${finalAlias}` : `${location.origin}/${ssId}`;
+        $('shareUrlInput').value = shareUrl;
+        $('qrImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(shareUrl)}`;
+        $('btnOpenApp').onclick = () => { window.location.href = shareUrl; };
+        goStep(4);
+
+      } catch (err) {
+        setProgState('prog1', 'error');
+        setProgState('prog2', 'error');
+        setProgState('prog3', 'error');
+        $('setupErrMsg').textContent = 'エラーが発生しました: ' + (err.message || err);
+        $('setupErrMsg').style.display = 'block';
+        $('btnStartSetup').disabled = false;
+        $('btnBack2').style.display = '';
+      }
+    });
+
+    $('btnBack2').addEventListener('click', () => {
+      $('confirmBox').style.display = '';
+      $('progressBox').style.display = 'none';
+      ['prog1','prog2','prog3'].forEach(id => setProgState(id, 'todo'));
+      goStep(2);
+    });
+
+    // ── Step 4: 完了 ──────────────────────────────────────
+    $('btnCopyUrl').addEventListener('click', () => {
+      navigator.clipboard.writeText($('shareUrlInput').value).then(() => {
+        $('btnCopyUrl').innerHTML = '<i class="bi bi-check text-success"></i>';
+        setTimeout(() => { $('btnCopyUrl').innerHTML = '<i class="bi bi-clipboard"></i>'; }, 2000);
+      });
+    });
+
+  })();
+  </script>
+</body>
+</html>
