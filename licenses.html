@@ -420,7 +420,7 @@
 
       try {
         // サーバープロキシ経由でCORS回避・トークン隠蔽
-        const proxy = (path) => `/api/sentry-proxy?secret=${encodeURIComponent(_secret)}&path=${encodeURIComponent(path)}`;
+        const proxy = (path) => `/api/admin-licenses?secret=${encodeURIComponent(_secret)}&sentry_path=${encodeURIComponent(path)}`;
 
         let orgSlug = localStorage.getItem('keihi_sentry_org_slug') || '';
         if (!orgSlug) {
