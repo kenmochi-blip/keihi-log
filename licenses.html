@@ -292,7 +292,7 @@
     let _all = [];
     let _secret = '';
     let _sentryToken = '';
-    let _hasGeminiKey = false;
+    let _hasClaudeKey = false;
     const _notesCache = {};
     const _notesOpen  = {};
     const _issueData  = {};   // issueId → issue object (for AI analysis)
@@ -367,7 +367,7 @@
             </div>`;
           }).join('');
 
-      const aiBtn = _hasGeminiKey
+      const aiBtn = _hasClaudeKey
         ? `<button class="btn-ai" id="ai-btn-${esc(issueId)}" onclick="analyzeWithAI('${esc(issueId)}')">
              <i class="bi bi-stars"></i>AI解析
            </button>`
@@ -484,7 +484,7 @@
       const data = await resp.json();
       _all = data.licenses;
       if (data.sentryToken) _sentryToken = data.sentryToken;
-      _hasGeminiKey = !!data.hasGeminiKey;
+      _hasClaudeKey = !!data.hasClaudeKey;
       document.getElementById('authArea').classList.add('d-none');
       document.getElementById('summary').classList.remove('d-none');
       updateStats();
