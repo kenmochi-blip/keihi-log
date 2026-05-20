@@ -63,23 +63,26 @@ const SettingsView = (() => {
           <div id="companyNameMsg" class="form-text" style="margin-top:-0.75rem;"></div>
           ` : ''}
 
-          <!-- ② 証票データ・スプレッドシート保存先フォルダ（管理者のみ） -->
+          <!-- ② チームURL（管理者・シート未設定時のみ） -->
+          ${isAdmin && !ssId ? `
+          <div class="settings-step-title">② チームURL <span style="font-size:0.75rem;font-weight:400;color:#888;">任意・設定後変更不可</span></div>
+          <div class="settings-step-hint">メンバーがアプリを開く共有URLのパスを決めます。空欄の場合はランダムで自動生成されます。</div>
+          <div class="input-group input-group-sm mb-1">
+            <span class="input-group-text" style="font-size:0.78rem;">${location.origin}/</span>
+            <input type="text" class="form-control form-control-sm" id="inputAliasCode"
+              placeholder="例: yamada-trading（英数字・ハイフン、6文字以上）"
+              pattern="[a-zA-Z0-9\\-]{6,}" maxlength="40">
+          </div>
+          <div id="aliasCheckMsg" class="form-text mb-3"></div>
+          ` : ''}
+
+          <!-- ③ 証票データ・スプレッドシート保存先フォルダ（管理者のみ） -->
           ${isAdmin ? `
-          <div class="settings-step-title">② 証票データ・スプレッドシート保存先フォルダ</div>
+          <div class="settings-step-title">${!ssId ? '③' : '②'} 証票データ・スプレッドシート保存先フォルダ</div>
           ${!ssId ? `
           <div class="settings-step-hint">スプレッドシートと証票画像の保存先（空欄でマイドライブのルートに作成）</div>
           <input type="text" class="form-control form-control-sm mb-2" id="inputFolderUrl"
             placeholder="Google Drive フォルダのURL（任意）">
-          <div class="mb-2">
-            <label class="form-label form-label-sm mb-1">チームURL（任意・設定後変更不可）</label>
-            <div class="input-group input-group-sm">
-              <span class="input-group-text" style="font-size:0.78rem;">${location.origin}/</span>
-              <input type="text" class="form-control form-control-sm" id="inputAliasCode"
-                placeholder="例: yamada-trading（英数字・ハイフン、6文字以上）"
-                pattern="[a-zA-Z0-9\\-]{6,}" maxlength="40">
-            </div>
-            <div id="aliasCheckMsg" class="form-text"></div>
-          </div>
           <button class="btn btn-primary btn-sm w-100 mb-2" id="btnCreateSheet">
             <i class="bi bi-plus-circle me-1"></i>データ保存先を新規作成
           </button>
@@ -98,8 +101,8 @@ const SettingsView = (() => {
           `}
           ` : ''}
 
-          <!-- ③ ライセンスキー -->
-          <div class="settings-step-title">${isAdmin ? '③ ' : ''}ライセンスキー</div>
+          <!-- ④ ライセンスキー -->
+          <div class="settings-step-title">${isAdmin ? (!ssId ? '④ ' : '③ ') : ''}ライセンスキー</div>
           <div id="licenseStatus" class="mb-2"></div>
           ${!licKey ? `<div class="settings-step-hint mb-2">メールにて通知されたライセンスキーを入力してください<br>例：<code>KL-XXXXXXXXXXXXXXXXXXXX</code></div>` : ''}
           <div class="input-group mb-1">
@@ -112,9 +115,9 @@ const SettingsView = (() => {
           </div>
           <div id="licenseMsg" class="form-text mb-2"></div>
 
-          <!-- ④ Gemini APIキー（管理者のみ） -->
+          <!-- ⑤ Gemini APIキー（管理者のみ） -->
           ${isAdmin ? `
-          <div class="settings-step-title">④ Gemini APIキー</div>
+          <div class="settings-step-title">${!ssId ? '⑤' : '④'} Gemini APIキー</div>
           <div class="settings-step-hint">全メンバー共用 — メンバーは個別取得不要です。</div>
           <div class="card bg-light border-0 p-2 mb-2" style="font-size:0.82rem;line-height:1.6;">
             <div class="fw-semibold mb-1"><i class="bi bi-key me-1 text-warning"></i>APIキーの取得手順</div>
