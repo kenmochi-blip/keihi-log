@@ -295,6 +295,7 @@
     let _hasClaudeKey = false;
     const _notesCache = {};
     const _notesOpen  = {};
+    const _analyzing  = {};
     const _issueData  = {};   // issueId → issue object (for AI analysis)
 
     document.getElementById('btnLoad').addEventListener('click', load);
@@ -339,8 +340,11 @@
         const resp = await fetch(`/api/admin-licenses?secret=${encodeURIComponent(_secret)}&sentry_notes=get&issue_id=${encodeURIComponent(issueId)}`);
         const data = await resp.json();
         _notesCache[issueId] = data.notes || [];
+        const hasAiNote = (data.notes || []).some(n => n.ai);
+        if (_hasClaudeKey && !hasAiNote) _analyzing[issueId] = true;
         renderNotes(issueId);
         updateNotesBtn(issueId);
+        if (_hasClaudeKey && !hasAiNote) analyzeWithAI(issueId);
       } catch (err) {
         if (panel) panel.innerHTML = `<div style="color:#dc2626;font-size:0.78rem;">読み込みエラー: ${esc(err.message)}</div>`;
       }
@@ -367,22 +371,19 @@
             </div>`;
           }).join('');
 
-      const aiBtn = _hasClaudeKey
-        ? `<button class="btn-ai" id="ai-btn-${esc(issueId)}" onclick="analyzeWithAI('${esc(issueId)}')">
-             <i class="bi bi-stars"></i>AI解析
-           </button>`
+      const aiStatus = _analyzing[issueId]
+        ? `<div style="color:var(--text-mute);font-size:0.78rem;font-style:italic;display:flex;align-items:center;gap:0.5rem;padding:0.4rem 0;">
+             <span class="spinner-border spinner-border-sm" style="width:0.75rem;height:0.75rem;border-width:2px;"></span>AI解析中...
+           </div>`
         : '';
 
       panel.innerHTML = `
-        <div>${notesHtml}</div>
+        <div>${notesHtml}${aiStatus}</div>
         <div class="note-input-row">
           <textarea class="note-textarea" id="note-input-${esc(issueId)}" placeholder="メモを追加（Ctrl+Enterで送信）..."></textarea>
-          <div style="display:flex;flex-direction:column;gap:0.4rem;">
-            ${aiBtn}
-            <button class="btn-accent" onclick="addNote('${esc(issueId)}')" style="height:auto;padding:0.35rem 0.75rem;white-space:nowrap;">
-              <i class="bi bi-send"></i>追加
-            </button>
-          </div>
+          <button class="btn-accent" onclick="addNote('${esc(issueId)}')" style="height:auto;padding:0.35rem 0.75rem;white-space:nowrap;">
+            <i class="bi bi-send"></i>追加
+          </button>
         </div>`;
 
       const ta = document.getElementById(`note-input-${issueId}`);
@@ -443,8 +444,8 @@
     }
 
     async function analyzeWithAI(issueId) {
-      const btn = document.getElementById(`ai-btn-${issueId}`);
-      if (btn) { btn.disabled = true; btn.innerHTML = '<i class="bi bi-hourglass-split"></i>解析中...'; }
+      _analyzing[issueId] = true;
+      renderNotes(issueId);
 
       const issue = _issueData[issueId];
       try {
@@ -468,11 +469,12 @@
         const data = await resp.json();
         if (!resp.ok) throw new Error(data.error || 'AI解析に失敗しました');
         _notesCache[issueId] = data.notes || [];
+      } catch (err) {
+        console.error('AI解析エラー:', err.message);
+      } finally {
+        _analyzing[issueId] = false;
         renderNotes(issueId);
         updateNotesBtn(issueId);
-      } catch (err) {
-        alert('AI解析エラー: ' + err.message);
-        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-stars"></i>AI解析'; }
       }
     }
 
