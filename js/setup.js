@@ -79,10 +79,11 @@ const Setup = (() => {
 
   async function _registerAlias(alias, sheetId, licenseKey) {
     const base = window.APP_CONFIG?.apiBase || '';
+    const setupCode = localStorage.getItem('keihi_setup_code') || '';
     await fetch(`${base}/api/alias`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code: alias, sheetId, licenseKey }),
+      body: JSON.stringify({ code: alias, sheetId, licenseKey, setupCode }),
     });
   }
 

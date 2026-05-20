@@ -36,9 +36,9 @@ export default async function handler(req, res) {
     return res.status(404).json({ error: 'not_found' });
   }
 
-  // POST: エイリアス登録（有効なライセンスキー必須）
+  // POST: エイリアス登録（有効なライセンスキー＋setupCode必須）
   if (req.method === 'POST') {
-    const { code, sheetId, licenseKey } = req.body || {};
+    const { code, sheetId, licenseKey, setupCode } = req.body || {};
     if (!code || !sheetId || !licenseKey) {
       return res.status(400).json({ error: 'missing_fields' });
     }
@@ -50,6 +50,12 @@ export default async function handler(req, res) {
     const licData = await kv.get(`license:${licenseKey}`).catch(() => null);
     if (!licData || licData.suspended) {
       return res.status(403).json({ error: 'invalid_license' });
+    }
+
+    // setupCode の照合（手動発行ライセンスは license_ref が存在しないためスキップ）
+    const boundSetupCode = await kv.get(`license_ref:${licenseKey}`).catch(() => null);
+    if (boundSetupCode && setupCode !== boundSetupCode) {
+      return res.status(403).json({ error: 'setup_code_mismatch' });
     }
 
     // 既存のエイリアスがあれば古いものを削除

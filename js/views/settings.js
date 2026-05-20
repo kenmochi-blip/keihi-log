@@ -356,6 +356,10 @@ const SettingsView = (() => {
       const msg = el.querySelector('#licenseMsg');
       if (result.valid) {
         localStorage.setItem('keihi_license_key', key);
+        // シートが接続済みならB3にも書き込み（メンバーが自動取得できるようにする）
+        if (localStorage.getItem('keihi_sheet_id')) {
+          Sheets.update('設定!B3', [[key]]).catch(() => {});
+        }
         msg.innerHTML = `<span class="text-success"><i class="bi bi-check-circle me-1"></i>有効（${result.company || ''}）${result.expiresAt ? ' 期限: ' + result.expiresAt.split('T')[0] : ''}</span>`;
         App.showToast('ライセンスを確認しました', 'success');
         // 社名が未入力なら Stripe 登録の会社名を自動入力

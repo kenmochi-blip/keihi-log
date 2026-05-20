@@ -399,6 +399,7 @@ const App = (() => {
         const { licenseKey } = await r.json();
         if (licenseKey && licenseKey.startsWith('KL-')) {
           localStorage.setItem('keihi_license_key', licenseKey);
+          localStorage.setItem('keihi_setup_code', setupCode);
         }
       }
     } catch (_) {}
@@ -449,6 +450,7 @@ const App = (() => {
           _setCookieAlias(token);
         } else if (data.licenseKey && data.licenseKey.startsWith('KL-')) {
           localStorage.setItem('keihi_license_key', data.licenseKey);
+          localStorage.setItem('keihi_setup_code', token); // setupCodeとしてパスのトークンを保存
         }
       }
     } catch (_) {

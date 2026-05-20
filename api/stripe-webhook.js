@@ -152,9 +152,10 @@ async function _issueNewLicense(session) {
   // メールアドレスからキーを逆引きできるインデックスも保存
   await kv.set(`email_to_license:${customerEmail}`, licenseKey);
 
-  // セットアップリンク用ランダムコードを生成・保存
+  // セットアップリンク用ランダムコードを生成・保存（双方向マッピング）
   const setupCode = crypto.randomBytes(5).toString('hex'); // 10文字の16進数
   await kv.set(`lic_ref:${setupCode}`, licenseKey);
+  await kv.set(`license_ref:${licenseKey}`, setupCode); // 逆引き（alias登録時の検証用）
 
   console.log(`License issued: ${licenseKey} for ${customerEmail}`);
 
