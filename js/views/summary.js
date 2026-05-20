@@ -363,22 +363,24 @@ const SummaryView = (() => {
     const sorted = expenses.slice().sort((a, b) => a.date.localeCompare(b.date));
     const isAdmin = App.getUserRole() === 'admin';
     const myEmail = Auth.getUserEmail();
-    // 列数：日付・支払先・金額・状態・操作 (5) + 申請者 (showName時+1)
-    const colCount = showName ? 6 : 5;
+    // 列数：日付・支払先・金額・状態 (4) + 申請者 (showName時+1)
+    const colCount = showName ? 5 : 4;
 
     const rows = sorted.map((e, i) => {
       const imgUrls = (e.imageLinks || '').split(',').map(s => s.trim()).filter(Boolean);
-      const hasExtra = e.note || imgUrls.length > 0;
+      // 日付を M/D 形式に短縮（例: 2026-04-18 → 4/18）
+      const shortDate = e.date ? e.date.replace(/^\d{4}-0?(\d+)-0?(\d+)$/, '$1/$2') : e.date;
+      const status  = e.settlementDate ? '精算済' : e.confirmed ? '登録済' : '申請済';
+      const canEdit = isAdmin || (status === '申請済' && e.email === myEmail);
+      // アコーディオンは備考・証票・編集削除ボタンのいずれかがある場合に表示
+      const hasExtra = !!(e.note || imgUrls.length > 0 || canEdit);
+
       const receiptBtns = imgUrls.map((url, j) =>
         `<a href="${_escape(url)}" target="_blank" rel="noopener"
             class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size:0.75rem;">
            <i class="bi bi-image me-1"></i>証票${imgUrls.length > 1 ? j + 1 : ''}
          </a>`
       ).join('');
-      // 日付を M/D 形式に短縮（例: 2026-04-18 → 4/18）
-      const shortDate = e.date ? e.date.replace(/^\d{4}-0?(\d+)-0?(\d+)$/, '$1/$2') : e.date;
-      const status  = e.settlementDate ? '精算済' : e.confirmed ? '登録済' : '申請済';
-      const canEdit = isAdmin || (status === '申請済' && e.email === myEmail);
       const editBtn = canEdit
         ? `<button class="btn btn-outline-secondary btn-sm py-0 px-1 drill-edit-btn" data-id="${_escape(e.id)}" title="編集"><i class="bi bi-pencil"></i></button>` : '';
       const delBtn  = canEdit
@@ -400,13 +402,15 @@ const SummaryView = (() => {
               ? '<span class="badge badge-confirmed rounded-pill px-2">登録済</span>'
               : '<span class="badge badge-pending rounded-pill px-2">申請済</span>'}
         </td>
-        <td style="white-space:nowrap;"><div class="d-flex gap-1">${receiptBtns}${editBtn}${delBtn}</div></td>
       </tr>
       ${hasExtra ? `<tr class="drill-detail-row d-none" data-row="${i}">
-        <td colspan="${colCount}" style="background:#f8f9fa;border-top:none;padding:0.4rem 0.75rem 0.5rem;">
-          ${e.note ? `<div style="font-size:0.78rem;color:#495057;white-space:pre-wrap;word-break:break-all;">
-            <i class="bi bi-chat-text me-1 text-secondary"></i>${_escape(e.note)}
-          </div>` : ''}
+        <td colspan="${colCount}" style="background:#f8f9fa;border-top:none;padding:0.35rem 0.75rem 0.4rem;">
+          <div style="display:flex;align-items:center;gap:0.5rem;">
+            <div style="flex:1;font-size:0.78rem;color:#495057;white-space:pre-wrap;word-break:break-all;min-width:0;">
+              ${e.note ? `<i class="bi bi-chat-text me-1 text-secondary"></i>${_escape(e.note)}` : ''}
+            </div>
+            <div style="display:flex;gap:0.3rem;flex-shrink:0;">${receiptBtns}${editBtn}${delBtn}</div>
+          </div>
         </td>
       </tr>` : ''}`;
     }).join('');
@@ -433,7 +437,7 @@ const SummaryView = (() => {
                     <tr>
                       <th>日付</th><th>支払先</th><th class="text-end">金額</th>
                       ${showName ? '<th>申請者</th>' : ''}
-                      <th>状態</th><th></th>
+                      <th>状態</th>
                     </tr>
                   </thead>
                   <tbody>${rows}</tbody>
@@ -441,7 +445,7 @@ const SummaryView = (() => {
                     <tr>
                       <td colspan="2" class="fw-bold">合計 ${expenses.length}件</td>
                       <td class="text-end fw-bold">¥${total.toLocaleString()}</td>
-                      <td colspan="${colCount - 3}"></td>
+                      <td colspan="${colCount - 2}"></td>
                     </tr>
                   </tfoot>
                 </table>
