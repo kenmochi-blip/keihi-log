@@ -28,7 +28,16 @@ export default async function handler(req, res) {
   let event;
   try {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY?.trim());
-    event = stripe.webhooks.constructEvent(rawBody, sig, process.env.STRIPE_WEBHOOK_SECRET?.trim());
+    // 本番シークレットで検証、失敗したらテスト用シークレットを試す
+    const secrets = [
+      process.env.STRIPE_WEBHOOK_SECRET?.trim(),
+      process.env.STRIPE_WEBHOOK_SECRET_TEST?.trim(),
+    ].filter(Boolean);
+    let lastErr;
+    for (const secret of secrets) {
+      try { event = stripe.webhooks.constructEvent(rawBody, sig, secret); break; } catch (e) { lastErr = e; }
+    }
+    if (!event) throw lastErr;
   } catch (err) {
     console.error('Webhook signature error:', err.message);
     captureException(err, { context: 'webhook_signature' });
