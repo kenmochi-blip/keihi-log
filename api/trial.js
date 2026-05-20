@@ -13,10 +13,6 @@ import { rateLimit } from './_rateLimit.js';
 import { captureException } from './_sentry.js';
 
 export default async function handler(req, res) {
-  // Vercel Cron からの日次リマインド処理
-  if (req.method === 'GET' && req.query.action === 'cron') {
-    return _cronReminder(req, res);
-  }
   if (req.method !== 'POST') return res.status(405).end();
 
   const { ok } = await rateLimit(req, { prefix: 'rl:trial', limit: 5, window: 300 });
@@ -62,95 +58,6 @@ export default async function handler(req, res) {
   }
 
   return res.status(200).json({ licenseKey, expiresAt: expiresAtStr });
-}
-
-// ── 日次クーロン：トライアル前日リマインド ──────────────────────────
-async function _cronReminder(req, res) {
-  // CRON_SECRET で不正アクセスを防ぐ
-  const secret = process.env.CRON_SECRET;
-  if (secret && req.headers.authorization !== `Bearer ${secret}`) {
-    return res.status(401).end();
-  }
-
-  // 明日の日付文字列（JST = UTC+9）
-  const now = new Date();
-  const tomorrow = new Date(now.getTime() + 9 * 60 * 60 * 1000); // UTC→JST
-  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
-  const tomorrowStr = tomorrow.toISOString().split('T')[0];
-
-  // KV の全ライセンスキーをスキャン
-  const keys = await kv.keys('license:*');
-  let reminded = 0;
-
-  for (const key of keys) {
-    const data = await kv.get(key);
-    if (!data || data.suspended) continue;
-    if (data.expiresAt !== tomorrowStr) continue;
-
-    const licenseKey = key.replace('license:', '');
-
-    if (data.plan === 'trial') {
-      // トライアル期限切れ前日
-      await _sendTrialEndingEmail(data.email, data.company, licenseKey, data.expiresAt);
-    } else {
-      // 有料ライセンス年次更新前日
-      await _sendLicenseEndingEmail(data.email, data.company, licenseKey, data.expiresAt);
-    }
-    reminded++;
-  }
-
-  console.log(`Cron reminder: ${reminded} emails sent for ${tomorrowStr}`);
-  return res.json({ ok: true, reminded, date: tomorrowStr });
-}
-
-async function _sendTrialEndingEmail(to, name, licenseKey, expiresAt) {
-  const body = {
-    from: process.env.RESEND_FROM_EMAIL || 'noreply@keihi-log.com',
-    to,
-    subject: '【経費ログ】無料トライアルは明日終了します',
-    html: `
-<p>${name} 様</p>
-<p>経費ログの無料トライアルが <strong>明日（${expiresAt}）</strong> に終了します。</p>
-<p>引き続きご利用いただくには、下記から有料プランへのお申し込みをお願いします。</p>
-<p>
-  <a href="https://keihi-log.com/#pricing"
-     style="display:inline-block;background:#0d6efd;color:#fff;padding:10px 24px;border-radius:6px;text-decoration:none;font-weight:bold;">
-    プランを選んで継続する
-  </a>
-</p>
-<p style="color:#666;font-size:0.9em;">
-  ※ 有料プランに移行しない場合、明日以降はライセンスキーが無効になります。<br>
-  ※ データ（スプレッドシート）はそのまま保持されます。
-</p>
-<p>ご不明な点はお気軽にお問い合わせください。<br>support@keihi-log.com</p>
-    `.trim(),
-  };
-  const resp = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!resp.ok) console.error('Trial ending email error:', await resp.text());
-}
-
-async function _sendLicenseEndingEmail(to, name, licenseKey, expiresAt) {
-  const body = {
-    from: process.env.RESEND_FROM_EMAIL || 'noreply@keihi-log.com',
-    to,
-    subject: '【経費ログ】ライセンスの有効期限は明日です',
-    html: `
-<p>${name} 様</p>
-<p>経費ログのライセンス有効期限が <strong>明日（${expiresAt}）</strong> になります。</p>
-<p>Stripeによる自動更新が設定されている場合は自動的に延長されますのでご安心ください。</p>
-<p>自動更新をご希望でない場合や、ご不明な点がございましたらお気軽にお問い合わせください。<br>support@keihi-log.com</p>
-    `.trim(),
-  };
-  const resp = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!resp.ok) console.error('License ending email error:', await resp.text());
 }
 
 async function _sendTrialEmail(to, licenseKey, expiresAt) {

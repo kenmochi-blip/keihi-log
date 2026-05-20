@@ -1,7 +1,4 @@
 {
-  "crons": [
-    { "path": "/api/trial?action=cron", "schedule": "0 0 * * *" }
-  ],
   "redirects": [
     { "source": "/app.html", "destination": "/app", "permanent": false }
   ],
