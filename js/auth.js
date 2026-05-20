@@ -324,16 +324,17 @@ async function initLogin() {
 
   const forceConsent = localStorage.getItem('keihi_force_consent') === '1';
 
-  const _showLoginBtn = (errMsg) => {
+  const _showLoginBtn = (errMsg, overrideReturnUrl) => {
     document.getElementById('loadingArea').classList.add('d-none');
     document.getElementById('loginArea').classList.remove('d-none');
     if (errMsg) {
       document.getElementById('loginError').textContent = errMsg;
       document.getElementById('loginError').classList.remove('d-none');
     }
+    const dest = overrideReturnUrl || _returnUrl;
     document.getElementById('signInBtn').onclick = () => {
       document.getElementById('loginError').classList.add('d-none');
-      Auth.initiateLogin(_returnUrl, forceConsent);
+      Auth.initiateLogin(dest, forceConsent);
     };
   };
 
@@ -345,12 +346,21 @@ async function initLogin() {
       const returnUrl = await Auth.handleCallback();
       if (returnUrl) { window.location.replace(returnUrl); return; }
     } catch (err) {
+      // state_mismatch 時でも state から元のリターン先を回収して再試行に引き継ぐ
+      // （state の信頼性は失われているが、ナビゲーション先として使うだけなので安全）
+      let recoveredReturnUrl = null;
+      if (err.message === 'state_mismatch') {
+        const rawState = new URLSearchParams(location.search).get('state');
+        if (rawState) {
+          try { recoveredReturnUrl = decodeURIComponent(atob(rawState)); } catch (_) {}
+        }
+      }
       const msg = err.message === 'state_mismatch'
         ? 'ページの再読み込みや複数タブが原因でログインに失敗しました。もう一度「Googleでログイン」を押してください。'
         : err.message === 'access_denied'
         ? 'Googleアカウントへのアクセスが拒否されました。もう一度お試しください。'
         : 'ログインに失敗しました: ' + err.message;
-      _showLoginBtn(msg);
+      _showLoginBtn(msg, recoveredReturnUrl);
       return;
     }
   }
