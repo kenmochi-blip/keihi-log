@@ -84,9 +84,14 @@ const Sheets = (() => {
     return resp.json();
   }
 
-  /** 行番号（1始まり）を指定して行を削除する。 */
-  async function deleteRow(sheetId, rowIndex, ssId) {
+  /** 行番号（1始まり）を指定して行を削除する。sheetId はシート名（文字列）または数値ID。 */
+  async function deleteRow(sheetNameOrId, rowIndex, ssId) {
     if (typeof Demo !== 'undefined' && Demo.isActive()) return {};
+    ssId = ssId || _ssId();
+    const sheetId = typeof sheetNameOrId === 'string'
+      ? await _getSheetId(sheetNameOrId, ssId)
+      : sheetNameOrId;
+    if (sheetId === null) throw new Error(`${sheetNameOrId}シートが見つかりません`);
     return batchUpdate([{
       deleteDimension: {
         range: {
