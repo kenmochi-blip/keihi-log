@@ -189,6 +189,10 @@ const Auth = (() => {
     _tokenExpiry = 0;
     localStorage.removeItem(SESSION_KEY);
     localStorage.setItem('keihi_force_consent', '1');
+    // ログインページ上での呼び出しはリダイレクトループを引き起こすため早期リターン
+    if (location.pathname === '/login' || location.pathname.endsWith('/login.html')) {
+      return;
+    }
     const ret = encodeURIComponent(location.pathname + location.search);
     location.href = `/login?return=${ret}`;
   }
