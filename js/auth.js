@@ -118,7 +118,12 @@ const Auth = (() => {
     if (!code) return null;
 
     const savedState = localStorage.getItem('keihi_oauth_state');
-    if (state !== savedState) throw new Error('state_mismatch');
+    if (state !== savedState) {
+      // ページリロード・複数タブ等で state が上書きされた場合は古いデータをクリアして再試行可能にする
+      localStorage.removeItem('keihi_pkce_verifier');
+      localStorage.removeItem('keihi_oauth_state');
+      throw new Error('state_mismatch');
+    }
 
     const verifier = localStorage.getItem('keihi_pkce_verifier');
     if (!verifier) throw new Error('no_verifier');
@@ -334,7 +339,12 @@ async function initLogin() {
       const returnUrl = await Auth.handleCallback();
       if (returnUrl) { window.location.replace(returnUrl); return; }
     } catch (err) {
-      _showLoginBtn('ログインに失敗しました: ' + err.message);
+      const msg = err.message === 'state_mismatch'
+        ? 'ページの再読み込みや複数タブが原因でログインに失敗しました。もう一度「Googleでログイン」を押してください。'
+        : err.message === 'access_denied'
+        ? 'Googleアカウントへのアクセスが拒否されました。もう一度お試しください。'
+        : 'ログインに失敗しました: ' + err.message;
+      _showLoginBtn(msg);
       return;
     }
   }
