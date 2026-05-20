@@ -126,6 +126,11 @@
     .cf-bar-wrap { display:flex; align-items:center; gap:6px; }
     .cf-bar { height:6px; border-radius:3px; background:#e2e8f0; flex:1; overflow:hidden; }
     .cf-bar-fill { height:100%; border-radius:3px; background:var(--accent); transition:width 0.4s; }
+    .log-level-error { background:#fee2e2;color:#991b1b;font-size:0.6rem;font-weight:700;padding:2px 6px;border-radius:4px; }
+    .log-level-warn  { background:#fef3c7;color:#92400e;font-size:0.6rem;font-weight:700;padding:2px 6px;border-radius:4px; }
+    .log-level-info  { background:#dbeafe;color:#1d4ed8;font-size:0.6rem;font-weight:700;padding:2px 6px;border-radius:4px; }
+    .log-analysis-card { background:#fefce8;border:1px solid #fde68a;border-left:3px solid #eab308;border-radius:8px;padding:0.85rem 1.1rem;margin-bottom:1rem; }
+    .log-analysis-card .la-text { font-size:0.82rem;color:var(--text);white-space:pre-wrap;line-height:1.6; }
   </style>
 </head>
 <body>
@@ -154,6 +159,48 @@
         <div class="kpi c-green"><div class="value" id="statActive">—</div><div class="label">有効</div></div>
         <div class="kpi c-amber"><div class="value" id="statExpired">—</div><div class="label">期限切れ</div></div>
         <div class="kpi c-red"><div class="value" id="statSuspended">—</div><div class="label">停止中</div></div>
+      </div>
+
+      <!-- アプリログ -->
+      <div id="appLogSection" style="margin-bottom:1rem;">
+        <div class="panel">
+          <div class="panel-header" style="justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:0.5rem;">
+              <i class="bi bi-terminal" style="color:#6d28d9;"></i>
+              <span class="title">アプリログ（自動エラー記録）</span>
+              <span id="appLogUpdatedAt" style="font-size:0.7rem;color:var(--text-mute);"></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:0.5rem;">
+              <button class="btn-ghost" id="btnAppLogAnalyze" style="font-size:0.75rem;padding:0.25rem 0.6rem;border-color:#eab308;color:#92400e;background:#fefce8;">
+                <i class="bi bi-stars"></i>AI解析
+              </button>
+              <button class="btn-ghost" id="btnAppLogClear" style="font-size:0.75rem;padding:0.25rem 0.6rem;">
+                <i class="bi bi-trash"></i>クリア
+              </button>
+              <button class="btn-ghost" id="btnAppLogRefresh" style="font-size:0.75rem;padding:0.25rem 0.6rem;">
+                <i class="bi bi-arrow-clockwise"></i>更新
+              </button>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div id="appLogAnalysis"></div>
+            <div style="overflow-x:auto;">
+              <table class="data-table" id="appLogTable">
+                <thead>
+                  <tr>
+                    <th class="ps-first" style="width:150px;">時刻</th>
+                    <th style="width:60px;">レベル</th>
+                    <th style="width:120px;">機能</th>
+                    <th class="pe-last">メッセージ</th>
+                  </tr>
+                </thead>
+                <tbody id="appLogTableBody">
+                  <tr><td colspan="4" style="text-align:center;padding:1.5rem;color:var(--text-mute);">読み込み中...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Cloudflare -->
@@ -357,6 +404,9 @@
     document.getElementById('btnSentryRefresh').addEventListener('click', () => loadSentry());
     document.getElementById('btnCfRefresh').addEventListener('click', () => loadCloudflare());
     document.getElementById('cfDays').addEventListener('change', () => loadCloudflare());
+    document.getElementById('btnAppLogRefresh').addEventListener('click', () => loadAppLogs());
+    document.getElementById('btnAppLogAnalyze').addEventListener('click', () => analyzeAppLogs());
+    document.getElementById('btnAppLogClear').addEventListener('click', () => clearAppLogs());
     document.getElementById('btnIssue').addEventListener('click', issueLicense);
     document.getElementById('filterText').addEventListener('input', render);
     document.getElementById('filterStatus').addEventListener('change', render);
@@ -605,6 +655,104 @@
       }
     }
 
+    // ── アプリログ ────────────────────────────────────────────
+    async function loadAppLogs() {
+      const tbody   = document.getElementById('appLogTableBody');
+      const anaDiv  = document.getElementById('appLogAnalysis');
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:1.5rem;color:var(--text-mute);">読み込み中...</td></tr>`;
+      anaDiv.innerHTML = '';
+
+      try {
+        const resp = await fetch(`/api/admin-licenses?secret=${encodeURIComponent(_secret)}&app_logs=get`);
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || 'ログ取得エラー');
+
+        const logs = data.logs || [];
+        document.getElementById('appLogUpdatedAt').textContent = '更新: ' + new Date().toLocaleTimeString('ja-JP', { hour:'2-digit', minute:'2-digit' });
+
+        // AI解析結果表示
+        if (data.analysis) renderAppLogAnalysis(data.analysis);
+
+        if (logs.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:1.5rem;color:var(--text-mute);"><i class="bi bi-check-circle me-2"></i>エラーログはありません</td></tr>`;
+          return;
+        }
+
+        const handlerLabel = {
+          sentry_proxy:    'Sentryプロキシ',
+          sentry_resolve:  'Sentry解決',
+          sentry_analyze:  'Sentry AI解析',
+          cloudflare:      'Cloudflare',
+          license_get:     'ライセンス取得',
+        };
+        tbody.innerHTML = logs.map(log => {
+          const dt  = new Date(log.at).toLocaleString('ja-JP', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit' });
+          const lvl = log.level || 'error';
+          const lbl = handlerLabel[log.handler] || log.handler || '—';
+          const det = log.details ? ` <span style="font-size:0.7rem;color:var(--text-mute);">${esc(JSON.stringify(log.details))}</span>` : '';
+          return `<tr>
+            <td class="ps-first" style="font-size:0.75rem;color:var(--text-sub);white-space:nowrap;">${dt}</td>
+            <td><span class="log-level-${lvl}">${lvl.toUpperCase()}</span></td>
+            <td style="font-size:0.75rem;color:var(--text-sub);">${esc(lbl)}</td>
+            <td class="pe-last" style="font-size:0.78rem;">${esc(log.message)}${det}</td>
+          </tr>`;
+        }).join('');
+
+        // エラーがあり未解析なら自動解析
+        const hasErrors = logs.some(l => l.level === 'error' || l.level === 'warn');
+        if (hasErrors && !data.analysis && _hasClaudeKey) analyzeAppLogs();
+
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:1.5rem;color:#dc2626;">${esc(err.message)}</td></tr>`;
+      }
+    }
+
+    function renderAppLogAnalysis(analysis) {
+      const div = document.getElementById('appLogAnalysis');
+      if (!analysis) { div.innerHTML = ''; return; }
+      const dt = new Date(analysis.at).toLocaleString('ja-JP', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+      div.innerHTML = `<div class="log-analysis-card">
+        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;">
+          <span class="ai-badge">AI</span>
+          <span style="font-size:0.72rem;color:var(--text-mute);">解析対象: ${analysis.count || '?'}件のエラー ／ ${dt}</span>
+        </div>
+        <div class="la-text">${esc(analysis.text)}</div>
+      </div>`;
+    }
+
+    async function analyzeAppLogs() {
+      const btn = document.getElementById('btnAppLogAnalyze');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm" style="width:0.7rem;height:0.7rem;border-width:2px;"></span> 解析中...';
+      try {
+        const resp = await fetch(
+          `/api/admin-licenses?secret=${encodeURIComponent(_secret)}&app_logs=analyze`,
+          { method: 'POST' }
+        );
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || 'AI解析エラー');
+        if (data.analysis) renderAppLogAnalysis(data.analysis);
+        else if (data.skipped) {
+          document.getElementById('appLogAnalysis').innerHTML =
+            `<div style="color:var(--text-mute);font-size:0.78rem;margin-bottom:0.75rem;">解析対象のエラー・警告ログがありません</div>`;
+        }
+      } catch (err) {
+        alert('AI解析エラー: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-stars"></i>AI解析';
+      }
+    }
+
+    async function clearAppLogs() {
+      if (!confirm('ログと解析結果をすべてクリアしますか？')) return;
+      await fetch(
+        `/api/admin-licenses?secret=${encodeURIComponent(_secret)}&app_logs=clear`,
+        { method: 'POST' }
+      );
+      loadAppLogs();
+    }
+
     // ── Cloudflare Analytics ──────────────────────────────────
     async function loadCloudflare() {
       if (!_hasCfKey) return;
@@ -701,6 +849,7 @@
       updateStats();
       updateMonthly();
       render();
+      loadAppLogs();
       if (_hasCfKey) loadCloudflare();
       if (_sentryToken) loadSentry();
     }

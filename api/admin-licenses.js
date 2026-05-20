@@ -38,6 +38,7 @@ export default async function handler(req, res) {
       if (hits) res.setHeader('X-Hits', hits);
       return res.status(resp.status).json(data);
     } catch (err) {
+      await _logToKV('sentry_proxy', 'error', err.message);
       return res.status(502).json({ error: err.message });
     }
   }
@@ -57,10 +58,12 @@ export default async function handler(req, res) {
       const data = await resp.json();
       if (!resp.ok) {
         const detail = data?.detail || data?.status || JSON.stringify(data);
+        await _logToKV('sentry_resolve', 'error', `Sentry ${resp.status}: ${detail}`, { issueId });
         return res.status(resp.status).json({ error: `Sentry ${resp.status}: ${detail}` });
       }
       return res.status(200).json({ ok: true });
     } catch (err) {
+      await _logToKV('sentry_resolve', 'error', err.message, { issueId });
       return res.status(502).json({ error: err.message });
     }
   }
@@ -143,6 +146,7 @@ export default async function handler(req, res) {
       const analysis = claudeData.content?.[0]?.text;
       if (!analysis) {
         const errMsg = claudeData.error?.message || JSON.stringify(claudeData);
+        await _logToKV('sentry_analyze', 'error', `Claude API error: ${errMsg}`, { issueId });
         return res.status(502).json({ error: `Claude API error: ${errMsg}` });
       }
 
@@ -153,6 +157,7 @@ export default async function handler(req, res) {
 
       return res.status(200).json({ notes });
     } catch (err) {
+      await _logToKV('sentry_analyze', 'error', err.message, { issueId });
       return res.status(502).json({ error: err.message });
     }
   }
@@ -201,8 +206,86 @@ export default async function handler(req, res) {
       const groups = data.data?.viewer?.zones?.[0]?.httpRequests1dGroups || [];
       return res.status(200).json({ groups });
     } catch (err) {
+      await _logToKV('cloudflare', 'error', err.message);
       return res.status(502).json({ error: err.message });
     }
+  }
+
+  // アプリログ管理
+  if (req.query.app_logs) {
+    const action = req.query.app_logs;
+
+    if (action === 'get') {
+      const [logs, analysis] = await Promise.all([
+        kv.lrange('app_log_list', 0, 49).catch(() => []),
+        kv.get('app_log_analysis').catch(() => null),
+      ]);
+      return res.status(200).json({ logs, analysis });
+    }
+
+    if (action === 'clear' && req.method === 'POST') {
+      await Promise.all([
+        kv.del('app_log_list').catch(() => {}),
+        kv.del('app_log_analysis').catch(() => {}),
+      ]);
+      return res.status(200).json({ ok: true });
+    }
+
+    if (action === 'analyze' && req.method === 'POST') {
+      const apiKey = process.env.ANTHROPIC_API_KEY;
+      if (!apiKey) return res.status(503).json({ error: 'ANTHROPIC_API_KEY not configured' });
+
+      const logs = await kv.lrange('app_log_list', 0, 19).catch(() => []);
+      const errorLogs = logs.filter(l => l.level === 'error' || l.level === 'warn');
+      if (errorLogs.length === 0) return res.status(200).json({ analysis: null, skipped: true });
+
+      const logText = errorLogs.map(l =>
+        `[${l.at}] ${l.level.toUpperCase()} [${l.handler}] ${l.message}${l.details ? ' / ' + JSON.stringify(l.details) : ''}`
+      ).join('\n');
+
+      const prompt = `以下は経費ログWebアプリ（Vercel Serverless Functions）のエラーログです。開発者向けに日本語で解析してください。
+
+${logText}
+
+以下の形式で簡潔に回答してください：
+
+【ログ概要】
+（何が起きているかを2〜3文で）
+
+【主な問題】
+・（問題点を箇条書きで）
+
+【推奨対応】
+（具体的な確認・修正事項）
+
+【優先度】高・中・低（一言で理由）`;
+
+      try {
+        const claudeResp = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'x-api-key':         apiKey,
+            'anthropic-version': '2023-06-01',
+            'content-type':      'application/json',
+          },
+          body: JSON.stringify({
+            model:      'claude-haiku-4-5-20251001',
+            max_tokens: 1024,
+            messages:   [{ role: 'user', content: prompt }],
+          }),
+        });
+        const claudeData = await claudeResp.json();
+        const text = claudeData.content?.[0]?.text;
+        if (!text) return res.status(502).json({ error: claudeData.error?.message || 'Claude API error' });
+        const analysis = { text: text.trim(), at: new Date().toISOString(), count: errorLogs.length };
+        await kv.set('app_log_analysis', analysis);
+        return res.status(200).json({ analysis });
+      } catch (err) {
+        return res.status(502).json({ error: err.message });
+      }
+    }
+
+    return res.status(400).json({ error: 'unknown action' });
   }
 
   // DELETE: ライセンス削除
@@ -345,8 +428,18 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     console.error(err);
+    await _logToKV('license_get', 'error', err.message);
     return res.status(500).json({ error: 'server_error' });
   }
+}
+
+async function _logToKV(handler, level, message, details = null) {
+  try {
+    const entry = { at: new Date().toISOString(), level, handler, message };
+    if (details) entry.details = details;
+    await kv.lpush('app_log_list', entry);
+    await kv.ltrim('app_log_list', 0, 99);
+  } catch (_) {}
 }
 
 async function _sendEmail(from, to, subject, html) {
