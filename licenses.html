@@ -183,11 +183,12 @@
                     <th style="width:60px;text-align:right;">ユーザー</th>
                     <th style="width:110px;">最終発生</th>
                     <th style="width:120px;">環境</th>
+                    <th style="width:52px;text-align:center;">優先度</th>
                     <th class="pe-last" style="width:48px;text-align:center;">メモ</th>
                   </tr>
                 </thead>
                 <tbody id="sentryTableBody">
-                  <tr><td colspan="7" style="text-align:center;padding:1.5rem;color:var(--text-mute);">読み込み中...</td></tr>
+                  <tr><td colspan="8" style="text-align:center;padding:1.5rem;color:var(--text-mute);">読み込み中...</td></tr>
                 </tbody>
               </table>
             </div>
@@ -295,7 +296,8 @@
     let _hasClaudeKey = false;
     const _notesCache = {};
     const _notesOpen  = {};
-    const _analyzing  = {};
+    const _analyzing     = {};
+    const _priorityCache = {};
     const _issueData  = {};   // issueId → issue object (for AI analysis)
 
     document.getElementById('btnLoad').addEventListener('click', load);
@@ -340,11 +342,8 @@
         const resp = await fetch(`/api/admin-licenses?secret=${encodeURIComponent(_secret)}&sentry_notes=get&issue_id=${encodeURIComponent(issueId)}`);
         const data = await resp.json();
         _notesCache[issueId] = data.notes || [];
-        const hasAiNote = (data.notes || []).some(n => n.ai);
-        if (_hasClaudeKey && !hasAiNote) _analyzing[issueId] = true;
         renderNotes(issueId);
         updateNotesBtn(issueId);
-        if (_hasClaudeKey && !hasAiNote) analyzeWithAI(issueId);
       } catch (err) {
         if (panel) panel.innerHTML = `<div style="color:#dc2626;font-size:0.78rem;">読み込みエラー: ${esc(err.message)}</div>`;
       }
@@ -381,9 +380,14 @@
         <div>${notesHtml}${aiStatus}</div>
         <div class="note-input-row">
           <textarea class="note-textarea" id="note-input-${esc(issueId)}" placeholder="メモを追加（Ctrl+Enterで送信）..."></textarea>
-          <button class="btn-accent" onclick="addNote('${esc(issueId)}')" style="height:auto;padding:0.35rem 0.75rem;white-space:nowrap;">
-            <i class="bi bi-send"></i>追加
-          </button>
+          <div style="display:flex;flex-direction:column;gap:0.4rem;">
+            <button class="btn-accent" onclick="addNote('${esc(issueId)}')" style="height:auto;padding:0.35rem 0.75rem;white-space:nowrap;">
+              <i class="bi bi-send"></i>追加
+            </button>
+            <button onclick="resolveIssue('${esc(issueId)}')" style="height:auto;padding:0.35rem 0.75rem;white-space:nowrap;background:#16a34a;color:#fff;border:none;border-radius:6px;font-size:0.78rem;cursor:pointer;">
+              <i class="bi bi-check-circle"></i> 解決済み
+            </button>
+          </div>
         </div>`;
 
       const ta = document.getElementById(`note-input-${issueId}`);
@@ -469,12 +473,75 @@
         const data = await resp.json();
         if (!resp.ok) throw new Error(data.error || 'AI解析に失敗しました');
         _notesCache[issueId] = data.notes || [];
+        const aiNote = (data.notes || []).find(n => n.ai);
+        if (aiNote) _priorityCache[issueId] = _extractPriority(aiNote.text);
+        renderPriority(issueId);
       } catch (err) {
         console.error('AI解析エラー:', err.message);
       } finally {
         _analyzing[issueId] = false;
         renderNotes(issueId);
         updateNotesBtn(issueId);
+      }
+    }
+
+    function _extractPriority(text) {
+      const m = (text || '').match(/【優先度】\s*(高|中|低)/);
+      return m ? m[1] : null;
+    }
+
+    function renderPriority(issueId) {
+      const cell = document.getElementById(`priority-${issueId}`);
+      if (!cell) return;
+      const pri = _priorityCache[issueId];
+      if (_analyzing[issueId]) {
+        cell.innerHTML = '<span class="spinner-border spinner-border-sm" style="width:0.65rem;height:0.65rem;border-width:2px;color:var(--text-mute);"></span>';
+        return;
+      }
+      if (!pri) { cell.innerHTML = '<span style="color:var(--text-mute);">—</span>'; return; }
+      const cfg = { '高': ['#dc2626','#fee2e2'], '中': ['#d97706','#fef3c7'], '低': ['#16a34a','#dcfce7'] };
+      const [fg, bg] = cfg[pri] || ['#64748b','#f1f5f9'];
+      cell.innerHTML = `<span style="font-size:0.72rem;font-weight:700;color:${fg};background:${bg};padding:1px 7px;border-radius:4px;">${pri}</span>`;
+    }
+
+    async function _autoAnalyzeAll(issues) {
+      if (!_hasClaudeKey) return;
+      // 全イシューのノートを並列取得
+      await Promise.all(issues.map(async issue => {
+        if (_notesCache[issue.id] != null) return;
+        try {
+          const resp = await fetch(`/api/admin-licenses?secret=${encodeURIComponent(_secret)}&sentry_notes=get&issue_id=${encodeURIComponent(issue.id)}`);
+          const data = await resp.json();
+          _notesCache[issue.id] = data.notes || [];
+          updateNotesBtn(issue.id);
+        } catch {}
+      }));
+      // 既存AIノートから優先度表示 → 未解析は順次解析
+      for (const issue of issues) {
+        const aiNote = (_notesCache[issue.id] || []).find(n => n.ai);
+        if (aiNote) {
+          _priorityCache[issue.id] = _extractPriority(aiNote.text);
+          renderPriority(issue.id);
+        } else {
+          await analyzeWithAI(issue.id);
+        }
+      }
+    }
+
+    async function resolveIssue(issueId) {
+      if (!confirm('このイシューを解決済みにしますか？\nSentry上のステータスも変更されます。')) return;
+      try {
+        const resp = await fetch(
+          `/api/admin-licenses?secret=${encodeURIComponent(_secret)}&sentry_resolve=1&issue_id=${encodeURIComponent(issueId)}`,
+          { method: 'POST' }
+        );
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || '解決済みへの変更に失敗しました');
+        delete _notesCache[issueId];
+        delete _notesOpen[issueId];
+        loadSentry();
+      } catch (err) {
+        alert('エラー: ' + err.message);
       }
     }
 
@@ -502,7 +569,7 @@
 
       const PROJECT = '4511415628464128';
       const tbody = document.getElementById('sentryTableBody');
-      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:1.5rem;color:var(--text-mute);">読み込み中...</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:1.5rem;color:var(--text-mute);">読み込み中...</td></tr>';
       ['sErrorTotal','sErrorToday','sErrorUsers','sErrorResolved'].forEach(id => document.getElementById(id).textContent = '…');
       document.getElementById('sentryUpdatedAt').textContent = '';
 
@@ -557,7 +624,7 @@
         document.getElementById('sentryUpdatedAt').textContent = '更新: ' + new Date().toLocaleTimeString('ja-JP', { hour:'2-digit', minute:'2-digit' });
 
         if (unresolved.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:1.5rem;color:var(--text-mute);"><i class="bi bi-check-circle me-2"></i>未解決イシューはありません</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:1.5rem;color:var(--text-mute);"><i class="bi bi-check-circle me-2"></i>未解決イシューはありません</td></tr>';
           return;
         }
 
@@ -590,6 +657,7 @@
               <td style="text-align:right;font-size:0.8rem;">${users > 0 ? users : '—'}</td>
               <td style="font-size:0.75rem;color:var(--text-sub);">${last}</td>
               <td style="font-size:0.72rem;color:var(--text-mute);">${esc(envText)}</td>
+              <td id="priority-${id}" style="text-align:center;"><span style="color:var(--text-mute);">—</span></td>
               <td class="pe-last" style="text-align:center;">
                 <button class="action-btn notes-btn${hasCls}${openCls}" data-issue-id="${id}" title="メモ">
                   <i class="bi bi-chat-left-text"></i>${badge}
@@ -597,7 +665,7 @@
               </td>
             </tr>
             <tr class="notes-row${_notesOpen[issue.id] ? '' : ' d-none'}" id="notes-row-${id}">
-              <td colspan="7">
+              <td colspan="8">
                 <div class="notes-panel" id="notes-panel-${id}">
                   <div style="color:var(--text-mute);font-size:0.78rem;">読み込み中...</div>
                 </div>
@@ -614,8 +682,10 @@
           }
         });
 
+        _autoAnalyzeAll(unresolved);
+
       } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:1.5rem;color:#dc2626;">${esc(err.message)}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:1.5rem;color:#dc2626;">${esc(err.message)}</td></tr>`;
         ['sErrorTotal','sErrorToday','sErrorUsers','sErrorResolved'].forEach(id => document.getElementById(id).textContent = 'ERR');
       }
     }

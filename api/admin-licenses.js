@@ -42,6 +42,25 @@ export default async function handler(req, res) {
     }
   }
 
+  // Sentryイシュー解決済みマーク
+  if (req.query.sentry_resolve) {
+    const issueId = req.query.issue_id;
+    if (!issueId) return res.status(400).json({ error: 'issue_id required' });
+    const token = process.env.SENTRY_AUTH_TOKEN;
+    if (!token) return res.status(503).json({ error: 'SENTRY_AUTH_TOKEN not configured' });
+    try {
+      const resp = await fetch(`https://us.sentry.io/api/0/issues/${issueId}/`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'resolved' }),
+      });
+      const data = await resp.json();
+      return res.status(resp.status).json(data);
+    } catch (err) {
+      return res.status(502).json({ error: err.message });
+    }
+  }
+
   // Sentryノート管理
   if (req.query.sentry_notes) {
     const action  = req.query.sentry_notes;
