@@ -55,7 +55,11 @@ export default async function handler(req, res) {
         body: JSON.stringify({ status: 'resolved' }),
       });
       const data = await resp.json();
-      return res.status(resp.status).json(data);
+      if (!resp.ok) {
+        const detail = data?.detail || data?.status || JSON.stringify(data);
+        return res.status(resp.status).json({ error: `Sentry ${resp.status}: ${detail}` });
+      }
+      return res.status(200).json({ ok: true });
     } catch (err) {
       return res.status(502).json({ error: err.message });
     }

@@ -196,15 +196,14 @@
         </div>
       </div>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1rem;">
-        <div class="panel">
+      <div class="panel" style="margin-bottom:1rem;">
           <div class="panel-header">
             <i class="bi bi-bar-chart-line" style="color:var(--accent);"></i>
             <span class="title">月次サマリー</span>
             <input type="month" id="monthPicker" class="filter-input ms-auto" style="width:auto;">
           </div>
           <div class="panel-body">
-            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;margin-bottom:1rem;">
+            <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0.5rem;margin-bottom:1rem;">
               <div class="mini-stat"><div class="v" id="mNew" style="color:var(--accent);">—</div><div class="l">新規登録</div></div>
               <div class="mini-stat"><div class="v" id="mPaid" style="color:#16a34a;">—</div><div class="l">有料 <span style="font-size:0.6rem;background:#dcfce7;color:#166534;padding:1px 4px;border-radius:3px;">Stripe</span></div></div>
               <div class="mini-stat"><div class="v" id="mManual" style="color:var(--text-sub);">—</div><div class="l">手動発行</div></div>
@@ -222,30 +221,6 @@
             </div>
           </div>
         </div>
-
-        <div class="panel">
-          <div class="panel-header">
-            <i class="bi bi-plus-circle" style="color:#16a34a;"></i>
-            <span class="title">手動発行</span>
-          </div>
-          <div class="panel-body">
-            <div style="display:flex;flex-direction:column;gap:0.5rem;">
-              <input type="email" class="filter-input" id="issueEmail" style="width:100%;" placeholder="メールアドレス *">
-              <input type="text" class="filter-input" id="issueCompany" style="width:100%;" placeholder="会社名・氏名（任意）">
-              <div style="display:flex;gap:0.5rem;">
-                <select class="filter-select" id="issuePlan" style="flex:1;">
-                  <option value="standard">標準</option>
-                  <option value="solo">ソロ</option>
-                  <option value="team">チーム</option>
-                </select>
-                <input type="date" class="filter-input" id="issueExpiry" style="flex:1.5;">
-                <button class="btn-accent btn-success-solid" id="btnIssue">発行</button>
-              </div>
-            </div>
-            <div style="margin-top:0.5rem;font-size:0.78rem;" id="issueMsg"></div>
-          </div>
-        </div>
-      </div>
 
       <div class="panel">
         <div class="panel-header">
@@ -283,6 +258,27 @@
         </div>
         <div id="noResult" class="d-none" style="text-align:center;padding:2.5rem;color:var(--text-mute);font-size:0.85rem;">
           <i class="bi bi-inbox" style="font-size:1.5rem;display:block;margin-bottom:0.5rem;"></i>該当なし
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:1rem;">
+        <div class="panel-header">
+          <i class="bi bi-plus-circle" style="color:#16a34a;"></i>
+          <span class="title">手動発行</span>
+        </div>
+        <div class="panel-body">
+          <div style="display:flex;gap:0.5rem;align-items:flex-end;flex-wrap:wrap;">
+            <input type="email" class="filter-input" id="issueEmail" style="flex:2;min-width:180px;" placeholder="メールアドレス *">
+            <input type="text" class="filter-input" id="issueCompany" style="flex:2;min-width:160px;" placeholder="会社名・氏名（任意）">
+            <select class="filter-select" id="issuePlan" style="flex:1;min-width:100px;">
+              <option value="standard">標準</option>
+              <option value="solo">ソロ</option>
+              <option value="team">チーム</option>
+            </select>
+            <input type="date" class="filter-input" id="issueExpiry" style="flex:1.2;min-width:130px;">
+            <button class="btn-accent btn-success-solid" id="btnIssue">発行</button>
+          </div>
+          <div style="margin-top:0.5rem;font-size:0.78rem;" id="issueMsg"></div>
         </div>
       </div>
 
@@ -491,7 +487,8 @@
     }
 
     function _extractPriority(text) {
-      const m = (text || '').match(/【優先度】\s*(高|中|低)/);
+      // 「【優先度】高」「【優先度】\n**高**」など複数フォーマットに対応
+      const m = (text || '').match(/【優先度】[\s\S]{0,30}?(高|中|低)/);
       return m ? m[1] : null;
     }
 
