@@ -95,6 +95,9 @@ const SettingsView = (() => {
           <div class="input-group mb-1">
             <input type="password" class="form-control form-control-sm" id="inputLicenseKey"
               placeholder="KL-XXXXXXXXXXXXXXXXXXXX" value="${_escape(licKey)}">
+            <button class="btn btn-outline-secondary btn-sm" id="btnToggleLicenseKey" type="button" tabindex="-1">
+              <i class="bi bi-eye"></i>
+            </button>
             <button class="btn btn-outline-primary btn-sm" id="btnVerifyLicense">確認</button>
           </div>
           <div id="licenseMsg" class="form-text mb-2"></div>
@@ -330,6 +333,18 @@ const SettingsView = (() => {
     });
 
     // ライセンス確認
+    el.querySelector('#btnToggleLicenseKey')?.addEventListener('click', () => {
+      const inp = el.querySelector('#inputLicenseKey');
+      const icon = el.querySelector('#btnToggleLicenseKey i');
+      if (inp.type === 'password') {
+        inp.type = 'text';
+        icon.className = 'bi bi-eye-slash';
+      } else {
+        inp.type = 'password';
+        icon.className = 'bi bi-eye';
+      }
+    });
+
     el.querySelector('#btnVerifyLicense')?.addEventListener('click', async () => {
       const key = el.querySelector('#inputLicenseKey').value.trim();
       if (!key) return;
