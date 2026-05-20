@@ -1742,5 +1742,37 @@
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- リリース予定モーダル -->
+<div class="modal fade" id="comingSoonModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content text-center p-2">
+      <div class="modal-body py-4 px-3">
+        <div style="font-size:2.2rem;">🚀</div>
+        <h5 class="fw-bold mt-2 mb-2">2026年6月中旬リリース予定</h5>
+        <p class="text-muted mb-3" style="font-size:0.9rem;">
+          現在鋭意開発中です。リリースまでもうしばらくお待ちください。<br>
+          リリース時にお知らせをご希望の方は下記までご連絡ください。
+        </p>
+        <a href="mailto:support@keihi-log.com" class="btn btn-outline-primary rounded-pill px-4">
+          <i class="bi bi-envelope me-1"></i>リリース通知を受け取る
+        </a>
+      </div>
+      <div class="modal-footer border-0 justify-content-center pt-0 pb-3">
+        <button type="button" class="btn btn-link text-muted" data-bs-dismiss="modal">閉じる</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Stripeリンクをすべてモーダル表示に変更
+  document.addEventListener('DOMContentLoaded', () => {
+    const modal = new bootstrap.Modal(document.getElementById('comingSoonModal'));
+    document.querySelectorAll('a[href*="buy.stripe.com"]').forEach(a => {
+      a.addEventListener('click', e => { e.preventDefault(); modal.show(); });
+    });
+  });
+</script>
 </body>
 </html>
