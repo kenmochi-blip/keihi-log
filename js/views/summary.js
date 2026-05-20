@@ -361,8 +361,10 @@ const SummaryView = (() => {
   function _showDrill(title, expenses, settleCallback = null, showName = true) {
     const total = expenses.reduce((s, e) => s + e.amount, 0);
     const sorted = expenses.slice().sort((a, b) => a.date.localeCompare(b.date));
-    // 列数：日付・支払先・金額・状態 (4) + 申請者 (showName時+1)
-    const colCount = showName ? 5 : 4;
+    const isAdmin = App.getUserRole() === 'admin';
+    const myEmail = App.getUserEmail();
+    // 列数：日付・支払先・金額・状態・操作 (5) + 申請者 (showName時+1)
+    const colCount = showName ? 6 : 5;
 
     const rows = sorted.map((e, i) => {
       const imgUrls = (e.imageLinks || '').split(',').map(s => s.trim()).filter(Boolean);
@@ -375,8 +377,14 @@ const SummaryView = (() => {
       ).join('');
       // 日付を M/D 形式に短縮（例: 2026-04-18 → 4/18）
       const shortDate = e.date ? e.date.replace(/^\d{4}-0?(\d+)-0?(\d+)$/, '$1/$2') : e.date;
+      const status  = e.settlementDate ? '精算済' : e.confirmed ? '登録済' : '申請済';
+      const canEdit = isAdmin || (status === '申請済' && e.email === myEmail);
+      const editBtn = canEdit
+        ? `<button class="btn btn-outline-secondary btn-sm py-0 px-1 drill-edit-btn" data-id="${_escape(e.id)}" title="編集"><i class="bi bi-pencil"></i></button>` : '';
+      const delBtn  = canEdit
+        ? `<button class="btn btn-outline-danger btn-sm py-0 px-1 drill-del-btn" data-id="${_escape(e.id)}" title="削除"><i class="bi bi-trash"></i></button>` : '';
 
-      return `<tr>
+      return `<tr data-expense-id="${_escape(e.id)}">
         <td style="white-space:nowrap;">${shortDate}</td>
         <td>${_escape(e.place)}</td>
         <td class="text-end${hasExtra ? ' drill-amount-toggle' : ''}" data-row="${i}"
@@ -392,13 +400,13 @@ const SummaryView = (() => {
               ? '<span class="badge badge-confirmed rounded-pill px-2">登録済</span>'
               : '<span class="badge badge-pending rounded-pill px-2">申請済</span>'}
         </td>
+        <td style="white-space:nowrap;"><div class="d-flex gap-1">${receiptBtns}${editBtn}${delBtn}</div></td>
       </tr>
       ${hasExtra ? `<tr class="drill-detail-row d-none" data-row="${i}">
         <td colspan="${colCount}" style="background:#f8f9fa;border-top:none;padding:0.4rem 0.75rem 0.5rem;">
-          ${e.note ? `<div style="font-size:0.78rem;color:#495057;white-space:pre-wrap;word-break:break-all;margin-bottom:${imgUrls.length ? '0.3rem' : '0'};">
+          ${e.note ? `<div style="font-size:0.78rem;color:#495057;white-space:pre-wrap;word-break:break-all;">
             <i class="bi bi-chat-text me-1 text-secondary"></i>${_escape(e.note)}
           </div>` : ''}
-          ${receiptBtns ? `<div class="d-flex gap-1 flex-wrap">${receiptBtns}</div>` : ''}
         </td>
       </tr>` : ''}`;
     }).join('');
@@ -425,7 +433,7 @@ const SummaryView = (() => {
                     <tr>
                       <th>日付</th><th>支払先</th><th class="text-end">金額</th>
                       ${showName ? '<th>申請者</th>' : ''}
-                      <th>状態</th>
+                      <th>状態</th><th></th>
                     </tr>
                   </thead>
                   <tbody>${rows}</tbody>
@@ -433,7 +441,7 @@ const SummaryView = (() => {
                     <tr>
                       <td colspan="2" class="fw-bold">合計 ${expenses.length}件</td>
                       <td class="text-end fw-bold">¥${total.toLocaleString()}</td>
-                      <td colspan="${colCount - 3}"></td>
+                      <td colspan="${colCount - 2}"></td>
                     </tr>
                   </tfoot>
                 </table>
@@ -469,6 +477,39 @@ const SummaryView = (() => {
         settleCallback(() => modal.hide());
       });
     }
+
+    // 編集ボタン
+    div.querySelectorAll('.drill-edit-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        modal.hide();
+        SubmitView.queueEdit(btn.dataset.id, _expenses);
+        Router.navigate('submit');
+      });
+    });
+
+    // 削除ボタン
+    div.querySelectorAll('.drill-del-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const ok = await App.confirm('この申請を削除しますか？削除後は元に戻せません。');
+        if (!ok) return;
+        App.showLoading('削除中...');
+        try {
+          await ListView.deleteExpense(btn.dataset.id);
+          _expenses = _expenses.filter(e => e.id !== btn.dataset.id);
+          const row = div.querySelector(`tr[data-expense-id="${btn.dataset.id}"]`);
+          if (row) {
+            const detailRow = row.nextElementSibling;
+            if (detailRow?.classList.contains('drill-detail-row')) detailRow.remove();
+            row.remove();
+          }
+          App.showToast('削除しました', 'success');
+        } catch (err) {
+          App.showToast('削除エラー: ' + err.message, 'danger');
+        } finally {
+          App.hideLoading();
+        }
+      });
+    });
   }
 
   // ─── ユーティリティ ───────────────────────────────────────
