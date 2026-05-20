@@ -1,6 +1,10 @@
 /* ベースレイアウト */
 body { font-size: 0.9rem; }
 
+/* iOS Safari は input[type=date] をデフォルトでcenter寄せにするため上書き */
+input[type="date"] { text-align: left; }
+input[type="date"]::-webkit-date-and-time-value { text-align: left; }
+
 /* ナビゲーション */
 .nav-item-btn {
   color: #6c757d;
@@ -73,6 +77,12 @@ body { font-size: 0.9rem; }
   border-radius: 16px;
   padding: 16px;
   box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+  border: 2px dashed transparent;
+  transition: border-color 0.15s, background 0.15s;
+}
+.receipt-upload-card.drag-over {
+  border-color: #0d6efd;
+  background: #f0f5ff;
 }
 
 /* コンパクトアップロードボタン */
@@ -106,6 +116,10 @@ body { font-size: 0.9rem; }
 .history-card .h-place { font-weight: 700; font-size: 0.95rem; }
 .history-card .h-amount { font-weight: 700; font-size: 0.95rem; }
 .history-card .h-meta { font-size: 0.78rem; color: #6c757d; }
+.history-card .history-note-toggle { line-height: 1; }
+.history-card .history-note-toggle[aria-expanded="true"] .bi-chevron-down { transform: rotate(180deg); }
+.history-card .history-note-toggle .bi-chevron-down { transition: transform 0.2s; display: inline-block; }
+.history-card .history-note-body { font-size: 0.8rem; color: #555; background: #f8f9fa; border-radius: 6px; padding: 6px 10px; }
 .badge-pending   { background: #e67e22; color: #fff; font-weight: 600; }  /* 申請済：オレンジ */
 .badge-confirmed { background: #2980b9; color: #fff; font-weight: 600; }  /* 登録済：ブルー */
 .badge-duplicate { background: #e74c3c; color: #fff; font-weight: 600; }
@@ -334,9 +348,16 @@ body { font-size: 0.9rem; }
 
 /* 印刷対応 */
 @media print {
+  @page { size: A4 landscape; margin: 1cm; }
   .navbar, .fixed-bottom, #toastContainer, .btn, .no-print { display: none !important; }
   body { background: #fff; }
-  .card { border: 1px solid #ccc; box-shadow: none; }
+  .card { border: 1px solid #ccc; box-shadow: none; break-inside: avoid; }
+  /* 集計ビュー：テーブルを全幅に展開 */
+  #appMain { max-width: 100% !important; padding-bottom: 0 !important; }
+  .table-responsive { overflow: visible !important; }
+  .pivot-table { font-size: 0.72rem; width: 100%; }
+  .pivot-table th, .pivot-table td { padding: 0.2rem 0.4rem !important; white-space: nowrap; }
+  .summary-print-title { display: block !important; }
 }
 
 /* スマホ最適化 */

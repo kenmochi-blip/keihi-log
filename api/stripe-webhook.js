@@ -15,6 +15,7 @@
 import Stripe from 'stripe';
 import { kv } from '@vercel/kv';
 import crypto from 'crypto';
+import { captureException } from './_sentry.js';
 
 export const config = { api: { bodyParser: false } };
 
@@ -30,6 +31,7 @@ export default async function handler(req, res) {
     event = stripe.webhooks.constructEvent(rawBody, sig, process.env.STRIPE_WEBHOOK_SECRET?.trim());
   } catch (err) {
     console.error('Webhook signature error:', err.message);
+    captureException(err, { context: 'webhook_signature' });
     return res.status(400).json({ error: 'Invalid signature' });
   }
 
@@ -64,17 +66,39 @@ async function _issueNewLicense(session) {
   }
 
   const customerEmail = session.customer_details?.email || session.customer_email || '';
-  const customerName  = session.customer_details?.name  || customerEmail;
+  // "顧客の氏名を収集" → customer_details.name / individual_name（新APIでは両方あり）
+  const customerName  = session.customer_details?.individual_name
+                     || session.customer_details?.name
+                     || session.collected_information?.individual_name
+                     || '';
+  // "ビジネス名を収集" → 新APIでは collected_information.business_name / customer_details.business_name
+  // 旧APIでは custom_fields に business_name キーで入る
+  const businessName = session.collected_information?.business_name
+                    || session.customer_details?.business_name
+                    || session.custom_fields?.find(
+                         f => ['business_name','businessname','company_name','companyname'].includes(f.key)
+                       )?.text?.value
+                    || '';
+  // 表示用 company: ビジネス名 → 氏名 → メール の優先順
+  const company = businessName || customerName || customerEmail;
   const plan = session.metadata?.plan || 'standard';
 
-  // 同一メールアドレスで既存ライセンスがある場合は再発行せず既存キーを再送
+  // 同一メールアドレスで既存ライセンスがある場合
   const existingKey = await kv.get(`email_to_license:${customerEmail}`);
   if (existingKey) {
     const existingData = await kv.get(`license:${existingKey}`);
     if (existingData && !existingData.suspended) {
-      console.log(`License already exists for ${customerEmail}: ${existingKey}, resending`);
-      if (process.env.RESEND_API_KEY) {
-        await _sendDuplicateLicenseEmail(customerEmail, customerName, existingKey, existingData.expiresAt);
+      if (!existingData.stripeSessionId) {
+        // 手動（無料）ライセンス → 有料アップグレード
+        await _upgradeLicense(existingKey, existingData, session, customerEmail, customerName, plan);
+      } else {
+        // 既に有料ライセンスあり → セッションキーを更新してから再送メール
+        // （session:xxx が 'issuing' のままだと get-license が 404 を返すため必ず上書きする）
+        await kv.set(`session:${session.id}`, existingKey, { ex: SESSION_TTL });
+        console.log(`License already exists for ${customerEmail}: ${existingKey}, resending`);
+        if (process.env.RESEND_API_KEY) {
+          await _sendDuplicateLicenseEmail(customerEmail, customerName, existingKey, existingData.expiresAt);
+        }
       }
       return;
     }
@@ -88,7 +112,9 @@ async function _issueNewLicense(session) {
   expiresAt.setFullYear(expiresAt.getFullYear() + 1);
 
   const licenseData = {
-    company:         customerName,
+    company:         company,
+    customerName:    customerName,
+    businessName:    businessName,
     plan,
     expiresAt:       expiresAt.toISOString().split('T')[0],
     email:           customerEmail,
@@ -110,12 +136,87 @@ async function _issueNewLicense(session) {
 
   // RESEND_API_KEY が設定されていればメール送信
   if (process.env.RESEND_API_KEY) {
-    await _sendLicenseEmail(customerEmail, customerName, licenseKey, licenseData.expiresAt);
+    await _sendLicenseEmail(customerEmail, customerName || businessName || company, licenseKey, licenseData.expiresAt);
     // 管理者通知
     if (process.env.ADMIN_NOTIFY_EMAIL) {
-      await _sendAdminNotifyEmail(customerEmail, customerName, licenseKey, licenseData.expiresAt);
+      await _sendAdminNotifyEmail(customerEmail, customerName, licenseKey, licenseData.expiresAt, businessName);
     }
   }
+}
+
+async function _upgradeLicense(key, oldData, session, email, name, plan) {
+  const expiresAt = new Date();
+  expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+  const expiresAtStr = expiresAt.toISOString().split('T')[0];
+
+  const updated = {
+    ...oldData,
+    plan,
+    expiresAt:       expiresAtStr,
+    stripeSessionId: session.id,
+    upgradedAt:      new Date().toISOString(),
+  };
+  await kv.set(`license:${key}`, updated);
+  await kv.set(`session:${session.id}`, key, { ex: 60 * 60 * 24 * 30 });
+  console.log(`License upgraded: ${key} for ${email}`);
+
+  if (process.env.RESEND_API_KEY) {
+    await _sendUpgradeEmail(email, name, key, expiresAtStr);
+    if (process.env.ADMIN_NOTIFY_EMAIL) {
+      await _sendAdminUpgradeEmail(email, name, key, expiresAtStr);
+    }
+  }
+}
+
+async function _sendUpgradeEmail(to, name, licenseKey, expiresAt) {
+  const appUrl = process.env.APP_URL || 'https://keihi-log.com/app.html';
+  const body = {
+    from: process.env.RESEND_FROM_EMAIL || 'noreply@' + (process.env.VERCEL_PROJECT_PRODUCTION_URL || 'example.com'),
+    to,
+    subject: '【経費ログ】有料プランへのアップグレードが完了しました',
+    html: `
+<p>${name} 様</p>
+<p>この度は経費ログ有料プランへのアップグレードありがとうございます。</p>
+<p>引き続き同じライセンスキーをお使いください。有効期限が更新されました。</p>
+<p style="font-size:1.2em;font-family:monospace;background:#f5f5f5;padding:12px 16px;border-radius:6px;letter-spacing:1px;">
+  <strong>${licenseKey}</strong>
+</p>
+<ul>
+  <li>新しい有効期限：${expiresAt}</li>
+  <li>アプリURL：<a href="${appUrl}">${appUrl}</a></li>
+</ul>
+<p>ご不明な点はお気軽にお問い合わせください。</p>
+    `.trim(),
+  };
+  const resp = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!resp.ok) console.error('Resend error:', await resp.text());
+}
+
+async function _sendAdminUpgradeEmail(email, name, licenseKey, expiresAt) {
+  const body = {
+    from: process.env.RESEND_FROM_EMAIL || 'noreply@' + (process.env.VERCEL_PROJECT_PRODUCTION_URL || 'example.com'),
+    to: process.env.ADMIN_NOTIFY_EMAIL,
+    subject: `【経費ログ】有料転換 — ${name}`,
+    html: `
+<p>手動ライセンスが有料プランにアップグレードされました。</p>
+<table style="border-collapse:collapse;font-size:14px;">
+  <tr><td style="padding:4px 12px 4px 0;color:#666;">氏名・会社名</td><td>${name}</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;color:#666;">メール</td><td>${email}</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;color:#666;">ライセンスキー</td><td style="font-family:monospace;">${licenseKey}</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;color:#666;">新しい有効期限</td><td>${expiresAt}</td></tr>
+</table>
+    `.trim(),
+  };
+  const resp = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!resp.ok) console.error('Admin upgrade notify error:', await resp.text());
 }
 
 async function _sendLicenseEmail(to, name, licenseKey, expiresAt) {
@@ -132,7 +233,7 @@ async function _sendLicenseEmail(to, name, licenseKey, expiresAt) {
 </p>
 <ul>
   <li>有効期限：${expiresAt}</li>
-  <li>アプリURL：<a href="https://keihi-log.smartandsmooth.com/app.html">https://keihi-log.smartandsmooth.com/app.html</a></li>
+  <li>アプリURL：<a href="https://keihi-log.com/app.html">https://keihi-log.com/app.html</a></li>
 </ul>
 <p>ご不明な点はお気軽にお問い合わせください。</p>
     `.trim(),
@@ -162,7 +263,7 @@ async function _sendDuplicateLicenseEmail(to, name, licenseKey, expiresAt) {
 </p>
 <ul>
   <li>有効期限：${expiresAt}</li>
-  <li>アプリURL：<a href="https://keihi-log.smartandsmooth.com/app.html">https://keihi-log.smartandsmooth.com/app.html</a></li>
+  <li>アプリURL：<a href="https://keihi-log.com/app.html">https://keihi-log.com/app.html</a></li>
 </ul>
 <p>今回の購入はStripeより返金処理いたします。ご不明な点はお気軽にお問い合わせください。</p>
     `.trim(),
@@ -178,15 +279,16 @@ async function _sendDuplicateLicenseEmail(to, name, licenseKey, expiresAt) {
   if (!resp.ok) console.error('Resend error:', await resp.text());
 }
 
-async function _sendAdminNotifyEmail(customerEmail, customerName, licenseKey, expiresAt) {
+async function _sendAdminNotifyEmail(customerEmail, customerName, licenseKey, expiresAt, businessName = '') {
   const body = {
     from: process.env.RESEND_FROM_EMAIL || 'noreply@' + (process.env.VERCEL_PROJECT_PRODUCTION_URL || 'example.com'),
     to: process.env.ADMIN_NOTIFY_EMAIL,
-    subject: `【経費ログ】ライセンス発行通知 — ${customerName}`,
+    subject: `【経費ログ】ライセンス発行通知 — ${businessName || customerName}`,
     html: `
 <p>新しいライセンスが発行されました。</p>
 <table style="border-collapse:collapse;font-size:14px;">
-  <tr><td style="padding:4px 12px 4px 0;color:#666;">購入者名</td><td>${customerName}</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;color:#666;">氏名</td><td>${customerName || '—'}</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;color:#666;">ビジネス名</td><td>${businessName || '—'}</td></tr>
   <tr><td style="padding:4px 12px 4px 0;color:#666;">メールアドレス</td><td>${customerEmail}</td></tr>
   <tr><td style="padding:4px 12px 4px 0;color:#666;">ライセンスキー</td><td style="font-family:monospace;">${licenseKey}</td></tr>
   <tr><td style="padding:4px 12px 4px 0;color:#666;">有効期限</td><td>${expiresAt}</td></tr>

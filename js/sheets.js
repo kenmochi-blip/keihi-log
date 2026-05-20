@@ -5,7 +5,9 @@
 const Sheets = (() => {
 
   function _ssId() {
-    const id = localStorage.getItem('keihi_sheet_id');
+    // sessionStorage（タブ固有）を優先してlocalStorageにフォールバック
+    // 複数チームを同一ブラウザで開いた際のタブ間混入を防ぐ
+    const id = sessionStorage.getItem('keihi_sheet_id') || localStorage.getItem('keihi_sheet_id');
     if (!id) throw new Error('スプレッドシートIDが設定されていません。設定画面で入力してください。');
     return id;
   }
@@ -16,7 +18,7 @@ const Sheets = (() => {
   async function read(range, ssId) {
     if (typeof Demo !== 'undefined' && Demo.isActive()) {
       // デモ：経費一覧の単一行リクエスト（修正履歴の旧データ取得など）はEXPENSESから再構築
-      const m = range.match(/^経費一覧!A(\d+):S\1$/);
+      const m = range.match(/^経費一覧!A(\d+):U\1$/);
       if (m) {
         const idx = Number(m[1]) - 2; // ヘッダー行ぶん -2
         const e = Demo.EXPENSES[idx];
@@ -104,7 +106,7 @@ const Sheets = (() => {
   async function readExpenses(ssId) {
     if (typeof Demo !== 'undefined' && Demo.isActive()) return [...Demo.EXPENSES];
     ssId = ssId || _ssId();
-    const range  = encodeURIComponent('経費一覧!A2:S');
+    const range  = encodeURIComponent('経費一覧!A2:U');
     const fields = encodeURIComponent('sheets.data.rowData.values(effectiveValue,hyperlink)');
     const resp = await Auth.authFetch(`${BASE}/${ssId}?ranges=${range}&fields=${fields}`);
     if (!resp.ok) throw new Error(`Sheets readExpenses error: ${resp.status}`);
@@ -114,6 +116,7 @@ const Sheets = (() => {
       const cells = rowData.values || [];
       const row = cells.map((cell, i) => {
         // I列（index 8）: Insert→Link / =HYPERLINK() どちらもhyperlinkフィールドでURL取得
+        // T列（index 19）: 源泉徴収税額（数値）
         if (i === 8 && cell?.hyperlink) return cell.hyperlink;
         const ev = cell?.effectiveValue;
         if (!ev) return '';
@@ -167,6 +170,8 @@ const Sheets = (() => {
       id:             row[16] || '',
       device:         row[17] || '',
       taxRate:        row[18] || '',
+      withholding:    Number(row[19]) || 0,
+      customFlag:     row[20] || '',
     };
   }
 
@@ -185,7 +190,7 @@ const Sheets = (() => {
     return String(val);
   }
 
-  /** 経費オブジェクト → 行配列（19列）*/
+  /** 経費オブジェクト → 行配列（21列）*/
   function expenseToRow(e) {
     return [
       e.appliedAt,                 // A
@@ -207,6 +212,8 @@ const Sheets = (() => {
       e.id,                        // Q
       e.device,                    // R
       e.taxRate || '課税10%',      // S：税区分
+      e.withholding || 0,          // T：源泉徴収税額
+      e.customFlag || '',          // U：カスタムフラグ
     ];
   }
 
@@ -234,21 +241,23 @@ const Sheets = (() => {
     return rows?.[0]?.[0] ?? '';
   }
 
-  /** マスタ表を読んでメンバー・カテゴリ・支払元を返す */
+  /** マスタ表を読んでメンバー・カテゴリ・支払元・カスタムフラグを返す */
   async function readMaster(ssId) {
     if (typeof Demo !== 'undefined' && Demo.isActive()) return Demo.MASTER;
-    const rows = await read('マスタ表!A2:G', ssId);
-    const members    = [];
-    const categories = [];
-    const paySources = [];
-    const admins     = [];
-    const viewers    = [];
+    const rows = await read('マスタ表!A2:H', ssId);
+    const members     = [];
+    const categories  = [];
+    const paySources  = [];
+    const customFlags = [];
+    const admins      = [];
+    const viewers     = [];
 
     rows.forEach(r => {
-      // A:氏名 B:メール C:所属 D:権限 E:備考 F:会社払い支払元 G:勘定科目
+      // A:氏名 B:メール C:所属 D:権限 E:備考 F:会社払い支払元 G:勘定科目 H:カスタムフラグ
       if (r[0] || r[1]) members.push({ name: r[0] || '', email: r[1] || '', dept: r[2] || '', role: r[3] || '' });
       if (r[5]) paySources.push(r[5]);
       if (r[6]) categories.push(r[6]);
+      if (r[7]) customFlags.push(r[7]);
       const role = (r[3] || '').toLowerCase();
       if (role === 'admin' && r[1]) admins.push(r[1].toLowerCase());
       if (role === 'viewer' && r[1]) viewers.push(r[1].toLowerCase());
@@ -256,8 +265,9 @@ const Sheets = (() => {
 
     return {
       members,
-      categories: [...new Set(categories)],
-      paySources: [...new Set(paySources)],
+      categories:  [...new Set(categories)],
+      paySources:  [...new Set(paySources)],
+      customFlags: [...new Set(customFlags)],
       admins,
       viewers,
     };
@@ -388,7 +398,7 @@ const Sheets = (() => {
 
   async function prependExpense(row, ssId) {
     if (typeof Demo !== 'undefined' && Demo.isActive()) {
-      return { updates: { updatedRange: '経費一覧!A2:S2' } };
+      return { updates: { updatedRange: '経費一覧!A2:U2' } };
     }
     ssId = ssId || _ssId();
     const sheetId = await _getSheetId('経費一覧', ssId);
@@ -403,10 +413,10 @@ const Sheets = (() => {
     }], ssId);
 
     // 挿入した行にデータを書き込む
-    await update('経費一覧!A2:S2', [row], ssId);
+    await update('経費一覧!A2:U2', [row], ssId);
 
-    await formatExpenseRow('経費一覧!A2:S2', ssId);
-    return { updates: { updatedRange: '経費一覧!A2:S2' } };
+    await formatExpenseRow('経費一覧!A2:U2', ssId);
+    return { updates: { updatedRange: '経費一覧!A2:U2' } };
   }
 
   return {

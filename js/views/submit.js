@@ -12,9 +12,11 @@ const SubmitView = (() => {
   let _existingUrls     = []; // 編集時の既存証票URL
   let _existingHash     = '';
   let _editId           = null;
+  let _withholdingAmount = 0; // AIが検出した源泉徴収税額
   let _currentType      = '領収書';
   let _cats             = [];
   let _paySources       = [];
+  let _customFlags      = [];
   let _pendingEdit   = null; // 一覧表からの編集キュー {id, expenses}
   let _historyAll      = []; // 自分の全履歴（ソート済）
   let _historyExpenses = []; // 全経費データ（編集用）
@@ -234,6 +236,14 @@ const SubmitView = (() => {
     </div>
   </div>
 
+  <!-- カスタムフラグ（管理者が選択肢を設定した場合のみ表示） -->
+  <div id="customFlagWrap" class="d-none mb-3">
+    <label class="form-label small fw-semibold">カスタムフラグ <span class="text-muted fw-normal">（任意）</span></label>
+    <select class="form-select form-select-sm" id="selCustomFlag">
+      <option value="">未設定</option>
+    </select>
+  </div>
+
   <!-- 申請ボタン -->
   <div class="d-grid mt-3 mb-4 no-print">
     <button class="btn btn-primary btn-lg rounded-3" id="btnSubmit">
@@ -343,8 +353,9 @@ const SubmitView = (() => {
     // マスタデータ読み込み
     try {
       const master = await App.getMaster();
-      _cats       = master.categories;
-      _paySources = master.paySources;
+      _cats        = master.categories;
+      _paySources  = master.paySources;
+      _customFlags = master.customFlags || [];
     } catch (_) {}
 
     _populateSelects(el);
@@ -393,6 +404,17 @@ const SubmitView = (() => {
     const psHtml = '<option value="">支払元を選択</option>' +
       _paySources.map(p => `<option value="${p}">${p}</option>`).join('');
     el.querySelectorAll('#selPaySource').forEach(s => { s.innerHTML = psHtml; });
+
+    // カスタムフラグ：選択肢があれば表示
+    const cfWrap = el.querySelector('#customFlagWrap');
+    const cfSel  = el.querySelector('#selCustomFlag');
+    if (_customFlags.length > 0 && cfWrap && cfSel) {
+      cfSel.innerHTML = '<option value="">未設定</option>' +
+        _customFlags.map(f => `<option value="${f}">${f}</option>`).join('');
+      cfWrap.classList.remove('d-none');
+    } else if (cfWrap) {
+      cfWrap.classList.add('d-none');
+    }
   }
 
   /** 金額入力欄を自動カンマ整形する */
@@ -430,14 +452,13 @@ function _bindTypeButtons(el) {
   }
 
   function _bindFileInputs(el) {
-    const handleFiles = async (el, type, e) => {
-      for (const file of e.target.files) {
+    const processFiles = async (el, type, files) => {
+      for (const file of files) {
         if (file.size > 10 * 1024 * 1024) { App.showToast(`${file.name} は10MBを超えています`, 'warning'); continue; }
         const base64 = await Drive.fileToBase64(file);
         _selectedFiles.push({ base64, mimeType: file.type, name: file.name });
         _addPreviewItem(el, type, base64, file.type, _selectedFiles.length - 1);
       }
-      e.target.value = '';
 
       // 領収書タイプの場合：圧縮とAPIキー取得をボタン押下前にバックグラウンドで先読み
       if (type === '領収書' && _selectedFiles.length > 0) {
@@ -457,13 +478,33 @@ function _bindTypeButtons(el) {
       const camBtn   = el.querySelector(`#btnCamera-${type}`);
       if (camBtn && camInput) {
         camBtn.addEventListener('click', () => camInput.click());
-        camInput.addEventListener('change', e => handleFiles(el, type, e));
+        camInput.addEventListener('change', e => { processFiles(el, type, e.target.files); e.target.value = ''; });
       }
 
       // ファイルボタン：通常のファイル選択
       const fileBtn = el.querySelector(`#btnFile-${type}`);
       if (fileBtn) fileBtn.addEventListener('click', () => fileInput.click());
-      fileInput.addEventListener('change', e => handleFiles(el, type, e));
+      fileInput.addEventListener('change', e => { processFiles(el, type, e.target.files); e.target.value = ''; });
+
+      // ドラッグ＆ドロップ（領収書カード全体 or 参考資料エリア）
+      const dropZone = el.querySelector(
+        type === '領収書' ? '.receipt-upload-card' : `#previewArea-${type}`
+      )?.closest(type === '領収書' ? '.receipt-upload-card' : '.mb-2') ?? null;
+      if (!dropZone) return;
+
+      dropZone.addEventListener('dragover', e => {
+        e.preventDefault();
+        dropZone.classList.add('drag-over');
+      });
+      dropZone.addEventListener('dragleave', e => {
+        if (!dropZone.contains(e.relatedTarget)) dropZone.classList.remove('drag-over');
+      });
+      dropZone.addEventListener('drop', e => {
+        e.preventDefault();
+        dropZone.classList.remove('drag-over');
+        const files = Array.from(e.dataTransfer.files);
+        if (files.length) processFiles(el, type, files);
+      });
     });
 
     el.querySelector('#btnAnalyze')?.addEventListener('click', () => _runAiAnalysis(el));
@@ -673,14 +714,17 @@ function _bindTypeButtons(el) {
   }
 
   /** 為替レート取得（複数APIを順に試す） */
-  async function _fetchExchangeRate(from, to) {
+  async function _fetchExchangeRate(from, to, date = null) {
     const f = from.toLowerCase();
     const t = to.toLowerCase();
+    // date が指定された場合は過去レート、なければ当日レートを取得
+    // 週末・祝日は各APIが直近営業日に自動フォールバックする
+    const dateStr = date || 'latest';
 
     // 1. CDN-backed currency API（CORS確実、無料）
     try {
       const resp = await fetch(
-        `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/${f}.json`
+        `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@${dateStr}/v1/currencies/${f}.json`
       );
       if (resp.ok) {
         const data = await resp.json();
@@ -689,10 +733,11 @@ function _bindTypeButtons(el) {
       }
     } catch (_) {}
 
-    // 2. Frankfurter dev（旧 .app から移行済み）
+    // 2. Frankfurter dev（過去レート対応）
     try {
+      const endpoint = date ? date : 'latest';
       const resp = await fetch(
-        `https://api.frankfurter.dev/v1/latest?base=${from.toUpperCase()}&symbols=${to.toUpperCase()}`
+        `https://api.frankfurter.dev/v1/${endpoint}?base=${from.toUpperCase()}&symbols=${to.toUpperCase()}`
       );
       if (resp.ok) {
         const data = await resp.json();
@@ -701,7 +746,7 @@ function _bindTypeButtons(el) {
       }
     } catch (_) {}
 
-    // 3. ExchangeRate-API 無料枠
+    // 3. ExchangeRate-API 無料枠（最新レートのみ対応）
     try {
       const resp = await fetch(
         `https://open.er-api.com/v6/latest/${from.toUpperCase()}`
@@ -759,8 +804,9 @@ function _bindTypeButtons(el) {
         // Drive API でアクセスできない場合（drive.file スコープ制限）
         // 証票リンクを開いて手動で再選択するよう案内する
         const existingUrl = _existingUrls.filter(Boolean)[0];
-        const msg = existingUrl
-          ? `証票ファイルに直接アクセスできません。<a href="${existingUrl}" target="_blank" rel="noopener" style="color:#fff;text-decoration:underline;">証票を開いてダウンロード</a>後、「ファイル」から再選択してください。`
+        const safeUrl = existingUrl ? existingUrl.replace(/[<>"']/g, '') : '';
+        const msg = safeUrl
+          ? `証票ファイルに直接アクセスできません。<a href="${safeUrl}" target="_blank" rel="noopener" style="color:#fff;text-decoration:underline;">証票を開いてダウンロード</a>後、「ファイル」から再選択してください。`
           : '証票ファイルにアクセスできません。ファイルを再選択してください。';
         App.showToast(msg, 'warning', 8000);
         return;
@@ -830,18 +876,19 @@ function _bindTypeButtons(el) {
         const singleCat    = singleItem?.category ?? result.category;
 
         if (result.fx_currency && result.fx_amount) {
-          // 外貨：複数APIを順に試して換算
-          const rate = await _fetchExchangeRate(result.fx_currency, 'JPY');
+          // 外貨：取引日のレートを取得して換算（取引日 → AI認識日付 → 当日 の順でフォールバック）
+          const txDate = el.querySelector('#inputDate')?.value || result.date || null;
+          const rate = await _fetchExchangeRate(result.fx_currency, 'JPY', txDate);
           if (rate) {
             const jpy = Math.floor(Number(result.fx_amount) * rate);
             const amtInput = el.querySelector('#inputAmount');
             if (amtInput) amtInput.value = jpy.toLocaleString('ja-JP');
-            // 備考欄に換算内訳を自動入力
+            // 備考欄に換算内訳を自動入力（取引日レートである旨を明記）
             const noteInput = el.querySelector('#inputNote');
             if (noteInput) noteInput.value =
-              `${result.fx_currency} ${Number(result.fx_amount).toLocaleString()} × ${rate.toFixed(2)} = ¥${jpy.toLocaleString()}`;
+              `${result.fx_currency} ${Number(result.fx_amount).toLocaleString()} × ${rate.toFixed(2)} = ¥${jpy.toLocaleString()}${txDate ? `（${txDate}レート）` : ''}`;
             App.showToast(
-              `外貨換算: ${result.fx_currency} ${Number(result.fx_amount).toLocaleString()} × ${rate.toFixed(2)} = ¥${jpy.toLocaleString()}（確認してください）`,
+              `外貨換算: ${result.fx_currency} ${Number(result.fx_amount).toLocaleString()} × ${rate.toFixed(2)} = ¥${jpy.toLocaleString()}${txDate ? `（${txDate}レート）` : ''}（確認してください）`,
               'warning'
             );
             filled++;
@@ -865,6 +912,12 @@ function _bindTypeButtons(el) {
       if (result.tax_rate) {
         const taxSel = el.querySelector('#selTaxRate');
         if (taxSel) taxSel.value = result.tax_rate;
+      }
+
+      // 源泉徴収税額を保存（備考への記載は送信時に行う）
+      _withholdingAmount = Number(result.withholding_amount) || 0;
+      if (_withholdingAmount > 0) {
+        App.showToast(`源泉徴収税額 ¥${_withholdingAmount.toLocaleString()} を検出しました`, 'info');
       }
 
       // 解析完了後、フォームを画面内にスクロール
@@ -910,8 +963,13 @@ function _bindTypeButtons(el) {
 
     App.showLoading('申請中...');
     try {
-      // 1. サーバー時刻取得（電帳法対応）
-      const timeResp = await fetch(`${window.APP_CONFIG?.apiBase || ''}/api/time`);
+      // 1. サーバー時刻取得（電帳法対応）、申請カウンターをインクリメント
+      const _licKey = localStorage.getItem('keihi_license_key') || '';
+      const timeResp = await fetch(`${window.APP_CONFIG?.apiBase || ''}/api/time`, {
+        method: _licKey ? 'POST' : 'GET',
+        headers: _licKey ? { 'Content-Type': 'application/json' } : {},
+        body: _licKey ? JSON.stringify({ key: _licKey }) : undefined,
+      });
       const { jst: appliedAt } = await timeResp.json();
 
       // 2. ファイルアップロード + SHA-256ハッシュ計算
@@ -952,7 +1010,22 @@ function _bindTypeButtons(el) {
       // 4. AI監査フラグ設定
       const aiAudit = alerts.length > 0 ? `⛔ ${alerts.join(' / ')}` : '✅ OK';
 
-      // 5. 行データ組み立て
+      // 5. 備考への自動注記
+      let finalNote = data.note || '';
+      // 固定資産警告（10万円以上）
+      if (data.amount >= 300000) {
+        if (!finalNote.includes('【30万円以上】')) finalNote = [finalNote, '【30万円以上】'].filter(Boolean).join('\n');
+      } else if (data.amount >= 100000) {
+        if (!finalNote.includes('【10万円〜30万円未満】')) finalNote = [finalNote, '【10万円〜30万円未満】'].filter(Boolean).join('\n');
+      }
+      // 源泉徴収注記
+      if (_withholdingAmount > 0) {
+        const payAmt = data.amount - _withholdingAmount;
+        const withholdingNote = `源泉徴収 ¥${_withholdingAmount.toLocaleString()}（支払額 ¥${payAmt.toLocaleString()}）`;
+        if (!finalNote.includes('源泉徴収')) finalNote = [finalNote, withholdingNote].filter(Boolean).join('\n');
+      }
+
+      // 6. 行データ組み立て
       const row = Sheets.expenseToRow({
         appliedAt,
         name:           userName,
@@ -961,7 +1034,7 @@ function _bindTypeButtons(el) {
         place:          data.place,
         amount:         data.amount,
         category:       data.category,
-        note:           data.note,
+        note:           finalNote,
         imageLinks:     uploadedUrls.join(', '),
         confirmed:      App.isAdmin(),
         aiAudit,
@@ -973,13 +1046,15 @@ function _bindTypeButtons(el) {
         id:             _editId || crypto.randomUUID(),
         device:         navigator.userAgent,
         taxRate:        data.taxRate,
+        withholding:    _withholdingAmount,
+        customFlag:     data.customFlag,
       });
 
-      // 6. 編集の場合は修正履歴に旧データを保存してから更新
+      // 7. 編集の場合は修正履歴に旧データを保存してから更新
       if (_editId) {
         const rowNum = await Sheets.findRowById(_editId);
         if (rowNum > 0) {
-          const oldRows = await Sheets.read(`経費一覧!A${rowNum}:S${rowNum}`);
+          const oldRows = await Sheets.read(`経費一覧!A${rowNum}:U${rowNum}`);
           const r = oldRows[0] || [];
           const oldSummary = [
             `日付: ${r[3] || ''}`,
@@ -993,7 +1068,7 @@ function _bindTypeButtons(el) {
             `税区分: ${r[18] || ''}`,
           ].filter(s => !s.endsWith(': ')).join(' / ');
           await Sheets.prependRow('修正履歴', [appliedAt, Auth.getUserEmail(), oldSummary]);
-          await Sheets.update(`経費一覧!A${rowNum}:S${rowNum}`, [row]);
+          await Sheets.update(`経費一覧!A${rowNum}:U${rowNum}`, [row]);
         }
       } else {
         await Sheets.prependExpense(row);
@@ -1020,7 +1095,8 @@ function _bindTypeButtons(el) {
       const to   = el.querySelector('#txtTo')?.value.trim();
       if (!from) { App.showToast('出発駅・バス停を入力してください', 'danger'); return null; }
       if (!to)   { App.showToast('到着駅・バス停を入力してください', 'danger'); return null; }
-      place = `${from} → ${to}`;
+      const isRound = el.querySelector('#chkRoundTrip')?.checked;
+      place = `${from} ${isRound ? '↔' : '→'} ${to}`;
     } else if (_currentType === '自家用車') {
       place = el.querySelector('#txtCarRoute')?.value.trim() || '';
       if (!place) { App.showToast('案件・経路名を入力してください', 'danger'); return null; }
@@ -1083,8 +1159,9 @@ function _bindTypeButtons(el) {
 
     return {
       date, place, amount, category, note,
-      invoice:   pnl.querySelector('#inputInvoice')?.value?.trim() || '',
-      taxRate:   el.querySelector('#selTaxRate')?.value || '課税10%',
+      invoice:    pnl.querySelector('#inputInvoice')?.value?.trim() || '',
+      taxRate:    el.querySelector('#selTaxRate')?.value || '課税10%',
+      customFlag: el.querySelector('#selCustomFlag')?.value || '',
       corpPay, paySource,
     };
   }
@@ -1190,7 +1267,7 @@ function _bindTypeButtons(el) {
          </a>`
       : '';
     const isAdmin = App.isAdmin();
-    const canEdit = !e.settlementDate && (!e.confirmed || isAdmin);
+    const canEdit = isAdmin || (!e.settlementDate && !e.confirmed);
     const editBtn = canEdit
       ? `<button class="btn btn-sm btn-outline-secondary btn-edit-history" data-id="${e.id}">
            <i class="bi bi-pencil"></i>
@@ -1200,6 +1277,17 @@ function _bindTypeButtons(el) {
            <i class="bi bi-trash"></i>
          </button>` : '';
 
+    const noteId = `hn-${e.id}`;
+    const noteToggle = e.note
+      ? `<button class="btn btn-link btn-sm p-0 text-secondary text-decoration-none history-note-toggle"
+           data-bs-toggle="collapse" data-bs-target="#${noteId}" aria-expanded="false">
+           <i class="bi bi-chevron-down" style="font-size:0.75rem;"></i>
+         </button>` : '';
+    const noteBody = e.note
+      ? `<div class="collapse mt-1" id="${noteId}">
+           <div class="history-note-body"><i class="bi bi-chat-text me-1 text-secondary"></i>${_escape(e.note)}</div>
+         </div>` : '';
+
     return `
     <div class="history-card">
       <div class="d-flex justify-content-between align-items-start">
@@ -1207,10 +1295,14 @@ function _bindTypeButtons(el) {
         <span class="h-amount">¥${e.amount.toLocaleString()}</span>
       </div>
       <div class="d-flex justify-content-between align-items-center mt-1">
-        <span class="h-meta">${e.date} / ${_escape(e.category)} (${e.type})</span>
+        <div class="d-flex align-items-center gap-1">
+          <span class="h-meta">${e.date} / ${_escape(e.category)} (${e.type})</span>
+          ${noteToggle}
+        </div>
         <span class="badge ${statusClass} rounded-pill px-2"
           ${e.settlementDate ? 'style="background:#6c757d;color:#fff;"' : ''}>${statusText}</span>
       </div>
+      ${noteBody}
       <div class="d-flex gap-2 mt-2 align-items-center">
         ${imageBtn}
         <div class="ms-auto d-flex gap-1">${editBtn}${delBtn}</div>
@@ -1251,8 +1343,10 @@ function _bindTypeButtons(el) {
         if (sel) [...sel.options].forEach(o => o.selected = o.value === e.category);
         const taxSel = el.querySelector('#selTaxRate');
         if (taxSel && e.taxRate) taxSel.value = e.taxRate;
+        const cfSel = el.querySelector('#selCustomFlag');
+        if (cfSel && e.customFlag) cfSel.value = e.customFlag;
       } else if (e.type === '交通費') {
-        const parts = (e.place || '').split(' → ');
+        const parts = (e.place || '').split(/ [→↔] /);
         const fromInput = el.querySelector('#txtFrom');
         const toInput   = el.querySelector('#txtTo');
         if (fromInput) fromInput.value = parts[0] || e.place;
@@ -1297,7 +1391,7 @@ function _bindTypeButtons(el) {
 
       // 元の行を削除（sheetIdが必要なのでbatchUpdateを使う）
       // 簡略化：行の内容を空白で上書きしてフィルタリングする方式
-      await Sheets.update(`経費一覧!A${rowNum}:S${rowNum}`, [new Array(19).fill('')]);
+      await Sheets.update(`経費一覧!A${rowNum}:U${rowNum}`, [new Array(21).fill('')]);
 
       App.showToast('削除しました', 'success');
       _loadHistory(el);
@@ -1318,6 +1412,7 @@ function _bindTypeButtons(el) {
   function _resetForm(el) {
     _selectedFiles = []; _compressedFiles = []; _compressPromise = null;
     _editId = null;
+    _withholdingAmount = 0;
     el.querySelector('#editBanner')?.classList.add('d-none');
     const btn = el.querySelector('#btnSubmit');
     if (btn) { btn.innerHTML = '<i class="bi bi-send me-2"></i>登録する'; btn.className = 'btn btn-primary btn-lg rounded-3'; }

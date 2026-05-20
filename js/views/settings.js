@@ -116,6 +116,18 @@ const SettingsView = (() => {
               <i class="bi bi-box-arrow-up-right me-1"></i>Google AI Studioでキーを取得する
             </a>
           </div>
+          <div class="card border-warning border-opacity-50 p-2 mb-2" style="font-size:0.82rem;line-height:1.6;background:#fffdf0;">
+            <div class="fw-semibold mb-1"><i class="bi bi-shield-check me-1 text-warning"></i>セキュリティ推奨設定（任意）</div>
+            <p class="mb-1">APIキーに利用元ドメインの制限をかけると、万一キーが流出しても悪用を防げます。</p>
+            <ol class="mb-1 ps-3">
+              <li>Google AI Studioでキー一覧を開く</li>
+              <li>作成したキーの「編集」→「APIの制限」を選択</li>
+              <li>「HTTPリファラー（ウェブサイト）」を選び <code>keihi-log.com/*</code> を追加</li>
+            </ol>
+            <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" class="text-warning fw-semibold" style="font-size:0.82rem;">
+              <i class="bi bi-box-arrow-up-right me-1"></i>Google AI Studioでキーを編集する
+            </a>
+          </div>
           <div class="input-group mb-1">
             <input type="password" class="form-control form-control-sm" id="inputGeminiKey" placeholder="AIzaSy...">
             <button class="btn btn-outline-primary btn-sm" id="btnSaveGeminiKey">保存</button>
@@ -154,6 +166,14 @@ const SettingsView = (() => {
         <span>メンバー管理</span>
         <button class="btn btn-outline-primary btn-sm" id="btnAddMember"><i class="bi bi-plus me-1"></i>追加</button>
       </div>
+      <div id="memberPlanHint" class="d-none mt-2">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <span class="text-muted small"><i class="bi bi-info-circle me-1"></i>メンバー追加はチームプランでご利用いただけます</span>
+          <button class="btn btn-primary btn-sm" id="btnUpgradePlan">
+            <i class="bi bi-arrow-up-circle me-1"></i>プランを切り替える
+          </button>
+        </div>
+      </div>
       <div id="memberList" class="mt-2">
         <div class="text-muted small text-center py-2">読み込み中...</div>
       </div>
@@ -168,12 +188,30 @@ const SettingsView = (() => {
       <div class="settings-step-hint mb-2">
         上のメンバー管理に氏名・メールアドレス・権限を登録してから、このURLをメンバーに連絡してください。
       </div>
-      <div class="input-group input-group-sm">
+      <div class="input-group input-group-sm mb-2">
         <input type="text" class="form-control form-control-sm" id="shareUrlDisplay"
           value="${_escape(shareUrl)}" readonly>
         <button class="btn btn-outline-secondary btn-sm" id="btnCopyShareUrl">
           <i class="bi bi-clipboard"></i>
         </button>
+      </div>
+      <div class="accordion" id="qrAcc">
+        <div class="accordion-item border-0">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed py-1 px-0 bg-transparent shadow-none text-primary"
+              style="font-size:0.8rem;" type="button"
+              data-bs-toggle="collapse" data-bs-target="#qrBody">
+              <i class="bi bi-qr-code me-1"></i>QRコードを表示
+            </button>
+          </h2>
+          <div id="qrBody" class="accordion-collapse collapse">
+            <div class="accordion-body px-0 py-2 text-center">
+              <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(shareUrl)}"
+                alt="QRコード" width="180" height="180" class="rounded border">
+              <div class="text-muted mt-1" style="font-size:0.7rem;">スクリーンショットしてメールなどで共有できます</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -205,7 +243,19 @@ const SettingsView = (() => {
     </div>
   </div>
 
-
+  <!-- カスタムフラグ（管理者のみ） -->
+  <div class="card mb-3">
+    <div class="card-body">
+      <div class="settings-section-title d-flex justify-content-between align-items-center">
+        <span>カスタムフラグ</span>
+        <button class="btn btn-outline-primary btn-sm" id="btnAddCustomFlag"><i class="bi bi-plus me-1"></i>追加</button>
+      </div>
+      <p class="text-muted small mb-2">部門・プロジェクト等、申請時に自由に使えるタグを定義します。</p>
+      <div id="customFlagList" class="mt-2">
+        <div class="text-muted small text-center py-2">読み込み中...</div>
+      </div>
+    </div>
+  </div>
 
   <!-- ヘッダー色（管理者のみ） -->
   <div class="card mb-3">
@@ -228,11 +278,23 @@ const SettingsView = (() => {
   async function bindEvents(el) {
     el.querySelector('#btnLogoutSettings')?.addEventListener('click', () => Auth.signOut());
 
-    // localStorage に規程がなければシートから復元を試みる（iOSのlocalStorage消去対策）
-    if (!_loadRegulation() && localStorage.getItem('keihi_sheet_id')) {
-      _restoreRegulationFromSheet().then(() => {
-        if (_loadRegulation()) Router.navigate('settings');
-      });
+    // 規程が localStorage にない場合、スプレッドシートから復元する
+    if (!_loadRegulation()) {
+      const ssId = localStorage.getItem('keihi_sheet_id');
+      if (ssId) {
+        Sheets.readSetting('B6').then(raw => {
+          if (!raw) return;
+          try {
+            const data = JSON.parse(raw);
+            if (data?.confirmedAt) {
+              localStorage.setItem('keihi_regulation', JSON.stringify(data));
+              // 確定済みバッジを反映するため規程ステップのみ再描画
+              const step = el.querySelector('#regulationInitForm')?.closest('.card');
+              if (step) Router.navigate('settings');
+            }
+          } catch (_) {}
+        }).catch(() => {});
+      }
     }
 
     // 訂正・削除防止規程（初期設定⑤版）
@@ -269,6 +331,11 @@ const SettingsView = (() => {
         localStorage.setItem('keihi_license_key', key);
         msg.innerHTML = `<span class="text-success"><i class="bi bi-check-circle me-1"></i>有効（${result.company || ''}）${result.expiresAt ? ' 期限: ' + result.expiresAt.split('T')[0] : ''}</span>`;
         App.showToast('ライセンスを確認しました', 'success');
+        // 社名が未入力なら Stripe 登録の会社名を自動入力
+        const companyInput = el.querySelector('#inputCompanyName');
+        if (companyInput && !companyInput.value.trim() && result.company) {
+          companyInput.value = result.company;
+        }
         // 購入者メールが一致する場合は管理者に昇格して画面を再描画
         if (result.ownerEmail && result.ownerEmail === Auth.getUserEmail().toLowerCase()) {
           await App.reloadMaster();
@@ -279,6 +346,7 @@ const SettingsView = (() => {
         msg.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle me-1"></i>無効なライセンスキーです（${result.reason || ''}）</span>`;
       }
       _updateLicenseStatus(el, result);
+      _applyMemberPlanRestriction(el);
     });
     _updateLicenseStatus(el, _getCachedLicenseResult());
 
@@ -297,7 +365,19 @@ const SettingsView = (() => {
       msg.textContent = '';
       try {
         const ssId    = await Setup.createSpreadsheet(name, parentFolderId);
+        localStorage.setItem('keihi_company_name', name);
+        // 作成されたフォルダURLをフォルダURL欄に反映
+        const createdFolderId = localStorage.getItem('keihi_folder_id') || '';
+        if (createdFolderId) {
+          const folderInput = el.querySelector('#inputFolderUrl');
+          if (folderInput) folderInput.value = `https://drive.google.com/drive/folders/${createdFolderId}`;
+        }
         const alias   = localStorage.getItem('keihi_alias') || '';
+        // エイリアスURLをアドレスバーに即反映（リロード前にホーム画面追加しても正しいURLになる）
+        if (alias) {
+          history.replaceState(null, '', '/' + alias);
+          App.updateDynamicManifest('/' + alias, name);
+        }
         const shareUrl = alias ? `${location.origin}/${alias}` : `${location.origin}/${ssId}`;
         const qrUrl   = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(shareUrl)}`;
         const mailSubject = encodeURIComponent(`【経費ログ】${name} へのご招待`);
@@ -375,6 +455,7 @@ const SettingsView = (() => {
       const msg  = el.querySelector('#companyNameMsg');
       try {
         await Sheets.update('設定!B2', [[name]]);
+        localStorage.setItem('keihi_company_name', name);
         msg.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>保存しました</span>';
         App.showToast('会社名を保存しました', 'success');
         const titleEl = document.getElementById('navAppTitle');
@@ -407,16 +488,19 @@ const SettingsView = (() => {
     try {
       _master = await App.getMaster();
       _renderMembers(el);
-      _renderSimpleList(el, 'categoryList', _master.categories, 'category');
-      _renderSimpleList(el, 'paySourceList', _master.paySources, 'paySource');
+      _renderSimpleList(el, 'categoryList',   _master.categories,        'category');
+      _renderSimpleList(el, 'paySourceList',  _master.paySources,        'paySource');
+      _renderSimpleList(el, 'customFlagList', _master.customFlags || [], 'customFlag');
     } catch (err) {
       App.showToast('マスタデータの読み込みに失敗しました', 'danger');
     }
 
+    _applyMemberPlanRestriction(el);
     el.querySelector('#btnAddMember')?.addEventListener('click', () => _showMemberForm(el, null));
+    el.querySelector('#btnUpgradePlan')?.addEventListener('click', () => _openStripePortal());
     el.querySelector('#btnAddCategory')?.addEventListener('click', () => _showInlineAdd(el, 'category'));
-
     el.querySelector('#btnAddPaySource')?.addEventListener('click', () => _showInlineAdd(el, 'paySource'));
+    el.querySelector('#btnAddCustomFlag')?.addEventListener('click', () => _showInlineAdd(el, 'customFlag'));
 
     // 証票フォルダ：現在値をURLとしてinputに表示＋フォルダを開くリンクを生成
     const currentFolderId = localStorage.getItem('keihi_folder_id') || await Sheets.readSetting('B4').catch(() => '');
@@ -515,7 +599,20 @@ const SettingsView = (() => {
     const container = el.querySelector('#memberList');
     if (!container) return;
     if (!_master?.members?.length) {
-      container.innerHTML = '<div class="text-muted small">メンバーが登録されていません</div>';
+      // スプレッドシート未作成時：現在ユーザーを管理者プレビューとして表示
+      const userInfo  = Auth.getUserInfo();
+      const userEmail = Auth.getUserEmail();
+      const userName  = userInfo?.name || userEmail || '';
+      container.innerHTML = `
+        <div class="d-flex align-items-center gap-2 py-2 border-bottom">
+          <div class="flex-grow-1">
+            <div class="master-item-name">${_escape(userName)}</div>
+            <div class="text-muted" style="font-size:0.72rem;">${_escape(userEmail)}
+              <span class="badge bg-primary ms-1" style="font-size:0.6rem;"><i class="bi bi-shield-fill-check me-1"></i>管理者</span>
+            </div>
+          </div>
+        </div>
+        <div class="text-muted mt-2" style="font-size:0.72rem;"><i class="bi bi-info-circle me-1"></i>データ保存先を新規作成すると正式に登録されます</div>`;
       return;
     }
     container.innerHTML = _master.members.map((m, i) => {
@@ -634,21 +731,22 @@ const SettingsView = (() => {
   }
 
   function _showInlineAdd(el, type) {
-    const containerId = type === 'category' ? 'categoryList' : 'paySourceList';
-    const container = el.querySelector(`#${containerId}`);
+    const containerIds = { category: 'categoryList', paySource: 'paySourceList', customFlag: 'customFlagList' };
+    const container = el.querySelector(`#${containerIds[type]}`);
     const row = document.createElement('div');
     row.className = 'd-flex gap-1 mt-2';
     row.innerHTML = `<input type="text" class="form-control form-control-sm" placeholder="追加する項目名">
-      <button class="btn btn-primary btn-sm">追加</button>
-      <button class="btn btn-secondary btn-sm">✕</button>`;
+      <button class="btn btn-primary btn-sm px-2" title="追加"><i class="bi bi-check-lg"></i></button>
+      <button class="btn btn-secondary btn-sm px-2" title="キャンセル"><i class="bi bi-x-lg"></i></button>`;
     container.prepend(row);
     row.querySelector('input').focus();
     row.querySelectorAll('button')[1].addEventListener('click', () => row.remove());
     row.querySelectorAll('button')[0].addEventListener('click', async () => {
       const val = row.querySelector('input').value.trim();
       if (!val) return;
-      if (type === 'category') _master.categories.push(val);
-      else _master.paySources.push(val);
+      if (type === 'category')        _master.categories.push(val);
+      else if (type === 'paySource')  _master.paySources.push(val);
+      else if (type === 'customFlag') { if (!_master.customFlags) _master.customFlags = []; _master.customFlags.push(val); }
       await _saveMasterToSheet(el);
       row.remove();
     });
@@ -682,21 +780,25 @@ const SettingsView = (() => {
   }
 
   async function _deleteSimpleItem(el, type, idx) {
-    if (type === 'category') _master.categories.splice(idx, 1);
-    else _master.paySources.splice(idx, 1);
+    if (type === 'category')        _master.categories.splice(idx, 1);
+    else if (type === 'paySource')  _master.paySources.splice(idx, 1);
+    else if (type === 'customFlag') (_master.customFlags || []).splice(idx, 1);
     await _saveMasterToSheet(el);
   }
 
   async function _saveMasterToSheet(el) {
-    const maxRows = Math.max(_master.members.length, _master.categories.length, _master.paySources.length, 1);
+    const customFlags = _master.customFlags || [];
+    const maxRows = Math.max(_master.members.length, _master.categories.length, _master.paySources.length, customFlags.length, 1);
     const rows = [];
     for (let i = 0; i < maxRows; i++) {
       const m = _master.members[i]    || {};
       const c = _master.categories[i] || '';
       const p = _master.paySources[i] || '';
-      rows.push([m.name || '', m.email || '', m.dept || '', p, c, m.role || '', '']);
+      const f = customFlags[i]        || '';
+      // A:氏名 B:メール C:所属 D:権限 E:備考 F:会社払い支払元 G:勘定科目 H:カスタムフラグ
+      rows.push([m.name || '', m.email || '', m.dept || '', m.role || '', '', p, c, f]);
     }
-    await Sheets.update(`マスタ表!A2:G${rows.length + 1}`, rows);
+    await Sheets.update(`マスタ表!A2:H${rows.length + 1}`, rows);
     App.showToast('保存しました', 'success');
 
     const syncCount = await _syncMemberNamesToExpenses(_master.members);
@@ -705,8 +807,9 @@ const SettingsView = (() => {
     App.clearMasterCache();
     _master = await App.getMaster();
     _renderMembers(el);
-    _renderSimpleList(el, 'categoryList', _master.categories, 'category');
-    _renderSimpleList(el, 'paySourceList', _master.paySources, 'paySource');
+    _renderSimpleList(el, 'categoryList',   _master.categories,        'category');
+    _renderSimpleList(el, 'paySourceList',  _master.paySources,        'paySource');
+    _renderSimpleList(el, 'customFlagList', _master.customFlags || [], 'customFlag');
   }
 
   async function _syncMemberNamesToExpenses(members) {
@@ -727,6 +830,43 @@ const SettingsView = (() => {
       if (updates.length > 0) await Sheets.batchUpdateValues(updates);
       return updates.length;
     } catch (_) { return 0; }
+  }
+
+  async function _openStripePortal() {
+    const key = localStorage.getItem('keihi_license_key');
+    if (!key) { App.showToast('ライセンスキーが設定されていません', 'danger'); return; }
+    App.showLoading('ポータルを開いています...');
+    try {
+      const res = await fetch('/api/portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key }),
+      });
+      const { url, error } = await res.json();
+      if (!url) throw new Error(error || 'portal_error');
+      window.location.href = url;
+    } catch (err) {
+      App.showToast('ポータルを開けませんでした: ' + err.message, 'danger');
+    } finally {
+      App.hideLoading();
+    }
+  }
+
+  function _applyMemberPlanRestriction(el) {
+    const result = _getCachedLicenseResult();
+    const isSolo = result?.plan === 'solo';
+    const btn  = el.querySelector('#btnAddMember');
+    const hint = el.querySelector('#memberPlanHint');
+    if (!btn) return;
+    if (isSolo) {
+      btn.disabled = true;
+      btn.classList.replace('btn-outline-primary', 'btn-outline-secondary');
+      hint?.classList.remove('d-none');
+    } else {
+      btn.disabled = false;
+      btn.classList.replace('btn-outline-secondary', 'btn-outline-primary');
+      hint?.classList.add('d-none');
+    }
   }
 
   function _updateLicenseStatus(el, result) {
@@ -820,15 +960,6 @@ const SettingsView = (() => {
     if (ssId) {
       Sheets.update('設定!B6', [[JSON.stringify(data)]]).catch(() => {});
     }
-  }
-
-  async function _restoreRegulationFromSheet() {
-    try {
-      const val = await Sheets.readSetting('B6');
-      if (!val) return;
-      const data = JSON.parse(val);
-      if (data?.confirmedAt) localStorage.setItem('keihi_regulation', JSON.stringify(data));
-    } catch (_) {}
   }
 
   function buildRegulationText(reg) {

@@ -6,105 +6,386 @@
   <title>ライセンス管理 — 経費ログ</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-</head>
-<body class="bg-light">
-  <div class="container py-4" style="max-width:900px;">
-    <h4 class="fw-bold mb-4"><i class="bi bi-key-fill me-2 text-primary"></i>ライセンス管理</h4>
+  <style>
+    :root {
+      --accent: #2563eb;
+      --surface: #ffffff;
+      --surface-sub: #f8fafc;
+      --border: #e8ecf0;
+      --text: #1a1f2e;
+      --text-sub: #64748b;
+      --text-mute: #94a3b8;
+      --shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+      --shadow-md: 0 4px 12px rgba(0,0,0,.06);
+    }
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f4f8; color: var(--text); font-size: 0.875rem; }
 
-    <!-- 認証フォーム -->
-    <div id="authArea" class="card mb-4">
-      <div class="card-body">
-        <div class="input-group" style="max-width:400px;">
-          <input type="password" class="form-control" id="inputSecret" placeholder="管理シークレット">
-          <button class="btn btn-primary" id="btnLoad">読み込む</button>
+    /* Nav */
+    .top-nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 1.5rem; height: 52px; display: flex; align-items: center; gap: 0.5rem; box-shadow: var(--shadow); }
+    .top-nav .brand { font-weight: 700; font-size: 0.95rem; color: var(--accent); display: flex; align-items: center; gap: 0.4rem; }
+
+    /* Cards */
+    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); }
+    .panel-header { padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 0.5rem; }
+    .panel-header .title { font-weight: 600; font-size: 0.82rem; color: var(--text-sub); letter-spacing: 0.02em; }
+    .panel-body { padding: 1.25rem; }
+
+    /* KPI */
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; }
+    .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.25rem; box-shadow: var(--shadow); }
+    .kpi .value { font-size: 1.9rem; font-weight: 700; line-height: 1; }
+    .kpi .label { font-size: 0.72rem; color: var(--text-mute); margin-top: 0.25rem; }
+    .kpi.c-blue  .value { color: var(--accent); }
+    .kpi.c-green .value { color: #16a34a; }
+    .kpi.c-amber .value { color: #d97706; }
+    .kpi.c-red   .value { color: #dc2626; }
+
+    /* Table */
+    .data-table { width: 100%; border-collapse: collapse; }
+    .data-table thead th { padding: 0.55rem 0.75rem; font-size: 0.72rem; font-weight: 600; color: var(--text-mute); text-transform: uppercase; letter-spacing: 0.06em; background: var(--surface-sub); border-bottom: 1px solid var(--border); white-space: nowrap; }
+    .data-table tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+    .data-table tbody tr:last-child { border-bottom: none; }
+    .data-table tbody tr:hover { background: #f8fafc; }
+    .data-table td { padding: 0.6rem 0.75rem; vertical-align: middle; }
+    .data-table .ps-first { padding-left: 1.25rem; }
+    .data-table .pe-last  { padding-right: 1.25rem; }
+
+    /* Customer cell */
+    .customer-name { font-weight: 500; font-size: 0.82rem; color: var(--text); }
+    .customer-biz  { font-size: 0.72rem; color: var(--text-sub); margin-top: 1px; }
+    .email-btn { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 4px; border: 1px solid var(--border); background: var(--surface); color: var(--text-mute); cursor: pointer; transition: all 0.15s; position: relative; margin-left: 2px; }
+    .email-btn:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .email-tooltip { position: absolute; left: 26px; top: 50%; transform: translateY(-50%); background: #1e293b; color: #fff; font-size: 0.7rem; white-space: nowrap; padding: 3px 8px; border-radius: 4px; pointer-events: none; opacity: 0; transition: opacity 0.15s; z-index: 100; }
+    .email-btn:hover .email-tooltip { opacity: 1; }
+    .email-copied { background: #16a34a !important; border-color: #16a34a !important; color: #fff !important; }
+
+    /* Key */
+    .key-chip { font-family: 'Menlo','Consolas',monospace; font-size: 0.69rem; color: var(--text-sub); background: var(--surface-sub); border: 1px solid var(--border); padding: 2px 7px; border-radius: 4px; letter-spacing: 0.03em; cursor: pointer; transition: background 0.15s; }
+    .key-chip:hover { background: #e8ecf0; }
+    .key-chip.copied { background: #dcfce7; border-color: #86efac; color: #166534; }
+
+    /* Badges */
+    .tag { display: inline-block; font-size: 0.65rem; font-weight: 600; padding: 2px 7px; border-radius: 100px; }
+    .tag-stripe  { background: #dbeafe; color: #1d4ed8; }
+    .tag-manual  { background: #f1f5f9; color: #64748b; border: 1px solid var(--border); }
+    .tag-solo    { background: #f1f5f9; color: #475569; }
+    .tag-team    { background: #ede9fe; color: #6d28d9; }
+    .tag-std     { background: #f1f5f9; color: #64748b; }
+    .status-dot  { display: inline-flex; align-items: center; gap: 5px; font-size: 0.75rem; font-weight: 500; }
+    .status-dot::before { content:''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .status-dot.active   { color: #16a34a; } .status-dot.active::before   { background: #16a34a; }
+    .status-dot.expired  { color: #d97706; } .status-dot.expired::before  { background: #d97706; }
+    .status-dot.suspended{ color: #dc2626; } .status-dot.suspended::before{ background: #dc2626; }
+
+    /* Action buttons */
+    .action-btn { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 5px; border: 1px solid var(--border); background: transparent; color: var(--text-mute); cursor: pointer; transition: all 0.15s; font-size: 0.8rem; }
+    .action-btn:hover.upgrade { background: #fef3c7; border-color: #fbbf24; color: #92400e; }
+    .action-btn:hover.delete  { background: #fee2e2; border-color: #fca5a5; color: #991b1b; }
+
+    /* Mini stats */
+    .mini-stat { background: var(--surface-sub); border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem 0.75rem; text-align: center; }
+    .mini-stat .v { font-size: 1.3rem; font-weight: 700; line-height: 1; }
+    .mini-stat .l { font-size: 0.68rem; color: var(--text-mute); margin-top: 3px; }
+
+    /* Filter bar */
+    .filter-bar { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    .filter-input { border: 1px solid var(--border); border-radius: 6px; padding: 0.35rem 0.75rem; font-size: 0.8rem; outline: none; background: var(--surface-sub); transition: border 0.15s, background 0.15s; width: 200px; }
+    .filter-input:focus { border-color: var(--accent); background: #fff; }
+    .filter-select { border: 1px solid var(--border); border-radius: 6px; padding: 0.35rem 0.6rem; font-size: 0.8rem; outline: none; background: var(--surface-sub); cursor: pointer; }
+    .btn-ghost { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.35rem 0.75rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); font-size: 0.8rem; color: var(--text-sub); cursor: pointer; transition: all 0.15s; }
+    .btn-ghost:hover { background: var(--surface-sub); border-color: #c0c8d0; }
+    .btn-accent { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.35rem 0.9rem; border: none; border-radius: 6px; background: var(--accent); font-size: 0.8rem; color: #fff; cursor: pointer; font-weight: 500; transition: background 0.15s; }
+    .btn-accent:hover { background: #1d4ed8; }
+    .btn-success-solid { background: #16a34a; } .btn-success-solid:hover { background: #15803d; }
+
+    /* Month summary table */
+    .month-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+    .month-table th { padding: 0.4rem 0.6rem; color: var(--text-mute); font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); }
+    .month-table td { padding: 0.45rem 0.6rem; border-bottom: 1px solid var(--border); }
+    .month-table tr:last-child td { border-bottom: none; }
+
+    /* Usage numbers */
+    .usage-num { font-size: 0.8rem; font-variant-numeric: tabular-nums; text-align: right; }
+    .usage-num.active { font-weight: 600; color: var(--text); }
+    .usage-num.zero   { color: var(--text-mute); }
+
+    /* Sentry */
+    .sentry-kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-bottom: 1rem; }
+    .sentry-kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 0.85rem 1.1rem; box-shadow: var(--shadow); }
+    .sentry-kpi .sv { font-size: 1.6rem; font-weight: 700; line-height: 1; }
+    .sentry-kpi .sl { font-size: 0.7rem; color: var(--text-mute); margin-top: 0.2rem; }
+    .sentry-kpi.c-red   .sv { color: #dc2626; }
+    .sentry-kpi.c-amber .sv { color: #d97706; }
+    .sentry-kpi.c-green .sv { color: #16a34a; }
+    .sentry-kpi.c-mute  .sv { color: var(--text-sub); }
+    .lvl-fatal   { background:#fce7f3;color:#9d174d;font-size:0.6rem;font-weight:700;padding:2px 6px;border-radius:4px; }
+    .lvl-error   { background:#fee2e2;color:#991b1b;font-size:0.6rem;font-weight:700;padding:2px 6px;border-radius:4px; }
+    .lvl-warning { background:#fef3c7;color:#92400e;font-size:0.6rem;font-weight:700;padding:2px 6px;border-radius:4px; }
+    .lvl-info    { background:#dbeafe;color:#1d4ed8;font-size:0.6rem;font-weight:700;padding:2px 6px;border-radius:4px; }
+
+    /* Responsive */
+    @media (max-width: 768px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } .sentry-kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+  </style>
+</head>
+<body>
+
+  <div class="top-nav">
+    <div class="brand"><i class="bi bi-key-fill"></i>ライセンス管理</div>
+    <span style="color:var(--border);margin-left:4px;">— 経費ログ</span>
+  </div>
+
+  <div style="max-width:1280px;margin:0 auto;padding:1.5rem 1.25rem;">
+
+    <!-- 認証 -->
+    <div id="authArea" class="panel" style="max-width:440px;">
+      <div class="panel-body">
+        <p style="font-size:0.8rem;color:var(--text-sub);margin-bottom:0.75rem;">管理シークレットを入力してください</p>
+        <div style="display:flex;gap:0.5rem;margin-bottom:0.5rem;">
+          <input type="password" id="inputSecret" class="filter-input" style="width:auto;flex:1;" placeholder="管理シークレット">
+          <button class="btn-accent" id="btnLoad"><i class="bi bi-unlock"></i>読み込む</button>
         </div>
       </div>
     </div>
 
-    <!-- 統計サマリー -->
     <div id="summary" class="d-none">
-      <div class="row g-3 mb-4">
-        <div class="col-6 col-md-3">
-          <div class="card text-center">
-            <div class="card-body py-3">
-              <div class="h3 fw-bold text-primary mb-0" id="statTotal">—</div>
-              <div class="small text-muted">総発行数</div>
-            </div>
-          </div>
+
+      <!-- KPI -->
+      <div class="kpi-grid mb-4">
+        <div class="kpi c-blue">
+          <div class="value" id="statTotal">—</div>
+          <div class="label">総発行数</div>
         </div>
-        <div class="col-6 col-md-3">
-          <div class="card text-center">
-            <div class="card-body py-3">
-              <div class="h3 fw-bold text-success mb-0" id="statActive">—</div>
-              <div class="small text-muted">有効</div>
-            </div>
-          </div>
+        <div class="kpi c-green">
+          <div class="value" id="statActive">—</div>
+          <div class="label">有効</div>
         </div>
-        <div class="col-6 col-md-3">
-          <div class="card text-center">
-            <div class="card-body py-3">
-              <div class="h3 fw-bold text-warning mb-0" id="statExpired">—</div>
-              <div class="small text-muted">期限切れ</div>
-            </div>
-          </div>
+        <div class="kpi c-amber">
+          <div class="value" id="statExpired">—</div>
+          <div class="label">期限切れ</div>
         </div>
-        <div class="col-6 col-md-3">
-          <div class="card text-center">
-            <div class="card-body py-3">
-              <div class="h3 fw-bold text-danger mb-0" id="statSuspended">—</div>
-              <div class="small text-muted">停止中</div>
+        <div class="kpi c-red">
+          <div class="value" id="statSuspended">—</div>
+          <div class="label">停止中</div>
+        </div>
+      </div>
+
+      <!-- Sentry モニタリング -->
+      <div id="sentrySection" class="d-none" style="margin-bottom:1rem;">
+        <div class="panel">
+          <div class="panel-header" style="justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:0.5rem;">
+              <img src="https://sentry-brand.storage.googleapis.com/sentry-glyph-black.png" style="width:16px;height:16px;opacity:0.6;" onerror="this.style.display='none'">
+              <span class="title">Sentry エラーモニタリング</span>
+              <span id="sentryUpdatedAt" style="font-size:0.7rem;color:var(--text-mute);"></span>
+            </div>
+            <button class="btn-ghost" id="btnSentryRefresh" style="font-size:0.75rem;padding:0.25rem 0.6rem;">
+              <i class="bi bi-arrow-clockwise"></i>更新
+            </button>
+          </div>
+          <div class="panel-body">
+            <div class="sentry-kpi-grid">
+              <div class="sentry-kpi c-red">
+                <div class="sv" id="sErrorTotal">—</div>
+                <div class="sl">未解決イシュー</div>
+              </div>
+              <div class="sentry-kpi c-amber">
+                <div class="sv" id="sErrorToday">—</div>
+                <div class="sl">今日の発生件数</div>
+              </div>
+              <div class="sentry-kpi c-mute">
+                <div class="sv" id="sErrorUsers">—</div>
+                <div class="sl">影響ユーザー数</div>
+              </div>
+              <div class="sentry-kpi c-green">
+                <div class="sv" id="sErrorResolved">—</div>
+                <div class="sl">解決済み（30日）</div>
+              </div>
+            </div>
+            <div style="overflow-x:auto;">
+              <table class="data-table" id="sentryTable">
+                <thead>
+                  <tr>
+                    <th class="ps-first" style="width:60px;">レベル</th>
+                    <th>エラー内容</th>
+                    <th style="width:70px;text-align:right;">発生数</th>
+                    <th style="width:60px;text-align:right;">ユーザー</th>
+                    <th style="width:110px;">最終発生</th>
+                    <th class="pe-last" style="width:120px;">環境</th>
+                  </tr>
+                </thead>
+                <tbody id="sentryTableBody">
+                  <tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--text-mute);">読み込み中...</td></tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- フィルター -->
-      <div class="d-flex gap-2 mb-3 flex-wrap">
-        <input type="text" class="form-control form-control-sm" id="filterText"
-          placeholder="メール・会社名で検索" style="max-width:250px;">
-        <select class="form-select form-select-sm" id="filterStatus" style="max-width:150px;">
-          <option value="">全ステータス</option>
-          <option value="active">有効</option>
-          <option value="expired">期限切れ</option>
-          <option value="suspended">停止中</option>
-        </select>
-        <button class="btn btn-outline-secondary btn-sm" id="btnCsvExport">
-          <i class="bi bi-download me-1"></i>CSV
-        </button>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1rem;">
+
+        <!-- 月次サマリー -->
+        <div class="panel">
+          <div class="panel-header">
+            <i class="bi bi-bar-chart-line" style="color:var(--accent);"></i>
+            <span class="title">月次サマリー</span>
+            <input type="month" id="monthPicker" class="filter-input ms-auto" style="width:auto;">
+          </div>
+          <div class="panel-body">
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;margin-bottom:1rem;">
+              <div class="mini-stat">
+                <div class="v" id="mNew" style="color:var(--accent);">—</div>
+                <div class="l">新規登録</div>
+              </div>
+              <div class="mini-stat">
+                <div class="v" id="mPaid" style="color:#16a34a;">—</div>
+                <div class="l">有料 <span style="font-size:0.6rem;background:#dcfce7;color:#166534;padding:1px 4px;border-radius:3px;">Stripe</span></div>
+              </div>
+              <div class="mini-stat">
+                <div class="v" id="mManual" style="color:var(--text-sub);">—</div>
+                <div class="l">手動発行</div>
+              </div>
+              <div class="mini-stat">
+                <div class="v" id="mUpgrade" style="color:#d97706;">—</div>
+                <div class="l">有料転換</div>
+              </div>
+              <div class="mini-stat">
+                <div class="v" id="mChurn" style="color:#dc2626;">—</div>
+                <div class="l">離脱</div>
+              </div>
+            </div>
+            <div id="mNewList" class="d-none">
+              <div style="font-size:0.72rem;font-weight:600;color:var(--text-mute);text-transform:uppercase;letter-spacing:0.06em;border-top:1px solid var(--border);padding-top:0.75rem;margin-bottom:0.5rem;">当月新規登録</div>
+              <div style="overflow-x:auto;">
+                <table class="month-table">
+                  <thead><tr><th>発行日</th><th>顧客</th><th>プラン</th><th>種別</th></tr></thead>
+                  <tbody id="mNewTable"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 手動発行 -->
+        <div class="panel">
+          <div class="panel-header">
+            <i class="bi bi-plus-circle" style="color:#16a34a;"></i>
+            <span class="title">手動発行</span>
+          </div>
+          <div class="panel-body">
+            <div style="display:flex;flex-direction:column;gap:0.5rem;">
+              <input type="email" class="filter-input" id="issueEmail" style="width:100%;" placeholder="メールアドレス *">
+              <input type="text" class="filter-input" id="issueCompany" style="width:100%;" placeholder="会社名・氏名（任意）">
+              <div style="display:flex;gap:0.5rem;">
+                <select class="filter-select" id="issuePlan" style="flex:1;">
+                  <option value="standard">標準</option>
+                  <option value="solo">ソロ</option>
+                  <option value="team">チーム</option>
+                </select>
+                <input type="date" class="filter-input" id="issueExpiry" style="flex:1.5;">
+                <button class="btn-accent btn-success-solid" id="btnIssue">発行</button>
+              </div>
+            </div>
+            <div style="margin-top:0.5rem;font-size:0.78rem;" id="issueMsg"></div>
+          </div>
+        </div>
       </div>
 
       <!-- テーブル -->
-      <div class="card">
-        <div class="table-responsive">
-          <table class="table table-sm table-hover mb-0">
-            <thead class="table-light">
+      <div class="panel">
+        <div class="panel-header">
+          <i class="bi bi-list-ul" style="color:var(--accent);"></i>
+          <span class="title">発行一覧</span>
+          <span id="filteredCount" style="font-size:0.72rem;color:var(--text-mute);margin-left:0.25rem;"></span>
+          <div class="filter-bar ms-auto">
+            <input type="text" class="filter-input" id="filterText" placeholder="名前・メールで検索" style="width:180px;">
+            <select class="filter-select" id="filterStatus">
+              <option value="">全ステータス</option>
+              <option value="active">有効</option>
+              <option value="expired">期限切れ</option>
+              <option value="suspended">停止中</option>
+            </select>
+            <button class="btn-ghost" id="btnCsvExport"><i class="bi bi-download"></i>CSV</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="data-table">
+            <thead>
               <tr>
-                <th style="font-size:0.78rem;">発行日</th>
-                <th style="font-size:0.78rem;">会社名・氏名</th>
-                <th style="font-size:0.78rem;">メール</th>
-                <th style="font-size:0.78rem;">ライセンスキー</th>
-                <th style="font-size:0.78rem;">有効期限</th>
-                <th style="font-size:0.78rem;">ステータス</th>
-                <th style="font-size:0.78rem;"></th>
+                <th class="ps-first" style="width:90px;">発行日</th>
+                <th style="width:220px;">顧客</th>
+                <th style="width:70px;">プラン</th>
+                <th style="width:200px;">ライセンスキー</th>
+                <th style="width:90px;">有効期限</th>
+                <th style="width:60px;text-align:right;">今月</th>
+                <th style="width:60px;text-align:right;">先月</th>
+                <th style="width:90px;text-align:center;">状態</th>
+                <th class="pe-last" style="width:64px;text-align:right;"></th>
               </tr>
             </thead>
             <tbody id="licenseTable"></tbody>
           </table>
         </div>
+        <div id="noResult" class="d-none" style="text-align:center;padding:2.5rem;color:var(--text-mute);font-size:0.85rem;">
+          <i class="bi bi-inbox" style="font-size:1.5rem;display:block;margin-bottom:0.5rem;"></i>該当なし
+        </div>
       </div>
-      <div id="noResult" class="text-center text-muted py-3 d-none">該当なし</div>
+
     </div>
   </div>
 
   <script>
     let _all = [];
     let _secret = '';
+    let _sentryToken = '';
 
     document.getElementById('btnLoad').addEventListener('click', load);
     document.getElementById('inputSecret').addEventListener('keydown', e => { if (e.key === 'Enter') load(); });
+    document.getElementById('btnSentryRefresh').addEventListener('click', () => loadSentry());
+    document.getElementById('btnIssue').addEventListener('click', issueLicense);
     document.getElementById('filterText').addEventListener('input', render);
     document.getElementById('filterStatus').addEventListener('change', render);
     document.getElementById('btnCsvExport').addEventListener('click', exportCsv);
+    document.getElementById('monthPicker').value = new Date().toISOString().slice(0, 7);
+    document.getElementById('monthPicker').addEventListener('change', updateMonthly);
+
+    const _defaultExpiry = () => {
+      const d = new Date(); d.setFullYear(d.getFullYear() + 1);
+      return d.toISOString().split('T')[0];
+    };
+    document.getElementById('issueExpiry').value = _defaultExpiry();
+
+    async function issueLicense() {
+      const email   = document.getElementById('issueEmail').value.trim();
+      const company = document.getElementById('issueCompany').value.trim();
+      const plan    = document.getElementById('issuePlan').value;
+      const expiry  = document.getElementById('issueExpiry').value;
+      const msg     = document.getElementById('issueMsg');
+      if (!email) { msg.innerHTML = '<span style="color:#dc2626;">メールアドレスは必須です</span>'; return; }
+      msg.innerHTML = '<span style="color:var(--text-mute);">発行中...</span>';
+      const resp = await fetch(`/api/admin-licenses?secret=${encodeURIComponent(_secret)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, company, plan, expiresAt: expiry }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) {
+        if (data.error === 'duplicate_email') {
+          msg.innerHTML = `<span style="color:#d97706;">既存キーあり: <code>${esc(data.existingKey)}</code></span>`;
+        } else {
+          msg.innerHTML = `<span style="color:#dc2626;">エラー: ${esc(data.error)}</span>`;
+        }
+        return;
+      }
+      msg.innerHTML = `<span style="color:#16a34a;"><i class="bi bi-check-circle me-1"></i>発行: <code>${esc(data.key)}</code></span>`;
+      document.getElementById('issueEmail').value   = '';
+      document.getElementById('issueCompany').value = '';
+      document.getElementById('issueExpiry').value  = _defaultExpiry();
+      _all.unshift(data);
+      updateStats();
+      render();
+    }
 
     async function load() {
       _secret = document.getElementById('inputSecret').value.trim();
@@ -112,10 +393,218 @@
       if (!resp.ok) { alert('認証に失敗しました'); return; }
       const data = await resp.json();
       _all = data.licenses;
+      if (data.sentryToken) _sentryToken = data.sentryToken;
       document.getElementById('authArea').classList.add('d-none');
       document.getElementById('summary').classList.remove('d-none');
       updateStats();
+      updateMonthly();
       render();
+      if (_sentryToken) loadSentry();
+    }
+
+    async function loadSentry() {
+      const token = _sentryToken;
+      if (!token) return;
+      const section = document.getElementById('sentrySection');
+      section.classList.remove('d-none');
+
+      const PROJECT = '4511415628464128';
+      const headers = { Authorization: `Bearer ${token}` };
+
+      const tbody = document.getElementById('sentryTableBody');
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--text-mute);">読み込み中...</td></tr>';
+      document.getElementById('sErrorTotal').textContent    = '…';
+      document.getElementById('sErrorToday').textContent    = '…';
+      document.getElementById('sErrorUsers').textContent    = '…';
+      document.getElementById('sErrorResolved').textContent = '…';
+      document.getElementById('sentryUpdatedAt').textContent = '';
+
+      try {
+        // Org slug を自動検出（キャッシュ → API取得）
+        let orgSlug = localStorage.getItem('keihi_sentry_org_slug') || '';
+        if (!orgSlug) {
+          const orgResp = await fetch('https://us.sentry.io/api/0/organizations/', { headers });
+          if (orgResp.status === 401) throw new Error('Sentry トークンが無効です（401 Unauthorized）\n\nSentry → Settings → Auth Tokens でトークンを確認してください。');
+          if (!orgResp.ok) {
+            const errBody = await orgResp.json().catch(() => ({}));
+            throw new Error(`Sentry 組織取得エラー ${orgResp.status}: ${errBody.detail || JSON.stringify(errBody)}`);
+          }
+          const orgs = await orgResp.json();
+          if (!Array.isArray(orgs) || orgs.length === 0) throw new Error('Sentry 組織が見つかりません（org:read スコープが必要です）');
+          orgSlug = orgs[0].slug;
+          localStorage.setItem('keihi_sentry_org_slug', orgSlug);
+        }
+
+        // プロジェクト ID（数値）で検索
+        const BASE = `https://us.sentry.io/api/0/organizations/${orgSlug}`;
+        const [unresolvedResp, resolvedResp] = await Promise.all([
+          fetch(`${BASE}/issues/?project=${PROJECT}&limit=25&query=is:unresolved&expand=owners`, { headers }),
+          fetch(`${BASE}/issues/?project=${PROJECT}&limit=100&query=is:resolved&statsPeriod=30d`, { headers }),
+        ]);
+
+        if (!unresolvedResp.ok) {
+          const errBody = await unresolvedResp.json().catch(() => ({}));
+          if (unresolvedResp.status === 400 || unresolvedResp.status === 404) {
+            localStorage.removeItem('keihi_sentry_org_slug');
+          }
+          throw new Error(`Sentry API ${unresolvedResp.status}: ${errBody.detail || JSON.stringify(errBody)}`);
+        }
+
+        const unresolved = await unresolvedResp.json();
+        const resolved   = resolvedResp.ok ? await resolvedResp.json() : [];
+
+        // KPI: unresolved count (use X-Hits header if available, else array length)
+        const totalHits = parseInt(unresolvedResp.headers.get('X-Hits') || '0', 10) || unresolved.length;
+
+        // Today's event count: sum last 24h buckets from each issue's stats
+        let todayCount = 0;
+        let totalUsers = 0;
+        unresolved.forEach(issue => {
+          totalUsers += issue.userCount || 0;
+          const buckets24h = issue.stats?.['24h'];
+          if (Array.isArray(buckets24h)) {
+            const cutoff = Date.now() - 86400000;
+            buckets24h.forEach(([ts, cnt]) => {
+              if (ts * 1000 >= cutoff) todayCount += cnt;
+            });
+          } else {
+            // Fallback: if no stats, count issues seen today
+            if (issue.lastSeen && new Date(issue.lastSeen).toDateString() === new Date().toDateString()) {
+              todayCount += parseInt(issue.count || 0, 10);
+            }
+          }
+        });
+
+        document.getElementById('sErrorTotal').textContent    = totalHits;
+        document.getElementById('sErrorToday').textContent    = todayCount;
+        document.getElementById('sErrorUsers').textContent    = totalUsers;
+        document.getElementById('sErrorResolved').textContent = resolved.length;
+        document.getElementById('sentryUpdatedAt').textContent = '更新: ' + new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+
+        if (unresolved.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--text-mute);"><i class="bi bi-check-circle me-2"></i>未解決イシューはありません</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = unresolved.map(issue => {
+          const lvl   = issue.level || 'error';
+          const lvlHtml = `<span class="lvl-${lvl}">${lvl.toUpperCase()}</span>`;
+          const title = esc(issue.title || '');
+          const value = esc(issue.metadata?.value || '');
+          const count = Number(issue.count || 0).toLocaleString('ja-JP');
+          const users = issue.userCount || 0;
+          const last  = issue.lastSeen ? _relTime(issue.lastSeen) : '—';
+
+          // Environment / browser tag
+          const envTag  = issue.tags?.find(t => t.key === 'environment');
+          const browserTag = issue.tags?.find(t => t.key === 'browser.name');
+          const envText = [envTag?.value, browserTag?.value].filter(Boolean).join(' / ') || '—';
+
+          return `<tr>
+            <td class="ps-first">${lvlHtml}</td>
+            <td>
+              <div style="font-size:0.8rem;font-weight:500;color:var(--text);line-height:1.3;">${title}</div>
+              ${value ? `<div style="font-size:0.7rem;color:var(--text-mute);margin-top:2px;">${value}</div>` : ''}
+            </td>
+            <td style="text-align:right;font-variant-numeric:tabular-nums;font-size:0.8rem;">${count}</td>
+            <td style="text-align:right;font-size:0.8rem;">${users > 0 ? users : '—'}</td>
+            <td style="font-size:0.75rem;color:var(--text-sub);">${last}</td>
+            <td class="pe-last" style="font-size:0.72rem;color:var(--text-mute);">${esc(envText)}</td>
+          </tr>`;
+        }).join('');
+
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:#dc2626;">${esc(err.message)}</td></tr>`;
+        document.getElementById('sErrorTotal').textContent    = 'ERR';
+        document.getElementById('sErrorToday').textContent    = 'ERR';
+        document.getElementById('sErrorUsers').textContent    = 'ERR';
+        document.getElementById('sErrorResolved').textContent = 'ERR';
+      }
+    }
+
+    function _relTime(iso) {
+      const diff = Date.now() - new Date(iso).getTime();
+      const min  = Math.floor(diff / 60000);
+      if (min < 1)   return 'たった今';
+      if (min < 60)  return `${min}分前`;
+      const hr = Math.floor(min / 60);
+      if (hr < 24)   return `${hr}時間前`;
+      const day = Math.floor(hr / 24);
+      return `${day}日前`;
+    }
+
+    function _customerCell(l, compact = false) {
+      const name = esc(l.customerName || l.company || '');
+      const biz  = esc(l.businessName || '');
+      const displayName = biz || name || '<span style="color:var(--text-mute);">—</span>';
+      const subLine = (biz && name && biz !== name) ? `<div class="customer-biz">${name}</div>` : '';
+      const email = esc(l.email || '');
+      if (compact) {
+        return `<div class="customer-name">${displayName}</div>${subLine}`;
+      }
+      return `
+        <div style="display:flex;align-items:center;gap:4px;">
+          <div>
+            <div class="customer-name">${displayName}</div>
+            ${subLine}
+          </div>
+          ${email ? `<button class="email-btn" onclick="copyEmail(this,'${email}')" title="${email}">
+            <i class="bi bi-envelope" style="font-size:0.7rem;"></i>
+            <span class="email-tooltip">${email}</span>
+          </button>` : ''}
+        </div>`;
+    }
+
+    function copyEmail(btn, email) {
+      navigator.clipboard.writeText(email).then(() => {
+        btn.classList.add('email-copied');
+        btn.title = 'コピーしました';
+        setTimeout(() => { btn.classList.remove('email-copied'); btn.title = email; }, 1500);
+      });
+    }
+
+    function copyKey(el, key) {
+      navigator.clipboard.writeText(key).then(() => {
+        el.classList.add('copied');
+        setTimeout(() => el.classList.remove('copied'), 1500);
+      });
+    }
+
+    function updateMonthly() {
+      const ym = document.getElementById('monthPicker').value;
+      if (!ym) return;
+      const planLabel = { solo: 'ソロ', team: 'チーム', standard: '標準' };
+      const newRegs  = _all.filter(l => (l.createdAt || '').startsWith(ym));
+      const paid     = newRegs.filter(l => !!l.stripeSessionId);
+      const manual   = newRegs.filter(l => !l.stripeSessionId);
+      const upgrades = _all.filter(l => (l.upgradedAt || '').startsWith(ym));
+      const churn    = _all.filter(l => (l.expiresAt || '').startsWith(ym) && getStatus(l) !== 'active');
+
+      document.getElementById('mNew').textContent     = newRegs.length;
+      document.getElementById('mPaid').textContent    = paid.length;
+      document.getElementById('mManual').textContent  = manual.length;
+      document.getElementById('mUpgrade').textContent = upgrades.length;
+      document.getElementById('mChurn').textContent   = churn.length;
+
+      const listEl = document.getElementById('mNewList');
+      const tbody  = document.getElementById('mNewTable');
+      if (newRegs.length > 0) {
+        tbody.innerHTML = newRegs.map(l => {
+          const plan = l.plan || 'standard';
+          const kind = l.stripeSessionId
+            ? '<span class="tag tag-stripe">有料</span>'
+            : '<span class="tag tag-manual">手動</span>';
+          return `<tr>
+            <td style="color:var(--text-sub);">${(l.createdAt||'').split('T')[0]}</td>
+            <td>${_customerCell(l, true)}</td>
+            <td><span class="tag tag-${plan === 'team' ? 'team' : plan === 'solo' ? 'solo' : 'std'}">${planLabel[plan]||plan}</span></td>
+            <td>${kind}</td>
+          </tr>`;
+        }).join('');
+        listEl.classList.remove('d-none');
+      } else {
+        listEl.classList.add('d-none');
+      }
     }
 
     function getStatus(lic) {
@@ -125,7 +614,7 @@
     }
 
     function updateStats() {
-      document.getElementById('statTotal').textContent = _all.length;
+      document.getElementById('statTotal').textContent     = _all.length;
       document.getElementById('statActive').textContent    = _all.filter(l => getStatus(l) === 'active').length;
       document.getElementById('statExpired').textContent   = _all.filter(l => getStatus(l) === 'expired').length;
       document.getElementById('statSuspended').textContent = _all.filter(l => getStatus(l) === 'suspended').length;
@@ -135,48 +624,85 @@
       const text   = document.getElementById('filterText').value.toLowerCase();
       const status = document.getElementById('filterStatus').value;
       const filtered = _all.filter(l => {
-        if (text && !`${l.company}${l.email}`.toLowerCase().includes(text)) return false;
+        if (text && !`${l.company}${l.customerName}${l.businessName}${l.email}`.toLowerCase().includes(text)) return false;
         if (status && getStatus(l) !== status) return false;
         return true;
       });
 
-      const statusBadge = { active: 'success', expired: 'warning', suspended: 'danger' };
+      const countEl = document.getElementById('filteredCount');
+      countEl.textContent = (text || status)
+        ? `${filtered.length} / ${_all.length}件`
+        : `${_all.length}件`;
+
       const statusLabel = { active: '有効', expired: '期限切れ', suspended: '停止中' };
+      const planLabel   = { solo: 'ソロ', team: 'チーム', standard: '標準' };
 
       const tbody = document.getElementById('licenseTable');
       tbody.innerHTML = filtered.map(l => {
-        const st = getStatus(l);
-        const date = l.createdAt ? l.createdAt.split('T')[0] : '—';
+        const st         = getStatus(l);
+        const date       = l.createdAt ? l.createdAt.split('T')[0] : '—';
+        const plan       = l.plan || 'standard';
+        const usageThis  = l.usageThis ?? 0;
+        const usageLast  = l.usageLast ?? 0;
+        const isStripe   = !!l.stripeSessionId;
+        const planClass  = plan === 'team' ? 'team' : plan === 'solo' ? 'solo' : 'std';
         return `<tr data-key="${esc(l.key)}">
-          <td style="font-size:0.78rem;">${date}</td>
-          <td style="font-size:0.78rem;">${esc(l.company || '')}</td>
-          <td style="font-size:0.78rem;">${esc(l.email || '')}</td>
-          <td style="font-size:0.72rem;font-family:monospace;">${esc(l.key)}</td>
-          <td style="font-size:0.78rem;">${l.expiresAt || '—'}</td>
-          <td><span class="badge bg-${statusBadge[st]}" style="font-size:0.65rem;">${statusLabel[st]}</span></td>
-          <td><button class="btn btn-outline-danger btn-sm py-0 px-1 btn-delete" data-key="${esc(l.key)}" title="削除"><i class="bi bi-trash"></i></button></td>
+          <td class="ps-first" style="font-size:0.78rem;color:var(--text-sub);">${date}</td>
+          <td>
+            ${_customerCell(l)}
+            ${isStripe ? '<span class="tag tag-stripe" style="margin-top:3px;display:inline-block;">Stripe</span>' : '<span class="tag tag-manual" style="margin-top:3px;display:inline-block;">手動</span>'}
+          </td>
+          <td><span class="tag tag-${planClass}">${planLabel[plan]||plan}</span></td>
+          <td><span class="key-chip" onclick="copyKey(this,'${esc(l.key)}')" title="クリックでコピー">${esc(l.key)}</span></td>
+          <td style="font-size:0.78rem;color:var(--text-sub);">${l.expiresAt||'—'}</td>
+          <td class="usage-num ${usageThis > 0 ? 'active' : 'zero'}">${usageThis || '—'}</td>
+          <td class="usage-num zero">${usageLast || '—'}</td>
+          <td style="text-align:center;"><span class="status-dot ${st}">${statusLabel[st]}</span></td>
+          <td class="pe-last" style="text-align:right;white-space:nowrap;">
+            ${!isStripe && !l.upgradedAt ? `<button class="action-btn upgrade btn-upgrade me-1" data-key="${esc(l.key)}" title="有料転換としてマーク"><i class="bi bi-arrow-up-circle"></i></button>` : ''}
+            <button class="action-btn delete btn-delete" data-key="${esc(l.key)}" title="削除"><i class="bi bi-trash"></i></button>
+          </td>
         </tr>`;
       }).join('');
 
-      tbody.querySelectorAll('.btn-delete').forEach(btn => {
-        btn.addEventListener('click', () => deleteLicense(btn.dataset.key));
-      });
+      tbody.querySelectorAll('.btn-upgrade').forEach(btn =>
+        btn.addEventListener('click', () => upgradeLicense(btn.dataset.key)));
+      tbody.querySelectorAll('.btn-delete').forEach(btn =>
+        btn.addEventListener('click', () => deleteLicense(btn.dataset.key)));
 
       document.getElementById('noResult').classList.toggle('d-none', filtered.length > 0);
     }
 
     function exportCsv() {
-      const header = ['発行日','会社名・氏名','メール','ライセンスキー','有効期限','ステータス'];
+      const header = ['発行日','氏名','ビジネス名','メール','ライセンスキー','プラン','有効期限','今月申請数','先月申請数','ステータス'];
       const statusLabel = { active: '有効', expired: '期限切れ', suspended: '停止中' };
+      const planLabel   = { solo: 'ソロ', team: 'チーム', standard: '標準' };
       const rows = _all.map(l => [
-        l.createdAt?.split('T')[0] || '',
-        l.company || '', l.email || '', l.key, l.expiresAt || '', statusLabel[getStatus(l)]
+        l.createdAt?.split('T')[0]||'', l.customerName||l.company||'', l.businessName||'',
+        l.email||'', l.key, planLabel[l.plan]||l.plan||'', l.expiresAt||'',
+        l.usageThis??'', l.usageLast??'', statusLabel[getStatus(l)]
       ]);
-      const csv = [header, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+      const csv = [header,...rows].map(r => r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
       const a = document.createElement('a');
-      a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' }));
+      a.href = URL.createObjectURL(new Blob(['﻿'+csv], { type: 'text/csv;charset=utf-8;' }));
       a.download = `licenses_${new Date().toISOString().split('T')[0]}.csv`;
       a.click();
+    }
+
+    async function upgradeLicense(key) {
+      if (!confirm(`有料転換としてマークしますか？\n${key}\n\n有効期限が1年延長されます（Stripe外の決済用）。`)) return;
+      const resp = await fetch(`/api/admin-licenses?secret=${encodeURIComponent(_secret)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, action: 'upgrade' }),
+      });
+      if (!resp.ok) { alert('処理に失敗しました'); return; }
+      const data = await resp.json();
+      const idx = _all.findIndex(l => l.key === key);
+      if (idx !== -1) _all[idx] = { ..._all[idx], ...data };
+      updateStats();
+      updateMonthly();
+      render();
     }
 
     async function deleteLicense(key) {
@@ -189,7 +715,7 @@
     }
 
     function esc(s) {
-      return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     }
   </script>
 </body>

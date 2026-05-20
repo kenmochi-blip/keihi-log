@@ -13,11 +13,16 @@
  */
 
 import { kv } from '@vercel/kv';
+import { rateLimit } from './_rateLimit.js';
+import { captureException } from './_sentry.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
+
+  const { ok } = await rateLimit(req, { prefix: 'rl:license', limit: 20, window: 60 });
+  if (!ok) return res.status(429).json({ valid: false, reason: 'too_many_requests' });
 
   const { key } = req.body || {};
   if (!key || typeof key !== 'string' || key.length < 8) {
@@ -55,6 +60,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.error('License KV error:', err);
+    captureException(err, { key });
     return res.status(200).json({ valid: false, reason: 'server_error' });
   }
 }

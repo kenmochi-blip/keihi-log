@@ -1,4 +1,8 @@
 {
+  "redirects": [
+    { "source": "/app.html", "destination": "/app", "permanent": false },
+    { "source": "https://www.keihi-log.com/:path*", "destination": "https://keihi-log.com/:path*", "permanent": true }
+  ],
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api/:path*" },
     { "source": "/privacy", "destination": "/privacy.html" },
@@ -9,8 +13,9 @@
     { "source": "/demo", "destination": "/demo.html" },
     { "source": "/login", "destination": "/login.html" },
     { "source": "/tokusho", "destination": "/tokusho.html" },
+    { "source": "/app", "destination": "/app.html" },
     { "source": "/", "destination": "/index.html" },
-    { "source": "/((?!js/|css/|img/|api/|app\\.html|login\\.html|lp\\.html|tokusho\\.html|privacy\\.html|terms\\.html|success\\.html|licenses\\.html|faq\\.html|demo\\.html|index\\.html|manifest\\.json|sw\\.js|favicon).+)", "destination": "/app.html" }
+    { "source": "/((?!js/|css/|img/|icons/|api/|app\\.html|login\\.html|lp\\.html|tokusho\\.html|privacy\\.html|terms\\.html|success\\.html|licenses\\.html|faq\\.html|demo\\.html|index\\.html|manifest\\.json|sw\\.js|favicon).+)", "destination": "/app.html" }
   ],
   "headers": [
     {
@@ -27,6 +32,24 @@
     },
     {
       "source": "/css/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/sw.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/favicon(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/icons/(.*)",
       "headers": [
         { "key": "Cache-Control", "value": "no-cache, must-revalidate" }
       ]

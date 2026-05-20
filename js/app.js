@@ -31,18 +31,31 @@ const App = (() => {
     // URLパスからエイリアス/シートIDを解決してlocalStorageに反映
     await _resolvePathAlias();
 
-    // 認証トークン確認（未認証ならログイン画面へ）
+    // 認証トークン確認（未認証・リフレッシュ失敗時はログイン画面へ）
     try {
       await Auth.getToken();
     } catch (_) {
-      const ret = location.pathname !== '/app.html' ? location.pathname : '';
+      const _isGenericPath = location.pathname === '/app.html' || location.pathname === '/app' || location.pathname === '/';
+      let ret = _isGenericPath ? '' : location.pathname;
+      if (!ret) { const ca = _getCookieAlias(); if (ca) ret = '/' + ca; }
       window.location.href = 'login.html' + (ret ? '?return=' + encodeURIComponent(ret) : '');
       return;
     }
 
     // ライセンス・シート未設定の場合は申請画面を表示してバナーで案内
-    const licKey = localStorage.getItem('keihi_license_key');
-    if (!licKey || !localStorage.getItem('keihi_sheet_id')) {
+    let licKey = localStorage.getItem('keihi_license_key');
+    const ssId = localStorage.getItem('keihi_sheet_id');
+    // シートIDはあるがライセンスキーが未設定の場合、シートから自動取得（メンバー向け）
+    if (!licKey && ssId) {
+      try {
+        const sheetLicKey = await Sheets.readSetting('B3');
+        if (sheetLicKey && sheetLicKey.startsWith('KL-')) {
+          localStorage.setItem('keihi_license_key', sheetLicKey);
+          licKey = sheetLicKey;
+        }
+      } catch (_) {}
+    }
+    if (!licKey || !ssId) {
       _setupUI('submit');
       return;
     }
@@ -56,9 +69,15 @@ const App = (() => {
     try {
       _masterCache = await Sheets.readMaster();
       const email  = Auth.getUserEmail().toLowerCase();
-      // 管理者未登録のときは全員管理者扱い（初期設定の保険）
-      // 管理者登録後はマスタ表の権限のみで判定（ライセンスオーナーも例外なし）
-      if (_masterCache.admins.length === 0 || _masterCache.admins.includes(email)) {
+
+      // ライセンス購入者メールをキャッシュから取得（シート設定に関わらず管理者扱い）
+      let isOwner = false;
+      try {
+        const _lc = JSON.parse(localStorage.getItem('keihi_license_cache') || 'null');
+        if (_lc?.result?.ownerEmail && _lc.result.ownerEmail === email) isOwner = true;
+      } catch (_e) {}
+
+      if (isOwner || _masterCache.admins.length === 0 || _masterCache.admins.includes(email)) {
         _userRole = 'admin';
       } else if (_masterCache.viewers && _masterCache.viewers.includes(email)) {
         _userRole = 'viewer';
@@ -68,7 +87,8 @@ const App = (() => {
       _isAdmin = _userRole === 'admin';
 
       // メンバー制限：登録メンバーが1人以上いる場合、未登録ユーザーはアクセス不可
-      if (_masterCache.members.length > 0 && !_masterCache.members.some(m => m.email.toLowerCase() === email)) {
+      // 管理者（isOwner含む）はメンバーリストの有無に関わらず常にアクセス許可
+      if (_userRole !== 'admin' && _masterCache.members.length > 0 && !_masterCache.members.some(m => m.email.toLowerCase() === email)) {
         _setupUI('settings');
         showToast('このアプリへのアクセス権がありません。管理者に連絡してください。', 'danger');
         return;
@@ -86,17 +106,37 @@ const App = (() => {
       } catch (_e) {}
     }
 
-    // 会社名をナビタイトルに反映
-    let _companyName = '';
+    // 会社名をナビタイトルに反映（キャッシュ優先で即時表示、APIで更新）
+    let _companyName = localStorage.getItem('keihi_company_name') || '';
+    if (_companyName) {
+      const titleEl = document.getElementById('navAppTitle');
+      if (titleEl) titleEl.textContent = `経費ログ - ${_companyName}`;
+      document.title = `経費ログ | ${_companyName}`;
+    }
     try {
-      _companyName = await Sheets.readSetting('B2') || '';
-      if (_companyName) {
+      const fetched = await Sheets.readSetting('B2') || '';
+      if (fetched && fetched !== _companyName) {
+        _companyName = fetched;
+        localStorage.setItem('keihi_company_name', fetched);
         const titleEl = document.getElementById('navAppTitle');
-        if (titleEl) titleEl.textContent = `経費ログ - ${_companyName}`;
+        if (titleEl) titleEl.textContent = `経費ログ - ${fetched}`;
+        document.title = `経費ログ | ${fetched}`;
       }
     } catch (_) {}
 
+    // フォルダIDをシートから復元（新ドメイン等でlocalStorageが空の場合）
+    if (!localStorage.getItem('keihi_folder_id')) {
+      Sheets.readSetting('B4').then(fid => {
+        if (fid) localStorage.setItem('keihi_folder_id', fid);
+      }).catch(() => {});
+    }
+
     _setupUI('submit', _companyName);
+
+    // 管理者以外は設定タブを非表示
+    if (!_isAdmin) {
+      document.querySelector('.nav-item-btn[data-view="settings"]')?.classList.add('d-none');
+    }
   }
 
   function _setupUI(initialView = 'submit', companyName = '') {
@@ -104,7 +144,9 @@ const App = (() => {
     if (!(typeof Demo !== 'undefined' && Demo.isActive())) {
       const _ssId  = localStorage.getItem('keihi_sheet_id');
       const _alias = localStorage.getItem('keihi_alias');
-      if (_ssId && location.pathname === '/app.html') {
+      // alias を Cookie にも保存（SafariとPWAで共有、既存ユーザー移行）
+      if (_alias) _setCookieAlias(_alias);
+      if (_ssId && (location.pathname === '/app.html' || location.pathname === '/app')) {
         history.replaceState(null, '', '/' + (_alias || _ssId));
       }
       // チーム別ショートカット用：動的マニフェストを生成してstart_urlにエイリアスURLを設定
@@ -153,6 +195,8 @@ const App = (() => {
    * @param {string} [detailHtml] メッセージ下部に追加表示するHTML（任意）
    */
   function confirm(message, detailHtml = '') {
+    // 前のダイアログが未解決の場合はキャンセル扱いで閉じてから開く
+    if (_confirmResolve) { _confirmResolve(false); _confirmResolve = null; }
     return new Promise(resolve => {
       _confirmResolve = resolve;
       const body = document.getElementById('confirmModalBody');
@@ -200,6 +244,16 @@ const App = (() => {
   }
 
   function clearMasterCache() { _masterCache = null; }
+
+  /**
+   * メンバー管理表に登録された名前を返す。
+   * 未登録の場合は fallback（シートのB列名やGoogle表示名）を使用。
+   */
+  function getMemberName(email, fallback) {
+    if (!email || !_masterCache?.members?.length) return fallback || email || '';
+    const member = _masterCache.members.find(m => m.email.toLowerCase() === email.toLowerCase());
+    return (member?.name) || fallback || email || '';
+  }
 
   /** ライセンス確認後に管理者権限を即時反映するためマスターを再読み込みする */
   async function reloadMaster() {
@@ -326,28 +380,56 @@ const App = (() => {
 
   async function _resolvePathAlias() {
     const match = location.pathname.match(/^\/([a-zA-Z0-9_-]{6,})$/);
-    if (!match) return;
+    if (!match) {
+      // /app.html・/app・/ で起動（PWAショートカット等）
+      if (location.pathname === '/app.html' || location.pathname === '/app' || location.pathname === '/') {
+        // alias があれば URL バーだけ書き換える（ページリロードなし）
+        // 動的マニフェストがすでに start_url に alias を設定しているため
+        // location.replace による再読み込みは不要
+        const alias = _getCookieAlias() || localStorage.getItem('keihi_alias');
+        if (alias) {
+          try { history.replaceState(null, '', '/' + alias); } catch (_) {}
+        }
+      }
+      return;
+    }
     const token = match[1];
-    // キャッシュ済みなら即反映
+    // 44文字以上はシートID直指定
     if (token.length >= 44) {
+      sessionStorage.setItem('keihi_sheet_id', token);
       localStorage.setItem('keihi_sheet_id', token);
       return;
     }
-    const cached = localStorage.getItem('keihi_alias');
-    const cachedSheet = localStorage.getItem('keihi_sheet_id');
-    if (cached === token && cachedSheet) return;
-    // APIで解決
+    // 5秒タイムアウト・リトライなし（タイムアウト時は既存localStorageのIDで続行）
     try {
       const base = (window.APP_CONFIG && window.APP_CONFIG.apiBase) || '';
-      const r = await fetch(base + '/api/alias?code=' + encodeURIComponent(token));
+      const ctrl = new AbortController();
+      const tid  = setTimeout(() => ctrl.abort(), 5000);
+      const r = await fetch(base + '/api/alias?code=' + encodeURIComponent(token),
+        { signal: ctrl.signal });
+      clearTimeout(tid);
       if (r.ok) {
         const { sheetId } = await r.json();
         if (sheetId) {
+          sessionStorage.setItem('keihi_sheet_id', sheetId);
           localStorage.setItem('keihi_sheet_id', sheetId);
           localStorage.setItem('keihi_alias', token);
+          _setCookieAlias(token);
         }
       }
-    } catch (_) {}
+    } catch (_) {
+      // タイムアウト・ネットワークエラーは無視してlocalStorageのIDで続行
+    }
+  }
+
+  function _setCookieAlias(alias) {
+    const maxAge = 365 * 24 * 60 * 60; // 1年
+    document.cookie = `keihi_alias=${encodeURIComponent(alias)}; path=/; max-age=${maxAge}; SameSite=Lax`;
+  }
+
+  function _getCookieAlias() {
+    const m = document.cookie.match(/(?:^|;\s*)keihi_alias=([^;]+)/);
+    return m ? decodeURIComponent(m[1]) : null;
   }
 
   function _injectDynamicManifest(startPath, companyName) {
@@ -374,17 +456,23 @@ const App = (() => {
     } catch (_) {}
   }
 
+  function updateDynamicManifest(startPath, companyName) {
+    _injectDynamicManifest(startPath, companyName || '');
+  }
+
   return {
     init,
     confirm,
     getMaster,
     clearMasterCache,
     reloadMaster,
+    getMemberName,
     isAdmin,
     getUserRole,
     showLoading,
     hideLoading,
     showToast,
+    updateDynamicManifest,
   };
 })();
 
@@ -440,58 +528,23 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
 
-  // 通常モード：gapi・GIS を動的ロードしてから初期化
-  let gapiReady = false, gisReady = false;
-  let _apiLoadFailed = false;
+  // 通常モード：PKCE フローのため gapi/GIS 待ちは不要。直接初期化。
+  Auth.init();
 
-  function _onApiLoadError(name) {
-    if (_apiLoadFailed) return;
-    _apiLoadFailed = true;
-    _bootError(`Google APIの読み込みに失敗しました（${name}）。ネットワーク接続を確認してページを再読み込みしてください。`);
-  }
-
-  function _onBothReady() {
-    try {
-      gapi.load('client', async () => {
-        try {
-          await gapi.client.init({
-            discoveryDocs: [
-              'https://sheets.googleapis.com/$discovery/rest?version=v4',
-              'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'
-            ]
-          });
-          Auth.init();
-          App.init().catch(err => {
-            console.error('App.init error:', err);
-            _bootError(`初期化エラー: ${err.message}`);
-          });
-        } catch (err) {
-          console.error('gapi.client.init error:', err);
-          _bootError(`Google APIの初期化に失敗しました: ${err.message}`);
-        }
-      });
-    } catch (err) {
-      console.error('gapi.load error:', err);
-      _bootError(`Google APIの読み込みに失敗しました: ${err.message}`);
+  // 25秒以内に画面が描画されなければログインページへ強制リダイレクト
+  // （License.verifyやSheets APIのタイムアウト漏れ対策）
+  const _safetyTimer = setTimeout(() => {
+    const main = document.getElementById('appMain');
+    if (main && !main.querySelector('h5, .pt-3, form, table, .card, [data-view]')) {
+      window.location.href = 'login.html';
     }
-  }
+  }, 25000);
 
-  const gapiScript = document.createElement('script');
-  gapiScript.src = 'https://apis.google.com/js/api.js';
-  gapiScript.onload = () => { gapiReady = true; if (gisReady) _onBothReady(); };
-  gapiScript.onerror = () => _onApiLoadError('gapi');
-  document.head.appendChild(gapiScript);
-
-  const gisScript = document.createElement('script');
-  gisScript.src = 'https://accounts.google.com/gsi/client';
-  gisScript.onload = () => { gisReady = true; if (gapiReady) _onBothReady(); };
-  gisScript.onerror = () => _onApiLoadError('GIS');
-  document.head.appendChild(gisScript);
-
-  // 30秒以内にGoogle APIが準備できなければタイムアウトエラーを表示
-  setTimeout(() => {
-    if (!gapiReady || !gisReady) {
-      _onApiLoadError('タイムアウト');
-    }
-  }, 30000);
+  App.init()
+    .then(() => clearTimeout(_safetyTimer))
+    .catch(err => {
+      clearTimeout(_safetyTimer);
+      console.error('App.init error:', err);
+      _bootError(`初期化エラー: ${err.message}`);
+    });
 });

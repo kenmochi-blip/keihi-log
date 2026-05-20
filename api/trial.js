@@ -9,9 +9,14 @@
 
 import { kv } from '@vercel/kv';
 import crypto from 'crypto';
+import { rateLimit } from './_rateLimit.js';
+import { captureException } from './_sentry.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
+
+  const { ok } = await rateLimit(req, { prefix: 'rl:trial', limit: 5, window: 300 });
+  if (!ok) return res.status(429).json({ error: 'too_many_requests' });
 
   const { email } = req.body || {};
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -57,7 +62,7 @@ export default async function handler(req, res) {
 
 async function _sendTrialEmail(to, licenseKey, expiresAt) {
   const body = {
-    from: process.env.RESEND_FROM_EMAIL || 'noreply@smartandsmooth.com',
+    from: process.env.RESEND_FROM_EMAIL || 'noreply@keihi-log.com',
     to,
     subject: '【経費ログ】2週間無料トライアルのライセンスキー',
     html: `
@@ -68,10 +73,10 @@ async function _sendTrialEmail(to, licenseKey, expiresAt) {
 </p>
 <ul>
   <li>有効期限：${expiresAt}（2週間）</li>
-  <li>アプリURL：<a href="https://keihi-log.smartandsmooth.com/app.html">https://keihi-log.smartandsmooth.com/app.html</a></li>
+  <li>アプリURL：<a href="https://keihi-log.com/app.html">https://keihi-log.com/app.html</a></li>
 </ul>
 <p>トライアル終了後にご継続いただける場合は、アプリ内またはサイトから購入手続きをお願いします。</p>
-<p>ご不明な点はお気軽にお問い合わせください。<br>support@smartandsmooth.com</p>
+<p>ご不明な点はお気軽にお問い合わせください。<br>support@keihi-log.com</p>
     `.trim(),
   };
 

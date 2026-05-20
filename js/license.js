@@ -18,13 +18,28 @@ const License = (() => {
       }
     } catch (_) {}
 
-    // API呼び出し
+    // API呼び出し（10秒タイムアウト）
     const base = window.APP_CONFIG?.apiBase || '';
-    const resp = await fetch(`${base}/api/license`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key }),
-    });
+    const ctrl = new AbortController();
+    const tid  = setTimeout(() => ctrl.abort(), 10000);
+    let resp;
+    try {
+      resp = await fetch(`${base}/api/license`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key }),
+        signal: ctrl.signal,
+      });
+    } catch (_) {
+      // タイムアウト・ネットワークエラー：既存キャッシュで続行、なければ invalid
+      try {
+        const stale = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+        if (stale?.key === key && stale.result?.valid) return stale.result;
+      } catch (_e) {}
+      return { valid: false, reason: 'network_error' };
+    } finally {
+      clearTimeout(tid);
+    }
 
     if (!resp.ok) {
       // サーバーエラーの場合は既存キャッシュがあれば許可（可用性優先）

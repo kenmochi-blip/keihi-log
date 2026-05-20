@@ -18,9 +18,19 @@ const SummaryView = (() => {
 <div class="pt-3">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h5 class="fw-bold mb-0"><i class="bi bi-bar-chart-fill me-2 text-primary"></i>集計表</h5>
-    <button class="btn btn-outline-secondary btn-sm no-print" id="btnRefreshSummary">
-      <i class="bi bi-arrow-clockwise"></i>
-    </button>
+    <div class="d-flex gap-2 no-print">
+      <button class="btn btn-outline-secondary btn-sm" id="btnPrintSummary" title="PDF出力">
+        <i class="bi bi-file-earmark-pdf"></i>
+      </button>
+      <button class="btn btn-outline-secondary btn-sm" id="btnRefreshSummary" title="更新">
+        <i class="bi bi-arrow-clockwise"></i>
+      </button>
+    </div>
+  </div>
+  <!-- 印刷時のみ表示するタイトル -->
+  <div class="summary-print-title" style="display:none;">
+    <h5 class="fw-bold mb-1">経費集計表</h5>
+    <div id="printPeriodLabel" class="text-muted small mb-3"></div>
   </div>
 
   <!-- フィルター -->
@@ -77,6 +87,16 @@ const SummaryView = (() => {
   }
 
   async function bindEvents(el) {
+    const isDemo = typeof Demo !== 'undefined' && Demo.isActive();
+    if (!isDemo && (!localStorage.getItem('keihi_sheet_id') || !localStorage.getItem('keihi_license_key'))) {
+      el.innerHTML = `<div class="text-center py-5 text-muted">
+        <i class="bi bi-bar-chart-fill" style="font-size:2.5rem;opacity:0.3;"></i>
+        <div class="mt-3">初期設定が完了していません。</div>
+        <button class="btn btn-primary btn-sm mt-3" onclick="Router.navigate('settings')">設定画面へ</button>
+      </div>`;
+      return;
+    }
+
     const appMain = document.getElementById('appMain');
     if (appMain) appMain.style.maxWidth = '';
 
@@ -124,6 +144,8 @@ const SummaryView = (() => {
 
     el.querySelector('#inputFrom')?.addEventListener('change', update);
     el.querySelector('#inputTo')?.addEventListener('change', update);
+
+    el.querySelector('#btnPrintSummary')?.addEventListener('click', () => window.print());
 
     el.querySelector('#btnRefreshSummary')?.addEventListener('click', async () => {
       App.showLoading('更新中...');
@@ -196,6 +218,8 @@ const SummaryView = (() => {
     el.querySelector('#titleMember').textContent = `メンバー別（${periodLabel}）`;
     el.querySelector('#titleUnpaid').textContent = `未精算一覧（${periodLabel}）`;
     el.querySelector('#titleCat').textContent    = `勘定科目一覧（${periodLabel}）`;
+    const printLabel = el.querySelector('#printPeriodLabel');
+    if (printLabel) printLabel.textContent = `${fromYM} 〜 ${toYM}（${months.length}ヶ月間）`;
 
     const isAdmin = App.getUserRole() === 'admin';
 
@@ -216,7 +240,7 @@ const SummaryView = (() => {
   // ─── キー関数 ──────────────────────────────────────────────
   function _memberKey(e) {
     if (e.settlementDate?.startsWith('会社払い')) return [{ key: `🏢 ${e.settlementDate}`, amount: e.amount }];
-    return [{ key: e.name || e.email || '（不明）', amount: e.amount }];
+    return [{ key: App.getMemberName(e.email, e.name) || e.email || '（不明）', amount: e.amount }];
   }
   function _categoryKey(e) {
     const parts = (e.category || '（未分類）').split('/').map(s => s.trim()).filter(Boolean);
@@ -360,7 +384,7 @@ const SummaryView = (() => {
           ¥${e.amount.toLocaleString()}
           ${hasExtra ? '<i class="bi bi-chevron-down" style="font-size:0.6rem;opacity:0.55;margin-left:2px;vertical-align:middle;"></i>' : ''}
         </td>
-        ${showName ? `<td class="text-muted" style="font-size:0.8rem;white-space:nowrap;">${_escape(e.name)}</td>` : ''}
+        ${showName ? `<td class="text-muted" style="font-size:0.8rem;white-space:nowrap;">${_escape(App.getMemberName(e.email, e.name))}</td>` : ''}
         <td>
           ${e.settlementDate
             ? '<span class="badge rounded-pill px-2" style="background:#6c757d;">精算済</span>'

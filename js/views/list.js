@@ -30,6 +30,7 @@ const ListView = (() => {
           <li><h6 class="dropdown-header" style="font-size:0.7rem;">会計ソフト形式</h6></li>
           <li><a class="dropdown-item small" href="#" id="btnExportFreee">freee 経費精算</a></li>
           <li><a class="dropdown-item small" href="#" id="btnExportYayoi">弥生 仕訳日記帳</a></li>
+          <li><a class="dropdown-item small" href="#" id="btnExportMfc">MFクラウド 仕訳帳</a></li>
         </ul>
       </div>
       <button class="btn btn-outline-secondary btn-sm no-print" id="btnRefreshList">
@@ -57,29 +58,39 @@ const ListView = (() => {
             value="${toYM}" style="width:140px;">
         </div>
       </div>
-      <!-- タイプ・承認状態・申請者・キーワード（横4列） -->
+      <!-- タイプ・承認状態・申請者・支払元・キーワード（PC:1行、SP:2列） -->
       <div class="row g-2">
-        <div class="col-6 col-md-3">
+        <div class="col-6 col-md">
           <select class="form-select form-select-sm" id="filterType">
             <option value="">タイプ（全て）</option>
             <option>領収書</option><option>領収書なし</option>
             <option>交通費</option><option>自家用車</option>
           </select>
         </div>
-        <div class="col-6 col-md-3">
+        <div class="col-6 col-md">
           <select class="form-select form-select-sm" id="filterStatus">
-          <option value="">ステータス（全て）</option>
+            <option value="">ステータス（全て）</option>
             <option value="申請済">申請済</option>
             <option value="登録済">登録済</option>
             <option value="精算済">精算済</option>
           </select>
         </div>
-        <div class="col-6 col-md-3" id="filterMemberWrap" style="display:none;">
+        <div class="col-6 col-md" id="filterMemberWrap" style="display:none;">
           <select class="form-select form-select-sm" id="filterMember">
             <option value="">申請者（全員）</option>
           </select>
         </div>
-        <div class="col-6 col-md-3">
+        <div class="col-6 col-md">
+          <select class="form-select form-select-sm" id="filterPaySource">
+            <option value="">支払元（全て）</option>
+          </select>
+        </div>
+        <div class="col-6 col-md">
+          <select class="form-select form-select-sm" id="filterCustomFlag">
+            <option value="">フラグ（全て）</option>
+          </select>
+        </div>
+        <div class="col-6 col-md">
           <div class="input-group input-group-sm">
             <span class="input-group-text"><i class="bi bi-search"></i></span>
             <input type="text" class="form-control" id="filterKeyword" placeholder="支払先・備考・科目">
@@ -148,6 +159,16 @@ const ListView = (() => {
   }
 
   async function bindEvents(el) {
+    const isDemo = typeof Demo !== 'undefined' && Demo.isActive();
+    if (!isDemo && (!localStorage.getItem('keihi_sheet_id') || !localStorage.getItem('keihi_license_key'))) {
+      el.innerHTML = `<div class="text-center py-5 text-muted">
+        <i class="bi bi-table" style="font-size:2.5rem;opacity:0.3;"></i>
+        <div class="mt-3">初期設定が完了していません。</div>
+        <button class="btn btn-primary btn-sm mt-3" onclick="Router.navigate('settings')">設定画面へ</button>
+      </div>`;
+      return;
+    }
+
     // PC では幅制限を解除してゆったり表示
     const main = document.getElementById('appMain');
     if (main) main.style.maxWidth = '';
@@ -172,6 +193,9 @@ const ListView = (() => {
         sel.innerHTML += `<option value="${m.email}">${m.name}</option>`;
       });
     }
+
+    // 支払元フィルター：データから動的に生成
+    _populatePaySourceFilter(el);
 
     // 期間プリセットボタン
     el.querySelectorAll('#listPresetBtns [data-months]').forEach(btn => {
@@ -201,14 +225,22 @@ const ListView = (() => {
     el.querySelector('#filterMonthFrom')?.addEventListener('change', _reset);
     el.querySelector('#filterMonthTo')?.addEventListener('change', _reset);
 
+    // カスタムフラグフィルター選択肢をマスタから生成
+    const customFlags = _master.customFlags || [];
+    if (customFlags.length > 0) {
+      const cfSel = el.querySelector('#filterCustomFlag');
+      if (cfSel) customFlags.forEach(f => { cfSel.innerHTML += `<option value="${f}">${f}</option>`; });
+    }
+
     // フィルタリング
-    ['filterType','filterStatus','filterKeyword','filterMember'].forEach(id => {
+    ['filterType','filterStatus','filterKeyword','filterMember','filterPaySource','filterCustomFlag'].forEach(id => {
       el.querySelector(`#${id}`)?.addEventListener('input', _reset);
     });
 
     el.querySelector('#btnRefreshList')?.addEventListener('click', async () => {
       try {
         _expenses = await Sheets.readExpenses();
+        _populatePaySourceFilter(el);
         _renderTable(el);
         App.showToast('更新しました', 'success');
       } catch (err) {
@@ -219,6 +251,7 @@ const ListView = (() => {
     el.querySelector('#btnExportCsv')?.addEventListener('click', () => _exportCsv(el));
     el.querySelector('#btnExportFreee')?.addEventListener('click', e => { e.preventDefault(); _exportFreee(el); });
     el.querySelector('#btnExportYayoi')?.addEventListener('click', e => { e.preventDefault(); _exportYayoi(el); });
+    el.querySelector('#btnExportMfc')?.addEventListener('click', e => { e.preventDefault(); _exportMfc(el); });
 
     _renderTable(el);
     requestAnimationFrame(() => _initResizableColumns(el.querySelector('.list-table-pc')));
@@ -291,9 +324,11 @@ const ListView = (() => {
     const toDate   = toYM   ? `${toYM}-31`   : '';
     const type    = el.querySelector('#filterType')?.value     || '';
     const status  = el.querySelector('#filterStatus')?.value   || '';
-    const keyword = (el.querySelector('#filterKeyword')?.value || '').toLowerCase();
-    const member  = el.querySelector('#filterMember')?.value   || '';
-    const email   = Auth.getUserEmail();
+    const keyword    = (el.querySelector('#filterKeyword')?.value    || '').toLowerCase();
+    const member     = el.querySelector('#filterMember')?.value     || '';
+    const paySrc     = el.querySelector('#filterPaySource')?.value  || '';
+    const customFlag = el.querySelector('#filterCustomFlag')?.value || '';
+    const email      = Auth.getUserEmail();
 
     return _expenses.filter(e => {
       if (!e.id) return false;
@@ -306,7 +341,13 @@ const ListView = (() => {
       if (toDate   && e.date > toDate)   return false;
       if (type && e.type !== type) return false;
       if (status && _getStatus(e) !== status) return false;
+      if (customFlag && e.customFlag !== customFlag) return false;
       if (keyword && ![e.place, e.note, e.category].join(' ').toLowerCase().includes(keyword)) return false;
+      if (paySrc) {
+        const corpSrc = _corpPaySource(e);
+        if (paySrc === '__individual__') { if (corpSrc) return false; }
+        else if (corpSrc !== paySrc) return false;
+      }
       return true;
     }).sort((a, b) => {
       // 申請日時（新しい順）→ 日付（新しい順）の優先順でソート
@@ -355,9 +396,8 @@ const ListView = (() => {
     visible.forEach(e => {
       const status = _getStatus(e);
       const statusBadge = _statusBadge(status);
-      // 編集可否：精算済は全員不可、申請済は本人のみ、登録済は管理者本人のみ
-      const canEdit = status !== '精算済' && e.email === email &&
-        (status === '申請済' || (_isAdmin && status === '登録済'));
+      // 編集可否：管理者は全ステータス可、一般は申請済かつ本人のみ
+      const canEdit = _isAdmin || (status === '申請済' && e.email === email);
       // 承認ボタン（申請済→登録済）：管理者のみ
       const approveBtn = _isAdmin && status === '申請済'
         ? `<button class="btn btn-outline-success btn-sm py-0 px-1 btn-approve" data-id="${e.id}" title="登録済にする"><i class="bi bi-check"></i></button>` : '';
@@ -382,7 +422,7 @@ const ListView = (() => {
         <td class="list-date">${e.date}</td>
         <td class="list-place">
           <div>${e.settlementDate?.startsWith('会社払い') ? '🏢 ' : ''}${_escape(e.place)}</div>
-          <div class="text-muted" style="font-size:0.7rem;">${_escape(e.name)}</div>
+          <div class="text-muted" style="font-size:0.7rem;">${_escape(App.getMemberName(e.email, e.name))}</div>
         </td>
         <td class="list-type-cell">${_escape(e.type)}</td>
         <td class="text-end list-amount">¥${e.amount.toLocaleString()}</td>
@@ -404,7 +444,7 @@ const ListView = (() => {
                 <span class="list-sp-date">${_fmtDateShort(e.date)}</span>
                 <span class="list-sp-place">${e.settlementDate?.startsWith('会社払い') ? '🏢 ' : ''}${_escape(e.place)}</span>
               </div>
-              <div class="list-sp-name">${_escape(e.name)}</div>
+              <div class="list-sp-name">${_escape(App.getMemberName(e.email, e.name))}</div>
             </div>
             <div class="flex-shrink-0 text-end">
               <div class="list-sp-amount${e.note ? ' expandable' : ''}" style="${e.note ? '' : ''}">
@@ -520,14 +560,19 @@ const ListView = (() => {
 
   function _exportCsv(el) {
     const filtered = _getFiltered(el);
-    const header = ['申請日時','申請者名','タイプ','日付','支払先','金額','勘定科目','備考','証票URL','ステータス','インボイス番号','申請者Email','ID','精算日','税区分'];
+    const header = ['申請日時','申請者名','タイプ','日付','支払先','金額','勘定科目','備考','証票URL','ステータス','インボイス番号','申請者Email','ID','精算日','税区分','支払元','源泉徴収','カスタムフラグ'];
     const _isoToSlash = s => s ? String(s).replace(/^(\d{4})-(\d{2})-(\d{2}).*/, '$1/$2/$3') : '';
-    const rows = filtered.map(e => [
-      _isoToSlash(e.appliedAt), e.name, e.type, _isoToSlash(e.date), e.place, e.amount,
-      e.category, e.note, e.imageLinks.split(',')[0]?.trim() || '',
-      _getStatus(e), e.invoice, e.email, e.id,
-      e.settlementDate || '', e.taxRate || '課税10%'
-    ]);
+    const rows = filtered.map(e => {
+      const corpSrc = _corpPaySource(e);
+      const paySource = corpSrc ? corpSrc : `個人（${App.getMemberName(e.email, e.name)}）`;
+      return [
+        _isoToSlash(e.appliedAt), App.getMemberName(e.email, e.name), e.type, _isoToSlash(e.date), e.place, e.amount,
+        e.category, e.note, e.imageLinks.split(',')[0]?.trim() || '',
+        _getStatus(e), e.invoice, e.email, e.id,
+        e.settlementDate || '', e.taxRate || '課税10%', paySource,
+        e.withholding || 0, e.customFlag || ''
+      ];
+    });
     const csv = [header, ...rows].map(r =>
       r.map(v => `"${String(v || '').replace(/"/g, '""')}"`).join(',')
     ).join('\n');
@@ -566,35 +611,60 @@ const ListView = (() => {
     URL.revokeObjectURL(url);
   }
 
+  function _populatePaySourceFilter(el) {
+    const sel = el.querySelector('#filterPaySource');
+    if (!sel) return;
+    const sources = new Set();
+    let hasIndividual = false;
+    _expenses.forEach(e => {
+      const s = _corpPaySource(e);
+      if (s) sources.add(s);
+      else hasIndividual = true;
+    });
+    if (hasIndividual) sel.innerHTML += `<option value="__individual__">個人払い</option>`;
+    [...sources].sort().forEach(s => {
+      sel.innerHTML += `<option value="${s}">${s}</option>`;
+    });
+  }
+
   // "会社払い（◯◯）" から支払元名を抽出。会社払いでなければ空文字。
   function _corpPaySource(e) {
     const m = (e.settlementDate || '').match(/^会社払い（(.+)）$/);
     return m ? m[1] : '';
   }
 
-  // taxRate に応じた消費税額と freee/弥生 用の税区分文字列を返す
+  // taxRate に応じた消費税額と各会計ソフト用の税区分文字列を返す
   function _taxInfo(amount, taxRate) {
     const r = taxRate || '課税10%';
-    if (r === '課税8%') return { tax: Math.floor(amount * 8 / 108),  freeeKbn: '課対仕入8%軽減', yayoiKbn: '課対仕入8%' };
-    if (r === '非課税')  return { tax: 0, freeeKbn: '非課税仕入',    yayoiKbn: '非課税' };
-    if (r === '不課税')  return { tax: 0, freeeKbn: '対象外',        yayoiKbn: '対象外' };
+    if (r === '課税8%') return { tax: Math.floor(amount * 8 / 108),  freeeKbn: '課対仕入8%軽減', yayoiKbn: '課対仕入8%', mfcKbn: '課税仕入8%(軽)' };
+    if (r === '非課税')  return { tax: 0, freeeKbn: '非課税仕入',    yayoiKbn: '非課税',           mfcKbn: '非課税仕入' };
+    if (r === '不課税')  return { tax: 0, freeeKbn: '対象外',        yayoiKbn: '対象外',           mfcKbn: '対象外' };
     // 課税10%・混在はどちらも10%で処理
-    return { tax: Math.floor(amount * 10 / 110), freeeKbn: '課対仕入10%', yayoiKbn: '課対仕入10%' };
+    return { tax: Math.floor(amount * 10 / 110), freeeKbn: '課対仕入10%', yayoiKbn: '課対仕入10%', mfcKbn: '課税仕入10%' };
   }
 
   function _exportFreee(el) {
     const filtered = _getFiltered(el);
     const _isoToSlash = s => s ? String(s).replace(/^(\d{4})-(\d{2})-(\d{2}).*/, '$1/$2/$3') : '';
     const header = ['発生日','勘定科目','税区分','金額(税込)','税額','摘要','支払方法','申請者','備考'];
-    const rows = filtered.map(e => {
+    const rows = [];
+    filtered.forEach(e => {
       const amount  = Number(e.amount) || 0;
       const corpSrc = _corpPaySource(e);
       const { tax, freeeKbn } = _taxInfo(amount, e.taxRate);
-      const payMethod = corpSrc ? '未払金（会社）' : '未払金（個人）';
-      return [
+      const payMethod = corpSrc ? corpSrc : `個人（${App.getMemberName(e.email, e.name)}）`;
+      rows.push([
         _isoToSlash(e.date), e.category, freeeKbn, amount, tax,
-        e.place, payMethod, e.name, e.note
-      ];
+        e.place, payMethod, App.getMemberName(e.email, e.name), e.note
+      ]);
+      // 源泉徴収がある場合は預り金行を追加
+      const wh = Number(e.withholding) || 0;
+      if (wh > 0) {
+        rows.push([
+          _isoToSlash(e.date), '預り金', '対象外', -wh, 0,
+          `${e.place}（源泉徴収）`, payMethod, App.getMemberName(e.email, e.name), ''
+        ]);
+      }
     });
     const csv = [header, ...rows].map(r =>
       r.map(v => `"${String(v || '').replace(/"/g, '""')}"`).join(',')
@@ -606,23 +676,87 @@ const ListView = (() => {
     const filtered = _getFiltered(el);
     const _isoToSlash = s => s ? String(s).replace(/^(\d{4})-(\d{2})-(\d{2}).*/, '$1/$2/$3') : '';
     const header = ['伝票No.','決算','取引日','借方勘定科目','借方補助科目','借方税区分','借方金額','借方消費税額','貸方勘定科目','貸方補助科目','貸方税区分','貸方金額','貸方消費税額','摘要','番号'];
-    const rows = filtered.map((e, i) => {
+    const rows = [];
+    let slipNo = 0;
+    filtered.forEach(e => {
+      slipNo++;
       const amount  = Number(e.amount) || 0;
       const corpSrc = _corpPaySource(e);
       const { tax, yayoiKbn } = _taxInfo(amount, e.taxRate);
-      const creditSub = corpSrc ? '会社' : '個人';
+      const creditSub = corpSrc ? corpSrc : `個人（${App.getMemberName(e.email, e.name)}）`;
       const summary   = `${e.place}${e.note ? ' ' + e.note : ''}`;
-      return [
-        i + 1, '', _isoToSlash(e.date),
-        e.category, '', yayoiKbn, amount, tax,
-        '未払金', creditSub, '', amount, '',
-        summary, e.id
-      ];
+      const wh = Number(e.withholding) || 0;
+      // 源泉徴収あり：借方=経費科目 / 貸方=未払金（支払額）＋預り金（源泉額）で2行
+      if (wh > 0) {
+        const payAmt = amount - wh;
+        rows.push([
+          slipNo, '', _isoToSlash(e.date),
+          e.category, '', yayoiKbn, amount, tax,
+          '未払金', creditSub, '', payAmt, '',
+          summary, e.id
+        ]);
+        rows.push([
+          slipNo, '', _isoToSlash(e.date),
+          '', '', '', '', '',
+          '預り金', '源泉徴収', '', wh, '',
+          `${e.place}（源泉徴収）`, e.id
+        ]);
+      } else {
+        rows.push([
+          slipNo, '', _isoToSlash(e.date),
+          e.category, '', yayoiKbn, amount, tax,
+          '未払金', creditSub, '', amount, '',
+          summary, e.id
+        ]);
+      }
     });
     const csv = [header, ...rows].map(r =>
       r.map(v => `"${String(v || '').replace(/"/g, '""')}"`).join(',')
     ).join('\n');
     _downloadCsv(csv, `弥生仕訳_${new Date().toISOString().split('T')[0]}.csv`);
+  }
+
+  function _exportMfc(el) {
+    const filtered = _getFiltered(el);
+    const _isoToSlash = s => s ? String(s).replace(/^(\d{4})-(\d{2})-(\d{2}).*/, '$1/$2/$3') : '';
+    const header = ['取引日','借方勘定科目','借方補助科目','借方税区分','借方金額','貸方勘定科目','貸方補助科目','貸方税区分','貸方金額','摘要','メモ'];
+    const rows = [];
+    filtered.forEach(e => {
+      const amount  = Number(e.amount) || 0;
+      const corpSrc = _corpPaySource(e);
+      const { tax, mfcKbn } = _taxInfo(amount, e.taxRate);
+      const creditSub = corpSrc ? corpSrc : `個人（${App.getMemberName(e.email, e.name)}）`;
+      const summary   = `${e.place}${e.note ? ' ' + e.note : ''}`;
+      const wh = Number(e.withholding) || 0;
+      if (wh > 0) {
+        const payAmt = amount - wh;
+        // 経費行（借方:経費科目 / 貸方:未払金 = 支払額）
+        rows.push([
+          _isoToSlash(e.date),
+          e.category, '', mfcKbn, amount,
+          '未払金', creditSub, '', payAmt,
+          summary, e.id
+        ]);
+        // 源泉行（借方:未払金 / 貸方:預り金 = 源泉額）
+        rows.push([
+          _isoToSlash(e.date),
+          '未払金', creditSub, '', wh,
+          '預り金', '源泉徴収', '', wh,
+          `${e.place}（源泉徴収）`, e.id
+        ]);
+      } else {
+        rows.push([
+          _isoToSlash(e.date),
+          e.category, '', mfcKbn, amount,
+          '未払金', creditSub, '', amount,
+          summary, e.id
+        ]);
+      }
+    });
+    const csv = [header, ...rows].map(r =>
+      r.map(v => `"${String(v || '').replace(/"/g, '""')}"`).join(',')
+    ).join('\n');
+    _downloadCsv(csv, `MFクラウド仕訳_${new Date().toISOString().split('T')[0]}.csv`);
   }
 
   function _escape(s) {

@@ -234,21 +234,18 @@
       <summary>経費ログを使い始めるにはどうすればいいですか？<span class="arrow">▼</span></summary>
       <div class="answer">
         <p>利用開始は「管理者」と「メンバー」で手順が異なります。</p>
-        <p><strong>管理者（スプレッドシートを新規作成する方）：</strong></p>
+        <p><strong>管理者（初回セットアップをする方）：</strong></p>
         <ol>
           <li>アプリにGoogleアカウントでログイン</li>
-          <li>設定画面を開き、①〜⑤の初期設定を順番に実施</li>
-          <li>「スプレッドシートを新規作成」でシートを自動作成</li>
-          <li>作成されたスプレッドシートのURLをメンバーに共有（Google DriveでリンクのURLを取得）</li>
-          <li>Gemini APIキー・ライセンスキーを入力して完了</li>
+          <li>設定画面を開き、① 社名 → ② スプレッドシート新規作成 → ③ ライセンスキー → ④ Gemini APIキー → ⑤ 事務処理規程 の順に設定</li>
+          <li>設定画面に表示される共有URL（<code>keihi-log.com/xxxxxxxxxx</code> 形式）をコピーしてメンバーに共有（Slack・メールなど）</li>
         </ol>
         <p><strong>メンバー（管理者からURLを受け取った方）：</strong></p>
         <ol>
-          <li>アプリにGoogleアカウントでログイン</li>
-          <li>設定画面でスプレッドシートのURL（管理者から共有されたもの）を貼り付け</li>
-          <li>ライセンスキーを入力して完了</li>
+          <li>管理者から受け取ったURL（<code>keihi-log.com/xxxxxxxxxx</code>）にアクセス</li>
+          <li>Googleでサインイン → 完了</li>
         </ol>
-        <div class="tip">メンバーはGemini APIキーの個人取得・入力は不要です。管理者が設定したキーをチーム全員で共用します。</div>
+        <div class="tip">メンバーはスプレッドシートURLやライセンスキーの入力は不要です。共有URLにアクセスするだけで自動的に接続されます。Gemini APIキーも管理者が設定済みのため個別取得は不要です。</div>
       </div>
     </details>
 
@@ -263,31 +260,96 @@
           <li><strong>修正履歴</strong>：申請の修正操作の記録（電帳法対応）</li>
           <li><strong>削除一覧</strong>：削除済み申請の記録（電帳法対応）</li>
         </ul>
-        <p>スプレッドシート作成後、Google Driveの共有設定で「リンクを知っている全員（または社内ドメイン）が編集可」に設定し、URLをメンバーに共有してください。</p>
+        <p>作成後、スプレッドシートのURLをコピーしてメンバーに共有（Slack・メールなど）するだけで完了です。</p>
       </div>
     </details>
 
     <details>
-      <summary>管理者とメンバーの違いは何ですか？<span class="arrow">▼</span></summary>
+      <summary>メンバーごとに操作や閲覧の権限を変えることはできますか？<span class="arrow">▼</span></summary>
       <div class="answer">
-        <p>マスタ表に「権限=admin」として登録されているGoogleアカウントが管理者として扱われます。</p>
+        <p>はい。メンバーごとに以下の3段階から権限を設定できます。</p>
         <table>
-          <tr><th>機能</th><th>管理者</th><th>メンバー</th></tr>
-          <tr><td>経費申請</td><td>○</td><td>○</td></tr>
-          <tr><td>自分の申請を確認・修正・削除</td><td>○</td><td>○（未承認のみ）</td></tr>
-          <tr><td>全員の申請を一覧で見る</td><td>○</td><td>自分のみ</td></tr>
-          <tr><td>承認操作</td><td>○</td><td>×</td></tr>
-          <tr><td>マスタ管理（メンバー・科目追加等）</td><td>○</td><td>×</td></tr>
-          <tr><td>Gemini APIキー設定</td><td>○</td><td>×</td></tr>
+          <tr><th>権限</th><th>できること</th></tr>
+          <tr><td><strong>管理者</strong></td><td>全機能（申請・一覧・集計・承認・メンバー管理・設定変更）</td></tr>
+          <tr><td><strong>閲覧者</strong></td><td>申請 ＋ 全員の一覧・集計の閲覧（承認・管理は不可）</td></tr>
+          <tr><td><strong>一般</strong></td><td>申請 ＋ 自分の履歴のみ閲覧</td></tr>
         </table>
-        <p>スプレッドシート新規作成時は、作成者が自動的に管理者として登録されます。</p>
+        <p>設定は管理者が設定画面の「メンバー管理」から変更できます。権限が異なると見える画面も異なります（例：一般メンバーには全員の一覧・集計タブが表示されません）。</p>
       </div>
     </details>
 
     <details>
-      <summary>会社払い（法人カード）の支払元はどこで追加しますか？<span class="arrow">▼</span></summary>
+      <summary>管理者・閲覧者・一般の違いは何ですか？<span class="arrow">▼</span></summary>
       <div class="answer">
-        <p>管理者アカウントでログインし、設定画面の「マスタ管理」→「会社払い支払元」で追加・削除できます。追加した支払元は申請フォームの「会社払いトグル」をONにしたときに選択肢として表示されます。</p>
+        <p>3段階の権限ごとに使える機能が異なります。</p>
+        <table>
+          <tr><th>機能</th><th>管理者</th><th>閲覧者</th><th>一般</th></tr>
+          <tr><td>経費申請</td><td>○</td><td>○</td><td>○</td></tr>
+          <tr><td>自分の申請を修正・削除</td><td>○</td><td>○（未承認のみ）</td><td>○（未承認のみ）</td></tr>
+          <tr><td>全員の申請を一覧で見る</td><td>○</td><td>○</td><td>自分のみ</td></tr>
+          <tr><td>集計を見る</td><td>○</td><td>○</td><td>×</td></tr>
+          <tr><td>承認操作</td><td>○</td><td>×</td><td>×</td></tr>
+          <tr><td>メンバー・科目管理</td><td>○</td><td>×</td><td>×</td></tr>
+          <tr><td>Gemini APIキー設定</td><td>○</td><td>×</td><td>×</td></tr>
+        </table>
+        <p>権限はメンバー管理画面からいつでも変更できます。スプレッドシート新規作成時は、作成者が自動的に管理者として登録されます。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>会社払いとはどんな場合に使いますか？<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>社員が個人で立て替えず、会社の資金・与信で直接支払った経費が対象です。代表的な例は以下の通りです：</p>
+        <ul>
+          <li><strong>法人クレジットカード</strong>：会社名義のカードで決済した交通費・飲食費・消耗品費など</li>
+          <li><strong>小口現金</strong>：経理部門が管理する手元現金から支出した経費</li>
+          <li><strong>会社口座振込</strong>：会社の銀行口座から直接支払った経費（外注費・広告費など）</li>
+          <li><strong>ETCコーポレートカード</strong>：会社契約の ETC カードで通行した高速道路料金</li>
+        </ul>
+        <p>これらは社員への精算が不要なため、一覧での識別・集計の分離を目的として「会社払い」として記録します。</p>
+        <div class="tip">
+          <strong>仕訳データへの影響：</strong>会計ソフト向け CSV（freee・弥生・MFクラウド形式）を出力すると、会社払い経費の貸方科目は<strong>未払金</strong>となり、補助科目に支払方法（例：法人カード・小口現金）が自動で設定されます。個人立替（貸方：未払金→現金・普通預金）と区別して仕訳が生成されるため、会計ソフトへの取り込みがそのまま行えます。
+        </div>
+      </div>
+    </details>
+
+    <details>
+      <summary>会社払いの支払元はどこで追加しますか？<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>管理者アカウントでログインし、設定画面の「会社払い支払元」で追加・削除できます。追加した支払元は申請フォームの「会社払いトグル」をONにしたときに選択肢として表示されます。</p>
+        <div class="note">初期状態では「法人カード」「小口現金」「○○銀行」「▲▲銀行」が登録されています。実際の支払方法に合わせて編集してください。</div>
+      </div>
+    </details>
+
+    <details>
+      <summary>部門別・プロジェクトごとに経費を把握したいのですが、できますか？<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>はい、<strong>カスタムフラグ</strong>機能を使って実現できます。</p>
+        <p>管理者が設定画面の「カスタムフラグ」で部門名やプロジェクト名を選択肢として登録しておくと、メンバーが申請時にいずれかを選べるようになります。あとは一覧表でフラグ別に絞り込んだり、CSVをエクスポートしてフラグ列で集計するだけです。</p>
+        <p><strong>設定例：</strong></p>
+        <ul>
+          <li>部門別 → 「営業部」「開発部」「管理部」</li>
+          <li>プロジェクト別 → 「PJ-A」「PJ-B」「PJ-C」</li>
+          <li>用途別 → 「採用」「マーケ」「接待」</li>
+        </ul>
+        <p>フラグは任意入力のため、すべての申請にタグを付ける必要はありません。特定のプロジェクトに関連する経費だけに付与する運用も可能です。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>カスタムフラグとは何ですか？<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>部門・プロジェクト・用途など、チームの運用に合わせて自由に使えるタグ機能です。</p>
+        <p><strong>設定方法（管理者のみ）：</strong>設定画面の「カスタムフラグ」セクションで選択肢を追加します（例：営業部・開発部・プロジェクトA）。</p>
+        <p><strong>使い方：</strong>申請フォームの「カスタムフラグ」ドロップダウンから任意のタグを選択します。選択肢が未設定の場合はフォームに表示されません。</p>
+        <p><strong>活用例：</strong></p>
+        <ul>
+          <li>部門別に集計したい → 「営業部」「開発部」「管理部」など</li>
+          <li>プロジェクトごとに管理したい → 「PJ-A」「PJ-B」など</li>
+          <li>用途で分類したい → 「採用」「マーケ」「接待」など</li>
+        </ul>
+        <p>一覧表のフィルターでフラグ別に絞り込め、CSVエクスポートにも列として含まれます。</p>
+        <p><strong>フラグを削除した場合の影響：</strong>設定からフラグの選択肢を削除しても、すでに登録済みの申請データに記録されたフラグ値はそのまま保持されます。過去データが変わったり消えたりすることはありません。削除後は新規申請でそのフラグを選べなくなるだけです。</p>
       </div>
     </details>
   </div>
@@ -311,17 +373,9 @@
     </details>
 
     <details>
-      <summary>「このアプリはGoogleによって確認されていません」と表示されます<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>Google OAuth同意画面の審査中に表示される警告です。「詳細」→「（アプリ名）に移動（安全ではないページ）」をクリックして続行できます。</p>
-        <div class="note">この警告はGoogleによるアプリ審査が完了次第、表示されなくなります。アプリ自体の安全性に問題はありません。</div>
-      </div>
-    </details>
-
-    <details>
       <summary>ログアウトするにはどうすればいいですか？<span class="arrow">▼</span></summary>
       <div class="answer">
-        <p>画面右上のアカウントアイコンをタップ（またはクリック）すると「ログアウト」ボタンが表示されます。ログアウトすると、ブラウザ上のアクセストークンが破棄されます。</p>
+        <p>画面右上のログアウトボタン（→のアイコン）をタップ（またはクリック）するとログアウトできます。ログアウトするとブラウザ上のアクセストークンが破棄されます。</p>
         <p>完全に権限を取り消したい場合は、Googleアカウントの「セキュリティ」→「サードパーティのアクセス」から「経費ログ」のアクセスを削除してください。</p>
       </div>
     </details>
@@ -337,10 +391,10 @@
         <p>4種類のタイプに対応しています：</p>
         <table>
           <tr><th>タイプ</th><th>概要</th><th>主な入力項目</th></tr>
-          <tr><td>一般</td><td>物品・飲食・消耗品など</td><td>日付・支払先・金額・勘定科目・証票</td></tr>
-          <tr><td>交通費</td><td>電車・バス・タクシーなど</td><td>日付・区間・手段・金額・往復区分</td></tr>
-          <tr><td>宿泊</td><td>出張時の宿泊費</td><td>日付・施設名・金額・チェックイン〜アウト日</td></tr>
-          <tr><td>その他</td><td>上記に当てはまらない経費</td><td>日付・摘要・金額</td></tr>
+          <tr><td>領収書</td><td>物品・飲食・消耗品・タクシーなど、証票あり</td><td>日付・支払先・金額・勘定科目・証票画像</td></tr>
+          <tr><td>領収書なし</td><td>証票が取得できない経費（慶弔費など）</td><td>日付・支払先・金額・勘定科目・理由</td></tr>
+          <tr><td>交通費</td><td>領収書が出ない近距離の電車・バスなど</td><td>日付・区間・交通手段・金額・往復区分</td></tr>
+          <tr><td>自家用車</td><td>マイカー通勤・出張時の走行距離</td><td>日付・区間・距離（km）・単価</td></tr>
         </table>
         <p>各タイプは申請フォーム上部のタブで切り替えられます。</p>
       </div>
@@ -349,31 +403,33 @@
     <details>
       <summary>複数の明細をまとめて申請できますか？（明細分割）<span class="arrow">▼</span></summary>
       <div class="answer">
-        <p>はい、「明細を追加」ボタンで最大10件まで明細を分割入力できます。1回の申請に複数の品目が含まれるレシート（懇親会の料理代＋飲み物代など）を勘定科目ごとに分けて登録できます。</p>
+        <p>はい、「明細を追加」ボタンで最大10件まで明細を分割入力できます。1枚の領収書に異なる勘定科目にまたがる項目が含まれる場合に使います。</p>
+        <p><strong>例：</strong>ホテルの請求書で「宿泊費（旅費交通費）」と「宿泊税（租税公課）」を別科目に分けて登録、コンビニで「文具（消耗品費）」と「接待用菓子（交際費）」を同時購入した場合など。</p>
         <p>各明細に金額・勘定科目・摘要を入力してください。証票（レシート画像）は申請全体で1枚紐付けられます。</p>
       </div>
     </details>
 
     <details>
-      <summary>外貨建て経費（海外出張など）はどう入力しますか？<span class="arrow">▼</span></summary>
+      <summary>外貨建て経費はどう入力しますか？<span class="arrow">▼</span></summary>
       <div class="answer">
-        <p>金額入力欄の「外貨換算」ボタンを押すと、通貨と外貨金額を入力するダイアログが表示されます。Frankfurter APIを使って当日の為替レートで日本円に自動換算します（インターネット接続が必要です）。</p>
+        <p>金額入力欄の「外貨換算」ボタンを押すと、通貨と外貨金額を入力するダイアログが表示されます。外貨金額を入力すると、Frankfurter APIを使って取引日の為替レートで日本円に自動換算されます（インターネット接続が必要です）。</p>
         <div class="tip">換算後の円金額・換算レートは摘要欄に自動で補記されます。</div>
       </div>
     </details>
 
     <details>
-      <summary>交通費の乗り換え経路はどこで調べられますか？<span class="arrow">▼</span></summary>
+      <summary>交通費の経路・運賃はどのように入力しますか？<span class="arrow">▼</span></summary>
       <div class="answer">
-        <p>申請フォームの交通費タブに「Yahoo!乗換案内で調べる」リンクがあります。タップするとYahoo!乗換案内が開き、経路と料金を確認できます。確認した金額を申請フォームに手入力してください。</p>
+        <p>出発地・到着地を入力すると、Yahoo!乗換案内APIを使って経路と運賃を自動検索・入力します。検索結果を確認したうえで、必要に応じて金額や経路を手修正できます。</p>
+        <div class="tip">タクシーや高速代（紙レシートあり）は「領収書」タブでレシートを撮影してAI解析できます。ETCの場合はカード明細をもとに「領収書なし」タブで入力してください。</div>
       </div>
     </details>
 
     <details>
-      <summary>会社払い（法人カード）で立替がない経費はどう申請しますか？<span class="arrow">▼</span></summary>
+      <summary>会社払いで立替がない経費はどう申請しますか？<span class="arrow">▼</span></summary>
       <div class="answer">
-        <p>申請フォームの「会社払い」トグルをONにしてください。ONにすると支払元（法人カード名や銀行口座名）を選択する欄が表示されます。会社払いの経費は精算対象外として区別されます。</p>
-        <p>支払元の選択肢は管理者が「マスタ管理」→「会社払い支払元」で追加・管理します。</p>
+        <p>申請フォームの「会社払い」トグルをONにしてください。ONにすると支払元（法人カード・小口現金・銀行口座名など）を選択する欄が表示されます。会社払いの経費は個人立替と区別されます。</p>
+        <p>支払元の選択肢は管理者が設定画面の「会社払い支払元」で追加・管理します。</p>
       </div>
     </details>
 
@@ -408,8 +464,28 @@
     <details>
       <summary>AI解析はいつでも無料で使えますか？<span class="arrow">▼</span></summary>
       <div class="answer">
-        <p>AI解析にはGemini APIを使用します。APIキーはチームの管理者が設定・管理します。Gemini APIには無料枠があり、小規模チームであれば無料枠内で利用できることがほとんどです。使用量が増えた場合はGoogleのAPI料金が発生することがあります。詳細はGoogle AI Studioの料金ページをご確認ください。</p>
+        <p>AI解析にはGemini APIを使用します。APIキーはチームの管理者が設定・管理します。領収書1枚の登録につきAPIリクエストは<strong>1回</strong>です。</p>
+        <p>Google AI Studioの無料アカウントは<strong>1日1,500リクエストまで無料</strong>です。たとえば10名のチームが1人1日15件ずつ登録しても合計150リクエストでまだ余裕があり、数十名規模のチームでも通常の業務量であれば無料枠内に収まります。使用量が増えた場合はGoogleのAPI料金が発生することがあります（Gemini 2.5 Flashで約0.003円/枚程度）。詳細はGoogle AI Studioの料金ページをご確認ください。</p>
         <p>メンバー個人でAPIキーを用意・入力する必要はありません。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Gemini APIキーが漏洩するリスクはありますか？対策方法は？<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>APIキーはスプレッドシートの設定シートに保存されます。スプレッドシートへのアクセス権を持つメンバーはキーを閲覧できる状態です。以下の対策を推奨します。</p>
+        <p><strong>① HTTPリファラー制限（推奨・無料・即効性あり）</strong></p>
+        <ol>
+          <li>Google AI Studioでキー一覧を開く</li>
+          <li>該当キーの「編集」→「APIの制限」→「HTTPリファラー（ウェブサイト）」を選択</li>
+          <li><code>keihi-log.com/*</code> を許可ドメインに追加</li>
+        </ol>
+        <p>これによりキーが流出しても、指定ドメイン以外からは使用できなくなります。</p>
+        <p><strong>② 使用量上限の設定</strong></p>
+        <p>Google AI Studioのキー設定で1日あたりのリクエスト上限を設定しておくと、万一の大量悪用によるコスト被害を防げます。</p>
+        <p><strong>③ スプレッドシートの共有範囲を最小化</strong></p>
+        <p>スプレッドシートの共有設定は「リンクを知っている全員」ではなく「特定のメンバーのみ」に設定することを推奨します。</p>
+        <div class="note">設定画面のGemini APIキー欄にもリファラー制限の設定手順を掲載しています。</div>
       </div>
     </details>
 
@@ -450,15 +526,15 @@
     <details>
       <summary>領収書の画像はどこに保存されますか？<span class="arrow">▼</span></summary>
       <div class="answer">
-        <p>アップロードされた領収書画像は、申請者自身のGoogle Driveに保存されます（アプリが管理するフォルダ「経費証票」の下）。アプリ開発者のサーバーには一切保存されません。</p>
-        <p>Driveのフォルダは設定画面で確認・変更できます。</p>
+        <p>アップロードされた領収書画像は、管理者が設定した共有フォルダ（「経費証票」フォルダ）にまとめて一元管理されます。メンバー全員の証票が同じフォルダに集約されるため、管理者が一括で確認できます。アプリ開発者のサーバーには一切保存されません。</p>
+        <p>保存先フォルダは設定画面で確認・変更できます。</p>
       </div>
     </details>
 
     <details>
       <summary>PDFの領収書も添付できますか？<span class="arrow">▼</span></summary>
       <div class="answer">
-        <p>はい、PDF形式も添付できます。PDFの場合はAI自動解析（Gemini）の対象外となります（読み取り項目は手動入力してください）。</p>
+        <p>はい、PDF形式も添付・AI解析できます。使用しているGemini 2.5 FlashはPDFのインライン解析に対応しているため、画像と同様に日付・支払先・金額などを自動読み取りします。</p>
       </div>
     </details>
   </div>
@@ -472,9 +548,9 @@
       <div class="answer">
         <table>
           <tr><th>ステータス</th><th>意味</th><th>編集・削除</th></tr>
-          <tr><td>申請済</td><td>申請が提出され、承認待ちの状態</td><td>メンバー・管理者ともに可</td></tr>
-          <tr><td>登録済</td><td>管理者が承認済みの状態</td><td>メンバーは不可・管理者は自分の申請のみ可</td></tr>
-          <tr><td>精算済</td><td>支払・精算が完了した状態</td><td>不可</td></tr>
+          <tr><td>申請済</td><td>申請が提出され、承認待ちの状態</td><td>本人・管理者ともに可</td></tr>
+          <tr><td>登録済</td><td>管理者が承認済みの状態</td><td>一般メンバーは不可・管理者は可</td></tr>
+          <tr><td>精算済</td><td>支払・精算が完了した状態</td><td>一般メンバーは不可・管理者は可</td></tr>
         </table>
         <p>承認はWebアプリの一覧画面から管理者が操作できます（スプレッドシートを直接操作する必要はありません）。</p>
       </div>
@@ -509,12 +585,13 @@
       <div class="answer">
         <p>以下の条件で絞り込みができます：</p>
         <ul>
-          <li>期間（開始日〜終了日）</li>
-          <li>タイプ（一般・交通費・宿泊・その他）</li>
-          <li>勘定科目</li>
+          <li>期間（3ヶ月・6ヶ月・12ヶ月のプリセット、またはカスタム範囲）</li>
+          <li>タイプ（領収書・領収書なし・交通費・自家用車）</li>
           <li>承認ステータス（申請済・登録済・精算済）</li>
-          <li>申請者名（管理者のみ全員表示、メンバーは自分のみ）</li>
-          <li>キーワード検索（支払先・摘要など）</li>
+          <li>申請者名（管理者・閲覧者のみ。一般メンバーは自分の申請のみ表示）</li>
+          <li>支払元（個人払い／会社払い支払元ごとに絞り込み）</li>
+          <li>カスタムフラグ（部門・プロジェクトなど任意のタグ）</li>
+          <li>キーワード検索（支払先・備考・勘定科目）</li>
         </ul>
       </div>
     </details>
@@ -522,12 +599,13 @@
     <details>
       <summary>CSVエクスポートはどんな形式で出力できますか？<span class="arrow">▼</span></summary>
       <div class="answer">
-        <p>3種類の形式でエクスポートできます：</p>
+        <p>4種類の形式でエクスポートできます：</p>
         <table>
           <tr><th>形式</th><th>用途</th></tr>
-          <tr><td>標準CSV</td><td>一般的なスプレッドシートへの取り込み</td></tr>
+          <tr><td>標準CSV</td><td>一般的なスプレッドシートへの取り込み（支払元列含む）</td></tr>
           <tr><td>freee 経費精算形式</td><td>freeeへの一括インポート</td></tr>
           <tr><td>弥生 仕訳日記帳形式</td><td>弥生会計・弥生青色申告へのインポート</td></tr>
+          <tr><td>MFクラウド 仕訳帳形式</td><td>マネーフォワードクラウド会計へのインポート</td></tr>
         </table>
         <p>一覧画面の「CSVエクスポート」ボタン横の▼をクリックすると形式を選べます。現在の絞り込み条件に該当するデータのみエクスポートされます。</p>
       </div>
@@ -541,7 +619,7 @@
     </details>
 
     <details>
-      <summary>集計表のグラフで特定の月の内訳を確認できますか？<span class="arrow">▼</span></summary>
+      <summary>集計表で特定の月・科目の内訳を確認できますか？<span class="arrow">▼</span></summary>
       <div class="answer">
         <p>はい、集計表の金額セルをタップ（クリック）すると、その月・その科目の内訳をポップアップで確認できます。内訳には申請者・支払先・金額が一覧表示されます。</p>
       </div>
@@ -628,7 +706,7 @@
           <li>ライセンスの有効期限が切れていないか</li>
           <li>入力したライセンスキーが正しいか（購入時のメールを再確認）</li>
         </ul>
-        <p>問題が解決しない場合はサポート（<a href="mailto:support@smartandsmooth.com">support@smartandsmooth.com</a>）にお問い合わせください。</p>
+        <p>問題が解決しない場合はサポート（<a href="mailto:support@keihi-log.com">support@keihi-log.com</a>）にお問い合わせください。</p>
       </div>
     </details>
 
@@ -679,7 +757,13 @@
     <details>
       <summary>ライセンスは何名で使えますか？<span class="arrow">▼</span></summary>
       <div class="answer">
-        <p>ライセンスはチーム単位です。1ライセンスで同じスプレッドシートを利用するチーム全員が使用できます。チームメンバー全員が同じライセンスキーを設定画面に入力してください。</p>
+        <p>プランによって異なります：</p>
+        <table>
+          <tr><th>プラン</th><th>利用人数</th></tr>
+          <tr><td>ソロプラン</td><td>1名（メンバー追加機能は利用不可）</td></tr>
+          <tr><td>チームプラン</td><td>人数制限なし</td></tr>
+        </table>
+        <p>チームプランでは、同じスプレッドシートを利用するメンバー全員が1つのライセンスキーを共用します。管理者がスプレッドシートにキーを設定すれば、メンバーがアプリにログインした際に自動で取得されるため、メンバー個人が手動入力する必要はありません。</p>
       </div>
     </details>
 
@@ -692,7 +776,7 @@
           <li>購入時に入力したメールアドレスが正しいか確認する</li>
           <li>購入後、数分お待ちいただく（決済処理に最大5分程度かかる場合があります）</li>
         </ul>
-        <p>それでも届かない場合は <a href="mailto:support@smartandsmooth.com">support@smartandsmooth.com</a> にご連絡ください。購入時のStripe決済ID（メールに記載）をお知らせいただくと対応がスムーズです。</p>
+        <p>それでも届かない場合は <a href="mailto:support@keihi-log.com">support@keihi-log.com</a> にご連絡ください。購入時のStripe決済ID（メールに記載）をお知らせいただくと対応がスムーズです。</p>
       </div>
     </details>
 
@@ -709,10 +793,64 @@
         <p>はい、ライセンスキーはテスト・本番に関わらず同一のシステムで管理されているため、テスト環境で発行されたキーは本番環境でもそのまま有効です。</p>
       </div>
     </details>
+
+    <details>
+      <summary>ソロプランとチームプランは途中で変更できますか？<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>はい、いつでも変更できます。変更はStripeのカスタマーポータルから行えます。</p>
+        <ul>
+          <li><strong>アップグレード（ソロ→チーム）：</strong>即時反映されます。差額は残り日数に応じて日割り計算され、次回の請求に充当されます。</li>
+          <li><strong>ダウングレード（チーム→ソロ）：</strong>現在の契約期間が終了するタイミングで切り替わります。変更直後に料金が変わるわけではありません。</li>
+        </ul>
+        <p>なお、ダウングレード後もライセンスキー自体は変わらないため、設定画面の再入力は不要です。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>解約はいつでもできますか？返金はありますか？<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>はい、いつでも解約できます。Stripeのカスタマーポータルから手続きしてください。解約後は現在の契約期間が終了するまでサービスを継続してご利用いただけます。</p>
+        <p>原則として返金は承っておりませんが、初回請求直後など個別のご事情がある場合はサポートまでご相談ください。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>年契約を途中でプラン変更・解約した場合はどうなりますか？<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>年契約の場合、変更の種類によって動作が異なります。</p>
+        <table style="width:100%;border-collapse:collapse;font-size:0.88rem;margin-top:8px;">
+          <thead>
+            <tr style="background:#f8f9fa;">
+              <th style="padding:6px 8px;border:1px solid #dee2e6;text-align:left;">操作</th>
+              <th style="padding:6px 8px;border:1px solid #dee2e6;text-align:left;">反映タイミング</th>
+              <th style="padding:6px 8px;border:1px solid #dee2e6;text-align:left;">料金の扱い</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="padding:6px 8px;border:1px solid #dee2e6;">アップグレード<br><small class="text-muted">（ソロ→チーム）</small></td>
+              <td style="padding:6px 8px;border:1px solid #dee2e6;">即時</td>
+              <td style="padding:6px 8px;border:1px solid #dee2e6;">残り日数の差額を日割り計算し、次回請求に充当</td>
+            </tr>
+            <tr>
+              <td style="padding:6px 8px;border:1px solid #dee2e6;">ダウングレード<br><small class="text-muted">（チーム→ソロ）</small></td>
+              <td style="padding:6px 8px;border:1px solid #dee2e6;">現在の契約期間終了時<br><small class="text-muted">（最大1年後）</small></td>
+              <td style="padding:6px 8px;border:1px solid #dee2e6;">返金なし。期間終了まで現在のプランを継続利用</td>
+            </tr>
+            <tr>
+              <td style="padding:6px 8px;border:1px solid #dee2e6;">解約</td>
+              <td style="padding:6px 8px;border:1px solid #dee2e6;">現在の契約期間終了時<br><small class="text-muted">（最大1年後）</small></td>
+              <td style="padding:6px 8px;border:1px solid #dee2e6;">返金なし。期間終了まで継続利用可</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="mt-2 mb-0">ダウングレードや解約の手続きをしても<strong>すぐにサービスが止まることはありません</strong>が、年契約の残り期間は返金されない点にご注意ください。</p>
+      </div>
+    </details>
   </div>
 
   <footer>
-    <p>お問い合わせ：<a href="mailto:support@smartandsmooth.com">support@smartandsmooth.com</a>　｜　<a href="/privacy">プライバシーポリシー</a></p>
+    <p>お問い合わせ：<a href="mailto:support@keihi-log.com">support@keihi-log.com</a>　｜　<a href="/privacy">プライバシーポリシー</a></p>
     <p style="margin-top:6px;">© 2025 合同会社Smart&amp;Smooth</p>
   </footer>
 

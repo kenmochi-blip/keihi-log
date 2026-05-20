@@ -8,7 +8,18 @@
   <meta property="og:title" content="経費ログ｜領収書を撮るだけの経費記録アプリ">
   <meta property="og:description" content="領収書を撮るだけでAIが自動入力。Googleアカウントで使う経費記録アプリ。">
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://keihi-log.smartandsmooth.com/">
+  <meta property="og:url" content="https://keihi-log.com/">
+  <!-- Sentry エラー監視: dsn をSentryダッシュボードのDSNに差し替えてください -->
+  <script src="https://browser.sentry-cdn.com/8.0.0/bundle.min.js" crossorigin="anonymous"></script>
+  <script>
+    if (window.Sentry) {
+      Sentry.init({
+        dsn: 'https://7e4c7c067f7b13199ecbb7ad4a9ea964@o4511415610638336.ingest.us.sentry.io/4511415628464128',
+        environment: location.hostname === 'localhost' ? 'development' : 'production',
+        tracesSampleRate: 0.2,
+      });
+    }
+  </script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link rel="stylesheet" href="css/style.css">
@@ -21,7 +32,33 @@
     .type-card.active { background: #0d6efd !important; border-color: #0d6efd !important; color: #fff !important; opacity: 1; }
     .type-card.active i { color: #fff !important; }
   </style>
-  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <script>
+    (function() {
+      var alias = localStorage.getItem('keihi_alias');
+      var startUrl = alias ? ('/' + alias) : '/app';
+      var manifest = {
+        name: '経費ログ', short_name: '経費ログ',
+        description: 'AI領収書解析・経費申請・承認・集計をブラウザで完結できる経費管理Webアプリ',
+        start_url: startUrl, scope: '/', display: 'standalone',
+        background_color: '#ffffff', theme_color: '#0d6efd', lang: 'ja',
+        icons: [
+          { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: '/icons/icon-192-maskable.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
+          { src: '/icons/icon-512-maskable.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
+        ]
+      };
+      var blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+      var link = document.createElement('link');
+      link.rel = 'manifest';
+      link.href = URL.createObjectURL(blob);
+      document.head.appendChild(link);
+    })();
+  </script>
   <meta name="theme-color" content="#0d6efd">
 </head>
 <body class="bg-light">
@@ -31,11 +68,11 @@
     <div class="container-fluid" style="max-width:480px;margin:0 auto;">
       <span class="navbar-brand fw-bold small"><i class="bi bi-receipt-cutoff me-1"></i><span id="navAppTitle">経費ログ</span></span>
       <div class="d-flex align-items-center gap-2">
-        <a href="/faq" target="_blank" rel="noopener" class="btn btn-sm btn-outline-light" title="よくある質問">
-          <i class="bi bi-question-circle"></i>
+        <a href="/faq" target="_blank" rel="noopener" class="btn btn-outline-light" style="width:2.25rem;height:2.25rem;padding:0;display:grid;place-items:center;font-size:1.1rem;" title="よくある質問">
+          <i class="bi bi-question-circle" style="pointer-events:none;display:block;"></i>
         </a>
-        <button class="btn btn-sm btn-outline-light" id="btnLogout" title="ログアウト">
-          <i class="bi bi-box-arrow-right"></i>
+        <button class="btn btn-outline-light" style="width:2.25rem;height:2.25rem;padding:0;display:grid;place-items:center;font-size:1.1rem;" id="btnLogout" title="ログアウト">
+          <i class="bi bi-box-arrow-right" style="pointer-events:none;display:block;"></i>
         </button>
       </div>
     </div>
@@ -99,13 +136,15 @@
   <!-- グローバルエラーハンドラ：未捕捉のJSエラーで真っ白にならないように -->
   <script>
     window.addEventListener('error', function(ev) {
+      // 'Script error.' は CDN スクリプトの Cross-Origin エラーで内容不明のため無視
+      if (!ev.message || ev.message === 'Script error.') return;
       var main = document.getElementById('appMain');
       if (!main) return;
       // すでにビューが描画されていれば何もしない（バインド中のエラーで画面を消さない）
       if (main.querySelector('h5, .pt-3')) return;
       main.innerHTML = '<div class="pt-4"><div class="alert alert-danger small">' +
         '<i class="bi bi-exclamation-triangle-fill me-2"></i>' +
-        '初期化エラー: ' + (ev.message || 'スクリプトの読み込みに失敗しました') +
+        '初期化エラー: ' + ev.message +
         '</div><button class="btn btn-outline-secondary btn-sm" onclick="location.reload()">' +
         '<i class="bi bi-arrow-clockwise me-1"></i>再読み込み</button></div>';
     });
@@ -129,6 +168,6 @@
   <script src="js/router.js"></script>
   <script src="js/swipe.js"></script>
   <script src="js/app.js"></script>
-  <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');</script>
+  <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js', { scope: '/app.html' }).catch(() => {});</script>
 </body>
 </html>
