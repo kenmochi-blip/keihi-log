@@ -11,6 +11,24 @@ const Drive = (() => {
   }
 
   /**
+   * 指定フォルダ内に空のスプレッドシートを作成してIDを返す
+   */
+  async function createSpreadsheetInFolder(name, folderId) {
+    const meta = {
+      name,
+      mimeType: 'application/vnd.google-apps.spreadsheet',
+      ...(folderId ? { parents: [folderId] } : {})
+    };
+    const resp = await Auth.authFetch(
+      'https://www.googleapis.com/drive/v3/files',
+      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(meta) }
+    );
+    if (!resp.ok) throw new Error(`Drive createSpreadsheet error: ${resp.status}`);
+    const data = await resp.json();
+    return data.id;
+  }
+
+  /**
    * フォルダを作成して ID を返す
    */
   async function createFolder(name, parentId) {
@@ -195,5 +213,5 @@ const Drive = (() => {
     );
   }
 
-  return { createFolder, moveToFolder, uploadFile, uploadReceiptFile, fileToBase64, grantEditorAccess, revokeAccess };
+  return { createSpreadsheetInFolder, createFolder, moveToFolder, uploadFile, uploadReceiptFile, fileToBase64, grantEditorAccess, revokeAccess };
 })();

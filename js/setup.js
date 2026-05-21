@@ -14,46 +14,61 @@ const Setup = (() => {
   async function createSpreadsheet(companyName, parentFolderId, customAlias = '') {
     const title = `経費ログ - ${companyName || ''}`.trim();
 
-    // 1. スプレッドシート作成（シート構成まで一括で作成）
-    const body = {
-      properties: { title, locale: 'ja_JP', timeZone: 'Asia/Tokyo' },
-      sheets: [
-        { properties: { title: '経費一覧', index: 0 } },
-        { properties: { title: '設定',     index: 1 } },
-        { properties: { title: 'マスタ表', index: 2 } },
-        { properties: { title: '修正履歴', index: 3 } },
-        { properties: { title: '削除一覧', index: 4 } },
-      ]
-    };
+    // 1. 親フォルダが未指定なら先に作成（スプレッドシートをフォルダ内に直接配置するため）
+    if (!parentFolderId) {
+      parentFolderId = await Drive.createFolder(title, null);
+    }
 
-    const resp = await Auth.authFetch(SHEETS_BASE, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-    if (!resp.ok) throw new Error(`スプレッドシート作成エラー: ${resp.status}`);
-    const ss = await resp.json();
-    const ssId = ss.spreadsheetId;
+    // 2. Drive API でスプレッドシートをフォルダ内に直接作成（Sheets API は後でシート構成を追加）
+    const ssId = await Drive.createSpreadsheetInFolder(title, parentFolderId);
+
+    // 3. Sheets API でシート構成を追加
+    const addSheetsResp = await Auth.authFetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${ssId}:batchUpdate`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          requests: [
+            { addSheet: { properties: { title: '経費一覧', index: 0 } } },
+            { addSheet: { properties: { title: '設定',     index: 1 } } },
+            { addSheet: { properties: { title: 'マスタ表', index: 2 } } },
+            { addSheet: { properties: { title: '修正履歴', index: 3 } } },
+            { addSheet: { properties: { title: '削除一覧', index: 4 } } },
+          ]
+        })
+      }
+    );
+    if (!addSheetsResp.ok) throw new Error(`シート追加エラー: ${addSheetsResp.status}`);
+    const addSheetsData = await addSheetsResp.json();
 
     // シートIDを名前で引けるマップ
     const sheetIds = {};
-    ss.sheets.forEach(s => { sheetIds[s.properties.title] = s.properties.sheetId; });
+    addSheetsData.replies.forEach(r => {
+      if (r.addSheet) sheetIds[r.addSheet.properties.title] = r.addSheet.properties.sheetId;
+    });
 
-    // 2. ヘッダーと初期データを書き込む
-    await _writeInitialData(ssId, sheetIds, companyName);
-
-    // 3. 保存先フォルダが未指定なら親フォルダを自動作成
-    if (!parentFolderId) {
-      parentFolderId = await Drive.createFolder(`経費ログ - ${companyName || ''}`.trim(), null);
+    // 4. デフォルトシート（「シート1」）を削除
+    const ssInfoResp = await Auth.authFetch(`https://sheets.googleapis.com/v4/spreadsheets/${ssId}?fields=sheets.properties`);
+    if (ssInfoResp.ok) {
+      const ssInfo = await ssInfoResp.json();
+      const defaultSheet = ssInfo.sheets?.find(s => !sheetIds[s.properties.title]);
+      if (defaultSheet) {
+        await Auth.authFetch(`https://sheets.googleapis.com/v4/spreadsheets/${ssId}:batchUpdate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ requests: [{ deleteSheet: { sheetId: defaultSheet.properties.sheetId } }] })
+        }).catch(() => {});
+      }
     }
 
-    // 4. スプレッドシートをフォルダに移動
-    await Drive.moveToFolder(ssId, parentFolderId).catch(() => {});
+    // 5. ヘッダーと初期データを書き込む
+    await _writeInitialData(ssId, sheetIds, companyName);
 
-    // 5. Drive 証票フォルダ作成（親フォルダ内）
+    // 6. Drive 証票フォルダ作成（親フォルダ内）
     const folderId = await Drive.createFolder(`経費証票 - ${companyName || ''}`.trim(), parentFolderId);
 
-    // 6. フォルダIDを設定シートに保存
+    // 7. フォルダIDを設定シートに保存
     await Sheets.update('設定!B4', [[folderId]], ssId);
 
     // 7. エイリアス生成・登録（スプレッドシートIDをURLに露出させない）
