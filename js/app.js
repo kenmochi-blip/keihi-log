@@ -19,7 +19,7 @@ const App = (() => {
       _isAdmin = demoRole === 'admin';
       _setupUI('submit');
       const titleEl = document.getElementById('navAppTitle');
-      if (titleEl) titleEl.textContent = `経費ログ - ${Demo.COMPANY_NAME}`;
+      if (titleEl) titleEl.textContent = `経費ログ - ${_truncateCompany(Demo.COMPANY_NAME)}`;
       const navEmail = document.getElementById('navUserEmail');
       if (navEmail) navEmail.textContent = Demo.getUserEmail();
       _applyDemoNavVisibility(demoRole);
@@ -125,7 +125,7 @@ const App = (() => {
     let _companyName = localStorage.getItem('keihi_company_name') || '';
     if (_companyName) {
       const titleEl = document.getElementById('navAppTitle');
-      if (titleEl) titleEl.textContent = `経費ログ - ${_companyName}`;
+      if (titleEl) titleEl.textContent = `経費ログ - ${_truncateCompany(_companyName)}`;
       document.title = `経費ログ | ${_companyName}`;
     }
     try {
@@ -134,7 +134,7 @@ const App = (() => {
         _companyName = fetched;
         localStorage.setItem('keihi_company_name', fetched);
         const titleEl = document.getElementById('navAppTitle');
-        if (titleEl) titleEl.textContent = `経費ログ - ${fetched}`;
+        if (titleEl) titleEl.textContent = `経費ログ - ${_truncateCompany(fetched)}`;
         document.title = `経費ログ | ${fetched}`;
       }
     } catch (_) {}
@@ -393,6 +393,10 @@ const App = (() => {
     setTimeout(() => { div.style.opacity = '0'; div.style.transition = 'opacity 0.3s'; setTimeout(() => div.remove(), 300); }, duration);
   }
 
+  function _truncateCompany(name, max = 10) {
+    return name.length > max ? name.slice(0, max) + '…' : name;
+  }
+
   async function _resolveSetupParam() {
     const setupCode = new URLSearchParams(location.search).get('setup');
     if (!setupCode) return;
@@ -416,7 +420,7 @@ const App = (() => {
   }
 
   async function _resolvePathAlias() {
-    const match = location.pathname.match(/^\/([a-zA-Z0-9_-]{6,})$/);
+    const match = location.pathname.match(/^\/([a-zA-Z0-9_-]{3,})$/);
     if (!match) {
       // /app.html・/app・/ で起動（PWAショートカット等）
       if (location.pathname === '/app.html' || location.pathname === '/app' || location.pathname === '/') {

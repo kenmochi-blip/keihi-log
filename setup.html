@@ -65,9 +65,9 @@
         <!-- Step 2: 基本情報 -->
         <div class="step-panel" id="panel2">
           <h5 class="fw-bold mb-1">チームの基本情報</h5>
-          <p class="text-muted mb-3" style="font-size:0.85rem;">スプレッドシートのタイトルとアプリのURLに使用します。</p>
           <label class="form-label fw-semibold">会社名・チーム名 <span class="text-danger">*</span></label>
-          <input type="text" class="form-control mb-3" id="inputCompany" placeholder="例：山田商事、デザインチーム">
+          <p class="text-muted mb-2" style="font-size:0.82rem;">スプレッドシートのタイトルとアプリのURLに使用します。10文字以内推奨。</p>
+          <input type="text" class="form-control mb-3" id="inputCompany" placeholder="例：山田商事、デザインチーム" maxlength="20">
           <label class="form-label fw-semibold">
             チームURL
             <span class="text-muted fw-normal" style="font-size:0.8rem;">（任意・設定後変更不可）</span>
@@ -239,8 +239,8 @@
       if (!/^[a-zA-Z0-9-]+$/.test(val)) {
         msg.innerHTML = '<span class="text-danger">英数字・ハイフンのみ使用できます</span>'; return;
       }
-      if (val.length < 6) {
-        msg.innerHTML = '<span class="text-muted">6文字以上必要です</span>'; return;
+      if (val.length < 3) {
+        msg.innerHTML = '<span class="text-muted">3文字以上必要です</span>'; return;
       }
       msg.innerHTML = '<span class="text-muted">確認中…</span>';
       _aliasTimer = setTimeout(async () => {
@@ -259,8 +259,8 @@
       $('inputCompany').classList.remove('is-invalid');
       const aliasVal = $('inputAlias').value.trim().toLowerCase();
       if (aliasVal) {
-        if (!/^[a-zA-Z0-9-]{6,40}$/.test(aliasVal)) {
-          $('aliasMsg').innerHTML = '<span class="text-danger">英数字・ハイフンのみ、6〜40文字で入力してください</span>'; return;
+        if (!/^[a-zA-Z0-9-]{3,40}$/.test(aliasVal)) {
+          $('aliasMsg').innerHTML = '<span class="text-danger">英数字・ハイフンのみ、3〜40文字で入力してください</span>'; return;
         }
         const base = window.APP_CONFIG?.apiBase || '';
         const r = await fetch(`${base}/api/alias?code=${encodeURIComponent(aliasVal)}`).catch(() => null);

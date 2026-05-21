@@ -25,7 +25,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ licenseKey });
     }
 
-    if (!code || code.length < 6) {
+    if (!code || code.length < 3) {
       return res.status(400).json({ error: 'invalid_code' });
     }
     const sheetId = await kv.get(`alias:${code}`).catch(() => null);
@@ -42,7 +42,7 @@ export default async function handler(req, res) {
     if (!code || !sheetId || !licenseKey) {
       return res.status(400).json({ error: 'missing_fields' });
     }
-    if (code.length < 6 || !/^[a-zA-Z0-9_-]+$/.test(code)) {
+    if (code.length < 3 || !/^[a-zA-Z0-9_-]+$/.test(code)) {
       return res.status(400).json({ error: 'invalid_code_format' });
     }
 
