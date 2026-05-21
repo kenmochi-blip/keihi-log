@@ -1,6 +1,6 @@
 /**
  * 経路・運賃検索プロキシ
- * GOOGLE_MAPS_API_KEY が設定されていれば Google Maps Routes API を使用。
+ * GOOGLE_MAPS_API_KEY が設定されていれば Google Maps Directions API を使用。
  * 未設定の場合は Yahoo乗換スクレイピングにフォールバック。
  */
 export default async function handler(req, res) {
@@ -15,62 +15,53 @@ export default async function handler(req, res) {
   return _yahoo(req, res, from, to);
 }
 
-// ─── Google Maps Routes API ───────────────────────────────────────────────────
+// ─── Google Maps Directions API ──────────────────────────────────────────────
 
 async function _googleMaps(req, res, from, to) {
   const apiKey = process.env.GOOGLE_MAPS_API_KEY;
   const resultUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(from)}&destination=${encodeURIComponent(to)}&travelmode=transit`;
 
   try {
-    const resp = await fetch('https://routes.googleapis.com/directions/v2:computeRoutes', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Goog-Api-Key': apiKey,
-        'X-Goog-FieldMask': 'routes.fare,routes.legs.steps.transitDetails,routes.localizedValues',
-      },
-      body: JSON.stringify({
-        origin: { address: `${from},日本` },
-        destination: { address: `${to},日本` },
-        travelMode: 'TRANSIT',
-        transitPreferences: {
-          routingPreference: 'FEWER_TRANSFERS',
-          allowedTravelModes: ['TRAIN', 'SUBWAY', 'BUS', 'TRAM', 'RAIL'],
-        },
-        languageCode: 'ja',
-        units: 'METRIC',
-      }),
-      signal: AbortSignal.timeout(8000),
-    });
+    const url = `https://maps.googleapis.com/maps/api/directions/json?` +
+      `origin=${encodeURIComponent(from + ' 日本')}&` +
+      `destination=${encodeURIComponent(to + ' 日本')}&` +
+      `mode=transit&` +
+      `transit_routing_preference=fewer_transfers&` +
+      `language=ja&` +
+      `key=${apiKey}`;
+
+    const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
 
     if (!resp.ok) {
-      const err = await resp.text();
-      console.error('Google Maps error:', err);
-      // Google Maps が失敗したら Yahoo にフォールバック
+      console.error('Google Maps HTTP error:', resp.status);
       return _yahoo(req, res, from, to);
     }
 
     const data = await resp.json();
-    const route = data.routes?.[0];
 
-    // 運賃の取得（日本円）
+    if (data.status !== 'OK' || !data.routes?.length) {
+      console.error('Google Maps status:', data.status);
+      return _yahoo(req, res, from, to);
+    }
+
+    // 運賃（複数ルートから最安値）
     let fare = null;
-    const fareText = route?.fare?.localizedValues?.price?.text || '';
-    const fareMatch = fareText.match(/([\d,]+)/);
-    if (fareMatch) fare = parseInt(fareMatch[1].replace(/,/g, ''), 10);
+    for (const route of data.routes) {
+      if (route.fare?.value) {
+        const v = Math.round(route.fare.value);
+        if (!fare || v < fare) fare = v;
+      }
+    }
 
-    // 乗換駅の抽出（transit steps の到着駅）
+    // 乗換駅の抽出（transit steps の出発停留所）
     const transfers = [];
-    if (route?.legs) {
-      for (const leg of route.legs) {
-        for (const step of (leg.steps || [])) {
-          const td = step.transitDetails;
-          if (td?.stopDetails?.arrivalStop?.name && transfers.length < 3) {
-            const name = td.stopDetails.arrivalStop.name;
-            // 最終目的地は除く
-            if (!name.includes(to.replace(/駅|バス停/, ''))) {
-              transfers.push(name.replace(/駅$/, ''));
-            }
+    const route = data.routes[0];
+    for (const leg of (route.legs || [])) {
+      for (const step of (leg.steps || [])) {
+        if (step.travel_mode === 'TRANSIT') {
+          const dep = step.transit_details?.departure_stop?.name;
+          if (dep && !transfers.includes(dep) && transfers.length < 3) {
+            transfers.push(dep.replace(/駅$/, ''));
           }
         }
       }
