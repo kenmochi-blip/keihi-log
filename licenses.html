@@ -41,8 +41,8 @@
     .data-table td { padding: 0.6rem 0.75rem; vertical-align: middle; }
     .data-table .ps-first { padding-left: 1.25rem; }
     .data-table .pe-last  { padding-right: 1.25rem; }
-    .customer-name { font-weight: 500; font-size: 0.82rem; color: var(--text); }
-    .customer-biz  { font-size: 0.72rem; color: var(--text-sub); margin-top: 1px; }
+    .customer-name { font-weight: 500; font-size: 0.82rem; color: var(--text); max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .customer-biz  { font-size: 0.72rem; color: var(--text-sub); margin-top: 1px; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .email-btn { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 4px; border: 1px solid var(--border); background: var(--surface); color: var(--text-mute); cursor: pointer; transition: all 0.15s; position: relative; margin-left: 2px; }
     .email-btn:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
     .email-tooltip { position: absolute; left: 26px; top: 50%; transform: translateY(-50%); background: #1e293b; color: #fff; font-size: 0.7rem; white-space: nowrap; padding: 3px 8px; border-radius: 4px; pointer-events: none; opacity: 0; transition: opacity 0.15s; z-index: 100; }
@@ -343,14 +343,15 @@
           <table class="data-table">
             <thead>
               <tr>
-                <th class="ps-first" style="width:90px;">発行日</th>
-                <th style="width:280px;">顧客</th>
-                <th style="width:70px;">プラン</th>
-                <th style="width:90px;">有効期限</th>
-                <th style="width:60px;text-align:right;">今月</th>
-                <th style="width:60px;text-align:right;">先月</th>
-                <th style="width:90px;text-align:center;">状態</th>
-                <th class="pe-last" style="width:64px;text-align:right;"></th>
+                <th class="ps-first" style="width:80px;">発行日</th>
+                <th style="width:200px;">顧客</th>
+                <th style="width:56px;">種別</th>
+                <th style="width:60px;">プラン</th>
+                <th style="width:86px;">有効期限</th>
+                <th style="width:48px;text-align:right;">今月</th>
+                <th style="width:48px;text-align:right;">先月</th>
+                <th style="width:80px;text-align:center;">状態</th>
+                <th class="pe-last" style="width:56px;text-align:right;"></th>
               </tr>
             </thead>
             <tbody id="licenseTable"></tbody>
@@ -1086,13 +1087,19 @@
     }
 
     function _customerCell(l, compact = false) {
-      const name = esc(l.customerName || l.company || '');
-      const biz  = esc(l.businessName || '');
+      const rawName = l.customerName || l.company || '';
+      const rawBiz  = l.businessName || '';
+      const email   = l.email || '';
+      // メールアドレスが名前として入っている場合は「local@…」に省略
+      const _abbr = s => s.includes('@') ? s.split('@')[0] + '@…' : s;
+      const name = esc(_abbr(rawName));
+      const biz  = esc(rawBiz);
       const displayName = biz || name || '<span style="color:var(--text-mute);">—</span>';
-      const subLine = (biz && name && biz !== name) ? `<div class="customer-biz">${name}</div>` : '';
-      const email = esc(l.email || '');
-      if (compact) return `<div class="customer-name">${displayName}</div>${subLine}`;
-      return `<div style="display:flex;align-items:center;gap:4px;"><div><div class="customer-name">${displayName}</div>${subLine}</div>${email ? `<button class="email-btn" onclick="copyEmail(this,'${email}')" title="${email}"><i class="bi bi-envelope" style="font-size:0.7rem;"></i><span class="email-tooltip">${email}</span></button>` : ''}</div>`;
+      const subLine = (biz && rawName && biz !== rawName && !rawName.includes('@'))
+        ? `<div class="customer-biz">${name}</div>` : '';
+      const emailEsc = esc(email);
+      if (compact) return `<div class="customer-name" title="${emailEsc || ''}">${displayName}</div>${subLine}`;
+      return `<div style="display:flex;align-items:center;gap:4px;"><div><div class="customer-name">${displayName}</div>${subLine}</div>${emailEsc ? `<button class="email-btn" onclick="copyEmail(this,'${emailEsc}')" title="${emailEsc}"><i class="bi bi-envelope" style="font-size:0.7rem;"></i><span class="email-tooltip">${emailEsc}</span></button>` : ''}</div>`;
     }
 
     function copyEmail(btn, email) {
@@ -1128,7 +1135,13 @@
         tbody.innerHTML = newRegs.map(l => {
           const plan = l.plan === 'team' ? 'team' : 'solo';
           const kind = l.stripeSessionId ? '<span class="tag tag-stripe">有料</span>' : '<span class="tag tag-manual">手動</span>';
-          return `<tr><td style="color:var(--text-sub);">${(l.createdAt||'').split('T')[0]}</td><td>${_customerCell(l,true)}</td><td><span class="tag tag-${plan}">${planLabel[plan]}</span></td><td>${kind}</td></tr>`;
+          const dateStr = (l.createdAt||'').split('T')[0].replace(/^\d{4}-/, '').replace('-', '/'); // 05/21
+          return `<tr>
+            <td style="color:var(--text-sub);white-space:nowrap;width:48px;">${dateStr}</td>
+            <td style="max-width:140px;">${_customerCell(l,true)}</td>
+            <td style="width:52px;"><span class="tag tag-${plan}">${planLabel[plan]}</span></td>
+            <td style="width:52px;">${kind}</td>
+          </tr>`;
         }).join('');
         listEl.classList.remove('d-none');
       } else { listEl.classList.add('d-none'); }
@@ -1164,11 +1177,13 @@
         const plan = l.plan === 'team' ? 'team' : 'solo';
         const usageThis = l.usageThis ?? 0, usageLast = l.usageLast ?? 0;
         const isStripe = !!l.stripeSessionId;
+        const dateShort = l.createdAt ? l.createdAt.split('T')[0].replace(/^\d{4}-/, '').replace('-', '/') : '—';
         return `<tr data-key="${esc(l.key)}">
-          <td class="ps-first" style="font-size:0.78rem;color:var(--text-sub);">${l.createdAt ? l.createdAt.split('T')[0] : '—'}</td>
-          <td>${_customerCell(l)}${isStripe ? '<span class="tag tag-stripe" style="margin-top:3px;display:inline-block;">Stripe</span>' : '<span class="tag tag-manual" style="margin-top:3px;display:inline-block;">手動</span>'}</td>
+          <td class="ps-first" style="font-size:0.78rem;color:var(--text-sub);white-space:nowrap;">${dateShort}</td>
+          <td>${_customerCell(l)}</td>
+          <td>${isStripe ? '<span class="tag tag-stripe">Stripe</span>' : '<span class="tag tag-manual">手動</span>'}</td>
           <td><span class="tag tag-${plan}">${planLabel[plan]}</span></td>
-          <td style="font-size:0.78rem;color:var(--text-sub);">${l.expiresAt||'—'}</td>
+          <td style="font-size:0.78rem;color:var(--text-sub);white-space:nowrap;">${l.expiresAt ? l.expiresAt.replace(/^\d{4}-/, '').replace('-', '/') : '—'}</td>
           <td class="usage-num ${usageThis > 0 ? 'active' : 'zero'}">${usageThis || '—'}</td>
           <td class="usage-num zero">${usageLast || '—'}</td>
           <td style="text-align:center;"><span class="status-dot ${st}">${statusLabel[st]}</span></td>
