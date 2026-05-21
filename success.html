@@ -60,8 +60,8 @@
                 <i class="bi bi-info-circle me-1"></i>
                 このキーはメールでも送付されます。アプリの <strong>設定 → ライセンスキー</strong> に入力してください。
               </div>
-              <a href="/app.html" class="btn btn-primary w-100">
-                <i class="bi bi-box-arrow-in-right me-1"></i>アプリを開く
+              <a href="${data.setupCode ? '/' + data.setupCode : '/setup'}" class="btn btn-primary w-100">
+                <i class="bi bi-box-arrow-in-right me-1"></i>初期設定を始める
               </a>
             </div>
           </div>`;

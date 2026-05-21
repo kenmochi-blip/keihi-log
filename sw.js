@@ -1,4 +1,4 @@
-const CACHE = 'keihi-v7';
+const CACHE = 'keihi-v8';
 
 self.addEventListener('install', ev => {
   self.skipWaiting();
@@ -19,8 +19,9 @@ self.addEventListener('fetch', ev => {
 
   const url = new URL(request.url);
 
-  // Google API・CDN はキャッシュしない
+  // Google API・CDN・自サーバのAPIエンドポイントはキャッシュしない
   if (url.hostname !== self.location.hostname) return;
+  if (url.pathname.startsWith('/api/')) return;
 
   // JS・CSS・HTML はネットワーク優先（常に最新を取得、失敗時のみキャッシュ）
   if (/\.(js|css|html)$/.test(url.pathname) || request.mode === 'navigate') {

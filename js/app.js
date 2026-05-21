@@ -416,7 +416,7 @@ const App = (() => {
   }
 
   async function _resolvePathAlias() {
-    const match = location.pathname.match(/^\/([a-zA-Z0-9_-]{6,})$/);
+    const match = location.pathname.match(/^\/([a-zA-Z0-9_-]{3,})$/);
     if (!match) {
       // /app.html・/app・/ で起動（PWAショートカット等）
       if (location.pathname === '/app.html' || location.pathname === '/app' || location.pathname === '/') {

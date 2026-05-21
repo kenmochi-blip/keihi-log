@@ -16,11 +16,14 @@ export default async function handler(req, res) {
     const data = await kv.get(`license:${licenseKey}`);
     if (!data)    return res.status(404).json({ error: 'not_found' });
 
+    const setupCode = await kv.get(`license_ref:${licenseKey}`).catch(() => null);
+
     return res.status(200).json({
       licenseKey,
       company:   data.company,
       expiresAt: data.expiresAt,
       email:     data.email,
+      setupCode: setupCode || null,
     });
   } catch (err) {
     console.error(err);
