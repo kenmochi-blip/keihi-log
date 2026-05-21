@@ -24,7 +24,7 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: '経費ログ <support@keihi-log.com>',
+        from: process.env.RESEND_FROM_EMAIL || 'support@keihi-log.com',
         to: [normalizedEmail],
         subject: '【経費ログ】リリース通知のご登録ありがとうございます',
         html: `
