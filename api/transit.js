@@ -66,6 +66,10 @@ async function _yahoo(req, res, from, to) {
       return res.status(404).json({ error: '運賃を取得できませんでした。駅名・バス停名を確認してください。' });
     }
 
+    // yahooUrl: Yahoo乗換の結果ページ
+    // resultUrl: Google Maps のルート検索URL（transit）
+    const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(from)}&destination=${encodeURIComponent(to)}&travelmode=transit`;
+
     res.setHeader('Cache-Control', 'no-store');
     return res.json({ fare, transfers, resultUrl, yahooUrl });
   } catch (err) {

@@ -23,6 +23,20 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
+  // 通知登録者一覧
+  if (req.query.notify_list) {
+    const keys = [];
+    let cursor = 0;
+    do {
+      const [next, batch] = await kv.scan(cursor, { match: 'notify:*', count: 100 });
+      keys.push(...batch);
+      cursor = Number(next);
+    } while (cursor !== 0);
+    const entries = await Promise.all(keys.map(k => kv.get(k)));
+    entries.sort((a, b) => (a?.registeredAt || '').localeCompare(b?.registeredAt || ''));
+    return res.status(200).json({ total: entries.length, entries });
+  }
+
   // Sentryプロキシ
   if (req.query.sentry_path) {
     const sentryPath = req.query.sentry_path;

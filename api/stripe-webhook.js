@@ -92,13 +92,15 @@ async function _issueNewLicense(session) {
   const company = businessName || customerName || customerEmail;
   const plan = session.metadata?.plan || 'solo';
 
-  // サブスクリプションの請求間隔（month/year）を取得
+  // サブスクリプションの請求間隔・トライアル期限を取得
   let interval = 'month';
+  let trialEnd  = null; // Unix秒タイムスタンプ（トライアル中の場合のみ）
   if (session.subscription) {
     try {
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY?.trim());
       const sub = await stripe.subscriptions.retrieve(session.subscription);
-      interval = sub.items.data[0]?.price?.recurring?.interval || 'month';
+      interval  = sub.items.data[0]?.price?.recurring?.interval || 'month';
+      if (sub.status === 'trialing' && sub.trial_end) trialEnd = sub.trial_end;
     } catch (_) {}
   }
 
@@ -118,9 +120,15 @@ async function _issueNewLicense(session) {
   // ライセンスキー生成
   const licenseKey = `KL-${crypto.randomBytes(12).toString('hex').toUpperCase()}`;
 
-  // 有効期限（1年後）
-  const expiresAt = new Date();
-  expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+  // 有効期限：トライアル中はtrial_end、月額は1ヶ月後、年額は1年後
+  const expiresAt = trialEnd
+    ? new Date(trialEnd * 1000)
+    : (() => {
+        const d = new Date();
+        if (interval === 'year') d.setFullYear(d.getFullYear() + 1);
+        else d.setMonth(d.getMonth() + 1);
+        return d;
+      })();
 
   const licenseData = {
     company:         company,
@@ -168,7 +176,8 @@ async function _issueNewLicense(session) {
 
 async function _upgradeLicense(key, oldData, session, email, name, plan, interval = 'month') {
   const expiresAt = new Date();
-  expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+  if (interval === 'year') expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+  else expiresAt.setMonth(expiresAt.getMonth() + 1);
   const expiresAtStr = expiresAt.toISOString().split('T')[0];
 
   const updated = {
@@ -383,9 +392,18 @@ async function _renewLicense(invoice) {
   if (!key) return;
   const data = await kv.get(`license:${key}`);
   if (!data) return;
-  // 有効期限を1年延長
-  const newExpiry = new Date(data.expiresAt);
-  newExpiry.setFullYear(newExpiry.getFullYear() + 1);
+
+  // Stripeの請求期間終了日を優先して使用（最も正確）
+  // フォールバック：保存済みintervalに応じて現在の期限から延長
+  let newExpiry;
+  const periodEnd = invoice.lines?.data?.[0]?.period?.end;
+  if (periodEnd) {
+    newExpiry = new Date(periodEnd * 1000);
+  } else {
+    newExpiry = new Date(data.expiresAt);
+    if (data.interval === 'year') newExpiry.setFullYear(newExpiry.getFullYear() + 1);
+    else newExpiry.setMonth(newExpiry.getMonth() + 1);
+  }
   await kv.set(`license:${key}`, { ...data, expiresAt: newExpiry.toISOString().split('T')[0] });
   console.log(`License renewed: ${key} until ${newExpiry.toISOString().split('T')[0]}`);
 }

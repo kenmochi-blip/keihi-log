@@ -361,6 +361,33 @@
         </div>
       </div>
 
+      <!-- 通知登録者 -->
+      <div class="panel" style="margin-top:1rem;">
+        <div class="panel-header" style="justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:0.5rem;">
+            <i class="bi bi-bell" style="color:#d97706;"></i>
+            <span class="title">リリース通知登録者</span>
+            <span id="notifyCount" style="font-size:0.72rem;color:var(--text-mute);"></span>
+          </div>
+          <button class="btn-ghost" id="btnNotifyRefresh" style="font-size:0.75rem;padding:0.25rem 0.6rem;">
+            <i class="bi bi-arrow-clockwise"></i>更新
+          </button>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th class="ps-first" style="width:200px;">メールアドレス</th>
+                <th class="pe-last" style="width:160px;">登録日時</th>
+              </tr>
+            </thead>
+            <tbody id="notifyTableBody">
+              <tr><td colspan="2" style="text-align:center;padding:1.5rem;color:var(--text-mute);">読み込み中...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <div class="panel" style="margin-top:1rem;">
         <div class="panel-header">
           <i class="bi bi-plus-circle" style="color:#16a34a;"></i>
@@ -404,6 +431,7 @@
     document.getElementById('btnAppLogRefresh').addEventListener('click', () => loadAppLogs());
     document.getElementById('btnAppLogAnalyze').addEventListener('click', () => analyzeAppLogs());
     document.getElementById('btnAppLogClear').addEventListener('click', () => clearAppLogs());
+    document.getElementById('btnNotifyRefresh').addEventListener('click', () => loadNotifyList());
     document.getElementById('btnIssue').addEventListener('click', issueLicense);
     document.getElementById('filterText').addEventListener('input', render);
     document.getElementById('filterStatus').addEventListener('change', render);
@@ -848,8 +876,47 @@
       updateMonthly();
       render();
       loadAppLogs();
+      loadNotifyList();
       if (_hasCfKey) loadCloudflare();
       if (_sentryToken) loadSentry();
+    }
+
+    async function loadNotifyList() {
+      const tbody = document.getElementById('notifyTableBody');
+      const countEl = document.getElementById('notifyCount');
+      tbody.innerHTML = '<tr><td colspan="2" style="text-align:center;padding:1.5rem;color:var(--text-mute);">読み込み中...</td></tr>';
+      try {
+        const resp = await fetch(`/api/admin-licenses?secret=${encodeURIComponent(_secret)}&notify_list=1`);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+        const entries = data.entries || [];
+        countEl.textContent = `${entries.length}件`;
+        if (entries.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="2" style="text-align:center;padding:1.5rem;color:var(--text-mute);">登録者はいません</td></tr>';
+          return;
+        }
+        tbody.innerHTML = entries.map(e => {
+          const email = esc(e.email || '');
+          const dt = e.registeredAt
+            ? new Date(e.registeredAt).toLocaleString('ja-JP', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' })
+            : '—';
+          return `<tr>
+            <td class="ps-first" style="font-size:0.82rem;color:var(--text);">
+              <div style="display:flex;align-items:center;gap:4px;">
+                ${email}
+                <button class="email-btn" onclick="copyEmail(this,'${email}')" title="${email}">
+                  <i class="bi bi-clipboard" style="font-size:0.7rem;"></i>
+                  <span class="email-tooltip">${email}</span>
+                </button>
+              </div>
+            </td>
+            <td class="pe-last" style="font-size:0.78rem;color:var(--text-sub);">${dt}</td>
+          </tr>`;
+        }).join('');
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="2" style="text-align:center;padding:1.5rem;color:#dc2626;">${esc(err.message)}</td></tr>`;
+        countEl.textContent = '';
+      }
     }
 
     async function loadSentry() {

@@ -1729,7 +1729,7 @@
             </h2>
             <div id="faq9" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
               <div class="accordion-body">
-                組織ごとに別のメールアドレスでお申し込みください。ライセンスはメールアドレス単位で発行されるため、1つのメールアドレスでは1組織分のライセンスとなります。
+                同じメールアドレスで複数の組織分をお申し込みいただけます。ライセンスは申し込みごとに個別に発行されるため、それぞれ別のチームURLが生成されます。各チームのURLにアクセスするだけで自動的に切り替わります。
               </div>
             </div>
           </div>
@@ -1812,26 +1812,38 @@
   </div>
 </footer>
 
-<!-- リリース予定モーダル -->
-<div class="modal fade" id="comingSoonModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content text-center p-2">
-      <div class="modal-body py-4 px-3">
+<!-- リリース通知モーダル -->
+<div class="modal fade" id="notifyModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:400px;">
+    <div class="modal-content text-center p-1">
+      <div class="modal-body py-4 px-4">
         <div style="font-size:2.2rem;">🚀</div>
-        <h5 class="fw-bold mt-2 mb-2">2026年6月中旬リリース予定</h5>
-        <p class="text-muted mb-3" style="font-size:0.9rem;">
-          現在鋭意開発中です。リリースまでもうしばらくお待ちください。<br>
-          メールアドレスを登録するとリリース時にお知らせします。
+        <h5 class="fw-bold mt-2 mb-1">2026年6月中旬リリース予定</h5>
+        <p class="text-muted mb-3" style="font-size:0.88rem;">
+          現在鋭意開発中です。リリース時にメールでお知らせします。<br>
+          デモ画面は今すぐお試しいただけます。
         </p>
+        <!-- 登録フォーム -->
         <div id="notifyForm">
           <div class="input-group mb-2">
-            <input type="email" id="notifyEmailInput" class="form-control rounded-start-pill" placeholder="your@email.com">
-            <button class="btn btn-primary rounded-end-pill px-4" id="btnSubmitNotify" type="button">
-              登録する
+            <input type="email" class="form-control" id="notifyEmail"
+              placeholder="メールアドレス" autocomplete="email">
+            <button class="btn btn-primary" id="btnNotifySubmit" type="button">
+              通知を受け取る
             </button>
           </div>
-          <div id="notifyMsg" class="small" style="min-height:1.3em;"></div>
+          <div id="notifyMsg" class="form-text" style="min-height:1.2em;"></div>
         </div>
+        <!-- 登録完了メッセージ -->
+        <div id="notifyDone" class="d-none">
+          <div class="alert alert-success py-2 mb-2" style="font-size:0.88rem;">
+            <i class="bi bi-check-circle me-1"></i>登録しました！リリース時にご連絡します。
+          </div>
+        </div>
+        <!-- デモリンク -->
+        <a href="/app?demo" class="btn btn-outline-primary rounded-pill px-4 mt-1 w-100">
+          <i class="bi bi-play-circle me-1"></i>デモ画面を試す（登録不要・無料）
+        </a>
       </div>
       <div class="modal-footer border-0 justify-content-center pt-0 pb-3">
         <button type="button" class="btn btn-link text-muted" data-bs-dismiss="modal">閉じる</button>
@@ -1842,44 +1854,73 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  // 申し込みボタン・Stripeリンクをすべてモーダル表示に変更
-  document.addEventListener('DOMContentLoaded', function() {
-    var modal = new bootstrap.Modal(document.getElementById('comingSoonModal'));
-    document.getElementById('btnHeroSignup').addEventListener('click', function(e) {
-      e.preventDefault(); modal.show();
+  // ── 申し込みボタン・Stripeリンクをモーダルに差し替え ──
+  document.addEventListener('DOMContentLoaded', () => {
+    const modal = new bootstrap.Modal(document.getElementById('notifyModal'));
+
+    // ヒーローの申し込みボタン
+    const heroBtn = document.getElementById('btnHeroSignup');
+    if (heroBtn) heroBtn.addEventListener('click', e => { e.preventDefault(); modal.show(); });
+
+    // Stripeリンクを全てインターセプト
+    document.querySelectorAll('a[href*="buy.stripe.com"]').forEach(a => {
+      a.addEventListener('click', e => { e.preventDefault(); modal.show(); });
     });
-    document.getElementById('btnSubmitNotify').addEventListener('click', function() {
-      var email = document.getElementById('notifyEmailInput').value.trim();
-      var msg = document.getElementById('notifyMsg');
-      if (!email) { msg.className = 'small text-danger'; msg.textContent = 'メールアドレスを入力してください'; return; }
-      var btn = this;
+
+    // メール送信ボタン
+    document.getElementById('btnNotifySubmit').addEventListener('click', async () => {
+      const email = document.getElementById('notifyEmail').value.trim();
+      const msg   = document.getElementById('notifyMsg');
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        msg.innerHTML = '<span class="text-danger">メールアドレスを正しく入力してください</span>';
+        return;
+      }
+      const btn = document.getElementById('btnNotifySubmit');
       btn.disabled = true;
-      btn.textContent = '送信中...';
-      fetch('/api/notify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: email }) })
-        .then(function(r) { return r.json(); })
-        .then(function(d) {
-          if (d.ok) {
-            document.getElementById('notifyForm').innerHTML = '<p class="text-success fw-semibold mb-0"><i class="bi bi-check-circle me-1"></i>登録しました！リリース時にご連絡します。</p>';
-          } else {
-            msg.className = 'small text-danger'; msg.textContent = '登録に失敗しました。再度お試しください。';
-            btn.disabled = false; btn.textContent = '登録する';
-          }
-        })
-        .catch(function() {
-          msg.className = 'small text-danger'; msg.textContent = '通信エラーが発生しました。';
-          btn.disabled = false; btn.textContent = '登録する';
+      btn.textContent = '登録中...';
+      msg.textContent = '';
+      try {
+        const r = await fetch('/api/notify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email }),
         });
+        if (r.ok) {
+          document.getElementById('notifyForm').classList.add('d-none');
+          document.getElementById('notifyDone').classList.remove('d-none');
+        } else {
+          msg.innerHTML = '<span class="text-danger">登録に失敗しました。しばらく後にお試しください。</span>';
+          btn.disabled = false;
+          btn.textContent = '通知を受け取る';
+        }
+      } catch (_) {
+        msg.innerHTML = '<span class="text-danger">ネットワークエラーが発生しました。</span>';
+        btn.disabled = false;
+        btn.textContent = '通知を受け取る';
+      }
     });
-    document.querySelectorAll('a[href*="buy.stripe.com"]').forEach(function(a) {
-      a.addEventListener('click', function(e) { e.preventDefault(); modal.show(); });
+
+    // Enterキーでも送信
+    document.getElementById('notifyEmail').addEventListener('keydown', e => {
+      if (e.key === 'Enter') document.getElementById('btnNotifySubmit').click();
+    });
+
+    // モーダルを閉じたらフォームをリセット
+    document.getElementById('notifyModal').addEventListener('hidden.bs.modal', () => {
+      document.getElementById('notifyEmail').value = '';
+      document.getElementById('notifyMsg').textContent = '';
+      document.getElementById('notifyForm').classList.remove('d-none');
+      document.getElementById('notifyDone').classList.add('d-none');
+      document.getElementById('btnNotifySubmit').disabled = false;
+      document.getElementById('btnNotifySubmit').textContent = '通知を受け取る';
     });
   });
-  // bfcacheに入る前（pagehide）に全ボタンのフォーカスを解除
+
+  // ── bfcacheに入る前後にフォーカスを解除 ──────────────
   window.addEventListener('pagehide', function() {
     document.querySelectorAll('a.btn, button').forEach(function(el) { el.blur(); });
     if (document.activeElement) document.activeElement.blur();
   });
-  // 念のため復帰時（pageshow）にも解除
   window.addEventListener('pageshow', function() {
     setTimeout(function() {
       document.querySelectorAll('a.btn, button').forEach(function(el) { el.blur(); });
