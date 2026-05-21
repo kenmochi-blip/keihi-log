@@ -39,7 +39,9 @@
       <div class="step-line" id="line2"></div>
       <div class="step-dot todo" id="dot3">3</div>
       <div class="step-line" id="line3"></div>
-      <div class="step-dot todo" id="dot4"><i class="bi bi-check"></i></div>
+      <div class="step-dot todo" id="dot4">4</div>
+      <div class="step-line" id="line4"></div>
+      <div class="step-dot todo" id="dot5"><i class="bi bi-check"></i></div>
     </div>
 
     <div class="card border-0 shadow-sm">
@@ -79,16 +81,6 @@
           </div>
           <div id="aliasMsg" class="form-text mb-3"></div>
 
-          <label class="form-label fw-semibold mt-1">
-            Gemini APIキー
-            <span class="text-muted fw-normal" style="font-size:0.8rem;">（任意・AI領収書解析に使用）</span>
-          </label>
-          <p class="text-muted mb-2" style="font-size:0.8rem;">
-            <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio</a>
-            から無料取得できます。後から設定画面でも入力可能です。
-          </p>
-          <input type="text" class="form-control mb-3" id="inputGeminiKey" placeholder="AIzaSy...">
-
           <button class="btn btn-primary w-100" id="btnGoStep3">
             次へ <i class="bi bi-arrow-right ms-1"></i>
           </button>
@@ -97,8 +89,45 @@
           </button>
         </div>
 
-        <!-- Step 3: セットアップ実行 -->
+        <!-- Step 3: Gemini APIキー -->
         <div class="step-panel" id="panel3">
+          <h5 class="fw-bold mb-1">AI解析用 APIキーの設定</h5>
+          <p class="text-muted mb-3" style="font-size:0.85rem;">領収書の自動読み取りに使用します。無料で利用できます。後から設定画面でも入力可能です。</p>
+
+          <div class="bg-light rounded p-3 mb-3" style="font-size:0.83rem;">
+            <div class="fw-semibold mb-2"><i class="bi bi-info-circle me-1 text-primary"></i>無料枠について</div>
+            <ul class="mb-0 ps-3" style="line-height:1.8;">
+              <li>1日あたり <strong>1,500リクエスト</strong>まで無料</li>
+              <li>10名規模のチームでも無料枠で十分収まります</li>
+              <li>Googleアカウントがあれば誰でも取得できます</li>
+            </ul>
+          </div>
+
+          <div class="fw-semibold mb-2" style="font-size:0.85rem;">取得手順（PC推奨）</div>
+          <ol class="mb-3 ps-3" style="font-size:0.83rem;line-height:2;">
+            <li><a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio <i class="bi bi-box-arrow-up-right" style="font-size:0.75rem;"></i></a> を開く</li>
+            <li>「APIキーを作成」をクリック</li>
+            <li>表示されたキー（<code>AIzaSy...</code>）をコピー</li>
+            <li>下の欄に貼り付ける</li>
+          </ol>
+
+          <label class="form-label fw-semibold">Gemini APIキー</label>
+          <input type="text" class="form-control mb-1" id="inputGeminiKey" placeholder="AIzaSy...">
+          <div class="form-text mb-3">スマートフォンから取得できない場合はPCのブラウザをお使いください</div>
+
+          <button class="btn btn-primary w-100" id="btnGoStep4">
+            次へ <i class="bi bi-arrow-right ms-1"></i>
+          </button>
+          <button class="btn btn-link btn-sm w-100 text-muted mt-1" id="btnSkipGemini">
+            スキップして後で設定する
+          </button>
+          <button class="btn btn-link w-100 text-muted mt-1" id="btnBack2">
+            <i class="bi bi-arrow-left me-1"></i>戻る
+          </button>
+        </div>
+
+        <!-- Step 4: セットアップ実行 -->
+        <div class="step-panel" id="panel4">
           <h5 class="fw-bold mb-1">セットアップ実行</h5>
           <p class="text-muted mb-3" style="font-size:0.85rem;">スプレッドシートと証票フォルダを自動作成します。</p>
 
@@ -132,13 +161,13 @@
           <button class="btn btn-primary w-100" id="btnStartSetup">
             <i class="bi bi-rocket-takeoff me-1"></i>セットアップ開始
           </button>
-          <button class="btn btn-link w-100 text-muted mt-1" id="btnBack2">
+          <button class="btn btn-link w-100 text-muted mt-1" id="btnBack3">
             <i class="bi bi-arrow-left me-1"></i>戻る
           </button>
         </div>
 
-        <!-- Step 4: 完了 -->
-        <div class="step-panel" id="panel4">
+        <!-- Step 5: 完了 -->
+        <div class="step-panel" id="panel5">
           <div class="text-center mb-3">
             <div style="font-size:2.5rem;">🎉</div>
             <h5 class="fw-bold mt-2 mb-1">セットアップ完了！</h5>
@@ -197,13 +226,14 @@
 
     // ── Step ユーティリティ ────────────────────────────────
     function goStep(n) {
-      [1,2,3,4].forEach(i => {
-        $('panel' + i).classList.toggle('active', i === n);
+      [1,2,3,4,5].forEach(i => {
+        $('panel' + i)?.classList.toggle('active', i === n);
         const dot = $('dot' + i);
+        if (!dot) return;
         dot.className = 'step-dot ' + (i < n ? 'done' : i === n ? 'active' : 'todo');
         if (i < n) dot.innerHTML = '<i class="bi bi-check"></i>';
-        else if (i < 4) dot.textContent = i;
-        if (i < 4) $('line' + i).classList.toggle('done', i < n);
+        else if (i < 5) dot.textContent = i;
+        if (i < 5) $('line' + i)?.classList.toggle('done', i < n);
       });
     }
 
@@ -297,15 +327,23 @@
       }
       _companyName = name;
       _alias = aliasVal;
-      _geminiKey = $('inputGeminiKey').value.trim();
-      $('confirmCompany').textContent = name;
-      $('confirmUrl').textContent = aliasVal ? `${location.origin}/${aliasVal}` : '（ランダム自動生成）';
       goStep(3);
     });
 
     $('btnBack1').addEventListener('click', () => goStep(1));
 
-    // ── Step 3: セットアップ実行 ──────────────────────────
+    // ── Step 3: Gemini APIキー ────────────────────────────
+    function proceedToStep4() {
+      _geminiKey = $('inputGeminiKey').value.trim();
+      $('confirmCompany').textContent = _companyName;
+      $('confirmUrl').textContent = _alias ? `${location.origin}/${_alias}` : '（ランダム自動生成）';
+      goStep(4);
+    }
+    $('btnGoStep4').addEventListener('click', proceedToStep4);
+    $('btnSkipGemini').addEventListener('click', proceedToStep4);
+    $('btnBack2').addEventListener('click', () => goStep(2));
+
+    // ── Step 4: セットアップ実行 ──────────────────────────
     function setProgState(id, state) {
       const el = $(id);
       const icon = el.querySelector('.icon');
@@ -317,7 +355,7 @@
 
     $('btnStartSetup').addEventListener('click', async () => {
       $('btnStartSetup').disabled = true;
-      $('btnBack2').style.display = 'none';
+      $('btnBack3').style.display = 'none';
       $('confirmBox').style.display = 'none';
       $('progressBox').style.display = 'block';
       $('setupErrMsg').style.display = 'none';
@@ -343,7 +381,7 @@
         $('shareUrlInput').value = shareUrl;
         $('qrImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(shareUrl)}`;
         $('btnOpenApp').onclick = () => { window.location.href = shareUrl; };
-        goStep(4);
+        goStep(5);
 
       } catch (err) {
         setProgState('prog1', 'error');
@@ -352,18 +390,18 @@
         $('setupErrMsg').textContent = 'エラーが発生しました: ' + (err.message || err);
         $('setupErrMsg').style.display = 'block';
         $('btnStartSetup').disabled = false;
-        $('btnBack2').style.display = '';
+        $('btnBack3').style.display = '';
       }
     });
 
-    $('btnBack2').addEventListener('click', () => {
+    $('btnBack3').addEventListener('click', () => {
       $('confirmBox').style.display = '';
       $('progressBox').style.display = 'none';
       ['prog1','prog2','prog3'].forEach(id => setProgState(id, 'todo'));
-      goStep(2);
+      goStep(3);
     });
 
-    // ── Step 4: 完了 ──────────────────────────────────────
+    // ── Step 5: 完了 ──────────────────────────────────────
     $('btnCopyUrl').addEventListener('click', () => {
       navigator.clipboard.writeText($('shareUrlInput').value).then(() => {
         $('btnCopyUrl').innerHTML = '<i class="bi bi-check text-success"></i>';
