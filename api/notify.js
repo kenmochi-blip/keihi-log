@@ -28,23 +28,19 @@ export default async function handler(req, res) {
         to: [normalizedEmail],
         subject: '【経費ログ】リリース通知のご登録ありがとうございます',
         html: `
-<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#333;">
-  <div style="text-align:center;margin-bottom:24px;">
-    <span style="font-size:2rem;">🚀</span>
-    <h2 style="margin:8px 0 4px;font-size:1.3rem;">ご登録ありがとうございます</h2>
-  </div>
-  <p>経費ログのリリース通知にご登録いただきありがとうございます。</p>
-  <p>現在、2026年6月中旬のリリースに向けて鋭意開発中です。<br>
+<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#333;text-align:center;">
+  <span style="font-size:2rem;">🚀</span>
+  <h2 style="margin:8px 0 16px;font-size:1.3rem;">ご登録ありがとうございます</h2>
+  <p style="margin:0 0 12px;">経費ログのリリース通知にご登録いただきありがとうございます。</p>
+  <p style="margin:0 0 12px;">現在、2026年6月中旬のリリースに向けて鋭意開発中です。<br>
   リリースの際は、このメールアドレス宛にご連絡いたします。</p>
-  <p>それまでの間、デモ画面で機能をお試しいただけます。</p>
-  <div style="text-align:center;margin:24px 0;">
-    <a href="https://keihi-log.com/app?demo"
-       style="background:#0d6efd;color:#fff;padding:12px 28px;border-radius:999px;text-decoration:none;font-weight:bold;">
-      デモを見る
-    </a>
-  </div>
+  <p style="margin:0 0 24px;">それまでの間、デモ画面で機能をお試しいただけます。</p>
+  <a href="https://keihi-log.com/app?demo"
+     style="background:#0d6efd;color:#fff;padding:12px 28px;border-radius:999px;text-decoration:none;font-weight:bold;display:inline-block;">
+    デモを見る
+  </a>
   <hr style="border:none;border-top:1px solid #eee;margin:24px 0;">
-  <p style="font-size:0.85rem;color:#888;text-align:center;">
+  <p style="font-size:0.85rem;color:#888;margin:0;">
     合同会社Smart&amp;Smooth<br>
     <a href="https://keihi-log.com" style="color:#888;">keihi-log.com</a>
   </p>
