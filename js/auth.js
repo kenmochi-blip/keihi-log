@@ -352,7 +352,10 @@ async function initLogin() {
       if (err.message === 'state_mismatch') {
         const rawState = new URLSearchParams(location.search).get('state');
         if (rawState) {
-          try { recoveredReturnUrl = decodeURIComponent(atob(rawState)); } catch (_) {}
+          try {
+            const decoded = decodeURIComponent(atob(rawState));
+            if (/^\/[a-zA-Z0-9_\-/.]*$/.test(decoded)) recoveredReturnUrl = decoded;
+          } catch (_) {}
         }
       }
       const msg = err.message === 'state_mismatch'

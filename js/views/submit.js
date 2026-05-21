@@ -153,9 +153,14 @@ const SubmitView = (() => {
     <div id="transitResult" class="d-none mt-2 mb-3 p-2 rounded" style="background:#f0f7ff;border:1px solid #c8e0f8;font-size:0.82rem;">
       <div id="transitResultRoute" class="fw-semibold mb-1"></div>
       <div id="transitResultFare" class="text-primary fw-bold mb-1"></div>
-      <a id="transitResultLink" href="#" target="_blank" class="btn btn-link btn-sm p-0 text-decoration-none">
-        <i class="bi bi-box-arrow-up-right me-1"></i>Yahoo乗換で検索結果を確認する
-      </a>
+      <div class="d-flex gap-3">
+        <a id="transitResultLinkYahoo" href="#" target="_blank" class="btn btn-link btn-sm p-0 text-decoration-none">
+          <i class="bi bi-box-arrow-up-right me-1"></i>Yahoo乗換で確認
+        </a>
+        <a id="transitResultLinkGoogle" href="#" target="_blank" class="btn btn-link btn-sm p-0 text-decoration-none">
+          <i class="bi bi-map me-1"></i>Googleマップで確認
+        </a>
+      </div>
     </div>
     <div class="row g-2 mb-2">
       <div class="col-6">
@@ -688,8 +693,10 @@ function _bindTypeButtons(el) {
           el.querySelector('#transitResultRoute').textContent = routeText;
           el.querySelector('#transitResultFare').textContent =
             `最安値（IC）: ¥${data.fare.toLocaleString()} ／片道`;
-          const link = el.querySelector('#transitResultLink');
-          if (link) link.href = data.resultUrl;
+          const linkYahoo = el.querySelector('#transitResultLinkYahoo');
+          const linkGoogle = el.querySelector('#transitResultLinkGoogle');
+          if (linkYahoo) linkYahoo.href = data.yahooUrl || '#';
+          if (linkGoogle) linkGoogle.href = data.resultUrl || '#';
           resultDiv.classList.remove('d-none');
         }
 
@@ -791,6 +798,7 @@ function _bindTypeButtons(el) {
   async function _runAiAnalysis(el) {
     let files = _selectedFiles.filter(Boolean);
     const btn = el.querySelector('#btnAnalyze');
+    if (btn?.disabled) return;
 
     if (files.length === 0 && _existingUrls.filter(Boolean).length > 0) {
       btn.disabled = true;
@@ -805,7 +813,7 @@ function _bindTypeButtons(el) {
         // Drive API でアクセスできない場合（drive.file スコープ制限）
         // 証票リンクを開いて手動で再選択するよう案内する
         const existingUrl = _existingUrls.filter(Boolean)[0];
-        const safeUrl = existingUrl ? existingUrl.replace(/[<>"']/g, '') : '';
+        const safeUrl = existingUrl ? existingUrl.replace(/[<>"'&]/g, '') : '';
         const msg = safeUrl
           ? `証票ファイルに直接アクセスできません。<a href="${safeUrl}" target="_blank" rel="noopener" style="color:#fff;text-decoration:underline;">証票を開いてダウンロード</a>後、「ファイル」から再選択してください。`
           : '証票ファイルにアクセスできません。ファイルを再選択してください。';

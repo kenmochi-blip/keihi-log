@@ -437,7 +437,7 @@ const App = (() => {
       if (prevSheetId && prevSheetId !== token) {
         ['keihi_company_name', 'keihi_license_key', 'keihi_license_cache',
          'keihi_master_cache', 'keihi_folder_id', 'keihi_setup_code',
-         'keihi_nav_color', 'keihi_gemini_key', 'keihi_alias'].forEach(k => localStorage.removeItem(k));
+         'keihi_nav_color', 'keihi_gemini_key', 'keihi_alias', 'keihi_user_email'].forEach(k => localStorage.removeItem(k));
       }
       sessionStorage.setItem('keihi_sheet_id', token);
       localStorage.setItem('keihi_sheet_id', token);
