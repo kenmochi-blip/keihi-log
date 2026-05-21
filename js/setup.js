@@ -11,7 +11,7 @@ const Setup = (() => {
    * @param {string} companyName 会社名（シートタイトルに使用）
    * @returns {string} 作成されたスプレッドシートID
    */
-  async function createSpreadsheet(companyName, parentFolderId, customAlias = '') {
+  async function createSpreadsheet(companyName, parentFolderId, customAlias = '', ownerName = '') {
     const title = `経費ログ - ${companyName || ''}`.trim();
 
     // 1. スプレッドシート作成（シート構成まで一括で作成）
@@ -40,7 +40,7 @@ const Setup = (() => {
     ss.sheets.forEach(s => { sheetIds[s.properties.title] = s.properties.sheetId; });
 
     // 2. ヘッダーと初期データを書き込む
-    await _writeInitialData(ssId, sheetIds, companyName);
+    await _writeInitialData(ssId, sheetIds, companyName, ownerName);
 
     // 3. 保存先フォルダが未指定なら親フォルダを自動作成
     if (!parentFolderId) {
@@ -87,9 +87,9 @@ const Setup = (() => {
     });
   }
 
-  async function _writeInitialData(ssId, sheetIds, companyName) {
+  async function _writeInitialData(ssId, sheetIds, companyName, ownerName = '') {
     const userEmail = Auth.getUserEmail();
-    const userName  = Auth.getUserInfo()?.name || userEmail;
+    const userName  = ownerName || Auth.getUserInfo()?.name || userEmail;
 
     const updates = [
       // 経費一覧ヘッダー（21列）
