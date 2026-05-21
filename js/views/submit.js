@@ -154,9 +154,14 @@ const SubmitView = (() => {
     <div id="transitResult" class="d-none mt-2 mb-3 p-2 rounded" style="background:#f0f7ff;border:1px solid #c8e0f8;font-size:0.82rem;">
       <div id="transitResultRoute" class="fw-semibold mb-1"></div>
       <div id="transitResultFare" class="text-primary fw-bold mb-1"></div>
-      <a id="transitResultLink" href="#" target="_blank" class="btn btn-link btn-sm p-0 text-decoration-none">
-        <i class="bi bi-box-arrow-up-right me-1"></i>地図アプリで検索結果を確認する
-      </a>
+      <div class="d-flex gap-3">
+        <a id="transitResultLinkGoogle" href="#" target="_blank" class="btn btn-link btn-sm p-0 text-decoration-none">
+          <i class="bi bi-map me-1"></i>Googleマップで確認
+        </a>
+        <a id="transitResultLinkYahoo" href="#" target="_blank" class="btn btn-link btn-sm p-0 text-decoration-none">
+          <i class="bi bi-box-arrow-up-right me-1"></i>Yahoo乗換で確認
+        </a>
+      </div>
     </div>
     <div class="row g-2 mb-2">
       <div class="col-6">
@@ -690,8 +695,10 @@ function _bindTypeButtons(el) {
           el.querySelector('#transitResultRoute').textContent = routeText;
           el.querySelector('#transitResultFare').textContent =
             `最安値（IC）: ¥${data.fare.toLocaleString()} ／片道`;
-          const link = el.querySelector('#transitResultLink');
-          if (link) link.href = data.resultUrl;
+          const linkGoogle = el.querySelector('#transitResultLinkGoogle');
+          if (linkGoogle) linkGoogle.href = data.resultUrl;
+          const linkYahoo = el.querySelector('#transitResultLinkYahoo');
+          if (linkYahoo) linkYahoo.href = data.yahooUrl || '#';
           resultDiv.classList.remove('d-none');
         }
 

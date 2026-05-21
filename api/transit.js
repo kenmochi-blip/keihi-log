@@ -67,7 +67,7 @@ async function _yahoo(req, res, from, to) {
     }
 
     res.setHeader('Cache-Control', 'no-store');
-    return res.json({ fare, transfers, resultUrl });
+    return res.json({ fare, transfers, resultUrl, yahooUrl });
   } catch (err) {
     if (err.name === 'TimeoutError') {
       return res.status(504).json({ error: 'Yahoo乗換への接続がタイムアウトしました' });
