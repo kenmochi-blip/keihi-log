@@ -23,10 +23,11 @@ async function _googleMaps(req, res, from, to) {
 
   try {
     const url = `https://maps.googleapis.com/maps/api/directions/json?` +
-      `origin=${encodeURIComponent(from + ' 日本')}&` +
-      `destination=${encodeURIComponent(to + ' 日本')}&` +
+      `origin=${encodeURIComponent(from)}&` +
+      `destination=${encodeURIComponent(to)}&` +
       `mode=transit&` +
       `transit_routing_preference=fewer_transfers&` +
+      `region=jp&` +
       `language=ja&` +
       `key=${apiKey}`;
 
