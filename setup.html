@@ -359,12 +359,15 @@
       else icon.innerHTML = '<i class="bi bi-circle text-muted"></i>';
     }
 
+    const _beforeUnload = e => { e.preventDefault(); e.returnValue = ''; };
+
     $('btnStartSetup').addEventListener('click', async () => {
       $('btnStartSetup').disabled = true;
       $('btnBack3').style.display = 'none';
       $('confirmBox').style.display = 'none';
       $('progressBox').style.display = 'block';
       $('setupErrMsg').style.display = 'none';
+      window.addEventListener('beforeunload', _beforeUnload);
 
       try {
         setProgState('prog1', 'running');
@@ -387,9 +390,11 @@
         $('shareUrlInput').value = shareUrl;
         $('qrImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(shareUrl)}`;
         $('btnOpenApp').onclick = () => { window.location.href = shareUrl; };
+        window.removeEventListener('beforeunload', _beforeUnload);
         goStep(5);
 
       } catch (err) {
+        window.removeEventListener('beforeunload', _beforeUnload);
         setProgState('prog1', 'error');
         setProgState('prog2', 'error');
         setProgState('prog3', 'error');
