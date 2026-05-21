@@ -155,7 +155,7 @@ const SubmitView = (() => {
       <div id="transitResultRoute" class="fw-semibold mb-1"></div>
       <div id="transitResultFare" class="text-primary fw-bold mb-1"></div>
       <a id="transitResultLink" href="#" target="_blank" class="btn btn-link btn-sm p-0 text-decoration-none">
-        <i class="bi bi-box-arrow-up-right me-1"></i>Yahoo乗換で検索結果を確認する
+        <i class="bi bi-box-arrow-up-right me-1"></i>地図アプリで検索結果を確認する
       </a>
     </div>
     <div class="row g-2 mb-2">

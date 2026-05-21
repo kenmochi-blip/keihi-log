@@ -1,21 +1,102 @@
 /**
- * Yahoo乗換 最安値取得プロキシ
- * クライアントからCORSなしでYahoo Transit HTMLを取得・解析して返す
+ * 経路・運賃検索プロキシ
+ * GOOGLE_MAPS_API_KEY が設定されていれば Google Maps Routes API を使用。
+ * 未設定の場合は Yahoo乗換スクレイピングにフォールバック。
  */
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).end();
 
-  const { from, to, mode } = req.query;
+  const { from, to } = req.query;
   if (!from || !to) return res.status(400).json({ error: 'from と to が必要です' });
 
-  // 新幹線普通指定席を許可（shin=1）、座席は普通指定席（seat=1）、IC優先
+  if (process.env.GOOGLE_MAPS_API_KEY) {
+    return _googleMaps(req, res, from, to);
+  }
+  return _yahoo(req, res, from, to);
+}
+
+// ─── Google Maps Routes API ───────────────────────────────────────────────────
+
+async function _googleMaps(req, res, from, to) {
+  const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+  const resultUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(from)}&destination=${encodeURIComponent(to)}&travelmode=transit`;
+
+  try {
+    const resp = await fetch('https://routes.googleapis.com/directions/v2:computeRoutes', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': apiKey,
+        'X-Goog-FieldMask': 'routes.fare,routes.legs.steps.transitDetails,routes.localizedValues',
+      },
+      body: JSON.stringify({
+        origin: { address: `${from},日本` },
+        destination: { address: `${to},日本` },
+        travelMode: 'TRANSIT',
+        transitPreferences: {
+          routingPreference: 'FEWER_TRANSFERS',
+          allowedTravelModes: ['TRAIN', 'SUBWAY', 'BUS', 'TRAM', 'RAIL'],
+        },
+        languageCode: 'ja',
+        units: 'METRIC',
+      }),
+      signal: AbortSignal.timeout(8000),
+    });
+
+    if (!resp.ok) {
+      const err = await resp.text();
+      console.error('Google Maps error:', err);
+      // Google Maps が失敗したら Yahoo にフォールバック
+      return _yahoo(req, res, from, to);
+    }
+
+    const data = await resp.json();
+    const route = data.routes?.[0];
+
+    // 運賃の取得（日本円）
+    let fare = null;
+    const fareText = route?.fare?.localizedValues?.price?.text || '';
+    const fareMatch = fareText.match(/([\d,]+)/);
+    if (fareMatch) fare = parseInt(fareMatch[1].replace(/,/g, ''), 10);
+
+    // 乗換駅の抽出（transit steps の到着駅）
+    const transfers = [];
+    if (route?.legs) {
+      for (const leg of route.legs) {
+        for (const step of (leg.steps || [])) {
+          const td = step.transitDetails;
+          if (td?.stopDetails?.arrivalStop?.name && transfers.length < 3) {
+            const name = td.stopDetails.arrivalStop.name;
+            // 最終目的地は除く
+            if (!name.includes(to.replace(/駅|バス停/, ''))) {
+              transfers.push(name.replace(/駅$/, ''));
+            }
+          }
+        }
+      }
+    }
+
+    if (!fare) {
+      // 運賃が取れなかった場合は Yahoo にフォールバック
+      return _yahoo(req, res, from, to);
+    }
+
+    res.setHeader('Cache-Control', 'no-store');
+    return res.json({ fare, transfers, resultUrl });
+  } catch (err) {
+    console.error('Google Maps exception:', err.message);
+    return _yahoo(req, res, from, to);
+  }
+}
+
+// ─── Yahoo乗換フォールバック ──────────────────────────────────────────────────
+
+async function _yahoo(req, res, from, to) {
   const ticketParam = '&ticket=ic&shin=1&seat=1';
 
   const jstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
   const jstHour = jstNow.getUTCHours();
 
-  // 22時〜翌6時は翌朝10時に丸める（終電・始発を避けて昼間の便を取得）
-  // それ以外は現在時刻をそのまま使用。printUrlとresultUrlを同じ時刻で統一。
   let sd;
   if (jstHour >= 22) {
     sd = new Date(jstNow.getTime() + 24 * 60 * 60 * 1000);
@@ -29,17 +110,13 @@ export default async function handler(req, res) {
   const sy = sd.getUTCFullYear(), sm = sd.getUTCMonth() + 1, sdd = sd.getUTCDate();
   const sh = sd.getUTCHours(), sn = sd.getUTCMinutes();
 
-  // search/result（複数ルート一覧）を取得して全ルートのIC運賃から最安値を選ぶ
-  // type=1（到着時刻順）で現在時刻以降の便を取得。printUrlとresultUrlは同じURL。
   const resultUrl =
     `https://transit.yahoo.co.jp/search/result?` +
     `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}` +
     `&type=1&expkind=1&userpass=1${ticketParam}&y=${sy}&m=${sm}&d=${sdd}&hh=${sh}&m2=${sn}`;
 
-  const printUrl = resultUrl; // 同じページを取得して複数ルートから最安値を解析
-
   try {
-    const resp = await fetch(printUrl, {
+    const resp = await fetch(resultUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept-Language': 'ja,en-US;q=0.9',
@@ -53,23 +130,23 @@ export default async function handler(req, res) {
     }
 
     const html = await resp.text();
-    const { fare, transfers } = _parse(html);
+    const { fare, transfers } = _parseYahoo(html);
 
     if (!fare) {
-      return res.status(404).json({ error: '運賃を取得できませんでした。駅名を確認してください。' });
+      return res.status(404).json({ error: '運賃を取得できませんでした。駅名・バス停名を確認してください。' });
     }
 
     res.setHeader('Cache-Control', 'no-store');
-    res.json({ fare, transfers, resultUrl });
+    return res.json({ fare, transfers, resultUrl });
   } catch (err) {
     if (err.name === 'TimeoutError') {
       return res.status(504).json({ error: 'Yahoo乗換への接続がタイムアウトしました' });
     }
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
 }
 
-function _parse(html) {
+function _parseYahoo(html) {
   const text = html
     .replace(/<script[\s\S]*?<\/script>/gi, '')
     .replace(/<style[\s\S]*?<\/style>/gi, '')
@@ -78,25 +155,21 @@ function _parse(html) {
     .replace(/&yen;/g, '¥')
     .replace(/\s+/g, ' ');
 
-  // --- 運賃の抽出（複数ルートから最安値を選択）---
-  // ① まず IC系合計運賃を探す（IC優先・IC展示・IC運賃 etc.）
-  //    これは各ルートの総額なので正しい値
+  // ① IC系合計運賃を優先（IC優先・IC展示・IC運賃 etc.）
   const icFares = [...text.matchAll(/IC[^\s:：]*\s*[：:]\s*([\d,]+)\s*円/g)]
     .map(m => parseInt(m[1].replace(/,/g, ''), 10))
     .filter(v => v >= 100 && v < 100000);
   let fare = icFares.length > 0 ? Math.min(...icFares) : null;
 
-  // ② IC運賃なし（バスのみルートなど）→ 指定席・自由席の合計額を探す
-  //    ただし区間別の部分運賃と混在するため最大値（=合計に近い値）を優先
+  // ② IC運賃なし → 指定席・自由席の最大値（区間運賃ではなく合計に近い値）
   if (!fare) {
-    const seatFares = [
-      ...text.matchAll(/(?:指定席|自由席)\s*[：:]\s*([\d,]+)\s*円/g)
-    ].map(m => parseInt(m[1].replace(/,/g, ''), 10))
-     .filter(v => v >= 100 && v < 100000);
+    const seatFares = [...text.matchAll(/(?:指定席|自由席)\s*[：:]\s*([\d,]+)\s*円/g)]
+      .map(m => parseInt(m[1].replace(/,/g, ''), 10))
+      .filter(v => v >= 100 && v < 100000);
     if (seatFares.length > 0) fare = Math.max(...seatFares);
   }
 
-  // ③ 上記パターンなし → 汎用パターンで最安値を探す
+  // ③ 汎用フォールバック
   if (!fare) {
     const allFares = [...text.matchAll(/([\d,]+)\s*円/g)]
       .map(m => parseInt(m[1].replace(/,/g, ''), 10))
@@ -104,18 +177,12 @@ function _parse(html) {
     if (allFares.length > 0) fare = Math.min(...allFares);
   }
 
-
-  // --- 乗換駅（中間駅）の抽出 ---
-  // 実際の乗換には「○○ 3分乗換」のように待ち時間が付く
-  // ナビUI（「乗換案内」「乗換が少ない順」等）には数字がないので区別できる
   const transferSet = new Set();
-  const transferRe = /([一-鿿ぁ-ゖァ-ヶー]{2,6}(?:駅|バス停)?)\s*\d+分乗換/g;
-  for (const m of text.matchAll(transferRe)) {
+  for (const m of text.matchAll(/([一-鿿ぁ-ゖァ-ヶー]{2,6}(?:駅|バス停)?)\s*\d+分乗換/g)) {
     const name = m[1].replace(/(?:駅|バス停)$/, '').trim();
     if (name.length >= 2) transferSet.add(name);
     if (transferSet.size >= 4) break;
   }
-  const transfers = [...transferSet];
 
-  return { fare, transfers };
+  return { fare, transfers: [...transferSet] };
 }
