@@ -103,17 +103,23 @@
             </ul>
           </div>
 
-          <div class="fw-semibold mb-2" style="font-size:0.85rem;">取得手順（PC推奨）</div>
-          <ol class="mb-3 ps-3" style="font-size:0.83rem;line-height:2;">
+          <div class="fw-semibold mb-2" style="font-size:0.85rem;">取得手順</div>
+          <ol class="mb-2 ps-3" style="font-size:0.83rem;line-height:2;">
             <li><a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio <i class="bi bi-box-arrow-up-right" style="font-size:0.75rem;"></i></a> を開く</li>
-            <li>「APIキーを作成」をクリック</li>
+            <li>「APIキーを作成」をタップ</li>
             <li>表示されたキー（<code>AIzaSy...</code>）をコピー</li>
             <li>下の欄に貼り付ける</li>
           </ol>
+          <div class="alert alert-light border py-2 mb-3" style="font-size:0.78rem;">
+            <i class="bi bi-phone me-1"></i><strong>スマホで「不審なリクエスト」エラーが出た場合</strong><br>
+            ① Chromeブラウザ（Safari不可）でGoogleアカウントにログインした状態で開く<br>
+            ② シークレットモードをオフにする<br>
+            ③ それでも出る場合は「APIキーを作成」をもう一度タップ
+          </div>
 
           <label class="form-label fw-semibold">Gemini APIキー</label>
-          <input type="text" class="form-control mb-1" id="inputGeminiKey" placeholder="AIzaSy...">
-          <div class="form-text mb-3">スマートフォンから取得できない場合はPCのブラウザをお使いください</div>
+          <input type="text" class="form-control mb-1" id="inputGeminiKey" placeholder="AIzaSy..." autocomplete="off" autocorrect="off" spellcheck="false">
+          <div class="form-text mb-3">入力は任意です。後から設定画面でも変更できます。</div>
 
           <button class="btn btn-primary w-100" id="btnGoStep4">
             次へ <i class="bi bi-arrow-right ms-1"></i>
