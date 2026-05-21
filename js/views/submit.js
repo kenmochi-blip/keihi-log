@@ -24,7 +24,8 @@ const SubmitView = (() => {
   let _historyShown    = 15;
   const _HIST_PAGE     = 15;
 
-  const TYPES = ['領収書', '領収書なし', '交通費', '自家用車'];
+  const TYPES = ['領収書', '領収書なし', '電車/バス', '自家用車'];
+  const _typeId = t => t.replace(/\//g, '');
   const CAR_RATE_KEY = 'keihi_car_rate';
 
   function render() {
@@ -57,7 +58,7 @@ const SubmitView = (() => {
     <button class="type-card" data-type="領収書なし">
       <i class="bi bi-pencil-square"></i>領収書なし
     </button>
-    <button class="type-card" data-type="交通費">
+    <button class="type-card" data-type="電車/バス">
       <i class="bi bi-train-front-fill"></i>電車/バス
     </button>
     <button class="type-card" data-type="自家用車">
@@ -134,7 +135,7 @@ const SubmitView = (() => {
   </div>
 
   <!-- 交通費 -->
-  <div id="panel-交通費" class="d-none">
+  <div id="panel-電車バス" class="d-none">
     ${_dateField()}
     <div class="row g-2 mb-2">
       <div class="col-6">
@@ -180,14 +181,14 @@ const SubmitView = (() => {
     ${_noteField()}
     <div class="mb-2">
       <label class="form-label small fw-semibold">領収書（任意）</label>
-      <div class="d-flex flex-wrap gap-2 mb-2" id="previewArea-交通費"></div>
-      <input type="file" class="d-none" id="camInput-交通費" accept="image/*" capture="environment">
-      <input type="file" class="d-none" id="fileInput-交通費" accept="*/*" multiple>
+      <div class="d-flex flex-wrap gap-2 mb-2" id="previewArea-電車バス"></div>
+      <input type="file" class="d-none" id="camInput-電車バス" accept="image/*" capture="environment">
+      <input type="file" class="d-none" id="fileInput-電車バス" accept="*/*" multiple>
       <div class="d-flex gap-2">
-        <button class="upload-card-sm flex-fill" id="btnCamera-交通費">
+        <button class="upload-card-sm flex-fill" id="btnCamera-電車バス">
           <i class="bi bi-camera-fill"></i>カメラ
         </button>
-        <button class="upload-card-sm flex-fill" id="btnFile-交通費">
+        <button class="upload-card-sm flex-fill" id="btnFile-電車バス">
           <i class="bi bi-folder-fill"></i>ファイル
         </button>
       </div>
@@ -388,7 +389,7 @@ const SubmitView = (() => {
       return el.querySelector('#receiptFields') || el;
     }
     // 属性セレクタを使うと日本語IDもエスケープ不要
-    return el.querySelector(`[id="panel-${_currentType}"]`) || el;
+    return el.querySelector(`[id="panel-${_typeId(_currentType)}"]`) || el;
   }
 
   function _populateSelects(el) {
@@ -439,7 +440,7 @@ function _bindTypeButtons(el) {
           b.classList.toggle('active', b.dataset.type === _currentType);
         });
         TYPES.forEach(t => {
-          el.querySelector(`#panel-${t}`)?.classList.toggle('d-none', t !== _currentType);
+          el.querySelector(`#panel-${_typeId(t)}`)?.classList.toggle('d-none', t !== _currentType);
         });
         // 領収書：フォームとボタンを非表示（AI読み取り後に表示）
         if (_currentType === '領収書') {
@@ -471,19 +472,20 @@ function _bindTypeButtons(el) {
     };
 
     TYPES.forEach(type => {
-      const fileInput = el.querySelector(`#fileInput-${type}`);
+      const tid = _typeId(type);
+      const fileInput = el.querySelector(`#fileInput-${tid}`);
       if (!fileInput) return;
 
       // カメラボタン：専用input（capture="environment"）を使いシステム選択ダイアログを回避
-      const camInput = el.querySelector(`#camInput-${type}`);
-      const camBtn   = el.querySelector(`#btnCamera-${type}`);
+      const camInput = el.querySelector(`#camInput-${tid}`);
+      const camBtn   = el.querySelector(`#btnCamera-${tid}`);
       if (camBtn && camInput) {
         camBtn.addEventListener('click', () => camInput.click());
         camInput.addEventListener('change', e => { processFiles(el, type, e.target.files); e.target.value = ''; });
       }
 
       // ファイルボタン：通常のファイル選択
-      const fileBtn = el.querySelector(`#btnFile-${type}`);
+      const fileBtn = el.querySelector(`#btnFile-${tid}`);
       if (fileBtn) fileBtn.addEventListener('click', () => fileInput.click());
       fileInput.addEventListener('change', e => { processFiles(el, type, e.target.files); e.target.value = ''; });
 
@@ -512,7 +514,7 @@ function _bindTypeButtons(el) {
   }
 
   function _addPreviewItem(el, type, base64, mimeType, idx) {
-    const area = el.querySelector(`#previewArea-${type}`);
+    const area = el.querySelector(`#previewArea-${_typeId(type)}`);
     if (!area) return;
     const div = document.createElement('div');
     div.className = 'file-preview-item';
@@ -533,7 +535,7 @@ function _bindTypeButtons(el) {
 
   /** 編集モード開始時に既存証票URLをプレビューエリアに表示する */
   function _renderExistingUrlPreviews(el, type) {
-    const area = el.querySelector(`#previewArea-${type}`);
+    const area = el.querySelector(`#previewArea-${_typeId(type)}`);
     if (!area) return;
     area.replaceChildren();
     _existingUrls.forEach((url, i) => {
@@ -672,7 +674,7 @@ function _bindTypeButtons(el) {
         if (!resp.ok || !data.fare) {
           App.showToast(data.error || '運賃を取得できませんでした', 'warning');
           window.open(
-            `https://transit.yahoo.co.jp/search/result?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&type=1&expkind=1&userpass=1&ticket=ic`,
+            `https://transit.yahoo.co.jp/search/result?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&type=1&expkind=1&userpass=1&ticket=ic&shin=1&seat=1`,
             '_blank'
           );
           return;
@@ -1093,7 +1095,7 @@ function _bindTypeButtons(el) {
 
     // place は交通費・自家用車では専用フィールドから生成
     let place = '';
-    if (_currentType === '交通費') {
+    if (_currentType === '電車/バス') {
       const from = el.querySelector('#txtFrom')?.value.trim();
       const to   = el.querySelector('#txtTo')?.value.trim();
       if (!from) { App.showToast('出発駅・バス停を入力してください', 'danger'); return null; }
@@ -1113,7 +1115,7 @@ function _bindTypeButtons(el) {
 
     let amount = 0, category = '', note = '';
 
-    if (_currentType === '交通費') {
+    if (_currentType === '電車/バス') {
       const raw   = (el.querySelector('#numTransitFare')?.value || '').replace(/[^\d]/g, '');
       const fare  = Number(raw) || 0;
       const round = el.querySelector('#chkRoundTrip')?.checked ? 2 : 1;
@@ -1348,7 +1350,7 @@ function _bindTypeButtons(el) {
         if (taxSel && e.taxRate) taxSel.value = e.taxRate;
         const cfSel = el.querySelector('#selCustomFlag');
         if (cfSel && e.customFlag) cfSel.value = e.customFlag;
-      } else if (e.type === '交通費') {
+      } else if (e.type === '電車/バス') {
         const parts = (e.place || '').split(/ [→↔] /);
         const fromInput = el.querySelector('#txtFrom');
         const toInput   = el.querySelector('#txtTo');
@@ -1420,7 +1422,7 @@ function _bindTypeButtons(el) {
     el.querySelector('#editBanner')?.classList.add('d-none');
     const btn = el.querySelector('#btnSubmit');
     if (btn) { btn.innerHTML = '<i class="bi bi-send me-2"></i>登録する'; btn.className = 'btn btn-primary btn-lg rounded-3'; }
-    TYPES.forEach(t => el.querySelector(`#previewArea-${t}`)?.replaceChildren());
+    TYPES.forEach(t => el.querySelector(`#previewArea-${_typeId(t)}`)?.replaceChildren());
     el.querySelector('#receiptFields')?.classList.add('d-none');
     // 領収書パネルのリセット時は申請ボタンを非表示
     if (_currentType === '領収書') el.querySelector('#btnSubmit')?.classList.add('d-none');

@@ -64,7 +64,7 @@ const ListView = (() => {
           <select class="form-select form-select-sm" id="filterType">
             <option value="">タイプ（全て）</option>
             <option>領収書</option><option>領収書なし</option>
-            <option>交通費</option><option>自家用車</option>
+            <option>電車/バス</option><option>自家用車</option>
           </select>
         </div>
         <div class="col-6 col-md">

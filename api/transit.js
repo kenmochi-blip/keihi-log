@@ -8,8 +8,8 @@ export default async function handler(req, res) {
   const { from, to, mode } = req.query;
   if (!from || !to) return res.status(400).json({ error: 'from と to が必要です' });
 
-  // 電車・バス共通で IC 優先（Yahoo乗換が最安値を自動選択）
-  const ticketParam = '&ticket=ic';
+  // 新幹線普通指定席を許可（shin=1）、座席は普通指定席（seat=1）、IC優先
+  const ticketParam = '&ticket=ic&shin=1&seat=1';
 
   const jstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
   const jstHour = jstNow.getUTCHours();
@@ -78,15 +78,19 @@ function _parse(html) {
     .replace(/&yen;/g, '¥')
     .replace(/\s+/g, ' ');
 
-  // --- IC運賃の抽出（search/resultの複数ルートから最安値を選択）---
-  // 結果一覧ページのIC優先運賃は "IC優先：387円" 形式で各ルートに記載されている
-  // matchAllで全ルート分を拾い Math.min() で最安値を得る
-  const icFares = [...text.matchAll(/IC(?:優先)?\s*[：:]\s*([\d,]+)\s*円/g)]
-    .map(m => parseInt(m[1].replace(/,/g, ''), 10))
-    .filter(v => v >= 100 && v < 100000);
-  let fare = icFares.length > 0 ? Math.min(...icFares) : null;
+  // --- 運賃の抽出（複数ルートから最安値を選択）---
+  // IC優先運賃 "IC優先：387円"、指定席運賃 "指定席：XXXX円"、自由席運賃 "自由席：XXXX円" を取得
+  const farePatterns = [
+    /IC(?:優先)?\s*[：:]\s*([\d,]+)\s*円/g,
+    /指定席\s*[：:]\s*([\d,]+)\s*円/g,
+    /自由席\s*[：:]\s*([\d,]+)\s*円/g,
+  ];
+  const allMatchedFares = farePatterns.flatMap(re =>
+    [...text.matchAll(re)].map(m => parseInt(m[1].replace(/,/g, ''), 10))
+  ).filter(v => v >= 100 && v < 100000);
+  let fare = allMatchedFares.length > 0 ? Math.min(...allMatchedFares) : null;
 
-  // IC表記なし → 汎用パターンで最安値を探す
+  // 上記パターンなし → 汎用パターンで最安値を探す
   if (!fare) {
     const allFares = [...text.matchAll(/([\d,]+)\s*円/g)]
       .map(m => parseInt(m[1].replace(/,/g, ''), 10))
