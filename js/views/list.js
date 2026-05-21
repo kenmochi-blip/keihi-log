@@ -588,7 +588,9 @@ const ListView = (() => {
       if (!e) throw new Error('レコードが見つかりません');
       const ssId = localStorage.getItem('keihi_sheet_id');
       const timeResp = await fetch('/api/time');
-      const { jst: deletedAt } = await timeResp.json();
+      const deletedAt = timeResp.ok
+        ? (await timeResp.json()).jst
+        : new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
       await Sheets.prependRow('削除一覧', [deletedAt, Auth.getUserEmail(), ...Sheets.expenseToRow(e)], ssId);
       const rowIndex = await Sheets.findRowById(id, ssId);
       if (rowIndex > 0) await Sheets.deleteRow('経費一覧', rowIndex, ssId);

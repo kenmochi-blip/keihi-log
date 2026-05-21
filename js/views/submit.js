@@ -979,7 +979,9 @@ function _bindTypeButtons(el) {
         headers: _licKey ? { 'Content-Type': 'application/json' } : {},
         body: _licKey ? JSON.stringify({ key: _licKey }) : undefined,
       });
-      const { jst: appliedAt } = await timeResp.json();
+      const appliedAt = timeResp.ok
+        ? (await timeResp.json()).jst
+        : new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
 
       // 2. ファイルアップロード + SHA-256ハッシュ計算
       const activeFiles = _selectedFiles.filter(Boolean);
@@ -1397,12 +1399,13 @@ function _bindTypeButtons(el) {
 
       // 削除一覧に移動
       const timeResp = await fetch(`${window.APP_CONFIG?.apiBase || ''}/api/time`);
-      const { jst: deletedAt } = await timeResp.json();
+      const deletedAt = timeResp.ok
+        ? (await timeResp.json()).jst
+        : new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
       await Sheets.prependRow('削除一覧', [deletedAt, Auth.getUserEmail(), ...Sheets.expenseToRow(e)]);
 
-      // 元の行を削除（sheetIdが必要なのでbatchUpdateを使う）
-      // 簡略化：行の内容を空白で上書きしてフィルタリングする方式
-      await Sheets.update(`経費一覧!A${rowNum}:U${rowNum}`, [new Array(21).fill('')]);
+      // 元の行を削除
+      await Sheets.deleteRow('経費一覧', rowNum);
 
       App.showToast('削除しました', 'success');
       _loadHistory(el);
