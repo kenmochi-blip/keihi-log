@@ -78,6 +78,17 @@
               placeholder="例: yamada-trading（英数字・ハイフン）" maxlength="40">
           </div>
           <div id="aliasMsg" class="form-text mb-3"></div>
+
+          <label class="form-label fw-semibold mt-1">
+            Gemini APIキー
+            <span class="text-muted fw-normal" style="font-size:0.8rem;">（任意・AI領収書解析に使用）</span>
+          </label>
+          <p class="text-muted mb-2" style="font-size:0.8rem;">
+            <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio</a>
+            から無料取得できます。後から設定画面でも入力可能です。
+          </p>
+          <input type="text" class="form-control mb-3" id="inputGeminiKey" placeholder="AIzaSy...">
+
           <button class="btn btn-primary w-100" id="btnGoStep3">
             次へ <i class="bi bi-arrow-right ms-1"></i>
           </button>
@@ -179,7 +190,7 @@
 
     // ── DOM refs ──────────────────────────────────────────
     const $ = id => document.getElementById(id);
-    let _licKey = '', _alias = '', _companyName = '';
+    let _licKey = '', _alias = '', _companyName = '', _geminiKey = '';
 
     // originラベル
     $('originLabel').textContent = location.origin + '/';
@@ -221,6 +232,22 @@
       if (result.valid) {
         _licKey = key;
         localStorage.setItem('keihi_license_key', key);
+        // セットアップ済みか確認
+        const base = window.APP_CONFIG?.apiBase || '';
+        const chk = await fetch(`${base}/api/alias?licenseKey=${encodeURIComponent(key)}`).catch(() => null);
+        if (chk?.ok) {
+          const { alias } = await chk.json();
+          const existingUrl = `${location.origin}/${alias}`;
+          $('licMsg').innerHTML = `
+            <div class="alert alert-warning py-2 mt-2" style="font-size:0.85rem;">
+              <i class="bi bi-exclamation-triangle me-1"></i>
+              このライセンスキーは既にセットアップ済みです。<br>
+              <a href="${existingUrl}" class="fw-semibold">${existingUrl}</a>
+            </div>`;
+          btn.disabled = false;
+          btn.innerHTML = '確認して次へ <i class="bi bi-arrow-right ms-1"></i>';
+          return;
+        }
         goStep(2);
       } else {
         const reason = result.reason === 'expired'   ? '有効期限切れです。' :
@@ -270,6 +297,7 @@
       }
       _companyName = name;
       _alias = aliasVal;
+      _geminiKey = $('inputGeminiKey').value.trim();
       $('confirmCompany').textContent = name;
       $('confirmUrl').textContent = aliasVal ? `${location.origin}/${aliasVal}` : '（ランダム自動生成）';
       goStep(3);
@@ -297,7 +325,7 @@
       try {
         setProgState('prog1', 'running');
         setProgState('prog2', 'running');
-        const ssId = await Setup.createSpreadsheet(_companyName, null, _alias);
+        const ssId = await Setup.createSpreadsheet(_companyName, null, _alias, _geminiKey);
         setProgState('prog1', 'done');
         setProgState('prog2', 'done');
 

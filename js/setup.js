@@ -11,7 +11,7 @@ const Setup = (() => {
    * @param {string} companyName 会社名（シートタイトルに使用）
    * @returns {string} 作成されたスプレッドシートID
    */
-  async function createSpreadsheet(companyName, parentFolderId, customAlias = '') {
+  async function createSpreadsheet(companyName, parentFolderId, customAlias = '', geminiKey = '') {
     const title = `経費ログ - ${companyName || ''}`.trim();
 
     // 1. 親フォルダが未指定なら先に作成（スプレッドシートをフォルダ内に直接配置するため）
@@ -63,7 +63,7 @@ const Setup = (() => {
     }
 
     // 5. ヘッダーと初期データを書き込む
-    await _writeInitialData(ssId, sheetIds, companyName);
+    await _writeInitialData(ssId, sheetIds, companyName, geminiKey);
 
     // 6. Drive 証票フォルダ作成（親フォルダ内）
     const folderId = await Drive.createFolder(`経費証票 - ${companyName || ''}`.trim(), parentFolderId);
@@ -102,7 +102,7 @@ const Setup = (() => {
     });
   }
 
-  async function _writeInitialData(ssId, sheetIds, companyName) {
+  async function _writeInitialData(ssId, sheetIds, companyName, geminiKey = '') {
     const userEmail = Auth.getUserEmail();
     const userName  = Auth.getUserInfo()?.name || userEmail;
 
@@ -135,7 +135,7 @@ const Setup = (() => {
           ['会社名', companyName || ''],
           ['ライセンスキー', localStorage.getItem('keihi_license_key') || ''],
           ['証票保存フォルダID', ''],  // フォルダ作成後に更新
-          ['Gemini APIキー', ''],
+          ['Gemini APIキー', geminiKey || ''],
           ['ライセンス確認日時', ''],
           ['バージョン', '2.0.0'],
           ['ヘッダー色', '#4582B5'],
