@@ -17,21 +17,34 @@ export default async function handler(req, res) {
 
 // ─── Google Maps Directions API ──────────────────────────────────────────────
 
+function _addStation(name) {
+  // バス停・空港など駅以外のキーワードが含まれる場合はそのまま
+  if (/(?:バス停|空港|港|IC|インター|ターミナル|バスターミナル)/.test(name)) return name;
+  // 既に「駅」で終わっていればそのまま
+  if (name.endsWith('駅')) return name;
+  return name + '駅';
+}
+
 async function _googleMaps(req, res, from, to) {
   const apiKey = process.env.GOOGLE_MAPS_API_KEY;
   const resultUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(from)}&destination=${encodeURIComponent(to)}&travelmode=transit`;
 
+  const fromQ = _addStation(from);
+  const toQ   = _addStation(to);
+
   try {
     const departureTime = Math.floor(Date.now() / 1000);
     const url = `https://maps.googleapis.com/maps/api/directions/json?` +
-      `origin=${encodeURIComponent(from)}&` +
-      `destination=${encodeURIComponent(to)}&` +
+      `origin=${encodeURIComponent(fromQ)}&` +
+      `destination=${encodeURIComponent(toQ)}&` +
       `mode=transit&` +
+      `transit_mode=rail%7Cbus%7Csubway%7Ctram&` +
       `departure_time=${departureTime}&` +
       `region=jp&` +
       `language=ja&` +
       `key=${apiKey}`;
 
+    console.log('Google Maps query:', fromQ, '->', toQ);
     const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
 
     if (!resp.ok) {
@@ -42,7 +55,7 @@ async function _googleMaps(req, res, from, to) {
     const data = await resp.json();
 
     if (data.status !== 'OK' || !data.routes?.length) {
-      console.error('Google Maps status:', data.status);
+      console.error('Google Maps status:', data.status, '| query:', fromQ, '->', toQ);
       return _yahoo(req, res, from, to);
     }
 
