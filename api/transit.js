@@ -22,11 +22,12 @@ async function _googleMaps(req, res, from, to) {
   const resultUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(from)}&destination=${encodeURIComponent(to)}&travelmode=transit`;
 
   try {
+    const departureTime = Math.floor(Date.now() / 1000);
     const url = `https://maps.googleapis.com/maps/api/directions/json?` +
       `origin=${encodeURIComponent(from)}&` +
       `destination=${encodeURIComponent(to)}&` +
       `mode=transit&` +
-      `transit_routing_preference=fewer_transfers&` +
+      `departure_time=${departureTime}&` +
       `region=jp&` +
       `language=ja&` +
       `key=${apiKey}`;
