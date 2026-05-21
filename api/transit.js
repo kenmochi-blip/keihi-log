@@ -1,7 +1,7 @@
 /**
  * 経路・運賃検索プロキシ
- * GOOGLE_MAPS_API_KEY が設定されていれば Google Maps Directions API を使用。
- * 未設定の場合は Yahoo乗換スクレイピングにフォールバック。
+ * Yahoo乗換で運賃を取得し、確認リンクはGoogleマップ（コンシューマー版）を使用。
+ * バス停を含む経路でもGoogleマップ側で正しく表示される。
  */
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).end();
@@ -9,95 +9,19 @@ export default async function handler(req, res) {
   const { from, to } = req.query;
   if (!from || !to) return res.status(400).json({ error: 'from と to が必要です' });
 
-  if (process.env.GOOGLE_MAPS_API_KEY) {
-    return _googleMaps(req, res, from, to);
-  }
   return _yahoo(req, res, from, to);
 }
 
-// ─── Google Maps Directions API ──────────────────────────────────────────────
-
-function _addStation(name) {
-  // バス停・空港など駅以外のキーワードが含まれる場合はそのまま
-  if (/(?:バス停|空港|港|IC|インター|ターミナル|バスターミナル)/.test(name)) return name;
-  // 既に「駅」で終わっていればそのまま
-  if (name.endsWith('駅')) return name;
-  return name + '駅';
-}
-
-async function _googleMaps(req, res, from, to) {
-  const apiKey = process.env.GOOGLE_MAPS_API_KEY;
-  const resultUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(from)}&destination=${encodeURIComponent(to)}&travelmode=transit`;
-
-  const fromQ = _addStation(from) + ',Japan';
-  const toQ   = _addStation(to) + ',Japan';
-
-  try {
-    // departure_time は現在時刻+5分を指定（コールドスタート遅延対策）
-    const departureTime = Math.floor(Date.now() / 1000) + 300;
-    const url = `https://maps.googleapis.com/maps/api/directions/json?` +
-      `origin=${encodeURIComponent(fromQ)}&` +
-      `destination=${encodeURIComponent(toQ)}&` +
-      `mode=transit&` +
-      `departure_time=${departureTime}&` +
-      `region=jp&` +
-      `language=ja&` +
-      `key=${apiKey}`;
-
-    console.log('Google Maps query:', fromQ, '->', toQ);
-    const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
-
-    if (!resp.ok) {
-      console.error('Google Maps HTTP error:', resp.status);
-      return _yahoo(req, res, from, to);
-    }
-
-    const data = await resp.json();
-
-    if (data.status !== 'OK' || !data.routes?.length) {
-      console.error('Google Maps status:', data.status, '| query:', fromQ, '->', toQ);
-      return _yahoo(req, res, from, to);
-    }
-
-    // 運賃（複数ルートから最安値）
-    let fare = null;
-    for (const route of data.routes) {
-      if (route.fare?.value) {
-        const v = Math.round(route.fare.value);
-        if (!fare || v < fare) fare = v;
-      }
-    }
-
-    // 乗換駅の抽出（transit steps の出発停留所）
-    const transfers = [];
-    const route = data.routes[0];
-    for (const leg of (route.legs || [])) {
-      for (const step of (leg.steps || [])) {
-        if (step.travel_mode === 'TRANSIT') {
-          const dep = step.transit_details?.departure_stop?.name;
-          if (dep && !transfers.includes(dep) && transfers.length < 3) {
-            transfers.push(dep.replace(/駅$/, ''));
-          }
-        }
-      }
-    }
-
-    if (!fare) {
-      // 運賃が取れなかった場合は Yahoo にフォールバック
-      return _yahoo(req, res, from, to);
-    }
-
-    res.setHeader('Cache-Control', 'no-store');
-    return res.json({ fare, transfers, resultUrl });
-  } catch (err) {
-    console.error('Google Maps exception:', err.message);
-    return _yahoo(req, res, from, to);
-  }
-}
-
-// ─── Yahoo乗換フォールバック ──────────────────────────────────────────────────
+// ─── Yahoo乗換（運賃取得） ────────────────────────────────────────────────────
 
 async function _yahoo(req, res, from, to) {
+  // 確認リンクはGoogleマップ（バス停・徒歩含む経路も正確に表示）
+  const resultUrl =
+    `https://www.google.com/maps/dir/?api=1` +
+    `&origin=${encodeURIComponent(from)}` +
+    `&destination=${encodeURIComponent(to)}` +
+    `&travelmode=transit`;
+
   const ticketParam = '&ticket=ic&shin=1&seat=1';
 
   const jstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
@@ -116,13 +40,13 @@ async function _yahoo(req, res, from, to) {
   const sy = sd.getUTCFullYear(), sm = sd.getUTCMonth() + 1, sdd = sd.getUTCDate();
   const sh = sd.getUTCHours(), sn = sd.getUTCMinutes();
 
-  const resultUrl =
+  const yahooUrl =
     `https://transit.yahoo.co.jp/search/result?` +
     `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}` +
     `&type=1&expkind=1&userpass=1${ticketParam}&y=${sy}&m=${sm}&d=${sdd}&hh=${sh}&m2=${sn}`;
 
   try {
-    const resp = await fetch(resultUrl, {
+    const resp = await fetch(yahooUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept-Language': 'ja,en-US;q=0.9',
