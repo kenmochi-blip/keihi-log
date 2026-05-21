@@ -29,16 +29,16 @@ async function _googleMaps(req, res, from, to) {
   const apiKey = process.env.GOOGLE_MAPS_API_KEY;
   const resultUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(from)}&destination=${encodeURIComponent(to)}&travelmode=transit`;
 
-  const fromQ = _addStation(from);
-  const toQ   = _addStation(to);
+  const fromQ = _addStation(from) + ',Japan';
+  const toQ   = _addStation(to) + ',Japan';
 
   try {
-    const departureTime = Math.floor(Date.now() / 1000);
+    // departure_time は現在時刻+5分を指定（コールドスタート遅延対策）
+    const departureTime = Math.floor(Date.now() / 1000) + 300;
     const url = `https://maps.googleapis.com/maps/api/directions/json?` +
       `origin=${encodeURIComponent(fromQ)}&` +
       `destination=${encodeURIComponent(toQ)}&` +
       `mode=transit&` +
-      `transit_mode=rail%7Cbus%7Csubway%7Ctram&` +
       `departure_time=${departureTime}&` +
       `region=jp&` +
       `language=ja&` +
