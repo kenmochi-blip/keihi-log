@@ -52,10 +52,11 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       valid: true,
-      company:   data.company   || '',
-      plan:      data.plan      || 'standard',
-      expiresAt: data.expiresAt || null,
-      ownerEmail: (data.email   || '').toLowerCase(),
+      company:      data.company      || '',
+      customerName: data.customerName || '',
+      plan:         data.plan         || 'standard',
+      expiresAt:    data.expiresAt    || null,
+      ownerEmail:   (data.email       || '').toLowerCase(),
     });
 
   } catch (err) {

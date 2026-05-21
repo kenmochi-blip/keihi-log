@@ -225,7 +225,7 @@
 
     // ── DOM refs ──────────────────────────────────────────
     const $ = id => document.getElementById(id);
-    let _licKey = '', _alias = '', _companyName = '', _geminiKey = '';
+    let _licKey = '', _alias = '', _companyName = '', _geminiKey = '', _ownerName = '';
 
     // originラベル
     $('originLabel').textContent = location.origin + '/';
@@ -267,6 +267,7 @@
       btn.innerHTML = '確認して次へ <i class="bi bi-arrow-right ms-1"></i>';
       if (result.valid) {
         _licKey = key;
+        _ownerName = result.customerName || '';
         localStorage.setItem('keihi_license_key', key);
         // セットアップ済みか確認
         const base = window.APP_CONFIG?.apiBase || '';
@@ -372,7 +373,7 @@
       try {
         setProgState('prog1', 'running');
         setProgState('prog2', 'running');
-        const ssId = await Setup.createSpreadsheet(_companyName, null, _alias, _geminiKey);
+        const ssId = await Setup.createSpreadsheet(_companyName, null, _alias, _geminiKey, _ownerName);
         setProgState('prog1', 'done');
         setProgState('prog2', 'done');
 
