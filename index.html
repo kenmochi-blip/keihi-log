@@ -1821,11 +1821,16 @@
         <h5 class="fw-bold mt-2 mb-2">2026年6月中旬リリース予定</h5>
         <p class="text-muted mb-3" style="font-size:0.9rem;">
           現在鋭意開発中です。リリースまでもうしばらくお待ちください。<br>
-          リリース時にお知らせをご希望の方は下記までご連絡ください。
+          リリース時にお知らせをご希望の方は下記メールアドレスまでご連絡ください。
         </p>
-        <a href="mailto:support@keihi-log.com" class="btn btn-outline-primary rounded-pill px-4">
-          <i class="bi bi-envelope me-1"></i>リリース通知を受け取る
-        </a>
+        <div class="d-flex align-items-center justify-content-center gap-2 bg-light rounded-pill px-4 py-2 mb-1" style="font-size:0.95rem;">
+          <i class="bi bi-envelope text-primary"></i>
+          <span id="notifyEmail" class="fw-semibold">support@keihi-log.com</span>
+          <button type="button" class="btn btn-sm btn-link p-0 text-muted" id="btnCopyEmail" title="コピー">
+            <i class="bi bi-copy"></i>
+          </button>
+        </div>
+        <div id="copyDone" class="text-success small" style="min-height:1.2em;"></div>
       </div>
       <div class="modal-footer border-0 justify-content-center pt-0 pb-3">
         <button type="button" class="btn btn-link text-muted" data-bs-dismiss="modal">閉じる</button>
@@ -1841,6 +1846,13 @@
     var modal = new bootstrap.Modal(document.getElementById('comingSoonModal'));
     document.getElementById('btnHeroSignup').addEventListener('click', function(e) {
       e.preventDefault(); modal.show();
+    });
+    document.getElementById('btnCopyEmail').addEventListener('click', function() {
+      navigator.clipboard.writeText('support@keihi-log.com').then(function() {
+        var done = document.getElementById('copyDone');
+        done.textContent = 'コピーしました';
+        setTimeout(function() { done.textContent = ''; }, 2000);
+      });
     });
     document.querySelectorAll('a[href*="buy.stripe.com"]').forEach(function(a) {
       a.addEventListener('click', function(e) { e.preventDefault(); modal.show(); });
