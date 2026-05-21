@@ -491,7 +491,7 @@ function _bindTypeButtons(el) {
 
       // ドラッグ＆ドロップ（領収書カード全体 or 参考資料エリア）
       const dropZone = el.querySelector(
-        type === '領収書' ? '.receipt-upload-card' : `#previewArea-${type}`
+        type === '領収書' ? '.receipt-upload-card' : `#previewArea-${_typeId(type)}`
       )?.closest(type === '領収書' ? '.receipt-upload-card' : '.mb-2') ?? null;
       if (!dropZone) return;
 
