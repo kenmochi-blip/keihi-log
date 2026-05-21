@@ -1442,6 +1442,12 @@ function _bindTypeButtons(el) {
     el.querySelector('#numTransitFare') && (el.querySelector('#numTransitFare').value = '');
     el.querySelector('#numCarKm')       && (el.querySelector('#numCarKm').value = '');
     el.querySelector('#txtReason')      && (el.querySelector('#txtReason').value = '');
+    // 往復チェック・検索結果・合計表示もクリア
+    const chkRound = el.querySelector('#chkRoundTrip');
+    if (chkRound) chkRound.checked = false;
+    el.querySelector('#transitResult')?.classList.add('d-none');
+    const lblTotal = el.querySelector('#lblTransitTotal');
+    if (lblTotal) lblTotal.textContent = '¥0';
   }
 
   function _escape(s) {

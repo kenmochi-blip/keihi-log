@@ -79,18 +79,24 @@ function _parse(html) {
     .replace(/\s+/g, ' ');
 
   // --- 運賃の抽出（複数ルートから最安値を選択）---
-  // IC優先運賃 "IC優先：387円"、指定席運賃 "指定席：XXXX円"、自由席運賃 "自由席：XXXX円" を取得
-  const farePatterns = [
-    /IC(?:優先)?\s*[：:]\s*([\d,]+)\s*円/g,
-    /指定席\s*[：:]\s*([\d,]+)\s*円/g,
-    /自由席\s*[：:]\s*([\d,]+)\s*円/g,
-  ];
-  const allMatchedFares = farePatterns.flatMap(re =>
-    [...text.matchAll(re)].map(m => parseInt(m[1].replace(/,/g, ''), 10))
-  ).filter(v => v >= 100 && v < 100000);
-  let fare = allMatchedFares.length > 0 ? Math.min(...allMatchedFares) : null;
+  // ① まず IC系合計運賃を探す（IC優先・IC展示・IC運賃 etc.）
+  //    これは各ルートの総額なので正しい値
+  const icFares = [...text.matchAll(/IC[^\s:：]*\s*[：:]\s*([\d,]+)\s*円/g)]
+    .map(m => parseInt(m[1].replace(/,/g, ''), 10))
+    .filter(v => v >= 100 && v < 100000);
+  let fare = icFares.length > 0 ? Math.min(...icFares) : null;
 
-  // 上記パターンなし → 汎用パターンで最安値を探す
+  // ② IC運賃なし（バスのみルートなど）→ 指定席・自由席の合計額を探す
+  //    ただし区間別の部分運賃と混在するため最大値（=合計に近い値）を優先
+  if (!fare) {
+    const seatFares = [
+      ...text.matchAll(/(?:指定席|自由席)\s*[：:]\s*([\d,]+)\s*円/g)
+    ].map(m => parseInt(m[1].replace(/,/g, ''), 10))
+     .filter(v => v >= 100 && v < 100000);
+    if (seatFares.length > 0) fare = Math.max(...seatFares);
+  }
+
+  // ③ 上記パターンなし → 汎用パターンで最安値を探す
   if (!fare) {
     const allFares = [...text.matchAll(/([\d,]+)\s*円/g)]
       .map(m => parseInt(m[1].replace(/,/g, ''), 10))
