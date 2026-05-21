@@ -102,25 +102,17 @@ async function _issueNewLicense(session) {
     } catch (_) {}
   }
 
-  // 同一メールアドレスで既存ライセンスがある場合
+  // 同一メールアドレスで手動発行ライセンスがある場合のみアップグレード扱い
+  // 複数チーム対応のため、有料ライセンス済みでも新しいチーム用として新規発行を許可する
   const existingKey = await kv.get(`email_to_license:${customerEmail}`);
   if (existingKey) {
     const existingData = await kv.get(`license:${existingKey}`);
-    if (existingData && !existingData.suspended) {
-      if (!existingData.stripeSessionId) {
-        // 手動発行ライセンス → 有料アップグレード（キーはそのまま延長）
-        await _upgradeLicense(existingKey, existingData, session, customerEmail, customerName, plan, interval);
-      } else {
-        // 既に有料ライセンスあり → セッションキーを更新してから再送メール
-        // （session:xxx が 'issuing' のままだと get-license が 404 を返すため必ず上書きする）
-        await kv.set(`session:${session.id}`, existingKey, { ex: SESSION_TTL });
-        console.log(`License already exists for ${customerEmail}: ${existingKey}, resending`);
-        if (process.env.RESEND_API_KEY) {
-          await _sendDuplicateLicenseEmail(customerEmail, customerName, existingKey, existingData.expiresAt);
-        }
-      }
+    if (existingData && !existingData.suspended && !existingData.stripeSessionId) {
+      // 手動発行ライセンス → 有料アップグレード（キーはそのまま延長）
+      await _upgradeLicense(existingKey, existingData, session, customerEmail, customerName, plan, interval);
       return;
     }
+    // 既存の有料ライセンスがある場合でも新規発行（複数チーム対応）
   }
 
   // ライセンスキー生成
@@ -149,8 +141,13 @@ async function _issueNewLicense(session) {
   // ロックキーを発行済みキーで上書き（以降の参照でキーが分かるように）
   await kv.set(`session:${session.id}`, licenseKey, { ex: SESSION_TTL });
 
-  // メールアドレスからキーを逆引きできるインデックスも保存
+  // メールアドレスからキーを逆引き（最新キーを指す）
   await kv.set(`email_to_license:${customerEmail}`, licenseKey);
+
+  // サブスクリプションIDからライセンスキーを逆引き（更新・停止処理用）
+  if (session.subscription) {
+    await kv.set(`stripe_sub:${session.subscription}`, licenseKey);
+  }
 
   // セットアップリンク用ランダムコードを生成・保存（双方向マッピング）
   const setupCode = crypto.randomBytes(5).toString('hex'); // 10文字の16進数
@@ -184,6 +181,9 @@ async function _upgradeLicense(key, oldData, session, email, name, plan, interva
   };
   await kv.set(`license:${key}`, updated);
   await kv.set(`session:${session.id}`, key, { ex: 60 * 60 * 24 * 30 });
+  if (session.subscription) {
+    await kv.set(`stripe_sub:${session.subscription}`, key);
+  }
   console.log(`License upgraded: ${key} for ${email}`);
 
   if (process.env.RESEND_API_KEY) {
@@ -370,9 +370,16 @@ async function _sendAdminNotifyEmail(customerEmail, customerName, licenseKey, ex
 }
 
 async function _renewLicense(invoice) {
-  const email = invoice.customer_email || '';
-  if (!email) return;
-  const key = await kv.get(`email_to_license:${email}`);
+  // サブスクリプションIDで正確なライセンスキーを特定（複数チーム対応）
+  let key = invoice.subscription
+    ? await kv.get(`stripe_sub:${invoice.subscription}`).catch(() => null)
+    : null;
+  // フォールバック：メールアドレスからの逆引き（旧データ互換）
+  if (!key) {
+    const email = invoice.customer_email || '';
+    if (!email) return;
+    key = await kv.get(`email_to_license:${email}`);
+  }
   if (!key) return;
   const data = await kv.get(`license:${key}`);
   if (!data) return;
@@ -380,18 +387,24 @@ async function _renewLicense(invoice) {
   const newExpiry = new Date(data.expiresAt);
   newExpiry.setFullYear(newExpiry.getFullYear() + 1);
   await kv.set(`license:${key}`, { ...data, expiresAt: newExpiry.toISOString().split('T')[0] });
-  console.log(`License renewed: ${key} for ${email} until ${newExpiry.toISOString().split('T')[0]}`);
+  console.log(`License renewed: ${key} until ${newExpiry.toISOString().split('T')[0]}`);
 }
 
 async function _suspendLicense(subscription) {
-  // メタデータからメールを取得してキーを停止
-  const email = subscription.customer_email || '';
-  if (!email) return;
-  const key = await kv.get(`email_to_license:${email}`);
+  // サブスクリプションIDで正確なライセンスキーを特定（複数チーム対応）
+  let key = subscription.id
+    ? await kv.get(`stripe_sub:${subscription.id}`).catch(() => null)
+    : null;
+  // フォールバック：メールアドレスからの逆引き（旧データ互換）
+  if (!key) {
+    const email = subscription.customer_email || '';
+    if (!email) return;
+    key = await kv.get(`email_to_license:${email}`);
+  }
   if (!key) return;
   const data = await kv.get(`license:${key}`);
   if (data) await kv.set(`license:${key}`, { ...data, suspended: true });
-  console.log(`License suspended for ${email}`);
+  console.log(`License suspended: ${key}`);
 }
 
 function _getRawBody(req) {
