@@ -1821,16 +1821,17 @@
         <h5 class="fw-bold mt-2 mb-2">2026年6月中旬リリース予定</h5>
         <p class="text-muted mb-3" style="font-size:0.9rem;">
           現在鋭意開発中です。リリースまでもうしばらくお待ちください。<br>
-          リリース時にお知らせをご希望の方は下記メールアドレスまでご連絡ください。
+          メールアドレスを登録するとリリース時にお知らせします。
         </p>
-        <div class="d-flex align-items-center justify-content-center gap-2 bg-light rounded-pill px-4 py-2 mb-1" style="font-size:0.95rem;">
-          <i class="bi bi-envelope text-primary"></i>
-          <span id="notifyEmail" class="fw-semibold">support@keihi-log.com</span>
-          <button type="button" class="btn btn-sm btn-link p-0 text-muted" id="btnCopyEmail" title="コピー">
-            <i class="bi bi-copy"></i>
-          </button>
+        <div id="notifyForm">
+          <div class="input-group mb-2">
+            <input type="email" id="notifyEmailInput" class="form-control rounded-start-pill" placeholder="your@email.com">
+            <button class="btn btn-primary rounded-end-pill px-4" id="btnSubmitNotify" type="button">
+              登録する
+            </button>
+          </div>
+          <div id="notifyMsg" class="small" style="min-height:1.3em;"></div>
         </div>
-        <div id="copyDone" class="text-success small" style="min-height:1.2em;"></div>
       </div>
       <div class="modal-footer border-0 justify-content-center pt-0 pb-3">
         <button type="button" class="btn btn-link text-muted" data-bs-dismiss="modal">閉じる</button>
@@ -1847,12 +1848,27 @@
     document.getElementById('btnHeroSignup').addEventListener('click', function(e) {
       e.preventDefault(); modal.show();
     });
-    document.getElementById('btnCopyEmail').addEventListener('click', function() {
-      navigator.clipboard.writeText('support@keihi-log.com').then(function() {
-        var done = document.getElementById('copyDone');
-        done.textContent = 'コピーしました';
-        setTimeout(function() { done.textContent = ''; }, 2000);
-      });
+    document.getElementById('btnSubmitNotify').addEventListener('click', function() {
+      var email = document.getElementById('notifyEmailInput').value.trim();
+      var msg = document.getElementById('notifyMsg');
+      if (!email) { msg.className = 'small text-danger'; msg.textContent = 'メールアドレスを入力してください'; return; }
+      var btn = this;
+      btn.disabled = true;
+      btn.textContent = '送信中...';
+      fetch('/api/notify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: email }) })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+          if (d.ok) {
+            document.getElementById('notifyForm').innerHTML = '<p class="text-success fw-semibold mb-0"><i class="bi bi-check-circle me-1"></i>登録しました！リリース時にご連絡します。</p>';
+          } else {
+            msg.className = 'small text-danger'; msg.textContent = '登録に失敗しました。再度お試しください。';
+            btn.disabled = false; btn.textContent = '登録する';
+          }
+        })
+        .catch(function() {
+          msg.className = 'small text-danger'; msg.textContent = '通信エラーが発生しました。';
+          btn.disabled = false; btn.textContent = '登録する';
+        });
     });
     document.querySelectorAll('a[href*="buy.stripe.com"]').forEach(function(a) {
       a.addEventListener('click', function(e) { e.preventDefault(); modal.show(); });
