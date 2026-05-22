@@ -20,11 +20,15 @@
     .step-panel.active { display: block; }
     .progress-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; font-size: 0.9rem; }
     .progress-item .icon { width: 22px; text-align: center; }
+    .demo-banner { background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 8px 14px; font-size: 0.8rem; color: #664d03; margin-bottom: 1rem; text-align: center; }
   </style>
 </head>
 <body class="py-4 px-3">
 
   <div class="setup-card">
+    <div id="demoBanner" class="demo-banner d-none">
+      <i class="bi bi-eye me-1"></i><strong>デモモード</strong> — 実際のデータ保存は行われません
+    </div>
     <!-- ロゴ -->
     <div class="text-center mb-4">
       <div class="fw-bold fs-5 mb-1">🗂 経費ログ</div>
@@ -214,18 +218,31 @@
   <script src="js/setup.js"></script>
   <script>
   (async () => {
-    // ── 認証確認 ──────────────────────────────────────────
-    Auth.init();
-    try {
-      await Auth.getToken();
-    } catch (_) {
-      window.location.href = '/login?return=' + encodeURIComponent('/setup');
-      return;
+    const _isDemo = new URLSearchParams(location.search).has('demo');
+
+    // ── 認証確認（デモモード時はスキップ） ────────────────
+    if (!_isDemo) {
+      Auth.init();
+      try {
+        await Auth.getToken();
+      } catch (_) {
+        window.location.href = '/login?return=' + encodeURIComponent('/setup');
+        return;
+      }
     }
 
     // ── DOM refs ──────────────────────────────────────────
     const $ = id => document.getElementById(id);
     let _licKey = '', _alias = '', _companyName = '', _geminiKey = '', _ownerName = '';
+
+    // ── デモモード初期化 ───────────────────────────────────
+    if (_isDemo) {
+      $('demoBanner').classList.remove('d-none');
+      // Step1: ライセンスキー欄にダミーを入れてスキップ可能にする
+      $('inputLic').value = 'KL-DEMO00000000000000000';
+      $('inputLic').disabled = true;
+      $('btnToggleLic').disabled = true;
+    }
 
     // originラベル
     $('originLabel').textContent = location.origin + '/';
@@ -255,6 +272,7 @@
     });
 
     $('btnVerifyLic').addEventListener('click', async () => {
+      if (_isDemo) { _licKey = 'KL-DEMO'; _ownerName = 'デモユーザー'; goStep(2); return; }
       const key = $('inputLic').value.trim();
       if (!key) { $('licMsg').innerHTML = '<span class="text-danger">ライセンスキーを入力してください</span>'; return; }
       const btn = $('btnVerifyLic');
@@ -322,7 +340,7 @@
       if (!name) { $('inputCompany').classList.add('is-invalid'); return; }
       $('inputCompany').classList.remove('is-invalid');
       const aliasVal = $('inputAlias').value.trim().toLowerCase();
-      if (aliasVal) {
+      if (!_isDemo && aliasVal) {
         if (!/^[a-zA-Z0-9-]{3,40}$/.test(aliasVal)) {
           $('aliasMsg').innerHTML = '<span class="text-danger">英数字・ハイフンのみ、3〜40文字で入力してください</span>'; return;
         }
@@ -368,30 +386,41 @@
       $('confirmBox').style.display = 'none';
       $('progressBox').style.display = 'block';
       $('setupErrMsg').style.display = 'none';
-      window.addEventListener('beforeunload', _beforeUnload);
+      if (!_isDemo) window.addEventListener('beforeunload', _beforeUnload);
 
       try {
         setProgState('prog1', 'running');
         setProgState('prog2', 'running');
-        const ssId = await Setup.createSpreadsheet(_companyName, null, _alias, _geminiKey, _ownerName);
+
+        let ssId, finalAlias;
+        if (_isDemo) {
+          // デモ：0.8秒待って完了したように見せる
+          await new Promise(r => setTimeout(r, 800));
+          ssId       = 'demo-sheet-id';
+          finalAlias = _alias || 'demo-team';
+        } else {
+          ssId = await Setup.createSpreadsheet(_companyName, null, _alias, _geminiKey, _ownerName);
+        }
+
         setProgState('prog1', 'done');
         setProgState('prog2', 'done');
-
         setProgState('prog3', 'running');
-        // エイリアスはcreateSpreadsheet内で登録済み
+        if (_isDemo) await new Promise(r => setTimeout(r, 400));
         setProgState('prog3', 'done');
 
-        // ライセンスキーをB3に書き込み
-        const licVal = localStorage.getItem('keihi_license_key');
-        if (licVal) Sheets.update('設定!B3', [[licVal]]).catch(() => {});
+        if (!_isDemo) {
+          const licVal = localStorage.getItem('keihi_license_key');
+          if (licVal) Sheets.update('設定!B3', [[licVal]]).catch(() => {});
+          finalAlias = localStorage.getItem('keihi_alias') || '';
+        }
 
-        // 完了画面へ
-        const finalAlias = localStorage.getItem('keihi_alias') || '';
-        const shareUrl = finalAlias ? `${location.origin}/${finalAlias}` : `${location.origin}/${ssId}`;
+        const shareUrl = finalAlias
+          ? `${location.origin}/${finalAlias}`
+          : `${location.origin}/${ssId}`;
         $('shareUrlInput').value = shareUrl;
         $('qrImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(shareUrl)}`;
-        $('btnOpenApp').onclick = () => { window.location.href = shareUrl; };
-        window.removeEventListener('beforeunload', _beforeUnload);
+        $('btnOpenApp').onclick = () => { window.location.href = _isDemo ? '/app?demo' : shareUrl; };
+        if (!_isDemo) window.removeEventListener('beforeunload', _beforeUnload);
         goStep(5);
 
       } catch (err) {
