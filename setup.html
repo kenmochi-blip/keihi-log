@@ -141,10 +141,27 @@
         <!-- Step 4: 電帳法対応 -->
         <div class="step-panel" id="panel4">
           <h5 class="fw-bold mb-1">電帳法対応（任意）</h5>
-          <p class="text-muted mb-3" style="font-size:0.85rem;">
+          <p class="text-muted mb-2" style="font-size:0.85rem;">
             スキャナ保存で紙の原本を廃棄可能にするために必要な社内規程を作成します。<br>
             後から設定画面でも作成できます。
           </p>
+          <!-- 規程サンプルのアコーディオン -->
+          <div class="accordion mb-3" id="regPreviewAcc">
+            <div class="accordion-item border rounded" style="background:#f8f9fa;">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed py-2" type="button"
+                  data-bs-toggle="collapse" data-bs-target="#regPreviewBody"
+                  style="background:#f8f9fa;font-size:0.8rem;color:#555;">
+                  <i class="bi bi-eye me-1 text-primary"></i>作成される規程のサンプルを確認する
+                </button>
+              </h2>
+              <div id="regPreviewBody" class="accordion-collapse collapse">
+                <div class="accordion-body px-3 py-2">
+                  <pre id="regSampleText" style="font-size:0.65rem;white-space:pre-wrap;font-family:inherit;color:#555;max-height:220px;overflow-y:auto;margin:0;"></pre>
+                </div>
+              </div>
+            </div>
+          </div>
           <div class="mb-2">
             <label class="form-label small fw-semibold mb-1">団体名</label>
             <input type="text" class="form-control form-control-sm" id="regOrgName" placeholder="例：〇〇株式会社">
@@ -401,6 +418,62 @@
     $('btnBack2').addEventListener('click', () => goStep(2));
 
     // ── Step 4: 電帳法対応 ────────────────────────────────
+    function _buildRegSample(orgName, repName, address) {
+      const o = orgName  || '〇〇株式会社';
+      const r = repName  || '山田 太郎';
+      const a = address  || '東京都〇〇区…';
+      const d = new Date().toISOString().split('T')[0];
+      return `国税関係書類に係るスキャナ保存 訂正・削除防止規程
+
+第1条（目的）
+本規程は、電子帳簿保存法第4条第3項に規定するスキャナ保存を行うにあたり、国税関係書類の電磁的記録の訂正・削除を防止するための事務処理手続を定めることを目的とする。
+
+第2条（適用範囲）
+本規程は、${o}が電子帳簿保存法に基づきスキャナ保存する一切の国税関係書類に適用する。
+
+第3条（責任者）
+スキャナ保存に関する事務処理の責任者は、${r}とする。
+
+第4条（スキャナ保存の手続）
+1. 国税関係書類の受領後、速やかに（原則として受領日から2ヶ月以内に）スキャンを行い、所定の経費管理システムに入力する。
+2. 入力画像の解像度は200万画素以上、カラーで保存する。
+
+第5条（訂正・削除の禁止）
+1. 保存した電磁的記録は、原則として訂正・削除を行わない。
+2. やむを得ず訂正・削除を行う場合は、必ず経費管理システムの所定の機能（修正・削除機能）を使用し、その事実・内容・理由を記録する。
+3. スプレッドシートへの直接編集は禁止する。
+
+第6条（検索機能の確保）
+保存した電磁的記録は、取引年月日・取引金額・取引先で検索できる状態を維持する。
+
+第7条（原本の廃棄）
+スキャナ保存の要件を満たした電磁的記録が適正に保存されたことを確認した後、紙の原本を廃棄することができる。
+
+第8条（保存期間）
+電磁的記録は、法令の定める期間（原則7年間）保存する。
+
+第9条（規程の遵守）
+役員・従業員・関与メンバーは本規程を遵守しなければならない。
+
+制定日：${d}
+所在地：${a}
+${o}
+代表者：${r}`;
+    }
+
+    // 入力に連動してサンプルをリアルタイム更新
+    ['regOrgName','regRepName','regAddress'].forEach(id => {
+      $(id).addEventListener('input', () => {
+        $('regSampleText').textContent = _buildRegSample(
+          $('regOrgName').value.trim(),
+          $('regRepName').value.trim(),
+          $('regAddress').value.trim()
+        );
+      });
+    });
+    // 初期表示
+    $('regSampleText').textContent = _buildRegSample('', '', '');
+
     function proceedToStep5() {
       const orgName = $('regOrgName').value.trim();
       const repName = $('regRepName').value.trim();
