@@ -45,7 +45,9 @@
       <div class="step-line" id="line3"></div>
       <div class="step-dot todo" id="dot4">4</div>
       <div class="step-line" id="line4"></div>
-      <div class="step-dot todo" id="dot5"><i class="bi bi-check"></i></div>
+      <div class="step-dot todo" id="dot5">5</div>
+      <div class="step-line" id="line5"></div>
+      <div class="step-dot todo" id="dot6"><i class="bi bi-check"></i></div>
     </div>
 
     <div class="card border-0 shadow-sm">
@@ -78,8 +80,8 @@
             チームURL
             <span class="fw-normal" style="font-size:0.8rem;">（任意・<span class="text-danger fw-bold">設定後変更不可</span>）</span>
           </label>
-          <div class="mb-1">
-            <div id="originLabel" class="text-muted mb-1" style="font-size:0.78rem;">https://www.keihi-log.com/</div>
+          <div class="input-group mb-1">
+            <span class="input-group-text border-0 ps-0 pe-1 bg-transparent text-muted" id="originLabel" style="font-size:0.78rem;"></span>
             <input type="text" class="form-control" id="inputAlias"
               placeholder="例: yamada-trading（英数字・ハイフン）" maxlength="40">
           </div>
@@ -136,8 +138,38 @@
           </button>
         </div>
 
-        <!-- Step 4: セットアップ実行 -->
+        <!-- Step 4: 電帳法対応 -->
         <div class="step-panel" id="panel4">
+          <h5 class="fw-bold mb-1">電帳法対応（任意）</h5>
+          <p class="text-muted mb-3" style="font-size:0.85rem;">
+            スキャナ保存で紙の原本を廃棄可能にするために必要な社内規程を作成します。<br>
+            後から設定画面でも作成できます。
+          </p>
+          <div class="mb-2">
+            <label class="form-label small fw-semibold mb-1">団体名（会社名・屋号等）</label>
+            <input type="text" class="form-control form-control-sm" id="regOrgName" placeholder="例：〇〇株式会社">
+          </div>
+          <div class="mb-2">
+            <label class="form-label small fw-semibold mb-1">代表者名</label>
+            <input type="text" class="form-control form-control-sm" id="regRepName" placeholder="例：山田 太郎">
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold mb-1">所在地</label>
+            <input type="text" class="form-control form-control-sm" id="regAddress" placeholder="例：東京都千代田区〇〇1-2-3">
+          </div>
+          <button class="btn btn-primary w-100" id="btnGoStep5">
+            次へ <i class="bi bi-arrow-right ms-1"></i>
+          </button>
+          <button class="btn btn-link btn-sm w-100 text-muted mt-1" id="btnSkipDencho">
+            スキップして後で設定する
+          </button>
+          <button class="btn btn-link w-100 text-muted mt-1" id="btnBack3">
+            <i class="bi bi-arrow-left me-1"></i>戻る
+          </button>
+        </div>
+
+        <!-- Step 5: セットアップ実行 -->
+        <div class="step-panel" id="panel5">
           <h5 class="fw-bold mb-1">セットアップ実行</h5>
           <p class="text-muted mb-3" style="font-size:0.85rem;">スプレッドシートと証票フォルダを自動作成します。</p>
 
@@ -171,13 +203,13 @@
           <button class="btn btn-primary w-100" id="btnStartSetup">
             <i class="bi bi-rocket-takeoff me-1"></i>セットアップ開始
           </button>
-          <button class="btn btn-link w-100 text-muted mt-1" id="btnBack3">
+          <button class="btn btn-link w-100 text-muted mt-1" id="btnBack4">
             <i class="bi bi-arrow-left me-1"></i>戻る
           </button>
         </div>
 
-        <!-- Step 5: 完了 -->
-        <div class="step-panel" id="panel5">
+        <!-- Step 6: 完了 -->
+        <div class="step-panel" id="panel6">
           <div class="text-center mb-3">
             <div style="font-size:2.5rem;">🎉</div>
             <h5 class="fw-bold mt-2 mb-1">セットアップ完了！</h5>
@@ -234,6 +266,7 @@
     // ── DOM refs ──────────────────────────────────────────
     const $ = id => document.getElementById(id);
     let _licKey = '', _alias = '', _companyName = '', _geminiKey = '', _ownerName = '';
+    let _regulation = null; // 電帳法規程データ（任意）
 
     // ── デモモード初期化 ───────────────────────────────────
     if (_isDemo) {
@@ -249,14 +282,14 @@
 
     // ── Step ユーティリティ ────────────────────────────────
     function goStep(n) {
-      [1,2,3,4,5].forEach(i => {
+      [1,2,3,4,5,6].forEach(i => {
         $('panel' + i)?.classList.toggle('active', i === n);
         const dot = $('dot' + i);
         if (!dot) return;
         dot.className = 'step-dot ' + (i < n ? 'done' : i === n ? 'active' : 'todo');
         if (i < n) dot.innerHTML = '<i class="bi bi-check"></i>';
-        else if (i < 5) dot.textContent = i;
-        if (i < 5) $('line' + i)?.classList.toggle('done', i < n);
+        else if (i < 6) dot.textContent = i;
+        if (i < 6) $('line' + i)?.classList.toggle('done', i < n);
       });
     }
 
@@ -360,13 +393,29 @@
     // ── Step 3: Gemini APIキー ────────────────────────────
     function proceedToStep4() {
       _geminiKey = $('inputGeminiKey').value.trim();
-      $('confirmCompany').textContent = _companyName;
-      $('confirmUrl').textContent = _alias ? `${location.origin}/${_alias}` : '（ランダム自動生成）';
+      // 電帳法ステップの団体名を会社名で初期化
+      if (!$('regOrgName').value) $('regOrgName').value = _companyName;
       goStep(4);
     }
     $('btnGoStep4').addEventListener('click', proceedToStep4);
     $('btnSkipGemini').addEventListener('click', proceedToStep4);
     $('btnBack2').addEventListener('click', () => goStep(2));
+
+    // ── Step 4: 電帳法対応 ────────────────────────────────
+    function proceedToStep5() {
+      const orgName = $('regOrgName').value.trim();
+      const repName = $('regRepName').value.trim();
+      const address = $('regAddress').value.trim();
+      if (orgName && repName) {
+        _regulation = { orgName, repName, address, confirmedAt: new Date().toISOString() };
+      }
+      $('confirmCompany').textContent = _companyName;
+      $('confirmUrl').textContent = _alias ? `${location.origin}/${_alias}` : '（ランダム自動生成）';
+      goStep(5);
+    }
+    $('btnGoStep5').addEventListener('click', proceedToStep5);
+    $('btnSkipDencho').addEventListener('click', proceedToStep5);
+    $('btnBack3').addEventListener('click', () => goStep(3));
 
     // ── Step 4: セットアップ実行 ──────────────────────────
     function setProgState(id, state) {
@@ -412,6 +461,11 @@
           const licVal = localStorage.getItem('keihi_license_key');
           if (licVal) Sheets.update('設定!B3', [[licVal]]).catch(() => {});
           finalAlias = localStorage.getItem('keihi_alias') || '';
+          // 電帳法規程をlocalStorageに保存（設定画面と共通形式）
+          if (_regulation) {
+            localStorage.setItem('keihi_regulation', JSON.stringify(_regulation));
+            Sheets.update('設定!B6', [[JSON.stringify(_regulation)]]).catch(() => {});
+          }
         }
 
         const shareUrl = finalAlias
@@ -421,7 +475,7 @@
         $('qrImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(shareUrl)}`;
         $('btnOpenApp').onclick = () => { window.location.href = _isDemo ? '/app?demo' : shareUrl; };
         if (!_isDemo) window.removeEventListener('beforeunload', _beforeUnload);
-        goStep(5);
+        goStep(6);
 
       } catch (err) {
         window.removeEventListener('beforeunload', _beforeUnload);
@@ -439,10 +493,17 @@
       $('confirmBox').style.display = '';
       $('progressBox').style.display = 'none';
       ['prog1','prog2','prog3'].forEach(id => setProgState(id, 'todo'));
-      goStep(3);
+      goStep(4);
     });
 
-    // ── Step 5: 完了 ──────────────────────────────────────
+    $('btnBack4').addEventListener('click', () => {
+      $('confirmBox').style.display = '';
+      $('progressBox').style.display = 'none';
+      ['prog1','prog2','prog3'].forEach(id => setProgState(id, 'todo'));
+      goStep(4);
+    });
+
+    // ── Step 6: 完了 ──────────────────────────────────────
     $('btnCopyUrl').addEventListener('click', () => {
       navigator.clipboard.writeText($('shareUrlInput').value).then(() => {
         $('btnCopyUrl').innerHTML = '<i class="bi bi-check text-success"></i>';
