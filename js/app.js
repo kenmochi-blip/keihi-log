@@ -9,6 +9,7 @@ const App = (() => {
   let _userRole     = 'member'; // 'admin' | 'viewer' | 'member'
   let _confirmModal = null;
   let _confirmResolve = null;
+  let _aliasNotFound = false; // URLにエイリアスが指定されたが存在しなかった場合にtrue
 
   async function init() {
     // デモモード：認証・ライセンス・シート確認をスキップ
@@ -59,7 +60,11 @@ const App = (() => {
       } catch (_) {}
     }
     if (!ssId) {
-      window.location.replace('/setup');
+      if (_aliasNotFound) {
+        _showAliasNotFoundError();
+      } else {
+        window.location.replace('/setup');
+      }
       return;
     }
     if (!licKey) {
@@ -104,8 +109,21 @@ const App = (() => {
       // メンバー制限：登録メンバーが1人以上いる場合、未登録ユーザーはアクセス不可
       // 管理者（isOwner含む）はメンバーリストの有無に関わらず常にアクセス許可
       if (_userRole !== 'admin' && _masterCache.members.length > 0 && !_masterCache.members.some(m => m.email.toLowerCase() === email)) {
+        // 組織名をヘッダーに表示してからアクセス拒否を案内する
+        const _cachedCompany = localStorage.getItem('keihi_company_name') || '';
+        if (_cachedCompany) {
+          const titleEl = document.getElementById('navAppTitle');
+          if (titleEl) titleEl.textContent = `経費ログ - ${_truncateCompany(_cachedCompany)}`;
+        }
+        Sheets.readSetting('B2').then(fetched => {
+          if (fetched) {
+            if (fetched !== _cachedCompany) localStorage.setItem('keihi_company_name', fetched);
+            const titleEl = document.getElementById('navAppTitle');
+            if (titleEl) titleEl.textContent = `経費ログ - ${_truncateCompany(fetched)}`;
+          }
+        }).catch(() => {});
         _setupUI('settings');
-        showToast('このアプリへのアクセス権がありません。管理者に連絡してください。', 'danger');
+        showToast('このアプリへのアクセス権がありません。管理者に連絡してください。', 'danger', 8000);
         return;
       }
     } catch (_) {
@@ -152,6 +170,17 @@ const App = (() => {
     if (!_isAdmin) {
       document.querySelector('.nav-item-btn[data-view="settings"]')?.classList.add('d-none');
     }
+  }
+
+  function _showAliasNotFoundError() {
+    const boot = document.getElementById('initialBoot');
+    if (boot) boot.innerHTML = `
+      <div class="text-center py-5 px-3">
+        <i class="bi bi-exclamation-circle text-warning" style="font-size:3rem;"></i>
+        <h5 class="mt-3 fw-bold">このURLは見つかりませんでした</h5>
+        <p class="text-muted small mt-2">URLが正しくない可能性があります。<br>管理者から共有されたURLをご確認ください。</p>
+        <a href="/" class="btn btn-outline-primary btn-sm mt-2">トップページへ</a>
+      </div>`;
   }
 
   function _setupUI(initialView = 'submit', companyName = '') {
@@ -472,6 +501,9 @@ const App = (() => {
         } else if (data.licenseKey && data.licenseKey.startsWith('KL-')) {
           localStorage.setItem('keihi_license_key', data.licenseKey);
           localStorage.setItem('keihi_setup_code', token); // setupCodeとしてパスのトークンを保存
+        } else if (!localStorage.getItem('keihi_sheet_id')) {
+          // APIは応答したがエイリアスに対応するシートIDもライセンスキーも見つからなかった
+          _aliasNotFound = true;
         }
       }
     } catch (_) {
