@@ -85,7 +85,8 @@
             <input type="text" class="form-control" id="inputAlias"
               placeholder="例: yamada-trading（英数字・ハイフン）" maxlength="40">
           </div>
-          <div id="aliasMsg" class="form-text mb-3"></div>
+          <div id="aliasMsg" class="form-text"></div>
+          <div class="form-text mb-3" style="color:#6c757d;">未入力の場合はランダムな文字列のURLが自動生成されます。</div>
 
           <button class="btn btn-primary w-100" id="btnGoStep3">
             次へ <i class="bi bi-arrow-right ms-1"></i>
@@ -503,7 +504,7 @@ ${o}
 
     $('btnStartSetup').addEventListener('click', async () => {
       $('btnStartSetup').disabled = true;
-      $('btnBack3').style.display = 'none';
+      $('btnBack4').style.display = 'none';
       $('confirmBox').style.display = 'none';
       $('progressBox').style.display = 'block';
       $('setupErrMsg').style.display = 'none';
@@ -557,15 +558,8 @@ ${o}
         $('setupErrMsg').textContent = 'エラーが発生しました: ' + (err.message || err);
         $('setupErrMsg').style.display = 'block';
         $('btnStartSetup').disabled = false;
-        $('btnBack3').style.display = '';
+        $('btnBack4').style.display = '';
       }
-    });
-
-    $('btnBack3').addEventListener('click', () => {
-      $('confirmBox').style.display = '';
-      $('progressBox').style.display = 'none';
-      ['prog1','prog2','prog3'].forEach(id => setProgState(id, 'todo'));
-      goStep(4);
     });
 
     $('btnBack4').addEventListener('click', () => {
