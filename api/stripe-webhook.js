@@ -104,17 +104,41 @@ async function _issueNewLicense(session) {
     } catch (_) {}
   }
 
-  // 同一メールアドレスで手動発行ライセンスがある場合のみアップグレード扱い
-  // 複数チーム対応のため、有料ライセンス済みでも新しいチーム用として新規発行を許可する
+  // ── メールアドレスごとの全ライセンス一覧を取得 ──────────────────
+  const EMAIL_LICENSES_KEY = `email_licenses:${customerEmail}`;
+  let allLicenseKeys = (await kv.get(EMAIL_LICENSES_KEY)) || [];
+  const allLicenses = (await Promise.all(
+    allLicenseKeys.map(async k => {
+      const d = await kv.get(`license:${k}`);
+      return d ? { key: k, data: d } : null;
+    })
+  )).filter(Boolean);
+
+  // ── 3件上限チェック（停止済み含む全ライセンスを対象） ──────────
+  const activeCount = allLicenses.filter(l => !l.data.suspended).length;
+  if (activeCount >= 3) {
+    console.error(`License limit (3) reached for ${customerEmail}. Payment taken but no license issued. Admin action required.`);
+    captureException(new Error(`License limit reached: ${customerEmail}`), { context: 'license_limit' });
+    return;
+  }
+
+  // ── 解約後の再申込み：停止済みStripeライセンスを再アクティブ化 ──
+  const toReactivate = allLicenses.find(l => l.data.suspended && l.data.stripeSessionId);
+  if (toReactivate) {
+    await _reactivateLicense(toReactivate.key, toReactivate.data, session,
+      customerEmail, customerName, businessName, company, plan, interval, trialEnd,
+      EMAIL_LICENSES_KEY, allLicenseKeys);
+    return;
+  }
+
+  // ── 同一メールアドレスで手動発行ライセンスがある場合はアップグレード扱い ──
   const existingKey = await kv.get(`email_to_license:${customerEmail}`);
   if (existingKey) {
     const existingData = await kv.get(`license:${existingKey}`);
     if (existingData && !existingData.suspended && !existingData.stripeSessionId) {
-      // 手動発行ライセンス → 有料アップグレード（キーはそのまま延長）
       await _upgradeLicense(existingKey, existingData, session, customerEmail, customerName, plan, interval);
       return;
     }
-    // 既存の有料ライセンスがある場合でも新規発行（複数チーム対応）
   }
 
   // ライセンスキー生成
@@ -152,6 +176,9 @@ async function _issueNewLicense(session) {
   // メールアドレスからキーを逆引き（最新キーを指す）
   await kv.set(`email_to_license:${customerEmail}`, licenseKey);
 
+  // メールアドレスごとの全ライセンス一覧を更新（3件上限・再アクティブ化判定に使用）
+  await kv.set(EMAIL_LICENSES_KEY, [...new Set([...allLicenseKeys, licenseKey])]);
+
   // サブスクリプションIDからライセンスキーを逆引き（更新・停止処理用）
   if (session.subscription) {
     await kv.set(`stripe_sub:${session.subscription}`, licenseKey);
@@ -170,6 +197,45 @@ async function _issueNewLicense(session) {
     // 管理者通知
     if (process.env.ADMIN_NOTIFY_EMAIL) {
       await _sendAdminNotifyEmail(customerEmail, customerName, licenseKey, licenseData.expiresAt, businessName, plan);
+    }
+  }
+}
+
+async function _reactivateLicense(key, oldData, session, email, name, businessName, company, plan, interval, trialEnd, emailLicensesKey, allLicenseKeys) {
+  const SESSION_TTL = 60 * 60 * 24 * 30;
+  const expiresAt = trialEnd
+    ? new Date(trialEnd * 1000)
+    : (() => {
+        const d = new Date();
+        if (interval === 'year') d.setFullYear(d.getFullYear() + 1);
+        else d.setMonth(d.getMonth() + 1);
+        return d;
+      })();
+  const expiresAtStr = expiresAt.toISOString().split('T')[0];
+
+  const updated = {
+    ...oldData,
+    plan,
+    interval,
+    expiresAt:        expiresAtStr,
+    stripeSessionId:  session.id,
+    suspended:        false,
+    reactivatedAt:    new Date().toISOString(),
+    // businessName/company は最新の申込情報で上書き
+    ...(businessName ? { businessName } : {}),
+    ...(company      ? { company }      : {}),
+  };
+  await kv.set(`license:${key}`, updated);
+  await kv.set(`session:${session.id}`, key, { ex: SESSION_TTL });
+  await kv.set(`email_to_license:${email}`, key);
+  if (session.subscription) await kv.set(`stripe_sub:${session.subscription}`, key);
+  await kv.set(emailLicensesKey, [...new Set([...allLicenseKeys, key])]);
+  console.log(`License reactivated: ${key} for ${email} until ${expiresAtStr}`);
+
+  if (process.env.RESEND_API_KEY) {
+    await _sendReactivationEmail(email, name || oldData.customerName || company, key, expiresAtStr);
+    if (process.env.ADMIN_NOTIFY_EMAIL) {
+      await _sendAdminNotifyEmail(email, name, key, expiresAtStr, businessName || oldData.businessName, plan);
     }
   }
 }
@@ -229,6 +295,37 @@ async function _sendUpgradeEmail(to, name, licenseKey, expiresAt) {
     body: JSON.stringify(body),
   });
   if (!resp.ok) console.error('Resend error:', await resp.text());
+}
+
+async function _sendReactivationEmail(to, name, licenseKey, expiresAt) {
+  const appUrl   = process.env.APP_URL || 'https://keihi-log.com/app';
+  const setupUrl = process.env.APP_URL
+    ? process.env.APP_URL.replace('/app', '')
+    : 'https://keihi-log.com';
+  const body = {
+    from: process.env.RESEND_FROM_EMAIL || 'noreply@' + (process.env.VERCEL_PROJECT_PRODUCTION_URL || 'example.com'),
+    to,
+    subject: `【経費ログ】ライセンスが再アクティブ化されました`,
+    html: `
+<p>${name} 様</p>
+<p>経費ログへの再申し込みありがとうございます。以前のライセンスキーが再アクティブ化されました。</p>
+<p style="font-size:1.2em;font-family:monospace;background:#f5f5f5;padding:12px 16px;border-radius:6px;letter-spacing:1px;">
+  <strong>${licenseKey}</strong>
+</p>
+<ul>
+  <li>有効期限：${expiresAt}</li>
+  <li>アプリURL：<a href="${appUrl}">${appUrl}</a></li>
+</ul>
+<p>以前の設定（スプレッドシート等）はそのまま引き続きご利用いただけます。</p>
+<p>ご不明な点はお気軽にお問い合わせください。</p>
+    `.trim(),
+  };
+  const resp = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!resp.ok) console.error('Resend reactivation error:', await resp.text());
 }
 
 async function _sendAdminUpgradeEmail(email, name, licenseKey, expiresAt) {
