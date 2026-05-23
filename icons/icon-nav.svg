@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- 白いレシート（青ナビバー用・背景透明） -->
+  <path d="M18,4 L74,4 Q80,4 80,10 L80,62
+    L64,80 L50,68 L36,80 L20,62
+    L14,62 L14,10 Q14,4 18,4 Z"
+    fill="white"/>
+
+  <!-- 横線：ナビバー色（青）で -->
+  <rect x="24" y="18" width="40" height="6" rx="3" fill="#0d6efd" opacity="0.9"/>
+  <rect x="24" y="30" width="38" height="6" rx="3" fill="#0d6efd" opacity="0.6"/>
+  <rect x="24" y="42" width="34" height="6" rx="3" fill="#0d6efd" opacity="0.5"/>
+
+  <!-- 緑バッジ -->
+  <circle cx="72" cy="75" r="22" fill="#198754"/>
+  <polyline points="61,75 69,83 83,63"
+    fill="none" stroke="white" stroke-width="6"
+    stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
