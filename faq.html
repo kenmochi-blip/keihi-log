@@ -236,23 +236,27 @@
         <p>利用開始は「管理者」と「メンバー」で手順が異なります。</p>
         <p><strong>管理者（初回セットアップをする方）：</strong></p>
         <ol>
-          <li>アプリにGoogleアカウントでログイン</li>
-          <li>設定画面を開き、① 社名 → ② スプレッドシート新規作成 → ③ ライセンスキー → ④ Gemini APIキー → ⑤ 事務処理規程 の順に設定</li>
-          <li>設定画面に表示される共有URL（<code>keihi-log.com/xxxxxxxxxx</code> 形式）をコピーしてメンバーに共有（Slack・メールなど）</li>
+          <li><a href="/setup">keihi-log.com/setup</a> にアクセス</li>
+          <li>ライセンスキーを入力して確認</li>
+          <li>会社名・チーム名と、任意でチームURL（例：<code>keihi-log.com/yamada-trading</code>）を設定</li>
+          <li>Gemini APIキーを入力（AI領収書解析に必要。後から設定可）</li>
+          <li>電帳法対応の事務処理規程を作成（任意。後から設定可）</li>
+          <li>「セットアップ開始」ボタンを押すと、スプレッドシートと証票フォルダが自動作成されます</li>
+          <li>完了画面に表示されるチームURLをSlackやメールでメンバーに共有</li>
         </ol>
         <p><strong>メンバー（管理者からURLを受け取った方）：</strong></p>
         <ol>
           <li>管理者から受け取ったURL（<code>keihi-log.com/xxxxxxxxxx</code>）にアクセス</li>
           <li>Googleでサインイン → 完了</li>
         </ol>
-        <div class="tip">メンバーはスプレッドシートURLやライセンスキーの入力は不要です。共有URLにアクセスするだけで自動的に接続されます。Gemini APIキーも管理者が設定済みのため個別取得は不要です。</div>
+        <div class="tip">メンバーはスプレッドシートURLやライセンスキー・Gemini APIキーの入力は一切不要です。共有URLを開いてGoogleアカウントでサインインするだけで使い始められます。</div>
       </div>
     </details>
 
     <details>
       <summary>スプレッドシートはどのように作成されますか？<span class="arrow">▼</span></summary>
       <div class="answer">
-        <p>設定画面の「スプレッドシートを新規作成」ボタンを押すと、アプリが自動でGoogleスプレッドシートを作成します。作成されるシート構成は以下の通りです：</p>
+        <p>初期セットアップ（<a href="/setup">keihi-log.com/setup</a>）の最終ステップで「セットアップ開始」ボタンを押すと、アプリが自動でGoogleスプレッドシートと証票フォルダを作成します。作成されるシート構成は以下の通りです：</p>
         <ul>
           <li><strong>経費一覧</strong>：申請データのメインシート</li>
           <li><strong>設定</strong>：会社名・GeminiAPIキーなどの設定値</li>
@@ -260,7 +264,7 @@
           <li><strong>修正履歴</strong>：申請の修正操作の記録（電帳法対応）</li>
           <li><strong>削除一覧</strong>：削除済み申請の記録（電帳法対応）</li>
         </ul>
-        <p>作成後、スプレッドシートのURLをコピーしてメンバーに共有（Slack・メールなど）するだけで完了です。</p>
+        <p>作成後、完了画面に表示されるチームURLをメンバーに共有するだけで完了です。スプレッドシート自体をメンバーに共有する必要はありません。</p>
       </div>
     </details>
 
