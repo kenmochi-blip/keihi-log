@@ -18,27 +18,34 @@ const SettingsView = (() => {
 <div class="pt-3">
   <h5 class="fw-bold mb-3"><i class="bi bi-gear-fill me-2 text-primary"></i>設定</h5>
 
-  <!-- アカウント情報 -->
+  <!-- アプリの表示名（管理者のみ・トップ） -->
+  ${isAdmin ? `
   <div class="card mb-3">
     <div class="card-body">
-      <div class="settings-section-title">アカウント</div>
-      <div class="d-flex align-items-center gap-2">
-        <i class="bi bi-person-circle text-secondary" style="font-size:1.5rem;"></i>
-        <div>
-          <div class="fw-semibold small">${_escape(email)}</div>
-          <div class="text-muted" style="font-size:0.75rem;">
-            Googleアカウントでログイン中
-            ${isAdmin ? '<span class="badge bg-primary ms-1" style="font-size:0.65rem;">管理者</span>' : ''}
-          </div>
-        </div>
-        <button class="btn btn-outline-danger btn-sm ms-auto" id="btnLogoutSettings">
-          <i class="bi bi-box-arrow-right me-1"></i>ログアウト
-        </button>
+      <div class="settings-section-title">アプリの表示名</div>
+      <div class="settings-step-hint">アプリのヘッダーに表示されます（変更可・10文字以内推奨）</div>
+      <div class="input-group input-group-sm mb-1">
+        <input type="text" class="form-control form-control-sm" id="inputCompanyName"
+          placeholder="例：〇〇株式会社、NPO法人〇〇、屋号など">
+        <button class="btn btn-outline-primary btn-sm" id="btnSaveCompanyName">保存</button>
       </div>
+      <div id="companyNameMsg" class="form-text"></div>
     </div>
-  </div>
+  </div>` : ''}
 
-  <!-- 初期設定 -->
+  <!-- 管理者セクション（メンバー管理・勘定科目・支払元・カスタムフラグ・ヘッダー色） -->
+  ${isAdmin ? _renderMasterSections() : ''}
+
+  <!-- 証票保存フォルダを開く（管理者・ssId設定済みの場合のみ・ヘッダー色の下） -->
+  ${isAdmin && ssId ? `
+  <div class="card mb-3">
+    <div class="card-body">
+      <div class="settings-section-title">証票保存フォルダ</div>
+      <div id="folderOpenLinkWrap"></div>
+    </div>
+  </div>` : ''}
+
+  <!-- 初期設定（末尾・SSを開くの上） -->
   <div class="accordion mb-3" id="initSettingsAcc">
     <div class="accordion-item">
       <h2 class="accordion-header">
@@ -51,21 +58,9 @@ const SettingsView = (() => {
       <div id="initSettingsBody" class="accordion-collapse collapse">
         <div class="accordion-body px-3 py-2">
 
-          <!-- ① 社名（管理者のみ） -->
-          ${isAdmin ? `
-          <div class="settings-step-title">① 社名・団体名・屋号等${!ssId ? ' <span class="text-danger" style="font-size:0.8rem;">*</span>' : ''}</div>
-          <div class="settings-step-hint">ヘッダー名及びスプレッドシートタイトルに使用されます（後から変更可）</div>
-          <div class="${ssId ? 'input-group' : ''} mb-3">
-            <input type="text" class="form-control form-control-sm" id="inputCompanyName"
-              placeholder="例：〇〇株式会社、NPO法人〇〇、屋号など">
-            ${ssId ? '<button class="btn btn-outline-primary btn-sm" id="btnSaveCompanyName">保存</button>' : ''}
-          </div>
-          <div id="companyNameMsg" class="form-text" style="margin-top:-0.75rem;"></div>
-          ` : ''}
-
-          <!-- ② チームURL（管理者・シート未設定時のみ） -->
+          <!-- チームURL（管理者・シート未設定時のみ） -->
           ${isAdmin && !ssId ? `
-          <div class="settings-step-title">② チームURL <span style="font-size:0.75rem;font-weight:400;color:#888;">任意・設定後変更不可</span></div>
+          <div class="settings-step-title">チームURL <span style="font-size:0.75rem;font-weight:400;color:#888;">任意・設定後変更不可</span></div>
           <div class="settings-step-hint">メンバーがアプリを開く共有URLのパスを決めます。空欄の場合はランダムで自動生成されます。</div>
           <div class="input-group input-group-sm mb-1">
             <span class="input-group-text" style="font-size:0.78rem;">${location.origin}/</span>
@@ -76,10 +71,9 @@ const SettingsView = (() => {
           <div id="aliasCheckMsg" class="form-text mb-3"></div>
           ` : ''}
 
-          <!-- ③ 証票データ・スプレッドシート保存先フォルダ（管理者のみ） -->
-          ${isAdmin ? `
-          <div class="settings-step-title">${!ssId ? '③' : '②'} 証票データ・スプレッドシート保存先フォルダ</div>
-          ${!ssId ? `
+          <!-- 証票データ保存先（管理者・シート未設定時のみ） -->
+          ${isAdmin && !ssId ? `
+          <div class="settings-step-title">証票データ保存先フォルダ</div>
           <div class="settings-step-hint">スプレッドシートと証票画像の保存先（空欄でマイドライブのルートに作成）</div>
           <input type="text" class="form-control form-control-sm mb-2" id="inputFolderUrl"
             placeholder="Google Drive フォルダのURL（任意）">
@@ -87,22 +81,10 @@ const SettingsView = (() => {
             <i class="bi bi-plus-circle me-1"></i>データ保存先を新規作成
           </button>
           <div id="createSheetMsg" class="form-text mb-3"></div>
-          ` : `
-          <button class="btn btn-primary btn-sm w-100 mb-2" id="btnCreateFolder">
-            <i class="bi bi-folder-plus me-1"></i>証票フォルダを自動作成
-          </button>
-          <div class="input-group mb-1">
-            <input type="text" class="form-control form-control-sm" id="inputReceiptFolderUrl"
-              placeholder="Google Drive フォルダのURL（既存フォルダを使う場合）">
-            <button class="btn btn-outline-secondary btn-sm" id="btnSaveReceiptFolder">変更</button>
-          </div>
-          <div id="receiptFolderMsg" class="form-text mb-1"></div>
-          <div id="folderOpenLinkWrap" class="mb-3"></div>
-          `}
           ` : ''}
 
-          <!-- ④ ライセンスキー -->
-          <div class="settings-step-title">${isAdmin ? (!ssId ? '④ ' : '③ ') : ''}ライセンスキー</div>
+          <!-- ライセンスキー -->
+          <div class="settings-step-title">ライセンスキー</div>
           <div id="licenseStatus" class="mb-2"></div>
           ${!licKey ? `<div class="settings-step-hint mb-2">メールにて通知されたライセンスキーを入力してください<br>例：<code>KL-XXXXXXXXXXXXXXXXXXXX</code></div>` : ''}
           <div class="input-group mb-1">
@@ -115,9 +97,9 @@ const SettingsView = (() => {
           </div>
           <div id="licenseMsg" class="form-text mb-2"></div>
 
-          <!-- ⑤ Gemini APIキー（管理者のみ） -->
+          <!-- Gemini APIキー（管理者のみ） -->
           ${isAdmin ? `
-          <div class="settings-step-title">${!ssId ? '⑤' : '④'} Gemini APIキー</div>
+          <div class="settings-step-title">Gemini APIキー</div>
           <div class="settings-step-hint">全メンバー共用 — メンバーは個別取得不要です。</div>
           <div class="card bg-light border-0 p-2 mb-2" style="font-size:0.82rem;line-height:1.6;">
             <div class="fw-semibold mb-1"><i class="bi bi-key me-1 text-warning"></i>APIキーの取得手順</div>
@@ -167,8 +149,6 @@ const SettingsView = (() => {
       </div>
     </div>
   </div>
-
-  ${isAdmin ? _renderMasterSections() : ''}
 
   <!-- スプレッドシートを直接開く（管理者のみ・最下部） -->
   ${isAdmin && ssId ? `
@@ -304,7 +284,6 @@ const SettingsView = (() => {
   }
 
   async function bindEvents(el) {
-    el.querySelector('#btnLogoutSettings')?.addEventListener('click', () => Auth.signOut());
 
     // 規程が localStorage にない場合、スプレッドシートから復元する
     if (!_loadRegulation()) {
@@ -568,21 +547,17 @@ const SettingsView = (() => {
     el.querySelector('#btnAddPaySource')?.addEventListener('click', () => _showInlineAdd(el, 'paySource'));
     el.querySelector('#btnAddCustomFlag')?.addEventListener('click', () => _showInlineAdd(el, 'customFlag'));
 
-    // 証票フォルダ：現在値をURLとしてinputに表示＋フォルダを開くリンクを生成
+    // 証票フォルダ：フォルダを開くリンクを生成（ssId設定済み時は独立カードに表示）
     const currentFolderId = localStorage.getItem('keihi_folder_id') || await Sheets.readSetting('B4').catch(() => '');
-    const folderInput = el.querySelector('#inputReceiptFolderUrl');
     const folderOpenWrap = el.querySelector('#folderOpenLinkWrap');
     const _setFolderLink = fid => {
       if (!folderOpenWrap) return;
       folderOpenWrap.innerHTML = fid
         ? `<a href="https://drive.google.com/drive/folders/${fid}" target="_blank" class="btn btn-outline-secondary btn-sm w-100">
-             <i class="bi bi-folder-fill me-1 text-warning"></i>フォルダを開く
+             <i class="bi bi-folder-fill me-1 text-warning"></i>保存先フォルダを開く
            </a>`
-        : '';
+        : '<span class="text-muted small">フォルダが設定されていません</span>';
     };
-    if (folderInput && currentFolderId) {
-      folderInput.value = `https://drive.google.com/drive/folders/${currentFolderId}`;
-    }
     _setFolderLink(currentFolderId);
 
     // チームURLリアルタイム重複チェック
