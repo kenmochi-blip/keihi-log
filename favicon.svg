@@ -1,17 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <!-- Receipt body with pointed bottom (receipt tape shape) -->
-  <path d="M22,4 L66,4 Q76,4 76,14 L76,58 L49,73 L22,58 L22,14 Q22,4 32,4 Z"
+  <!-- Receipt body: small rounded corners + zigzag bottom teeth -->
+  <path d="M18,4 L70,4 Q76,4 76,10 L76,60
+    L68,68 L60,60 L52,68 L44,60 L36,68 L28,60 L20,68 L12,60
+    L12,10 Q12,4 18,4 Z"
     fill="#0d6efd"/>
 
   <!-- White lines inside receipt -->
-  <rect x="30" y="19" width="22" height="5" rx="2.5" fill="white" opacity="0.9"/>
-  <rect x="30" y="30" width="34" height="5" rx="2.5" fill="white" opacity="0.85"/>
-  <rect x="30" y="41" width="28" height="5" rx="2.5" fill="white" opacity="0.85"/>
+  <rect x="22" y="17" width="22" height="5" rx="2.5" fill="white" opacity="0.9"/>
+  <rect x="22" y="28" width="36" height="5" rx="2.5" fill="white" opacity="0.85"/>
+  <rect x="22" y="39" width="28" height="5" rx="2.5" fill="white" opacity="0.85"/>
 
   <!-- Green badge circle -->
-  <circle cx="70" cy="72" r="22" fill="#198754"/>
+  <circle cx="70" cy="73" r="22" fill="#198754"/>
   <!-- White checkmark -->
-  <polyline points="59,72 67,80 81,60"
+  <polyline points="59,73 67,81 81,61"
     fill="none" stroke="white" stroke-width="5.5"
     stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
