@@ -284,7 +284,7 @@ const SubmitView = (() => {
         <button class="accordion-button collapsed py-2 small" type="button"
           data-bs-toggle="collapse" data-bs-target="#regulationBody">
           <i class="bi bi-file-text me-2 text-success"></i>
-          訂正・削除防止規程（電帳法）— 確定済み ${reg.confirmedAt}
+          訂正・削除防止規程（電帳法）— 確定済み ${reg.confirmedAt.slice(0, 10)}
         </button>
       </h2>
       <div id="regulationBody" class="accordion-collapse collapse">

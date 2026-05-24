@@ -970,7 +970,7 @@ const SettingsView = (() => {
     };
     const previewText = buildRegulationText(previewReg).replace(/</g, '&lt;');
     const confirmedBadge = reg?.confirmedAt
-      ? `<div class="alert alert-success py-1 mb-2 small"><i class="bi bi-check-circle me-1"></i>確定済み（${reg.confirmedAt}）<button class="btn btn-link btn-sm p-0 ms-2 text-secondary" id="btnEditRegulationInit">再編集</button></div>`
+      ? `<div class="alert alert-success py-1 mb-2 small"><i class="bi bi-check-circle me-1"></i>確定済み（${reg.confirmedAt.slice(0, 10)}）<button class="btn btn-link btn-sm p-0 ms-2 text-secondary" id="btnEditRegulationInit">再編集</button></div>`
       : '';
     return `
           <hr class="my-3">
