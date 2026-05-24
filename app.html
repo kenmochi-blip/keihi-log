@@ -128,65 +128,248 @@
       <span class="fw-bold">よくある質問</span>
       <button id="btnCloseFaq" style="margin-left:auto;background:none;border:none;font-size:1.4rem;line-height:1;color:#6c757d;padding:8px 12px;cursor:pointer;min-width:44px;min-height:44px;display:grid;place-items:center;">&times;</button>
     </div>
-    <div id="faqOverlayBody" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 20px 32px;">
+    <div id="faqOverlayBody" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 16px 40px;">
 
-      <!-- セットアップ・初期設定 -->
-      <p class="text-uppercase text-muted fw-semibold mb-3 mt-1" style="letter-spacing:.06em;font-size:0.68rem;border-bottom:1px solid #dee2e6;padding-bottom:6px;">セットアップ・初期設定</p>
-      <div class="mb-2">
-        <p class="fw-bold small mb-1" style="color:#212529;">使い始めるにはどうすればいいですか？</p>
-        <p class="small text-muted mb-4">管理者がセットアップページでスプレッドシートを自動作成し、メンバーに専用URLを共有するだけです。メンバーはそのURLにアクセスしてGoogleアカウントでサインインすれば利用開始できます。</p>
-        <p class="fw-bold small mb-1" style="color:#212529;">メンバーの権限（管理者・閲覧者・一般）の違いは？</p>
-        <p class="small text-muted mb-4">管理者は全機能を利用可能。閲覧者は全員の一覧・集計を閲覧できますが承認はできません。一般メンバーは自分の申請と自分の履歴のみ表示されます。</p>
-        <p class="fw-bold small mb-1" style="color:#212529;">Gemini APIキーはどこで取得しますか？</p>
-        <p class="small text-muted mb-0">Google AI Studio（aistudio.google.com）にアクセスし「APIキーを作成」を押してコピーするだけです。所要時間は約3分。無料アカウントで1日1,500リクエストまで無料で使えます。</p>
+      <!-- 1. はじめに・初期設定 -->
+      <p class="text-uppercase text-muted fw-semibold mb-2 mt-1" style="letter-spacing:.06em;font-size:0.68rem;">1. はじめに・初期設定</p>
+      <div class="accordion mb-3" id="faq1">
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q101">経費ログを使い始めるにはどうすればいいですか？</button></h2>
+          <div id="q101" class="accordion-collapse collapse" data-bs-parent="#faq1"><div class="accordion-body small text-muted py-2">管理者がセットアップページでスプレッドシートと証票フォルダを自動作成し、メンバーに専用URLを共有するだけです。メンバーはURLにアクセスしてGoogleアカウントでサインインするだけで利用開始できます。スプレッドシートURLやAPIキーをメンバーが個別入力する必要はありません。</div></div>
+        </div>
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q102">スプレッドシートはどのように作成されますか？</button></h2>
+          <div id="q102" class="accordion-collapse collapse" data-bs-parent="#faq1"><div class="accordion-body small text-muted py-2">セットアップページの「セットアップ開始」ボタンを押すと、アプリが自動でGoogleスプレッドシート（経費一覧・設定・マスタ表・修正履歴・削除一覧の5シート）と証票フォルダを作成します。完了画面に表示されるチームURLをメンバーに共有してください。</div></div>
+        </div>
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q103">メンバーごとに権限を変えることはできますか？</button></h2>
+          <div id="q103" class="accordion-collapse collapse" data-bs-parent="#faq1"><div class="accordion-body small text-muted py-2">はい。管理者・閲覧者・一般の3段階から設定できます。管理者は全機能が使えます。閲覧者は全員の一覧・集計を閲覧できますが承認・管理はできません。一般は自分の申請と自分の履歴のみ閲覧できます。設定は管理者がメンバー管理画面からいつでも変更できます。</div></div>
+        </div>
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q104">管理者・閲覧者・一般の違いは何ですか？</button></h2>
+          <div id="q104" class="accordion-collapse collapse" data-bs-parent="#faq1"><div class="accordion-body small text-muted py-2">管理者：全機能（申請・一覧・集計・承認・メンバー管理・設定変更）。閲覧者：申請＋全員の一覧・集計閲覧（承認・管理は不可）。一般：申請＋自分の履歴のみ閲覧（集計タブは非表示）。</div></div>
+        </div>
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q105">会社払いとはどんな場合に使いますか？</button></h2>
+          <div id="q105" class="accordion-collapse collapse" data-bs-parent="#faq1"><div class="accordion-body small text-muted py-2">法人クレジットカード・小口現金・会社口座振込・ETCコーポレートカードなど、社員が個人で立て替えず会社の資金で直接支払った経費に使います。申請フォームの「会社払い」トグルをONにすると支払元を選択できます。</div></div>
+        </div>
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q106">会社払いの支払元はどこで追加しますか？</button></h2>
+          <div id="q106" class="accordion-collapse collapse" data-bs-parent="#faq1"><div class="accordion-body small text-muted py-2">管理者アカウントで設定画面の「会社払い支払元」から追加・削除できます。追加した支払元は申請フォームの会社払いトグルON時に選択肢として表示されます。</div></div>
+        </div>
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q107">部門別・プロジェクトごとに経費を把握できますか？</button></h2>
+          <div id="q107" class="accordion-collapse collapse" data-bs-parent="#faq1"><div class="accordion-body small text-muted py-2">カスタムフラグ機能を使って実現できます。管理者が設定画面で部門名やプロジェクト名を登録すると、申請時にメンバーがタグを選べるようになります。一覧でフラグ別に絞り込み、CSVエクスポートでも活用できます。</div></div>
+        </div>
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q108">カスタムフラグとは何ですか？</button></h2>
+          <div id="q108" class="accordion-collapse collapse" data-bs-parent="#faq1"><div class="accordion-body small text-muted py-2">部門・プロジェクト・用途など自由に使えるタグ機能です。管理者が設定画面で選択肢（「営業部」「PJ-A」「採用」など）を登録すると、申請フォームに表示されます。一覧フィルターやCSV列にも含まれます。</div></div>
+        </div>
       </div>
 
-      <!-- 経費申請 -->
-      <p class="text-uppercase text-muted fw-semibold mb-3 mt-4" style="letter-spacing:.06em;font-size:0.68rem;border-bottom:1px solid #dee2e6;padding-bottom:6px;">経費申請</p>
-      <div class="mb-2">
-        <p class="fw-bold small mb-1" style="color:#212529;">申請できる経費のタイプは？</p>
-        <p class="small text-muted mb-4">領収書・領収書なし・交通費・自家用車の4タイプに対応しています。申請フォーム上部のタブで切り替えてください。</p>
-        <p class="fw-bold small mb-1" style="color:#212529;">複数の明細をまとめて申請できますか？</p>
-        <p class="small text-muted mb-4">「明細を追加」ボタンで最大10件まで分割入力できます。1枚の領収書で異なる勘定科目を分けて記録する際に便利です。</p>
-        <p class="fw-bold small mb-1" style="color:#212529;">申請ステータス「申請済」「登録済」「精算済」の違いは？</p>
-        <p class="small text-muted mb-4">申請済は承認待ちで編集可能。登録済は承認済で一般メンバーは編集不可。精算済は支払完了状態です。</p>
-        <p class="fw-bold small mb-1" style="color:#212529;">編集ボタンが表示されません</p>
-        <p class="small text-muted mb-0">申請者本人かつ「申請済」ステータスの場合のみ編集可能です。承認済みの修正が必要な場合は管理者に承認を取り消してもらってください。</p>
+      <!-- 2. Googleログイン・権限 -->
+      <p class="text-uppercase text-muted fw-semibold mb-2 mt-1" style="letter-spacing:.06em;font-size:0.68rem;">2. Googleログイン・権限</p>
+      <div class="accordion mb-3" id="faq2">
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q201">ログイン時に求められる権限は何ですか？</button></h2>
+          <div id="q201" class="accordion-collapse collapse" data-bs-parent="#faq2"><div class="accordion-body small text-muted py-2">メールアドレスの参照（ユーザー識別）、Googleスプレッドシート（指定シートのみ）、Google Drive（アプリが作成したファイルのみ）の3種類です。Gmail等他のデータにはアクセスしません。経費データがアプリ開発者のサーバーに送信されることもありません。</div></div>
+        </div>
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q202">ログアウトするにはどうすればいいですか？</button></h2>
+          <div id="q202" class="accordion-collapse collapse" data-bs-parent="#faq2"><div class="accordion-body small text-muted py-2">画面右上のログアウトボタン（→アイコン）をタップするとログアウトできます。完全に権限を取り消したい場合は、Googleアカウントの「セキュリティ」→「サードパーティのアクセス」から「経費ログ」のアクセスを削除してください。</div></div>
+        </div>
       </div>
 
-      <!-- AI解析・証票 -->
-      <p class="text-uppercase text-muted fw-semibold mb-3 mt-4" style="letter-spacing:.06em;font-size:0.68rem;border-bottom:1px solid #dee2e6;padding-bottom:6px;">AI解析・証票</p>
-      <div class="mb-2">
-        <p class="fw-bold small mb-1" style="color:#212529;">AI解析で何が自動入力されますか？</p>
-        <p class="small text-muted mb-4">日付・支払先・金額・インボイス番号・摘要を自動読み取りします。画像の明るさやピントが精度に影響します。</p>
-        <p class="fw-bold small mb-1" style="color:#212529;">「同じ領収書が既に登録されている可能性があります」と出ました</p>
-        <p class="small text-muted mb-4">SHA-256ハッシュで同一画像の重複登録を検知しています。別の経費であれば「このまま申請する」で続行できます。</p>
-        <p class="fw-bold small mb-1" style="color:#212529;">証票（領収書画像）はどこに保存されますか？</p>
-        <p class="small text-muted mb-0">管理者が設定した共有Driveフォルダ（「経費証票」）に保存されます。アプリ開発者のサーバーには一切保存されません。</p>
+      <!-- 3. 経費の申請方法 -->
+      <p class="text-uppercase text-muted fw-semibold mb-2 mt-1" style="letter-spacing:.06em;font-size:0.68rem;">3. 経費の申請方法</p>
+      <div class="accordion mb-3" id="faq3">
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q301">申請できる経費のタイプは何種類ありますか？</button></h2>
+          <div id="q301" class="accordion-collapse collapse" data-bs-parent="#faq3"><div class="accordion-body small text-muted py-2">4種類です。領収書（物品・飲食・タクシーなど）、領収書なし（慶弔費など証票が取れない場合）、交通費（電車・バスなど）、自家用車（走行距離×単価）。申請フォーム上部のタブで切り替えます。</div></div>
+        </div>
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q302">複数の明細をまとめて申請できますか？</button></h2>
+          <div id="q302" class="accordion-collapse collapse" data-bs-parent="#faq3"><div class="accordion-body small text-muted py-2">「明細を追加」ボタンで最大10件まで分割入力できます。1枚の領収書に異なる勘定科目の項目が含まれる場合（例：宿泊費と宿泊税を別科目に分けるなど）に便利です。証票は申請全体で1枚紐付けられます。</div></div>
+        </div>
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q303">外貨建て経費はどう入力しますか？</button></h2>
+          <div id="q303" class="accordion-collapse collapse" data-bs-parent="#faq3"><div class="accordion-body small text-muted py-2">金額入力欄の「外貨換算」ボタンを押すと通貨と外貨金額を入力するダイアログが表示されます。Frankfurter APIで取引日の為替レートを取得し、日本円に自動換算します。換算後の円金額・レートは摘要欄に自動補記されます。</div></div>
+        </div>
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q304">交通費の経路・運賃はどのように入力しますか？</button></h2>
+          <div id="q304" class="accordion-collapse collapse" data-bs-parent="#faq3"><div class="accordion-body small text-muted py-2">出発地・到着地を入力するとYahoo!乗換案内で経路と運賃を自動検索・入力します。結果を確認して必要に応じて手修正できます。タクシーや高速代（レシートあり）は「領収書」タブでAI解析できます。</div></div>
+        </div>
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q305">会社払いで立替がない経費はどう申請しますか？</button></h2>
+          <div id="q305" class="accordion-collapse collapse" data-bs-parent="#faq3"><div class="accordion-body small text-muted py-2">申請フォームの「会社払い」トグルをONにしてください。ONにすると支払元（法人カード・小口現金など）を選択する欄が表示されます。</div></div>
+        </div>
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q306">2ヶ月以上前の日付で申請するとどうなりますか？</button></h2>
+          <div id="q306" class="accordion-collapse collapse" data-bs-parent="#faq3"><div class="accordion-body small text-muted py-2">「申請日から2ヶ月以上経過しています。続けますか？」という確認アラートが表示されます。問題なければそのまま申請できます。電帳法では一定期間内の記録が求められているため、遅延申請の場合は上長への確認を推奨します。</div></div>
+        </div>
       </div>
 
-      <!-- エラー対処 -->
-      <p class="text-uppercase text-muted fw-semibold mb-3 mt-4" style="letter-spacing:.06em;font-size:0.68rem;border-bottom:1px solid #dee2e6;padding-bottom:6px;">エラー対処</p>
-      <div class="mb-2">
-        <p class="fw-bold small mb-1" style="color:#212529;">「スプレッドシートにアクセスできません」と表示される</p>
-        <p class="small text-muted mb-4">①URLの確認 ②Driveでの共有設定確認 ③ログアウト→再ログイン の順に試してください。</p>
-        <p class="fw-bold small mb-1" style="color:#212529;">「AI解析に失敗しました」と表示される</p>
-        <p class="small text-muted mb-4">APIキーの未設定・無効、無料枠の上限達成、通信不安定が原因の場合があります。手動入力で申請は続行できます。</p>
-        <p class="fw-bold small mb-1" style="color:#212529;">「ライセンスキーが無効です」と表示される</p>
-        <p class="small text-muted mb-4">コピー時のスペース・改行の混入、有効期限切れを確認してください。解決しない場合はサポートにお問い合わせください。</p>
-        <p class="fw-bold small mb-1" style="color:#212529;">画面が古いまま更新されない</p>
-        <p class="small text-muted mb-0">スマホはキャッシュをクリアするか、PWAを一度終了して再起動してください。PCはCtrl+Shift+Rでハードリロードしてください。</p>
+      <!-- 4. AI領収書解析 -->
+      <p class="text-uppercase text-muted fw-semibold mb-2 mt-1" style="letter-spacing:.06em;font-size:0.68rem;">4. AI領収書解析</p>
+      <div class="accordion mb-3" id="faq4">
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q401">AI解析で何が自動入力されますか？</button></h2>
+          <div id="q401" class="accordion-collapse collapse" data-bs-parent="#faq4"><div class="accordion-body small text-muted py-2">日付・支払先・金額・インボイス番号（T+13桁）・摘要を自動読み取りします。画像がぼやけていたり傾いていたりすると精度が下がるため、なるべく明るく文字がはっきり写るように撮影してください。</div></div>
+        </div>
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q402">AI解析はいつでも無料で使えますか？</button></h2>
+          <div id="q402" class="accordion-collapse collapse" data-bs-parent="#faq4"><div class="accordion-body small text-muted py-2">管理者が設定したGemini APIキーを全員で共用します。Google AI Studioの無料枠は1日1,500リクエストで、領収書1枚につきリクエスト1回です。30名以下のチームであれば通常業務では無料枠内に収まります。超過した場合はGemini 2.5 Flashで約0.003円/枚程度のGoogle課金が発生します。</div></div>
+        </div>
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q403">Gemini APIキーが漏洩するリスクはありますか？</button></h2>
+          <div id="q403" class="accordion-collapse collapse" data-bs-parent="#faq4"><div class="accordion-body small text-muted py-2">Google AI StudioでHTTPリファラー制限（許可ドメイン：keihi-log.com/*）を設定すると、キーが流出しても指定ドメイン以外からは使用できなくなります。また1日あたりのリクエスト上限も設定可能です。設定画面のGemini APIキー欄に手順を掲載しています。</div></div>
+        </div>
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q404">「同じ領収書が既に登録されている可能性があります」と出ました</button></h2>
+          <div id="q404" class="accordion-collapse collapse" data-bs-parent="#faq4"><div class="accordion-body small text-muted py-2">SHA-256ハッシュで同一画像の重複登録を検知しています（電帳法対応）。別の経費であれば「このまま申請する」で続行できます。</div></div>
+        </div>
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q405">「同じ日付・金額・支払先の申請が既にあります」と出ました</button></h2>
+          <div id="q405" class="accordion-collapse collapse" data-bs-parent="#faq4"><div class="accordion-body small text-muted py-2">申請内容が既存の申請と一致する場合の警告です。意図しない二重申請がないかご確認ください。別の申請であれば「このまま申請する」で続行できます。</div></div>
+        </div>
       </div>
 
-      <!-- ライセンス -->
-      <p class="text-uppercase text-muted fw-semibold mb-3 mt-4" style="letter-spacing:.06em;font-size:0.68rem;border-bottom:1px solid #dee2e6;padding-bottom:6px;">ライセンス</p>
-      <div class="mb-2">
-        <p class="fw-bold small mb-1" style="color:#212529;">ライセンスはどこで購入できますか？</p>
-        <p class="small text-muted mb-4">設定画面の「ライセンスを購入する」リンク、またはトップページから購入できます。購入後にライセンスキーがメールで届きます。</p>
-        <p class="fw-bold small mb-1" style="color:#212529;">ライセンスキーのメールが届かない場合は？</p>
-        <p class="small text-muted mb-4">迷惑メールフォルダの確認、決済完了まで最大5分かかる場合があります。それでも届かない場合はサポートにお問い合わせください。</p>
-        <p class="fw-bold small mb-1" style="color:#212529;">解約はいつでもできますか？</p>
-        <p class="small text-muted mb-0">いつでもStripeカスタマーポータルから解約できます。解約後も契約期間末までご利用いただけます。解約後もデータはGoogleスプレッドシートに残ります。</p>
+      <!-- 5. 証票の添付 -->
+      <p class="text-uppercase text-muted fw-semibold mb-2 mt-1" style="letter-spacing:.06em;font-size:0.68rem;">5. 証票（領収書）の添付</p>
+      <div class="accordion mb-3" id="faq5">
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q501">添付できるファイルの種類・サイズ制限は？</button></h2>
+          <div id="q501" class="accordion-collapse collapse" data-bs-parent="#faq5"><div class="accordion-body small text-muted py-2">JPEG・PNG・GIF・PDF・HEICなど。最大10MB。推奨解像度200万画素以上（約1400×1400px）。画像は自動的に最大2000px・JPEG形式に圧縮してDriveにアップロードされます。200万画素未満の場合は警告が表示されますが申請は続行可能です。</div></div>
+        </div>
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q502">領収書の画像はどこに保存されますか？</button></h2>
+          <div id="q502" class="accordion-collapse collapse" data-bs-parent="#faq5"><div class="accordion-body small text-muted py-2">管理者が設定した共有Driveフォルダ（「経費証票」）に保存されます。アプリ開発者のサーバーには一切保存されません。保存先フォルダは設定画面で確認・変更できます。</div></div>
+        </div>
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q503">PDFの領収書も添付できますか？</button></h2>
+          <div id="q503" class="accordion-collapse collapse" data-bs-parent="#faq5"><div class="accordion-body small text-muted py-2">はい。PDF形式でも添付・AI解析できます。Gemini 2.5 FlashはPDFのインライン解析に対応しており、画像と同様に日付・支払先・金額などを自動読み取りします。</div></div>
+        </div>
+      </div>
+
+      <!-- 6. 申請ステータス -->
+      <p class="text-uppercase text-muted fw-semibold mb-2 mt-1" style="letter-spacing:.06em;font-size:0.68rem;">6. 申請ステータス</p>
+      <div class="accordion mb-3" id="faq6">
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q601">「申請済」「登録済」「精算済」の違いは？</button></h2>
+          <div id="q601" class="accordion-collapse collapse" data-bs-parent="#faq6"><div class="accordion-body small text-muted py-2">申請済：承認待ちで本人・管理者とも編集可。登録済：管理者が承認済みで一般メンバーは編集不可。精算済：支払完了状態で一般メンバーは編集不可。承認はWebアプリの一覧画面から管理者が操作できます。</div></div>
+        </div>
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q602">編集ボタンが表示されません</button></h2>
+          <div id="q602" class="accordion-collapse collapse" data-bs-parent="#faq6"><div class="accordion-body small text-muted py-2">申請者本人かつ「申請済」ステータスの場合のみ編集できます。承認済み（登録済・精算済）の修正が必要な場合は、管理者に承認を一度取り消してもらってから再申請してください。</div></div>
+        </div>
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q603">申請を削除するとデータはどうなりますか？</button></h2>
+          <div id="q603" class="accordion-collapse collapse" data-bs-parent="#faq6"><div class="accordion-body small text-muted py-2">削除したレコードは「削除一覧」シートに移動され、完全には消えません（電帳法の訂正・削除防止規程対応）。管理者はスプレッドシートの「削除一覧」シートで過去の削除記録を確認できます。</div></div>
+        </div>
+      </div>
+
+      <!-- 7. 一覧・集計 -->
+      <p class="text-uppercase text-muted fw-semibold mb-2 mt-1" style="letter-spacing:.06em;font-size:0.68rem;">7. 一覧表・集計表の使い方</p>
+      <div class="accordion mb-3" id="faq7">
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q701">一覧表のフィルターはどんな絞り込みができますか？</button></h2>
+          <div id="q701" class="accordion-collapse collapse" data-bs-parent="#faq7"><div class="accordion-body small text-muted py-2">期間（プリセットまたはカスタム範囲）・タイプ・承認ステータス・申請者名・支払元（個人払い／会社払い）・カスタムフラグ・キーワード（支払先・備考・勘定科目）で絞り込めます。</div></div>
+        </div>
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q702">CSVエクスポートはどんな形式で出力できますか？</button></h2>
+          <div id="q702" class="accordion-collapse collapse" data-bs-parent="#faq7"><div class="accordion-body small text-muted py-2">標準CSV・freee経費精算形式・弥生仕訳日記帳形式・MFクラウド仕訳帳形式の4種類に対応しています。現在の絞り込み条件に該当するデータのみエクスポートされます。</div></div>
+        </div>
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q703">集計表の期間はどこで変更しますか？</button></h2>
+          <div id="q703" class="accordion-collapse collapse" data-bs-parent="#faq7"><div class="accordion-body small text-muted py-2">集計画面の上部にある「3ヶ月」「6ヶ月」「12ヶ月」のタブで切り替えられます。切り替え後は最新月・合計列にスクロールした状態で表示されます。</div></div>
+        </div>
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q704">集計表で特定の月・科目の内訳を確認できますか？</button></h2>
+          <div id="q704" class="accordion-collapse collapse" data-bs-parent="#faq7"><div class="accordion-body small text-muted py-2">はい。集計表の金額セルをタップすると、その月・その科目の内訳（申請者・支払先・金額）をポップアップで確認できます。</div></div>
+        </div>
+      </div>
+
+      <!-- 8. 電子帳簿保存法 -->
+      <p class="text-uppercase text-muted fw-semibold mb-2 mt-1" style="letter-spacing:.06em;font-size:0.68rem;">8. 電子帳簿保存法への対応</p>
+      <div class="accordion mb-3" id="faq8">
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q801">電子帳簿保存法にはどの程度対応していますか？</button></h2>
+          <div id="q801" class="accordion-collapse collapse" data-bs-parent="#faq8"><div class="accordion-body small text-muted py-2">申請日時のサーバー時刻記録・修正削除の証跡（修正履歴・削除一覧シート）・SHA-256ハッシュによる改ざん検知・200万画素未満の警告・日付/取引先/金額/インボイス番号での検索・印刷対応レイアウト・UUIDによる画像紐付けに対応しています。社内での「訂正・削除防止規程」策定が別途必要です。</div></div>
+        </div>
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q802">「事務処理規程」のテンプレートはどこにありますか？</button></h2>
+          <div id="q802" class="accordion-collapse collapse" data-bs-parent="#faq8"><div class="accordion-body small text-muted py-2">設定画面の初期設定ステップ⑤に「電子取引データの訂正・削除防止に関する規程」のひな型があります。自社情報を入力して「この規程を採用する」ボタンを押すと確定できます。確定後は法的文書として保管・運用してください。</div></div>
+        </div>
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q803">タイムスタンプサービスへの加入は必要ですか？</button></h2>
+          <div id="q803" class="accordion-collapse collapse" data-bs-parent="#faq8"><div class="accordion-body small text-muted py-2">「訂正・削除防止規程」を策定・運用することでタイムスタンプサービス（月額数万円）の代替として認められています（国税庁ガイドライン）。本アプリの規程テンプレートはこの方式に対応しています。詳細は税理士・顧問会計士にご確認ください。</div></div>
+        </div>
+      </div>
+
+      <!-- 9. エラーと対処法 -->
+      <p class="text-uppercase text-muted fw-semibold mb-2 mt-1" style="letter-spacing:.06em;font-size:0.68rem;">9. よくあるエラーと対処法</p>
+      <div class="accordion mb-3" id="faq9">
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q901">「スプレッドシートにアクセスできません」と表示される</button></h2>
+          <div id="q901" class="accordion-collapse collapse" data-bs-parent="#faq9"><div class="accordion-body small text-muted py-2">①設定画面のシートURLを確認 ②Driveで自分のアカウントがそのシートを開けるか確認 ③管理者に共有設定を確認してもらう ④ログアウト→再ログインしてアクセストークンを更新する、の順に試してください。</div></div>
+        </div>
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q902">「AI解析に失敗しました」と表示される</button></h2>
+          <div id="q902" class="accordion-collapse collapse" data-bs-parent="#faq9"><div class="accordion-body small text-muted py-2">APIキーの未設定・無効、無料枠の上限達成、通信不安定が原因の場合があります。管理者がAPIキーを再設定するか、Google AI Studioで使用量を確認してください。AI解析が失敗しても手動入力で申請は続行できます。</div></div>
+        </div>
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q903">「ライセンスキーが無効です」と表示される</button></h2>
+          <div id="q903" class="accordion-collapse collapse" data-bs-parent="#faq9"><div class="accordion-body small text-muted py-2">コピー時にスペース・改行が混入していないか、有効期限が切れていないか、キーが正しいか（購入メールを再確認）をチェックしてください。解決しない場合はsupport@keihi-log.comにお問い合わせください。</div></div>
+        </div>
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q904">申請後、スプレッドシートにデータが反映されない</button></h2>
+          <div id="q904" class="accordion-collapse collapse" data-bs-parent="#faq9"><div class="accordion-body small text-muted py-2">「申請しました」のトースト通知が表示されたか確認してください。表示されていない場合はエラーが発生しています。設定画面のシートURLが正しいか確認し、ログアウト→再ログイン後に再申請してください。</div></div>
+        </div>
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q905">画像をアップロードしてもDriveに保存されない</button></h2>
+          <div id="q905" class="accordion-collapse collapse" data-bs-parent="#faq9"><div class="accordion-body small text-muted py-2">設定画面のDriveフォルダ設定が空の場合は「フォルダを自動作成」ボタンを押してください。それでも解決しない場合はログアウト→再ログインをお試しください。</div></div>
+        </div>
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q906">アプリの画面が古いまま更新されない</button></h2>
+          <div id="q906" class="accordion-collapse collapse" data-bs-parent="#faq9"><div class="accordion-body small text-muted py-2">PCはCtrl+Shift+R（Mac：Cmd+Shift+R）でハードリロード。スマホはブラウザのキャッシュをクリアしてから再読み込み。PWA（ホーム画面追加版）はアプリを一度終了して再起動してください。</div></div>
+        </div>
+      </div>
+
+      <!-- 10. ライセンス -->
+      <p class="text-uppercase text-muted fw-semibold mb-2 mt-1" style="letter-spacing:.06em;font-size:0.68rem;">10. ライセンスについて</p>
+      <div class="accordion mb-3" id="faq10">
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q1001">ライセンスはどこで購入できますか？</button></h2>
+          <div id="q1001" class="accordion-collapse collapse" data-bs-parent="#faq10"><div class="accordion-body small text-muted py-2">アプリのトップページまたは設定画面の「ライセンスを購入する」リンクから購入できます。購入完了後、登録メールアドレス宛にライセンスキーが自動送信されます。</div></div>
+        </div>
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q1002">ライセンスは何名で使えますか？</button></h2>
+          <div id="q1002" class="accordion-collapse collapse" data-bs-parent="#faq10"><div class="accordion-body small text-muted py-2">ソロプランは1名のみ。チームプランは人数制限なし。チームプランでは、管理者がスプレッドシートにライセンスキーを設定すれば、メンバー全員が自動で取得するため個別入力は不要です。</div></div>
+        </div>
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q1003">ライセンスキーのメールが届かない場合は？</button></h2>
+          <div id="q1003" class="accordion-collapse collapse" data-bs-parent="#faq10"><div class="accordion-body small text-muted py-2">迷惑メールフォルダを確認し、数分お待ちください（決済処理に最大5分かかる場合があります）。それでも届かない場合はsupport@keihi-log.comにStripe決済IDとともにお問い合わせください。</div></div>
+        </div>
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q1004">ライセンスの有効期限はいつですか？</button></h2>
+          <div id="q1004" class="accordion-collapse collapse" data-bs-parent="#faq10"><div class="accordion-body small text-muted py-2">ライセンスキー送付メールに有効期限が記載されています。期限が近づくと設定画面に警告が表示されます。</div></div>
+        </div>
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q1005">テスト環境で発行したライセンスキーは本番でも使えますか？</button></h2>
+          <div id="q1005" class="accordion-collapse collapse" data-bs-parent="#faq10"><div class="accordion-body small text-muted py-2">はい。ライセンスキーはテスト・本番に関わらず同一システムで管理されているため、テスト環境で発行されたキーは本番でもそのまま有効です。</div></div>
+        </div>
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q1006">ソロプランとチームプランは途中で変更できますか？</button></h2>
+          <div id="q1006" class="accordion-collapse collapse" data-bs-parent="#faq10"><div class="accordion-body small text-muted py-2">いつでもStripeカスタマーポータルから変更できます。アップグレード（ソロ→チーム）は即時反映、差額は日割りで次回請求に充当。ダウングレード（チーム→ソロ）は現在の契約期間終了時に切り替わります。</div></div>
+        </div>
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q1007">解約はいつでもできますか？返金はありますか？</button></h2>
+          <div id="q1007" class="accordion-collapse collapse" data-bs-parent="#faq10"><div class="accordion-body small text-muted py-2">いつでもStripeカスタマーポータルから解約できます。解約後は現在の契約期間終了までサービスを継続利用できます。原則として返金は承っておりませんが、個別事情がある場合はsupport@keihi-log.comにご相談ください。</div></div>
+        </div>
+        <div class="accordion-item border rounded-2 mb-1">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q1008">年契約を途中でプラン変更・解約した場合はどうなりますか？</button></h2>
+          <div id="q1008" class="accordion-collapse collapse" data-bs-parent="#faq10"><div class="accordion-body small text-muted py-2">アップグレードは即時反映（差額を日割り充当）。ダウングレード・解約は現在の契約期間終了時に反映されます。年契約の残り期間の返金はありません。すぐにサービスが止まることはありませんが、期間終了まで現在のプランが継続します。</div></div>
+        </div>
       </div>
 
     </div>
