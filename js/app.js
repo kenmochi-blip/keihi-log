@@ -220,13 +220,31 @@ const App = (() => {
     // ログアウトボタン
     document.getElementById('btnLogout')?.addEventListener('click', () => Auth.signOut());
 
-    // FAQ ボタン：全画面モーダルで開く（外部タブ不使用）
-    document.getElementById('btnFaq')?.addEventListener('click', () => {
-      const frame = document.getElementById('faqFrame');
-      if (frame && !frame.src) frame.src = '/faq';
-      const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('faqModal'));
-      modal.show();
+    // FAQ ボタン：全画面モーダルで開く（fetch注入方式・外部タブ不使用）
+    const _faqModalEl = document.getElementById('faqModal');
+    const _faqModal   = _faqModalEl ? bootstrap.Modal.getOrCreateInstance(_faqModalEl) : null;
+    document.getElementById('btnFaq')?.addEventListener('click', async () => {
+      if (!_faqModal) return;
+      const body = document.getElementById('faqModalBody');
+      if (body && !body.dataset.loaded) {
+        body.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div></div>';
+        try {
+          const html = await fetch('/faq').then(r => r.text());
+          const doc  = new DOMParser().parseFromString(html, 'text/html');
+          const main = doc.querySelector('main') || doc.querySelector('.container') || doc.body;
+          body.innerHTML = main.innerHTML;
+          body.dataset.loaded = '1';
+          // 注入されたBootstrapアコーディオンを再初期化
+          body.querySelectorAll('[data-bs-toggle="collapse"]').forEach(btn => {
+            new bootstrap.Collapse(document.querySelector(btn.dataset.bsTarget || btn.getAttribute('data-bs-target')), { toggle: false });
+          });
+        } catch (_) {
+          body.innerHTML = '<div class="p-4 text-center text-muted">読み込みに失敗しました。<br><a href="/faq" target="_blank">FAQページを開く</a></div>';
+        }
+      }
+      _faqModal.show();
     });
+    document.getElementById('btnCloseFaq')?.addEventListener('click', () => _faqModal?.hide());
 
     // ボトムナビのボタンにイベントリスナーを登録（常に実行）
     Router.init(initialView);
