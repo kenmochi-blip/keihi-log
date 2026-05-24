@@ -6,9 +6,9 @@
     </linearGradient>
   </defs>
 
-  <!-- Receipt body with 3-tooth zigzag bottom -->
+  <!-- Receipt body with 4-tooth zigzag bottom -->
   <path d="M18,4 L74,4 Q80,4 80,10 L80,65
-    L69,80 L58,65 L47,80 L36,65 L25,80 L14,65
+    L72,80 L63,65 L55,80 L47,65 L38,80 L30,65 L22,80 L14,65
     L14,10 Q14,4 18,4 Z"
     fill="url(#receiptGrad)"/>
 
