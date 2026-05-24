@@ -465,6 +465,9 @@ const App = (() => {
           localStorage.setItem('keihi_sheet_id', data.sheetId);
           localStorage.setItem('keihi_alias', token);
           _setCookieAlias(token);
+          if (data.licenseKey && data.licenseKey.startsWith('KL-')) {
+            localStorage.setItem('keihi_license_key', data.licenseKey);
+          }
         } else if (data.licenseKey && data.licenseKey.startsWith('KL-')) {
           localStorage.setItem('keihi_license_key', data.licenseKey);
           localStorage.setItem('keihi_setup_code', token); // setupCodeとしてパスのトークンを保存
@@ -493,6 +496,7 @@ const App = (() => {
         short_name: companyName || '経費ログ',
         description: 'AI領収書解析・経費申請・承認・集計をブラウザで完結できる経費管理Webアプリ',
         start_url: startPath,
+        scope: startPath,
         display: 'standalone',
         background_color: '#ffffff',
         theme_color: '#0d6efd',
