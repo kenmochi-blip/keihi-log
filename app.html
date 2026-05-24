@@ -347,6 +347,19 @@
           <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q603"><span class="faq-q-badge">Q</span>申請を削除するとデータはどうなりますか？</button></h2>
           <div id="q603" class="accordion-collapse collapse" data-bs-parent="#faq6"><div class="accordion-body small text-muted py-2">削除したレコードは「削除一覧」シートに移動され、完全には消えません（電帳法の訂正・削除防止規程対応）。管理者はスプレッドシートの「削除一覧」シートで過去の削除記録を確認できます。</div></div>
         </div>
+        <div class="accordion-item faq-item">
+          <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q604"><span class="faq-q-badge">Q</span>「登録済」「精算済」へのステータス変更はどこで行いますか？</button></h2>
+          <div id="q604" class="accordion-collapse collapse" data-bs-parent="#faq6"><div class="accordion-body small text-muted py-2">
+            <table class="table table-sm table-bordered mb-0" style="font-size:0.8rem;">
+              <thead class="table-light"><tr><th>変更内容</th><th>操作方法</th><th>権限</th></tr></thead>
+              <tbody>
+                <tr><td>申請済 → 登録済</td><td>一覧画面の承認チェックボックスをON</td><td>管理者のみ</td></tr>
+                <tr><td>登録済 → 申請済</td><td>一覧画面の承認チェックボックスをOFF（承認取消）</td><td>管理者のみ</td></tr>
+                <tr><td>登録済 → 精算済</td><td>一覧画面のステータス列で「精算済」を選択</td><td>管理者のみ</td></tr>
+              </tbody>
+            </table>
+          </div></div>
+        </div>
       </div>
 
       <!-- 7. 一覧・集計 -->
