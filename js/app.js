@@ -562,6 +562,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // ?demo パラメータで直接デモ起動（/demo リダイレクト経由）
   if (params.has('demo')) {
     Demo.enable();
+  } else {
+    // ?demo なしでアクセスした場合は必ずデモを解除（同一タブでの残留対策）
+    Demo.disable();
   }
 
   // ?sheet=SHEET_ID_OR_URL でスプレッドシートを自動設定（管理者がメンバーに共有するURL用）
