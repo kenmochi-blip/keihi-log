@@ -109,15 +109,7 @@ const App = (() => {
       // メンバー制限：登録メンバーが1人以上いる場合、未登録ユーザーはアクセス不可
       // 管理者（isOwner含む）はメンバーリストの有無に関わらず常にアクセス許可
       if (_userRole !== 'admin' && _masterCache.members.length > 0 && !_masterCache.members.some(m => m.email.toLowerCase() === email)) {
-        let companyName = localStorage.getItem('keihi_company_name') || '';
-        _showAccessDeniedError(email, companyName);
-        // 会社名をバックグラウンドで取得して画面を更新
-        Sheets.readSetting('B2').then(fetched => {
-          if (fetched && fetched !== companyName) {
-            localStorage.setItem('keihi_company_name', fetched);
-            _showAccessDeniedError(email, fetched);
-          }
-        }).catch(() => {});
+        _showAccessDeniedError(email);
         return;
       }
     } catch (_) {
@@ -179,22 +171,21 @@ const App = (() => {
     if (bottomNav) bottomNav.classList.add('d-none');
   }
 
-  function _showAccessDeniedError(email, companyName) {
+  function _showAccessDeniedError(email) {
     const main = document.getElementById('appMain');
     if (main) main.innerHTML = `
       <div class="text-center py-5 px-3">
         <i class="bi bi-lock-fill text-danger" style="font-size:3rem;"></i>
-        <h5 class="mt-3 fw-bold">アクセスが拒否されました</h5>
+        <h5 class="mt-3 fw-bold">アクセスできません</h5>
         <p class="text-muted small mt-2">
-          ${companyName ? `<strong>${companyName}</strong> の` : 'この'}経費ログへのアクセス権がありません。<br>
-          管理者にメンバー登録を依頼してください。
+          このページへのアクセス権がありません。<br>
+          URLが正しいかご確認いただくか、管理者にお問い合わせください。
         </p>
         <p class="text-muted small">ログイン中：${email}</p>
         <a href="/" class="btn btn-outline-secondary btn-sm mt-1">トップページへ</a>
         <button class="btn btn-outline-danger btn-sm mt-1 ms-2" id="btnAccessDeniedLogout">別のアカウントでログイン</button>
       </div>`;
     document.getElementById('btnAccessDeniedLogout')?.addEventListener('click', () => Auth.logout());
-    // ボトムナビを非表示
     const bottomNav = document.querySelector('nav.fixed-bottom');
     if (bottomNav) bottomNav.classList.add('d-none');
   }
