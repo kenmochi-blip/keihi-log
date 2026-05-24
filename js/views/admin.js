@@ -144,7 +144,7 @@ const AdminView = (() => {
         <div class="flex-grow-1">
           <div class="master-item-name">${_escape(m.name)}</div>
           <div class="text-muted" style="font-size:0.72rem;">${_escape(m.email)} ${m.dept ? '/ ' + _escape(m.dept) : ''}
-            ${m.role === 'admin' ? '<span class="badge bg-primary ms-1" style="font-size:0.6rem;">管理者</span>' : ''}
+            ${m.role === 'admin' ? '<span class="badge bg-primary ms-1" style="font-size:0.6rem;">管理者</span>' : m.role === 'viewer' ? '<span class="badge bg-secondary ms-1" style="font-size:0.6rem;">閲覧者</span>' : ''}
           </div>
         </div>
         <button class="btn btn-outline-secondary btn-sm btn-edit-member" data-index="${i}"><i class="bi bi-pencil"></i></button>
@@ -184,6 +184,10 @@ const AdminView = (() => {
   function _showMemberForm(el, idx) {
     const m = idx !== null ? _master.members[idx] : { name: '', email: '', dept: '', role: '' };
     const isNew = idx === null;
+    const mRole = (m.role || '').toLowerCase();
+    const currentEmail = (Auth.getUserEmail() || '').toLowerCase();
+    const adminCount = _master.members.filter(m2 => (m2.role || '').toLowerCase() === 'admin').length;
+    const isLastAdminSelf = !isNew && mRole === 'admin' && adminCount <= 1 && m.email?.toLowerCase() === currentEmail;
 
     const modal = document.createElement('div');
     modal.innerHTML = `
@@ -209,10 +213,12 @@ const AdminView = (() => {
               </div>
               <div class="mb-2">
                 <label class="form-label small">権限</label>
-                <select class="form-select form-select-sm" id="mRole">
-                  <option value="" ${!m.role || m.role === 'member' ? 'selected' : ''}>一般</option>
-                  <option value="admin" ${m.role === 'admin' ? 'selected' : ''}>管理者</option>
+                <select class="form-select form-select-sm" id="mRole" ${isLastAdminSelf ? 'disabled title="唯一の管理者のため変更できません"' : ''}>
+                  <option value="admin" ${mRole === 'admin' ? 'selected' : ''}>管理者</option>
+                  <option value="viewer" ${mRole === 'viewer' ? 'selected' : ''}>閲覧者</option>
+                  <option value="" ${mRole !== 'admin' && mRole !== 'viewer' ? 'selected' : ''}>一般</option>
                 </select>
+                ${isLastAdminSelf ? '<div class="form-text text-danger small"><i class="bi bi-lock-fill me-1"></i>唯一の管理者のため変更できません</div>' : ''}
               </div>
             </div>
             <div class="modal-footer">
@@ -234,10 +240,12 @@ const AdminView = (() => {
         role:  modal.querySelector('#mRole').value,
       };
       if (!updated.name || !updated.email) return App.showToast('氏名・メールは必須です', 'danger');
-      // 既存管理者を降格させる場合、最後の管理者なら不可
-      if (!isNew && _master.members[idx]?.role === 'admin' && updated.role !== 'admin') {
-        const adminCount = _master.members.filter(m => m.role === 'admin').length;
-        if (adminCount <= 1) {
+      // selectがdisabledの場合はrole値が送信されないので元の値を維持
+      if (isLastAdminSelf) updated.role = 'admin';
+      // 既存管理者を降格させる場合、最後の管理者なら不可（case-insensitive）
+      if (!isNew && ((_master.members[idx]?.role || '').toLowerCase() === 'admin') && updated.role !== 'admin') {
+        const cnt = _master.members.filter(m => (m.role || '').toLowerCase() === 'admin').length;
+        if (cnt <= 1) {
           App.showToast('管理者が1人のため降格できません。先に他のメンバーを管理者に設定してください。', 'danger');
           return;
         }
@@ -287,8 +295,8 @@ const AdminView = (() => {
   async function _deleteMember(el, idx) {
     const member = _master.members[idx];
     // 最後の管理者は削除不可
-    if (member.role === 'admin') {
-      const adminCount = _master.members.filter(m => m.role === 'admin').length;
+    if ((member.role || '').toLowerCase() === 'admin') {
+      const adminCount = _master.members.filter(m => (m.role || '').toLowerCase() === 'admin').length;
       if (adminCount <= 1) {
         App.showToast('管理者が1人のため削除できません。先に他のメンバーを管理者に設定してください。', 'danger');
         return;
