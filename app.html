@@ -44,8 +44,8 @@
     /* FAQ オーバーレイ スタイル */
     .faq-section-label {
       display: flex; align-items: center; gap: 8px;
-      font-size: 0.73rem; font-weight: 700; letter-spacing: .02em;
-      padding: 7px 12px; border-radius: 8px; margin: 16px 0 8px;
+      font-size: 0.82rem; font-weight: 700; letter-spacing: .02em;
+      padding: 8px 13px; border-radius: 8px; margin: 16px 0 8px;
       color: #fff !important;
     }
     .faq-section-label:first-child { margin-top: 4px; }
@@ -236,7 +236,18 @@
       <div class="accordion mb-3" id="faq3">
         <div class="accordion-item faq-item">
           <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q301"><span class="faq-q-badge">Q</span>申請できる経費のタイプは何種類ありますか？</button></h2>
-          <div id="q301" class="accordion-collapse collapse" data-bs-parent="#faq3"><div class="accordion-body small text-muted py-2">4種類です。領収書（物品・飲食・タクシーなど）、領収書なし（慶弔費など証票が取れない場合）、交通費（電車・バスなど）、自家用車（走行距離×単価）。申請フォーム上部のタブで切り替えます。</div></div>
+          <div id="q301" class="accordion-collapse collapse" data-bs-parent="#faq3"><div class="accordion-body small text-muted py-2">
+            <table class="table table-sm table-bordered mb-0" style="font-size:0.8rem;">
+              <thead class="table-light"><tr><th>タイプ</th><th>対象</th></tr></thead>
+              <tbody>
+                <tr><td>領収書</td><td>物品・飲食・タクシーなど証票あり</td></tr>
+                <tr><td>領収書なし</td><td>慶弔費など証票が取れない場合</td></tr>
+                <tr><td>交通費</td><td>電車・バスなど（領収書不要）</td></tr>
+                <tr><td>自家用車</td><td>走行距離×単価で計算</td></tr>
+              </tbody>
+            </table>
+            <p class="mb-0 mt-2">申請フォーム上部のタブで切り替えます。</p>
+          </div></div>
         </div>
         <div class="accordion-item faq-item">
           <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q302"><span class="faq-q-badge">Q</span>複数の明細をまとめて申請できますか？</button></h2>
@@ -290,7 +301,16 @@
       <div class="accordion mb-3" id="faq5">
         <div class="accordion-item faq-item">
           <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q501"><span class="faq-q-badge">Q</span>添付できるファイルの種類・サイズ制限は？</button></h2>
-          <div id="q501" class="accordion-collapse collapse" data-bs-parent="#faq5"><div class="accordion-body small text-muted py-2">JPEG・PNG・GIF・PDF・HEICなど。最大10MB。推奨解像度200万画素以上（約1400×1400px）。画像は自動的に最大2000px・JPEG形式に圧縮してDriveにアップロードされます。200万画素未満の場合は警告が表示されますが申請は続行可能です。</div></div>
+          <div id="q501" class="accordion-collapse collapse" data-bs-parent="#faq5"><div class="accordion-body small text-muted py-2">
+            <table class="table table-sm table-bordered mb-0" style="font-size:0.8rem;">
+              <tbody>
+                <tr><td>対応形式</td><td>JPEG・PNG・GIF・PDF・HEIC など</td></tr>
+                <tr><td>最大サイズ</td><td>10MB</td></tr>
+                <tr><td>推奨解像度</td><td>200万画素以上（約1400×1400px）</td></tr>
+              </tbody>
+            </table>
+            <p class="mb-0 mt-2">画像は自動的に最大2000px・JPEG形式に圧縮してDriveにアップロードされます。200万画素未満の場合は警告が表示されますが申請は続行可能です。</p>
+          </div></div>
         </div>
         <div class="accordion-item faq-item">
           <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q502"><span class="faq-q-badge">Q</span>領収書の画像はどこに保存されますか？</button></h2>
@@ -307,7 +327,17 @@
       <div class="accordion mb-3" id="faq6">
         <div class="accordion-item faq-item">
           <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q601"><span class="faq-q-badge">Q</span>「申請済」「登録済」「精算済」の違いは？</button></h2>
-          <div id="q601" class="accordion-collapse collapse" data-bs-parent="#faq6"><div class="accordion-body small text-muted py-2">申請済：承認待ちで本人・管理者とも編集可。登録済：管理者が承認済みで一般メンバーは編集不可。精算済：支払完了状態で一般メンバーは編集不可。承認はWebアプリの一覧画面から管理者が操作できます。</div></div>
+          <div id="q601" class="accordion-collapse collapse" data-bs-parent="#faq6"><div class="accordion-body small text-muted py-2">
+            <table class="table table-sm table-bordered mb-0" style="font-size:0.8rem;">
+              <thead class="table-light"><tr><th>ステータス</th><th>意味</th><th>編集・削除</th></tr></thead>
+              <tbody>
+                <tr><td>申請済</td><td>承認待ち</td><td>本人・管理者とも可</td></tr>
+                <tr><td>登録済</td><td>管理者が承認済み</td><td>一般メンバーは不可</td></tr>
+                <tr><td>精算済</td><td>支払完了</td><td>一般メンバーは不可</td></tr>
+              </tbody>
+            </table>
+            <p class="mb-0 mt-2">承認はWebアプリの一覧画面から管理者が操作できます。</p>
+          </div></div>
         </div>
         <div class="accordion-item faq-item">
           <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q602"><span class="faq-q-badge">Q</span>編集ボタンが表示されません</button></h2>
@@ -328,7 +358,18 @@
         </div>
         <div class="accordion-item faq-item">
           <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q702"><span class="faq-q-badge">Q</span>CSVエクスポートはどんな形式で出力できますか？</button></h2>
-          <div id="q702" class="accordion-collapse collapse" data-bs-parent="#faq7"><div class="accordion-body small text-muted py-2">標準CSV・freee経費精算形式・弥生仕訳日記帳形式・MFクラウド仕訳帳形式の4種類に対応しています。現在の絞り込み条件に該当するデータのみエクスポートされます。</div></div>
+          <div id="q702" class="accordion-collapse collapse" data-bs-parent="#faq7"><div class="accordion-body small text-muted py-2">
+            <table class="table table-sm table-bordered mb-0" style="font-size:0.8rem;">
+              <thead class="table-light"><tr><th>形式</th><th>用途</th></tr></thead>
+              <tbody>
+                <tr><td>標準CSV</td><td>一般的なスプレッドシートへの取り込み</td></tr>
+                <tr><td>freee 経費精算形式</td><td>freeeへの一括インポート</td></tr>
+                <tr><td>弥生 仕訳日記帳形式</td><td>弥生会計・弥生青色申告へのインポート</td></tr>
+                <tr><td>MFクラウド 仕訳帳形式</td><td>マネーフォワードクラウド会計へのインポート</td></tr>
+              </tbody>
+            </table>
+            <p class="mb-0 mt-2">現在の絞り込み条件に該当するデータのみエクスポートされます。</p>
+          </div></div>
         </div>
         <div class="accordion-item faq-item">
           <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q703"><span class="faq-q-badge">Q</span>集計表の期間はどこで変更しますか？</button></h2>
@@ -345,7 +386,21 @@
       <div class="accordion mb-3" id="faq8">
         <div class="accordion-item faq-item">
           <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q801"><span class="faq-q-badge">Q</span>電子帳簿保存法にはどの程度対応していますか？</button></h2>
-          <div id="q801" class="accordion-collapse collapse" data-bs-parent="#faq8"><div class="accordion-body small text-muted py-2">申請日時のサーバー時刻記録・修正削除の証跡（修正履歴・削除一覧シート）・SHA-256ハッシュによる改ざん検知・200万画素未満の警告・日付/取引先/金額/インボイス番号での検索・印刷対応レイアウト・UUIDによる画像紐付けに対応しています。社内での「訂正・削除防止規程」策定が別途必要です。</div></div>
+          <div id="q801" class="accordion-collapse collapse" data-bs-parent="#faq8"><div class="accordion-body small text-muted py-2">
+            <table class="table table-sm table-bordered mb-0" style="font-size:0.8rem;">
+              <thead class="table-light"><tr><th>要件</th><th>対応内容</th></tr></thead>
+              <tbody>
+                <tr><td>申請日時の信頼性</td><td>サーバー時刻を取得・記録</td></tr>
+                <tr><td>修正・削除の証跡</td><td>修正履歴・削除一覧シートに自動記録</td></tr>
+                <tr><td>改ざん検知</td><td>SHA-256ハッシュで照合</td></tr>
+                <tr><td>解像度要件</td><td>200万画素未満の場合に警告</td></tr>
+                <tr><td>検索機能</td><td>日付・取引先・金額・インボイス番号</td></tr>
+                <tr><td>可視性</td><td>一覧・集計は印刷対応レイアウト</td></tr>
+                <tr><td>相互関連性</td><td>UUIDで領収書画像と経費記録を紐付け</td></tr>
+              </tbody>
+            </table>
+            <p class="mb-0 mt-2">※電帳法への完全対応には社内での「訂正・削除防止規程」策定が別途必要です。</p>
+          </div></div>
         </div>
         <div class="accordion-item faq-item">
           <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q802"><span class="faq-q-badge">Q</span>「事務処理規程」のテンプレートはどこにありますか？</button></h2>
@@ -395,7 +450,16 @@
         </div>
         <div class="accordion-item faq-item">
           <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q1002"><span class="faq-q-badge">Q</span>ライセンスは何名で使えますか？</button></h2>
-          <div id="q1002" class="accordion-collapse collapse" data-bs-parent="#faq10"><div class="accordion-body small text-muted py-2">ソロプランは1名のみ。チームプランは人数制限なし。チームプランでは、管理者がスプレッドシートにライセンスキーを設定すれば、メンバー全員が自動で取得するため個別入力は不要です。</div></div>
+          <div id="q1002" class="accordion-collapse collapse" data-bs-parent="#faq10"><div class="accordion-body small text-muted py-2">
+            <table class="table table-sm table-bordered mb-0" style="font-size:0.8rem;">
+              <thead class="table-light"><tr><th>プラン</th><th>利用人数</th></tr></thead>
+              <tbody>
+                <tr><td>ソロプラン</td><td>1名のみ</td></tr>
+                <tr><td>チームプラン</td><td>人数制限なし</td></tr>
+              </tbody>
+            </table>
+            <p class="mb-0 mt-2">チームプランでは管理者がキーを設定すればメンバー全員が自動取得するため、個別入力は不要です。</p>
+          </div></div>
         </div>
         <div class="accordion-item faq-item">
           <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q1003"><span class="faq-q-badge">Q</span>ライセンスキーのメールが届かない場合は？</button></h2>
@@ -411,7 +475,15 @@
         </div>
         <div class="accordion-item faq-item">
           <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q1006"><span class="faq-q-badge">Q</span>ソロプランとチームプランは途中で変更できますか？</button></h2>
-          <div id="q1006" class="accordion-collapse collapse" data-bs-parent="#faq10"><div class="accordion-body small text-muted py-2">いつでもStripeカスタマーポータルから変更できます。アップグレード（ソロ→チーム）は即時反映、差額は日割りで次回請求に充当。ダウングレード（チーム→ソロ）は現在の契約期間終了時に切り替わります。</div></div>
+          <div id="q1006" class="accordion-collapse collapse" data-bs-parent="#faq10"><div class="accordion-body small text-muted py-2">
+            <table class="table table-sm table-bordered mb-0" style="font-size:0.8rem;">
+              <thead class="table-light"><tr><th>変更内容</th><th>反映タイミング</th><th>料金</th></tr></thead>
+              <tbody>
+                <tr><td>ソロ→チーム</td><td>即時</td><td>差額を日割りで次回充当</td></tr>
+                <tr><td>チーム→ソロ</td><td>契約期間終了時</td><td>変更なし（期間中は現プラン）</td></tr>
+              </tbody>
+            </table>
+          </div></div>
         </div>
         <div class="accordion-item faq-item">
           <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q1007"><span class="faq-q-badge">Q</span>解約はいつでもできますか？返金はありますか？</button></h2>
@@ -419,7 +491,16 @@
         </div>
         <div class="accordion-item faq-item">
           <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q1008"><span class="faq-q-badge">Q</span>年契約を途中でプラン変更・解約した場合はどうなりますか？</button></h2>
-          <div id="q1008" class="accordion-collapse collapse" data-bs-parent="#faq10"><div class="accordion-body small text-muted py-2">アップグレードは即時反映（差額を日割り充当）。ダウングレード・解約は現在の契約期間終了時に反映されます。年契約の残り期間の返金はありません。すぐにサービスが止まることはありませんが、期間終了まで現在のプランが継続します。</div></div>
+          <div id="q1008" class="accordion-collapse collapse" data-bs-parent="#faq10"><div class="accordion-body small text-muted py-2">
+            <table class="table table-sm table-bordered mb-0" style="font-size:0.8rem;">
+              <thead class="table-light"><tr><th>操作</th><th>反映タイミング</th><th>返金</th></tr></thead>
+              <tbody>
+                <tr><td>アップグレード</td><td>即時</td><td>差額を日割りで次回充当</td></tr>
+                <tr><td>ダウングレード</td><td>契約期間終了時</td><td>なし</td></tr>
+                <tr><td>解約</td><td>契約期間終了時</td><td>なし（期間中は利用可）</td></tr>
+              </tbody>
+            </table>
+          </div></div>
         </div>
       </div>
 
