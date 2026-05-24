@@ -498,6 +498,9 @@ const App = (() => {
           localStorage.setItem('keihi_sheet_id', data.sheetId);
           localStorage.setItem('keihi_alias', token);
           _setCookieAlias(token);
+          if (data.licenseKey && data.licenseKey.startsWith('KL-')) {
+            localStorage.setItem('keihi_license_key', data.licenseKey);
+          }
         } else if (data.licenseKey && data.licenseKey.startsWith('KL-')) {
           localStorage.setItem('keihi_license_key', data.licenseKey);
           localStorage.setItem('keihi_setup_code', token); // setupCodeとしてパスのトークンを保存
@@ -529,6 +532,7 @@ const App = (() => {
         short_name: companyName || '経費ログ',
         description: 'AI領収書解析・経費申請・承認・集計をブラウザで完結できる経費管理Webアプリ',
         start_url: startPath,
+        scope: startPath,
         display: 'standalone',
         background_color: '#ffffff',
         theme_color: '#0d6efd',
@@ -598,6 +602,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // ?demo パラメータで直接デモ起動（/demo リダイレクト経由）
   if (params.has('demo')) {
     Demo.enable();
+  } else {
+    // ?demo なしでアクセスした場合は必ずデモを解除（同一タブでの残留対策）
+    Demo.disable();
   }
 
   // ?sheet=SHEET_ID_OR_URL でスプレッドシートを自動設定（管理者がメンバーに共有するURL用）

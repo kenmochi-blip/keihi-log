@@ -38,7 +38,10 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'invalid_code' });
     }
     const sheetId = await kv.get(`alias:${code}`).catch(() => null);
-    if (sheetId) return res.status(200).json({ sheetId });
+    if (sheetId) {
+      const aliasLic = await kv.get(`alias_lic:${code}`).catch(() => null);
+      return res.status(200).json({ sheetId, ...(aliasLic ? { licenseKey: aliasLic } : {}) });
+    }
     // シートエイリアスで見つからない場合はセットアップコードとして試みる
     const lk2 = await kv.get(`lic_ref:${code}`).catch(() => null);
     if (lk2) return res.status(200).json({ licenseKey: lk2 });
@@ -88,6 +91,7 @@ export default async function handler(req, res) {
     await kv.set(`alias:${code}`, sheetId);
     await kv.set(`alias_by_sheet:${sheetId}`, code);
     await kv.set(`license_alias:${licenseKey}`, code);
+    await kv.set(`alias_lic:${code}`, licenseKey);
     return res.status(200).json({ ok: true });
   }
 
