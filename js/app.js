@@ -453,10 +453,8 @@ const App = (() => {
     if (!match) {
       // /app.html・/app・/ で起動（PWAショートカット等）
       if (location.pathname === '/app.html' || location.pathname === '/app' || location.pathname === '/') {
-        // alias があれば URL バーだけ書き換える（ページリロードなし）
-        // 動的マニフェストがすでに start_url に alias を設定しているため
-        // location.replace による再読み込みは不要
-        const alias = _getCookieAlias() || localStorage.getItem('keihi_alias');
+        // localStorageを優先（cookieはlocalStorageが空の端末向けフォールバック）
+        const alias = localStorage.getItem('keihi_alias') || _getCookieAlias();
         if (alias) {
           try { history.replaceState(null, '', '/' + alias); } catch (_) {}
         }
