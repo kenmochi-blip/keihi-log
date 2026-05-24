@@ -222,29 +222,12 @@ const App = (() => {
 
     // FAQ オーバーレイ（Bootstrapモーダル不使用・Androidの戻るボタン対応）
     const _faqOverlay = document.getElementById('faqOverlay');
-    const _faqBody    = document.getElementById('faqOverlayBody');
 
     function _openFaq() {
       if (!_faqOverlay) return;
       _faqOverlay.style.display = 'flex';
       document.body.style.overflow = 'hidden';
       history.pushState({ faq: true }, '');
-      if (_faqBody && !_faqBody.dataset.loaded) {
-        _faqBody.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div></div>';
-        fetch('/faq').then(r => r.text()).then(html => {
-          const doc  = new DOMParser().parseFromString(html, 'text/html');
-          // faq.htmlのmainタグ内コンテンツのみ抽出
-          const main = doc.querySelector('main') || doc.body;
-          // ナビバー・フッターを除去
-          ['nav','header','footer','.navbar','.footer'].forEach(sel => {
-            main.querySelectorAll(sel).forEach(el => el.remove());
-          });
-          _faqBody.innerHTML = main.innerHTML;
-          _faqBody.dataset.loaded = '1';
-        }).catch(() => {
-          _faqBody.innerHTML = '<div class="p-4 text-center text-muted">読み込みに失敗しました。</div>';
-        });
-      }
     }
 
     function _closeFaq() {
