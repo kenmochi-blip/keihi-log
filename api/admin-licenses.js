@@ -380,8 +380,8 @@ ${logText}
     console.log(`License manually issued: ${licenseKey} for ${email}`);
 
     if (process.env.RESEND_API_KEY) {
-      const from   = process.env.RESEND_FROM_EMAIL || 'noreply@' + (process.env.VERCEL_PROJECT_PRODUCTION_URL || 'example.com');
-      const appUrl = 'https://keihi-log.com/app';
+      const from     = process.env.RESEND_FROM_EMAIL || 'noreply@' + (process.env.VERCEL_PROJECT_PRODUCTION_URL || 'example.com');
+      const setupUrl = 'https://keihi-log.com/setup';
 
       await _sendEmail(from, email, '【経費ログ】ライセンスキーのご案内', `
 <p>${licenseData.company} 様</p>
@@ -391,9 +391,13 @@ ${logText}
 </p>
 <ul>
   <li>有効期限：${licenseData.expiresAt}</li>
-  <li>アプリURL：<a href="${appUrl}">${appUrl}</a></li>
 </ul>
-<p>アプリの設定画面でライセンスキーを入力してください。ご不明な点はお気軽にお問い合わせください。</p>
+<p>下記のボタンからセットアップを開始してください。スプレッドシートの自動作成とライセンスキーの登録ができます。</p>
+<p>
+  <a href="${setupUrl}" style="display:inline-block;background:#0d6efd;color:#fff;text-decoration:none;padding:12px 28px;border-radius:6px;font-size:1rem;font-weight:600;">経費ログのセットアップを開始する</a>
+</p>
+<p style="color:#666;font-size:0.9em;">ボタンが押せない場合は <a href="${setupUrl}">${setupUrl}</a> を開いてください。</p>
+<p>ご不明な点はお気軽にお問い合わせください。</p>
       `.trim());
 
       if (process.env.ADMIN_NOTIFY_EMAIL) {
