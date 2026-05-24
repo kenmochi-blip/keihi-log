@@ -422,8 +422,8 @@ const App = (() => {
     setTimeout(() => { div.style.opacity = '0'; div.style.transition = 'opacity 0.3s'; setTimeout(() => div.remove(), 300); }, duration);
   }
 
-  function _truncateCompany(name, max = 10) {
-    return name.length > max ? name.slice(0, max) + '…' : name;
+  function _truncateCompany(name) {
+    return name;
   }
 
   async function _resolveSetupParam() {
