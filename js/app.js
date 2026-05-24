@@ -468,8 +468,7 @@ const App = (() => {
     if (token.length >= 44) {
       const prevSheetId = localStorage.getItem('keihi_sheet_id');
       if (prevSheetId && prevSheetId !== token) {
-        ['keihi_company_name', 'keihi_license_key', 'keihi_license_cache',
-         'keihi_master_cache', 'keihi_folder_id', 'keihi_setup_code',
+        ['keihi_company_name', 'keihi_master_cache', 'keihi_folder_id', 'keihi_setup_code',
          'keihi_nav_color', 'keihi_gemini_key', 'keihi_alias', 'keihi_user_email'].forEach(k => localStorage.removeItem(k));
       }
       sessionStorage.setItem('keihi_sheet_id', token);
@@ -490,8 +489,8 @@ const App = (() => {
           const prevSheetId = localStorage.getItem('keihi_sheet_id');
           if (prevSheetId && prevSheetId !== data.sheetId) {
             // 別チームのシートに切り替わる場合、チーム固有データをクリア
-            ['keihi_company_name', 'keihi_license_key', 'keihi_license_cache',
-             'keihi_master_cache', 'keihi_folder_id', 'keihi_setup_code',
+            // ライセンスキーはユーザーレベルのため保持（init()内の検証・B3自動取得で上書きされる）
+            ['keihi_company_name', 'keihi_master_cache', 'keihi_folder_id', 'keihi_setup_code',
              'keihi_nav_color', 'keihi_gemini_key', 'keihi_alias', 'keihi_user_email'].forEach(k => localStorage.removeItem(k));
           }
           sessionStorage.setItem('keihi_sheet_id', data.sheetId);
