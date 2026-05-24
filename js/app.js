@@ -59,12 +59,12 @@ const App = (() => {
         }
       } catch (_) {}
     }
+    if (_aliasNotFound) {
+      _showAliasNotFoundError();
+      return;
+    }
     if (!ssId) {
-      if (_aliasNotFound) {
-        _showAliasNotFoundError();
-      } else {
-        window.location.replace('/setup');
-      }
+      window.location.replace('/setup');
       return;
     }
     if (!licKey) {
@@ -501,9 +501,21 @@ const App = (() => {
         } else if (data.licenseKey && data.licenseKey.startsWith('KL-')) {
           localStorage.setItem('keihi_license_key', data.licenseKey);
           localStorage.setItem('keihi_setup_code', token); // setupCodeとしてパスのトークンを保存
-        } else if (!localStorage.getItem('keihi_sheet_id')) {
+        } else {
           // APIは応答したがエイリアスに対応するシートIDもライセンスキーも見つからなかった
           _aliasNotFound = true;
+          // 別エイリアスのキャッシュを使わないようシートIDをクリア
+          if (localStorage.getItem('keihi_alias') !== token) {
+            localStorage.removeItem('keihi_sheet_id');
+            sessionStorage.removeItem('keihi_sheet_id');
+          }
+        }
+      } else if (r.status === 404) {
+        // 存在しないエイリアス：別エイリアスのキャッシュデータを表示しないようクリア
+        _aliasNotFound = true;
+        if (localStorage.getItem('keihi_alias') !== token) {
+          localStorage.removeItem('keihi_sheet_id');
+          sessionStorage.removeItem('keihi_sheet_id');
         }
       }
     } catch (_) {
