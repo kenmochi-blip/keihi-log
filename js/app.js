@@ -238,8 +238,8 @@ const App = (() => {
 
     document.getElementById('btnFaq')?.addEventListener('click', _openFaq);
     document.getElementById('btnCloseFaq')?.addEventListener('click', () => {
+      _closeFaq(); // 即座に閉じる（history.back()を待たない）
       if (history.state?.faq) history.back();
-      else _closeFaq();
     });
     // Androidの戻るボタン・iOS/Chromeのスワイプ戻り対応
     window.addEventListener('popstate', e => {

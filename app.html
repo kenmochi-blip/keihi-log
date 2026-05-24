@@ -126,22 +126,22 @@
     <div style="display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid #dee2e6;background:#fff;flex-shrink:0;">
       <i class="bi bi-question-circle me-2 text-primary"></i>
       <span class="fw-bold">よくある質問</span>
-      <button id="btnCloseFaq" style="margin-left:auto;background:none;border:none;font-size:1.6rem;line-height:1;color:#6c757d;padding:4px 8px;cursor:pointer;">&times;</button>
+      <button id="btnCloseFaq" style="margin-left:auto;background:none;border:none;font-size:1.4rem;line-height:1;color:#6c757d;padding:8px 12px;cursor:pointer;min-width:44px;min-height:44px;display:grid;place-items:center;">&times;</button>
     </div>
     <div id="faqOverlayBody" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px;">
 
       <!-- セットアップ・初期設定 -->
       <p class="text-uppercase text-muted fw-bold small mb-2 mt-1" style="letter-spacing:.05em;font-size:0.72rem;">セットアップ・初期設定</p>
       <div class="accordion mb-3" id="faqSetup">
-        <div class="accordion-item border-0 rounded-3 mb-2">
+        <div class="accordion-item border-0 rounded-3 mb-2" style="background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.07);">
           <h2 class="accordion-header"><button class="accordion-button collapsed rounded-3 small fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#fs1">使い始めるにはどうすればいいですか？</button></h2>
           <div id="fs1" class="accordion-collapse collapse" data-bs-parent="#faqSetup"><div class="accordion-body small text-muted">管理者がセットアップページでスプレッドシートを自動作成し、メンバーに専用URLを共有するだけです。メンバーはそのURLにアクセスしてGoogleアカウントでサインインすれば利用開始できます。</div></div>
         </div>
-        <div class="accordion-item border-0 rounded-3 mb-2">
+        <div class="accordion-item border-0 rounded-3 mb-2" style="background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.07);">
           <h2 class="accordion-header"><button class="accordion-button collapsed rounded-3 small fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#fs2">メンバーの権限（管理者・閲覧者・一般）の違いは？</button></h2>
           <div id="fs2" class="accordion-collapse collapse" data-bs-parent="#faqSetup"><div class="accordion-body small text-muted">管理者は全機能を利用可能。閲覧者は全員の一覧・集計を閲覧できますが承認はできません。一般メンバーは自分の申請と自分の履歴のみ表示されます。</div></div>
         </div>
-        <div class="accordion-item border-0 rounded-3 mb-2">
+        <div class="accordion-item border-0 rounded-3 mb-2" style="background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.07);">
           <h2 class="accordion-header"><button class="accordion-button collapsed rounded-3 small fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#fs3">Gemini APIキーはどこで取得しますか？</button></h2>
           <div id="fs3" class="accordion-collapse collapse" data-bs-parent="#faqSetup"><div class="accordion-body small text-muted">Google AI Studio（<strong>aistudio.google.com</strong>）にアクセスし「APIキーを作成」を押してコピーするだけです。所要時間は約3分。無料アカウントで1日1,500リクエストまで無料で使えます。</div></div>
         </div>
@@ -150,19 +150,19 @@
       <!-- 経費申請 -->
       <p class="text-uppercase text-muted fw-bold small mb-2 mt-2" style="letter-spacing:.05em;font-size:0.72rem;">経費申請</p>
       <div class="accordion mb-3" id="faqSubmit">
-        <div class="accordion-item border-0 rounded-3 mb-2">
+        <div class="accordion-item border-0 rounded-3 mb-2" style="background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.07);">
           <h2 class="accordion-header"><button class="accordion-button collapsed rounded-3 small fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#fsu1">申請できる経費のタイプは？</button></h2>
           <div id="fsu1" class="accordion-collapse collapse" data-bs-parent="#faqSubmit"><div class="accordion-body small text-muted">領収書・領収書なし・交通費・自家用車の4タイプに対応しています。申請フォーム上部のタブで切り替えてください。</div></div>
         </div>
-        <div class="accordion-item border-0 rounded-3 mb-2">
+        <div class="accordion-item border-0 rounded-3 mb-2" style="background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.07);">
           <h2 class="accordion-header"><button class="accordion-button collapsed rounded-3 small fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#fsu2">複数の明細をまとめて申請できますか？</button></h2>
           <div id="fsu2" class="accordion-collapse collapse" data-bs-parent="#faqSubmit"><div class="accordion-body small text-muted">「明細を追加」ボタンで最大10件まで分割入力できます。1枚の領収書で異なる勘定科目を分けて記録する際に便利です。</div></div>
         </div>
-        <div class="accordion-item border-0 rounded-3 mb-2">
+        <div class="accordion-item border-0 rounded-3 mb-2" style="background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.07);">
           <h2 class="accordion-header"><button class="accordion-button collapsed rounded-3 small fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#fsu3">申請ステータス「申請済」「登録済」「精算済」の違いは？</button></h2>
           <div id="fsu3" class="accordion-collapse collapse" data-bs-parent="#faqSubmit"><div class="accordion-body small text-muted">申請済は承認待ちで編集可能。登録済は承認済で一般メンバーは編集不可。精算済は支払完了状態です。</div></div>
         </div>
-        <div class="accordion-item border-0 rounded-3 mb-2">
+        <div class="accordion-item border-0 rounded-3 mb-2" style="background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.07);">
           <h2 class="accordion-header"><button class="accordion-button collapsed rounded-3 small fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#fsu4">編集ボタンが表示されません</button></h2>
           <div id="fsu4" class="accordion-collapse collapse" data-bs-parent="#faqSubmit"><div class="accordion-body small text-muted">申請者本人かつ「申請済」ステータスの場合のみ編集可能です。承認済みの修正が必要な場合は管理者に承認を取り消してもらってください。</div></div>
         </div>
@@ -171,15 +171,15 @@
       <!-- AI解析・証票 -->
       <p class="text-uppercase text-muted fw-bold small mb-2 mt-2" style="letter-spacing:.05em;font-size:0.72rem;">AI解析・証票</p>
       <div class="accordion mb-3" id="faqAI">
-        <div class="accordion-item border-0 rounded-3 mb-2">
+        <div class="accordion-item border-0 rounded-3 mb-2" style="background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.07);">
           <h2 class="accordion-header"><button class="accordion-button collapsed rounded-3 small fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#fa1">AI解析で何が自動入力されますか？</button></h2>
           <div id="fa1" class="accordion-collapse collapse" data-bs-parent="#faqAI"><div class="accordion-body small text-muted">日付・支払先・金額・インボイス番号・摘要を自動読み取りします。画像の明るさやピントが精度に影響します。</div></div>
         </div>
-        <div class="accordion-item border-0 rounded-3 mb-2">
+        <div class="accordion-item border-0 rounded-3 mb-2" style="background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.07);">
           <h2 class="accordion-header"><button class="accordion-button collapsed rounded-3 small fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#fa2">「同じ領収書が既に登録されている可能性があります」と出ました</button></h2>
           <div id="fa2" class="accordion-collapse collapse" data-bs-parent="#faqAI"><div class="accordion-body small text-muted">SHA-256ハッシュで同一画像の重複登録を検知しています。別の経費であれば「このまま申請する」で続行できます。</div></div>
         </div>
-        <div class="accordion-item border-0 rounded-3 mb-2">
+        <div class="accordion-item border-0 rounded-3 mb-2" style="background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.07);">
           <h2 class="accordion-header"><button class="accordion-button collapsed rounded-3 small fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#fa3">証票（領収書画像）はどこに保存されますか？</button></h2>
           <div id="fa3" class="accordion-collapse collapse" data-bs-parent="#faqAI"><div class="accordion-body small text-muted">管理者が設定した共有Driveフォルダ（「経費証票」）に保存されます。アプリ開発者のサーバーには一切保存されません。</div></div>
         </div>
@@ -188,19 +188,19 @@
       <!-- エラー対処 -->
       <p class="text-uppercase text-muted fw-bold small mb-2 mt-2" style="letter-spacing:.05em;font-size:0.72rem;">エラー対処</p>
       <div class="accordion mb-3" id="faqErr">
-        <div class="accordion-item border-0 rounded-3 mb-2">
+        <div class="accordion-item border-0 rounded-3 mb-2" style="background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.07);">
           <h2 class="accordion-header"><button class="accordion-button collapsed rounded-3 small fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#fe1">「スプレッドシートにアクセスできません」と表示される</button></h2>
           <div id="fe1" class="accordion-collapse collapse" data-bs-parent="#faqErr"><div class="accordion-body small text-muted">①URLの確認 ②Driveでの共有設定確認 ③ログアウト→再ログイン の順に試してください。</div></div>
         </div>
-        <div class="accordion-item border-0 rounded-3 mb-2">
+        <div class="accordion-item border-0 rounded-3 mb-2" style="background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.07);">
           <h2 class="accordion-header"><button class="accordion-button collapsed rounded-3 small fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#fe2">「AI解析に失敗しました」と表示される</button></h2>
           <div id="fe2" class="accordion-collapse collapse" data-bs-parent="#faqErr"><div class="accordion-body small text-muted">APIキーの未設定・無効、無料枠の上限達成、通信不安定が原因の場合があります。手動入力で申請は続行できます。</div></div>
         </div>
-        <div class="accordion-item border-0 rounded-3 mb-2">
+        <div class="accordion-item border-0 rounded-3 mb-2" style="background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.07);">
           <h2 class="accordion-header"><button class="accordion-button collapsed rounded-3 small fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#fe3">「ライセンスキーが無効です」と表示される</button></h2>
           <div id="fe3" class="accordion-collapse collapse" data-bs-parent="#faqErr"><div class="accordion-body small text-muted">コピー時のスペース・改行の混入、有効期限切れを確認してください。解決しない場合はサポートにお問い合わせください。</div></div>
         </div>
-        <div class="accordion-item border-0 rounded-3 mb-2">
+        <div class="accordion-item border-0 rounded-3 mb-2" style="background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.07);">
           <h2 class="accordion-header"><button class="accordion-button collapsed rounded-3 small fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#fe4">画面が古いまま更新されない</button></h2>
           <div id="fe4" class="accordion-collapse collapse" data-bs-parent="#faqErr"><div class="accordion-body small text-muted">スマホはキャッシュをクリアするか、PWAを一度終了して再起動してください。PCはCtrl+Shift+Rでハードリロードしてください。</div></div>
         </div>
@@ -209,15 +209,15 @@
       <!-- ライセンス -->
       <p class="text-uppercase text-muted fw-bold small mb-2 mt-2" style="letter-spacing:.05em;font-size:0.72rem;">ライセンス</p>
       <div class="accordion mb-4" id="faqLic">
-        <div class="accordion-item border-0 rounded-3 mb-2">
+        <div class="accordion-item border-0 rounded-3 mb-2" style="background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.07);">
           <h2 class="accordion-header"><button class="accordion-button collapsed rounded-3 small fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#fl1">ライセンスはどこで購入できますか？</button></h2>
           <div id="fl1" class="accordion-collapse collapse" data-bs-parent="#faqLic"><div class="accordion-body small text-muted">設定画面の「ライセンスを購入する」リンク、またはトップページから購入できます。購入後にライセンスキーがメールで届きます。</div></div>
         </div>
-        <div class="accordion-item border-0 rounded-3 mb-2">
+        <div class="accordion-item border-0 rounded-3 mb-2" style="background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.07);">
           <h2 class="accordion-header"><button class="accordion-button collapsed rounded-3 small fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#fl2">ライセンスキーのメールが届かない場合は？</button></h2>
           <div id="fl2" class="accordion-collapse collapse" data-bs-parent="#faqLic"><div class="accordion-body small text-muted">迷惑メールフォルダの確認、決済完了まで最大5分かかる場合があります。それでも届かない場合はサポートにお問い合わせください。</div></div>
         </div>
-        <div class="accordion-item border-0 rounded-3 mb-2">
+        <div class="accordion-item border-0 rounded-3 mb-2" style="background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.07);">
           <h2 class="accordion-header"><button class="accordion-button collapsed rounded-3 small fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#fl3">解約はいつでもできますか？</button></h2>
           <div id="fl3" class="accordion-collapse collapse" data-bs-parent="#faqLic"><div class="accordion-body small text-muted">いつでもStripeカスタマーポータルから解約できます。解約後も契約期間末までご利用いただけます。解約後もデータはGoogleスプレッドシートに残ります。</div></div>
         </div>
