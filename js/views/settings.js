@@ -974,7 +974,7 @@ const SettingsView = (() => {
       : '';
     return `
           <hr class="my-3">
-          <div class="settings-step-title">⑤ 訂正・削除防止規程（電帳法）</div>
+          <div class="settings-step-title">訂正・削除防止規程（電帳法）</div>
           <div class="settings-step-hint mb-2">スキャナ保存で紙の原本を廃棄可能にするために必要な社内規程です。確定するとアプリ内に表示されます。</div>
           ${confirmedBadge}
           <div class="accordion mb-2" id="regPreviewAcc">
