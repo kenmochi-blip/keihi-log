@@ -185,7 +185,20 @@
         </div>
         <div class="accordion-item faq-item">
           <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q104"><span class="faq-q-badge">Q</span>管理者・閲覧者・一般の違いは何ですか？</button></h2>
-          <div id="q104" class="accordion-collapse collapse" data-bs-parent="#faq1"><div class="accordion-body small text-muted py-2">管理者：全機能（申請・一覧・集計・承認・メンバー管理・設定変更）。閲覧者：申請＋全員の一覧・集計閲覧（承認・管理は不可）。一般：申請＋自分の履歴のみ閲覧（集計タブは非表示）。</div></div>
+          <div id="q104" class="accordion-collapse collapse" data-bs-parent="#faq1"><div class="accordion-body small text-muted py-2">
+            <table class="table table-sm table-bordered mb-0" style="font-size:0.8rem;">
+              <thead class="table-light"><tr><th>機能</th><th class="text-center">管理者</th><th class="text-center">閲覧者</th><th class="text-center">一般</th></tr></thead>
+              <tbody>
+                <tr><td>経費申請</td><td class="text-center">○</td><td class="text-center">○</td><td class="text-center">○</td></tr>
+                <tr><td>自分の申請を修正・削除</td><td class="text-center">○</td><td class="text-center">○</td><td class="text-center">○</td></tr>
+                <tr><td>全員の申請を一覧で見る</td><td class="text-center">○</td><td class="text-center">○</td><td class="text-center">自分のみ</td></tr>
+                <tr><td>集計を見る</td><td class="text-center">○</td><td class="text-center">○</td><td class="text-center">×</td></tr>
+                <tr><td>承認操作</td><td class="text-center">○</td><td class="text-center">×</td><td class="text-center">×</td></tr>
+                <tr><td>メンバー・科目管理</td><td class="text-center">○</td><td class="text-center">×</td><td class="text-center">×</td></tr>
+                <tr><td>APIキー・設定変更</td><td class="text-center">○</td><td class="text-center">×</td><td class="text-center">×</td></tr>
+              </tbody>
+            </table>
+          </div></div>
         </div>
         <div class="accordion-item faq-item">
           <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q105"><span class="faq-q-badge">Q</span>会社払いとはどんな場合に使いますか？</button></h2>
