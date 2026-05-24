@@ -1,26 +1,26 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
   <defs>
     <linearGradient id="receiptGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" style="stop-color:#4A90E2"/>
-      <stop offset="100%" style="stop-color:#1E5BA8"/>
+      <stop offset="0%" style="stop-color:#29B6F6"/>
+      <stop offset="100%" style="stop-color:#3F51B5"/>
     </linearGradient>
   </defs>
 
   <!-- Receipt body with 3-tooth zigzag bottom -->
-  <path d="M18,4 L68,4 Q74,4 74,10 L74,65
-    L65,78 L56,65 L47,78 L38,65 L29,78 L20,65
-    L14,65 L14,10 Q14,4 18,4 Z"
+  <path d="M18,4 L74,4 Q80,4 80,10 L80,65
+    L69,80 L58,65 L47,80 L36,65 L25,80 L14,65
+    L14,10 Q14,4 18,4 Z"
     fill="url(#receiptGrad)"/>
 
   <!-- Horizontal lines -->
-  <rect x="22" y="18" width="38" height="5" rx="2.5" fill="white"/>
-  <rect x="22" y="30" width="32" height="5" rx="2.5" fill="white" opacity="0.85"/>
-  <rect x="22" y="42" width="36" height="5" rx="2.5" fill="white" opacity="0.8"/>
+  <rect x="22" y="18" width="42" height="6" rx="3" fill="white"/>
+  <rect x="22" y="30" width="37" height="6" rx="3" fill="white" opacity="0.9"/>
+  <rect x="22" y="42" width="31" height="6" rx="3" fill="white" opacity="0.85"/>
 
   <!-- Green badge -->
-  <circle cx="70" cy="74" r="22" fill="#3BAA5E"/>
+  <circle cx="72" cy="76" r="22" fill="#388E3C"/>
   <!-- White checkmark -->
-  <polyline points="59,74 67,82 81,62"
+  <polyline points="61,76 69,84 83,64"
     fill="none" stroke="white" stroke-width="6"
     stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
