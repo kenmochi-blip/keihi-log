@@ -220,31 +220,50 @@ const App = (() => {
     // ログアウトボタン
     document.getElementById('btnLogout')?.addEventListener('click', () => Auth.signOut());
 
-    // FAQ ボタン：全画面モーダルで開く（fetch注入方式・外部タブ不使用）
-    const _faqModalEl = document.getElementById('faqModal');
-    const _faqModal   = _faqModalEl ? bootstrap.Modal.getOrCreateInstance(_faqModalEl) : null;
-    document.getElementById('btnFaq')?.addEventListener('click', async () => {
-      if (!_faqModal) return;
-      const body = document.getElementById('faqModalBody');
-      if (body && !body.dataset.loaded) {
-        body.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div></div>';
-        try {
-          const html = await fetch('/faq').then(r => r.text());
+    // FAQ オーバーレイ（Bootstrapモーダル不使用・Androidの戻るボタン対応）
+    const _faqOverlay = document.getElementById('faqOverlay');
+    const _faqBody    = document.getElementById('faqOverlayBody');
+
+    function _openFaq() {
+      if (!_faqOverlay) return;
+      _faqOverlay.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+      history.pushState({ faq: true }, '');
+      if (_faqBody && !_faqBody.dataset.loaded) {
+        _faqBody.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div></div>';
+        fetch('/faq').then(r => r.text()).then(html => {
           const doc  = new DOMParser().parseFromString(html, 'text/html');
-          const main = doc.querySelector('main') || doc.querySelector('.container') || doc.body;
-          body.innerHTML = main.innerHTML;
-          body.dataset.loaded = '1';
-          // 注入されたBootstrapアコーディオンを再初期化
-          body.querySelectorAll('[data-bs-toggle="collapse"]').forEach(btn => {
-            new bootstrap.Collapse(document.querySelector(btn.dataset.bsTarget || btn.getAttribute('data-bs-target')), { toggle: false });
+          // faq.htmlのmainタグ内コンテンツのみ抽出
+          const main = doc.querySelector('main') || doc.body;
+          // ナビバー・フッターを除去
+          ['nav','header','footer','.navbar','.footer'].forEach(sel => {
+            main.querySelectorAll(sel).forEach(el => el.remove());
           });
-        } catch (_) {
-          body.innerHTML = '<div class="p-4 text-center text-muted">読み込みに失敗しました。<br><a href="/faq" target="_blank">FAQページを開く</a></div>';
-        }
+          _faqBody.innerHTML = main.innerHTML;
+          _faqBody.dataset.loaded = '1';
+        }).catch(() => {
+          _faqBody.innerHTML = '<div class="p-4 text-center text-muted">読み込みに失敗しました。</div>';
+        });
       }
-      _faqModal.show();
+    }
+
+    function _closeFaq() {
+      if (!_faqOverlay) return;
+      _faqOverlay.style.display = 'none';
+      document.body.style.overflow = '';
+    }
+
+    document.getElementById('btnFaq')?.addEventListener('click', _openFaq);
+    document.getElementById('btnCloseFaq')?.addEventListener('click', () => {
+      if (history.state?.faq) history.back();
+      else _closeFaq();
     });
-    document.getElementById('btnCloseFaq')?.addEventListener('click', () => _faqModal?.hide());
+    // Androidの戻るボタン・iOS/Chromeのスワイプ戻り対応
+    window.addEventListener('popstate', e => {
+      if (_faqOverlay && _faqOverlay.style.display !== 'none') {
+        _closeFaq();
+      }
+    });
 
     // ボトムナビのボタンにイベントリスナーを登録（常に実行）
     Router.init(initialView);
