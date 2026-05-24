@@ -308,7 +308,17 @@ ${logText}
     if (!key) return res.status(400).json({ error: 'key required' });
     const data = await kv.get(`license:${key}`).catch(() => null);
     await kv.del(`license:${key}`);
-    if (data?.email) await kv.del(`email_to_license:${data.email}`).catch(() => {});
+    if (data?.email) {
+      const arr = await _getEmailLicenses(kv, data.email);
+      const updated = arr.filter(k => k !== key);
+      if (updated.length > 0) {
+        await kv.set(`email_licenses:${data.email}`, updated);
+        await kv.set(`email_to_license:${data.email}`, updated[0]);
+      } else {
+        await kv.del(`email_licenses:${data.email}`).catch(() => {});
+        await kv.del(`email_to_license:${data.email}`).catch(() => {});
+      }
+    }
     if (data?.stripeSessionId) await kv.del(`session:${data.stripeSessionId}`).catch(() => {});
     console.log(`License deleted: ${key}`);
     return res.status(200).json({ deleted: true });
@@ -343,12 +353,12 @@ ${logText}
     const { company, email, plan, expiresAt, note } = req.body || {};
     if (!email) return res.status(400).json({ error: 'email required' });
 
-    const existing = await kv.get(`email_to_license:${email}`).catch(() => null);
-    if (existing) {
-      const existingData = await kv.get(`license:${existing}`).catch(() => null);
-      if (existingData && !existingData.suspended) {
-        return res.status(409).json({ error: 'duplicate_email', existingKey: existing });
-      }
+    // 同一メールの既存ライセンス確認（最大3つまで）
+    const existingKeys = await _getEmailLicenses(kv, email);
+    const existingDatas = await Promise.all(existingKeys.map(k => kv.get(`license:${k}`).catch(() => null)));
+    const activeCount = existingDatas.filter(d => d && !d.suspended).length;
+    if (activeCount >= 3) {
+      return res.status(409).json({ error: 'max_licenses_reached', existingKeys, activeCount });
     }
 
     const licenseKey = `KL-${crypto.randomBytes(12).toString('hex').toUpperCase()}`;
@@ -366,7 +376,7 @@ ${logText}
     };
 
     await kv.set(`license:${licenseKey}`, licenseData);
-    await kv.set(`email_to_license:${email}`, licenseKey);
+    await _addEmailLicense(kv, email, licenseKey);
     console.log(`License manually issued: ${licenseKey} for ${email}`);
 
     if (process.env.RESEND_API_KEY) {
@@ -445,6 +455,20 @@ ${logText}
     await _logToKV('license_get', 'error', err.message);
     return res.status(500).json({ error: 'server_error' });
   }
+}
+
+async function _getEmailLicenses(kv, email) {
+  const arr = await kv.get(`email_licenses:${email}`).catch(() => null);
+  if (Array.isArray(arr)) return arr;
+  const single = await kv.get(`email_to_license:${email}`).catch(() => null);
+  return single ? [single] : [];
+}
+
+async function _addEmailLicense(kv, email, licenseKey) {
+  const existing = await _getEmailLicenses(kv, email);
+  const updated = [...new Set([...existing, licenseKey])];
+  await kv.set(`email_licenses:${email}`, updated);
+  await kv.set(`email_to_license:${email}`, updated[0]);
 }
 
 async function _logToKV(handler, level, message, details = null) {
