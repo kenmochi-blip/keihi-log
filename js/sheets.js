@@ -13,6 +13,18 @@ const Sheets = (() => {
   }
 
   const BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
+  const _RETRYABLE = new Set([429, 500, 502, 503, 504]);
+
+  /** 一時的なサーバーエラー時に指数バックオフでリトライする fetch ラッパー。 */
+  async function _fetchWithRetry(fn, maxRetries = 3) {
+    let delay = 1000;
+    for (let i = 0; i <= maxRetries; i++) {
+      const resp = await fn();
+      if (resp.ok || !_RETRYABLE.has(resp.status) || i === maxRetries) return resp;
+      await new Promise(r => setTimeout(r, delay));
+      delay *= 2;
+    }
+  }
 
   /** 範囲を読み込む。値の2次元配列を返す。 */
   async function read(range, ssId) {
@@ -27,8 +39,8 @@ const Sheets = (() => {
       return [];
     }
     ssId = ssId || _ssId();
-    const resp = await Auth.authFetch(
-      `${BASE}/${ssId}/values/${encodeURIComponent(range)}?valueRenderOption=UNFORMATTED_VALUE`
+    const resp = await _fetchWithRetry(() =>
+      Auth.authFetch(`${BASE}/${ssId}/values/${encodeURIComponent(range)}?valueRenderOption=UNFORMATTED_VALUE`)
     );
     if (!resp.ok) throw new Error(`Sheets read error: ${resp.status}`);
     const data = await resp.json();
@@ -40,13 +52,12 @@ const Sheets = (() => {
     if (typeof Demo !== 'undefined' && Demo.isActive()) return { updates: { updatedRows: 1 } };
     ssId = ssId || _ssId();
     const range = `${sheetName}!A1`;
-    const resp = await Auth.authFetch(
-      `${BASE}/${ssId}/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ values: [values] })
-      }
+    const body = JSON.stringify({ values: [values] });
+    const resp = await _fetchWithRetry(() =>
+      Auth.authFetch(
+        `${BASE}/${ssId}/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }
+      )
     );
     if (!resp.ok) throw new Error(`Sheets append error: ${resp.status}`);
     return resp.json();
@@ -56,13 +67,12 @@ const Sheets = (() => {
   async function update(range, values, ssId) {
     if (typeof Demo !== 'undefined' && Demo.isActive()) return {};
     ssId = ssId || _ssId();
-    const resp = await Auth.authFetch(
-      `${BASE}/${ssId}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`,
-      {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ values })
-      }
+    const body = JSON.stringify({ values });
+    const resp = await _fetchWithRetry(() =>
+      Auth.authFetch(
+        `${BASE}/${ssId}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`,
+        { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body }
+      )
     );
     if (!resp.ok) throw new Error(`Sheets update error: ${resp.status}`);
     return resp.json();
@@ -72,13 +82,12 @@ const Sheets = (() => {
   async function batchUpdate(requests, ssId) {
     if (typeof Demo !== 'undefined' && Demo.isActive()) return {};
     ssId = ssId || _ssId();
-    const resp = await Auth.authFetch(
-      `${BASE}/${ssId}:batchUpdate`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ requests })
-      }
+    const body = JSON.stringify({ requests });
+    const resp = await _fetchWithRetry(() =>
+      Auth.authFetch(
+        `${BASE}/${ssId}:batchUpdate`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }
+      )
     );
     if (!resp.ok) throw new Error(`Sheets batchUpdate error: ${resp.status}`);
     return resp.json();
@@ -113,7 +122,9 @@ const Sheets = (() => {
     ssId = ssId || _ssId();
     const range  = encodeURIComponent('経費一覧!A2:U');
     const fields = encodeURIComponent('sheets.data.rowData.values(effectiveValue,hyperlink)');
-    const resp = await Auth.authFetch(`${BASE}/${ssId}?ranges=${range}&fields=${fields}`);
+    const resp = await _fetchWithRetry(() =>
+      Auth.authFetch(`${BASE}/${ssId}?ranges=${range}&fields=${fields}`)
+    );
     if (!resp.ok) throw new Error(`Sheets readExpenses error: ${resp.status}`);
     const data = await resp.json();
     const rowDataList = data.sheets?.[0]?.data?.[0]?.rowData || [];
@@ -282,13 +293,12 @@ const Sheets = (() => {
   async function batchUpdateValues(data, ssId) {
     if (typeof Demo !== 'undefined' && Demo.isActive()) return {};
     ssId = ssId || _ssId();
-    const resp = await Auth.authFetch(
-      `${BASE}/${ssId}/values:batchUpdate`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ valueInputOption: 'USER_ENTERED', data })
-      }
+    const body = JSON.stringify({ valueInputOption: 'USER_ENTERED', data });
+    const resp = await _fetchWithRetry(() =>
+      Auth.authFetch(
+        `${BASE}/${ssId}/values:batchUpdate`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }
+      )
     );
     if (!resp.ok) throw new Error(`Sheets batchUpdateValues error: ${resp.status}`);
     return resp.json();
