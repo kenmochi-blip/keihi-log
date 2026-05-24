@@ -150,8 +150,8 @@ const SettingsView = (() => {
     </div>
   </div>
 
-  <!-- スプレッドシートを直接開く（管理者のみ・最下部） -->
-  ${isAdmin && ssId ? `
+  <!-- スプレッドシートを直接開く（管理者・ssId設定済み・デモ以外のみ・最下部） -->
+  ${isAdmin && ssId && !isDemo ? `
   <div class="text-center mt-3 mb-2">
     <a href="https://docs.google.com/spreadsheets/d/${ssId}" target="_blank" rel="noopener"
       class="btn btn-link btn-sm text-decoration-none text-secondary" style="font-size:0.78rem;">
@@ -547,8 +547,8 @@ const SettingsView = (() => {
     el.querySelector('#btnAddPaySource')?.addEventListener('click', () => _showInlineAdd(el, 'paySource'));
     el.querySelector('#btnAddCustomFlag')?.addEventListener('click', () => _showInlineAdd(el, 'customFlag'));
 
-    // 証票フォルダ：フォルダを開くリンクを生成（ssId設定済み時は独立カードに表示）
-    const currentFolderId = localStorage.getItem('keihi_folder_id') || await Sheets.readSetting('B4').catch(() => '');
+    // 証票フォルダ：フォルダを開くリンクを生成（ssId設定済み・デモ以外のみ）
+    const currentFolderId = isDemo ? '' : (localStorage.getItem('keihi_folder_id') || await Sheets.readSetting('B4').catch(() => ''));
     const folderOpenWrap = el.querySelector('#folderOpenLinkWrap');
     const _setFolderLink = fid => {
       if (!folderOpenWrap) return;
