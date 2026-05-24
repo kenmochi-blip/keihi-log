@@ -1,4 +1,4 @@
-const CACHE = 'keihi-v10';
+const CACHE = 'keihi-v11';
 
 self.addEventListener('install', ev => {
   self.skipWaiting();
