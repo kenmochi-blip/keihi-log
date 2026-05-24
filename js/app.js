@@ -220,6 +220,14 @@ const App = (() => {
     // ログアウトボタン
     document.getElementById('btnLogout')?.addEventListener('click', () => Auth.signOut());
 
+    // FAQ ボタン：全画面モーダルで開く（外部タブ不使用）
+    document.getElementById('btnFaq')?.addEventListener('click', () => {
+      const frame = document.getElementById('faqFrame');
+      if (frame && !frame.src) frame.src = '/faq';
+      const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('faqModal'));
+      modal.show();
+    });
+
     // ボトムナビのボタンにイベントリスナーを登録（常に実行）
     Router.init(initialView);
     SwipeNav.init();
