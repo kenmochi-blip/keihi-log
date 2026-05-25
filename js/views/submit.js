@@ -916,6 +916,9 @@ function _bindTypeButtons(el) {
           const sel = el.querySelector('#selCategory');
           if (sel) [...sel.options].forEach(o => o.selected = o.value === singleCat);
           filled++;
+          if (result.category_fallback) {
+            App.showToast('勘定科目を判断できなかったため仮で「' + singleCat + '」を設定しました。送信前に確認してください。', 'warning');
+          }
         }
       }
 

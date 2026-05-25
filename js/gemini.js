@@ -85,7 +85,7 @@ const Gemini = (() => {
     const prompt = `
 以下の領収書画像を解析して、JSON形式で情報を抽出してください。
 勘定科目は次のリストから必ず1つ選んでください（リスト外の値は返さないこと）：${categories.join('、')}
-判断が難しい場合はリストの先頭（${categories[0]}）を返してください。
+判断が難しい場合はリストの先頭（${categories[0]}）を返し、category_fallback を true にしてください。
 
 必ず以下のJSON形式で回答してください（コードブロックなし）：
 {
@@ -94,6 +94,7 @@ const Gemini = (() => {
   "invoice": "T+13桁のインボイス番号またはnull",
   "total_amount": 金額（日本円の場合）またはnull（外貨の場合）,
   "category": "勘定科目（単一カテゴリの場合）",
+  "category_fallback": true または false（勘定科目の判断が難しくリスト先頭を返した場合はtrue）,
   "items": [{"amount": 金額, "category": "勘定科目"}] または null（明細分割の場合のみ使用）,
   "fx_currency": "USD/EUR等の通貨コードまたはnull",
   "fx_amount": 外貨金額またはnull,
