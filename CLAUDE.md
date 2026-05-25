@@ -27,3 +27,9 @@
 - 修正を加えたら **必ず `main` と `claude/rebuild-receipt-app-Ft3lE` の両方にプッシュ**すること
 - 手順：①フィーチャーブランチにコミット＆プッシュ → ②`git checkout main && git cherry-pick <hash> && git push origin main`
 - `main` だけに反映されていないと、ユーザーが本番で「まだ直っていない」と報告することになる
+
+## やることリスト
+
+- [ ] **OAuthサポートメールを変更**（GCPコンソール → OAuth同意画面 → サポートメール）
+  - 個人メール（kenmochi@smartandsmooth.com）をドメインメール等に変更
+  - **スコープ審査が通ってから実施**すること（審査中に変更すると審査リセットの恐れあり）
