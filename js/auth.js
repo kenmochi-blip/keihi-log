@@ -13,6 +13,7 @@ const Auth = (() => {
   var _userInfo    = null;
 
   const SCOPES = [
+    'https://www.googleapis.com/auth/spreadsheets',
     'https://www.googleapis.com/auth/drive.file',
     'openid',
     'email',
