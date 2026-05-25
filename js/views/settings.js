@@ -741,6 +741,10 @@ const SettingsView = (() => {
   function _showMemberForm(el, idx) {
     const m = idx !== null ? _master.members[idx] : { name: '', email: '', dept: '', role: '' };
     const isNew = idx === null;
+    const mRole = (m.role || '').toLowerCase();
+    const currentEmail = (Auth.getUserEmail() || '').toLowerCase();
+    const adminCount = _master.members.filter(m2 => (m2.role || '').toLowerCase() === 'admin').length;
+    const isLastAdminSelf = !isNew && mRole === 'admin' && adminCount <= 1 && m.email?.toLowerCase() === currentEmail;
     const div = document.createElement('div');
     div.innerHTML = `
       <div class="modal fade" tabindex="-1">
@@ -758,11 +762,13 @@ const SettingsView = (() => {
               <div class="mb-2"><label class="form-label small">所属</label>
                 <input type="text" class="form-control form-control-sm" id="mDept" value="${_escape(m.dept)}"></div>
               <div class="mb-2"><label class="form-label small">権限</label>
-                <select class="form-select form-select-sm" id="mRole">
-                  <option value="member" ${!m.role || m.role === 'member' ? 'selected' : ''}>一般（申請のみ）</option>
-                  <option value="viewer" ${m.role === 'viewer' ? 'selected' : ''}>閲覧者（申請＋全体一覧・集計の閲覧）</option>
-                  <option value="admin" ${m.role === 'admin' ? 'selected' : ''}>管理者（全操作・メンバー管理）</option>
-                </select></div>
+                <select class="form-select form-select-sm" id="mRole" ${isLastAdminSelf ? 'disabled title="唯一の管理者のため変更できません"' : ''}>
+                  <option value="admin" ${mRole === 'admin' ? 'selected' : ''}>管理者（全操作・メンバー管理）</option>
+                  <option value="viewer" ${mRole === 'viewer' ? 'selected' : ''}>閲覧者（申請＋全体一覧・集計の閲覧）</option>
+                  <option value="" ${mRole !== 'admin' && mRole !== 'viewer' ? 'selected' : ''}>一般（申請のみ）</option>
+                </select>
+                ${isLastAdminSelf ? '<div class="form-text text-danger small"><i class="bi bi-lock-fill me-1"></i>唯一の管理者のため変更できません</div>' : ''}
+              </div>
             </div>
             <div class="modal-footer">
               <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">キャンセル</button>
@@ -782,6 +788,14 @@ const SettingsView = (() => {
         role:  div.querySelector('#mRole').value,
       };
       if (!updated.name || !updated.email) return App.showToast('氏名・メールは必須です', 'danger');
+      if (isLastAdminSelf) updated.role = 'admin';
+      if (!isNew && ((_master.members[idx]?.role || '').toLowerCase() === 'admin') && updated.role !== 'admin') {
+        const cnt = _master.members.filter(m => (m.role || '').toLowerCase() === 'admin').length;
+        if (cnt <= 1) {
+          App.showToast('管理者が1人のため降格できません。先に他のメンバーを管理者に設定してください。', 'danger');
+          return;
+        }
+      }
       const oldEmail = isNew ? null : (_master.members[idx]?.email || null);
       if (isNew) _master.members.push(updated);
       else       _master.members[idx] = updated;
