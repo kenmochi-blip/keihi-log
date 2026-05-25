@@ -23,7 +23,7 @@ const SettingsView = (() => {
   <div class="card mb-3">
     <div class="card-body">
       <div class="settings-section-title">アプリの表示名</div>
-      <div class="settings-step-hint">アプリのヘッダーに表示されます（後から変更可）</div>
+      <div class="settings-step-hint">アプリのヘッダーに表示されます（変更可）</div>
       <div class="input-group input-group-sm mb-1">
         <input type="text" class="form-control form-control-sm" id="inputCompanyName"
           placeholder="例：〇〇株式会社、NPO法人〇〇、屋号など">
@@ -949,8 +949,9 @@ const SettingsView = (() => {
   }
 
   function _applyMemberPlanRestriction(el) {
+    const isDemo = typeof Demo !== 'undefined' && Demo.isActive();
     const result = _getCachedLicenseResult();
-    const isSolo = result?.plan === 'solo';
+    const isSolo = !isDemo && result?.plan === 'solo';
     const btn  = el.querySelector('#btnAddMember');
     const hint = el.querySelector('#memberPlanHint');
     if (!btn) return;
