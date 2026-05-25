@@ -513,12 +513,20 @@ const SettingsView = (() => {
     // Gemini APIキー読み込みと保存
     try {
       const geminiKey = await Sheets.readSetting('B5');
-      if (el.querySelector('#inputGeminiKey')) el.querySelector('#inputGeminiKey').value = geminiKey || '';
-    } catch (_) {}
+      const geminiInput = el.querySelector('#inputGeminiKey');
+      if (geminiInput) geminiInput.value = geminiKey || '';
+    } catch (err) {
+      const geminiMsg = el.querySelector('#geminiKeyMsg');
+      if (geminiMsg) geminiMsg.innerHTML = '<span class="text-warning small"><i class="bi bi-exclamation-triangle me-1"></i>読み込みに失敗しました。キーを再入力して保存してください</span>';
+    }
 
     el.querySelector('#btnSaveGeminiKey')?.addEventListener('click', async () => {
       const key = el.querySelector('#inputGeminiKey').value.trim();
       const msg = el.querySelector('#geminiKeyMsg');
+      if (!key) {
+        msg.innerHTML = '<span class="text-danger"><i class="bi bi-exclamation-circle me-1"></i>APIキーを入力してください（空白では保存できません）</span>';
+        return;
+      }
       try {
         await Sheets.update('設定!B5', [[key]]);
         Gemini.clearApiKey();

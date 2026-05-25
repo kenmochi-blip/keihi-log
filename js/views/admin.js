@@ -105,6 +105,10 @@ const AdminView = (() => {
     el.querySelector('#btnSaveGeminiKey')?.addEventListener('click', async () => {
       const key = el.querySelector('#inputGeminiKey').value.trim();
       const msg = el.querySelector('#geminiKeyMsg');
+      if (!key) {
+        msg.innerHTML = '<span class="text-danger"><i class="bi bi-exclamation-circle me-1"></i>APIキーを入力してください（空白では保存できません）</span>';
+        return;
+      }
       try {
         await Sheets.update('設定!B5', [[key]]);
         Gemini.clearApiKey();
