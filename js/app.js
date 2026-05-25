@@ -447,7 +447,7 @@ const App = (() => {
     const colorMap = { success: 'bg-success', danger: 'bg-danger', warning: 'bg-warning text-dark', info: 'bg-info' };
     const div = document.createElement('div');
     div.className = `toast-item alert ${colorMap[type] || 'bg-info'} text-white shadow py-2 px-3`;
-    div.style.cssText = 'animation: fadeIn 0.2s ease;';
+    div.style.cssText = 'animation: fadeIn 0.2s ease;pointer-events:auto;';
     // HTML タグが含まれる場合は innerHTML で描画（リンクなど）
     if (/<[a-z][\s\S]*>/i.test(message)) {
       div.innerHTML = message;
