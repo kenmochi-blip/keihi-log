@@ -80,6 +80,8 @@ const Setup = (() => {
     localStorage.setItem('keihi_sheet_id', ssId);
     localStorage.setItem('keihi_alias', alias);
     localStorage.setItem('keihi_folder_id', folderId);
+    // アプリが作成したファイルは drive.file で自動カバー済み → Picker不要
+    if (typeof Picker !== 'undefined') Picker.markGranted(ssId);
 
     return ssId;
   }

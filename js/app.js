@@ -49,6 +49,13 @@ const App = (() => {
     // ライセンス・シート未設定の場合は申請画面を表示してバナーで案内
     let licKey = localStorage.getItem('keihi_license_key');
     const ssId = localStorage.getItem('keihi_sheet_id');
+
+    // drive.file スコープ: 共有シートへの初回アクセス時はPickerで明示的に開く
+    if (ssId && typeof Picker !== 'undefined' && !Picker.isGranted(ssId)) {
+      const granted = await _runPickerStep(ssId);
+      if (!granted) return; // キャンセル時はそのまま待機
+    }
+
     // シートIDはあるがライセンスキーが未設定の場合、シートから自動取得（メンバー向け）
     if (!licKey && ssId) {
       try {
@@ -156,6 +163,49 @@ const App = (() => {
     if (!_isAdmin) {
       document.querySelector('.nav-item-btn[data-view="settings"]')?.classList.add('d-none');
     }
+  }
+
+  /**
+   * drive.file スコープ用: 共有シートへの初回アクセス時にPickerを表示する。
+   * ユーザーがシートを選択すると Picker.markGranted が呼ばれ、以降はスキップされる。
+   */
+  async function _runPickerStep(ssId) {
+    const main = document.getElementById('appMain');
+    if (!main) return false;
+
+    // 説明オーバーレイを表示
+    main.innerHTML = `
+      <div class="d-flex flex-column align-items-center justify-content-center" style="min-height:60vh;padding:32px 24px;text-align:center;">
+        <div class="mb-3" style="font-size:2.5rem;">📂</div>
+        <h6 class="fw-bold mb-2">スプレッドシートへのアクセス確認</h6>
+        <p class="text-muted small mb-4" style="max-width:320px;line-height:1.7;">
+          初回のみ、経費ログのスプレッドシートを選択してアクセスを許可する必要があります。<br>
+          次の画面でシートをタップしてください。
+        </p>
+        <button id="btnOpenPicker" class="btn btn-primary px-4">
+          <i class="bi bi-folder2-open me-2"></i>スプレッドシートを選択
+        </button>
+        <p class="text-muted mt-3" style="font-size:0.75rem;">この操作は新しいデバイスや再ログイン後に1回だけ必要です</p>
+      </div>`;
+
+    return new Promise((resolve) => {
+      document.getElementById('btnOpenPicker')?.addEventListener('click', async () => {
+        try {
+          const token = await Auth.getAccessToken();
+          await Picker.openForFile(ssId, token);
+          resolve(true);
+          // Picker完了後にページをリロードして通常フローに戻す
+          window.location.reload();
+        } catch (err) {
+          if (err.message === 'wrong_file') {
+            showToast('正しいスプレッドシートを選択してください', 'danger');
+          } else if (err.message !== 'picker_cancelled') {
+            showToast('スプレッドシートの選択に失敗しました: ' + err.message, 'danger');
+          }
+          resolve(false);
+        }
+      });
+    });
   }
 
   function _showAliasNotFoundError() {
