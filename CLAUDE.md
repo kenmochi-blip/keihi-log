@@ -21,3 +21,9 @@
 - Google Sheets / Drive API（ユーザーのOAuthトークンで直接アクセス）
 - Vercel KV（ライセンス管理・URLエイリアス管理）
 - 開発ブランチ: `claude/rebuild-receipt-app-Ft3lE`
+
+## Git 運用ルール（重要）
+- 本番URL（keihi-log.com）は `main` ブランチからデプロイされる
+- 修正を加えたら **必ず `main` と `claude/rebuild-receipt-app-Ft3lE` の両方にプッシュ**すること
+- 手順：①フィーチャーブランチにコミット＆プッシュ → ②`git checkout main && git cherry-pick <hash> && git push origin main`
+- `main` だけに反映されていないと、ユーザーが本番で「まだ直っていない」と報告することになる
