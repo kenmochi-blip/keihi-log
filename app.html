@@ -255,7 +255,7 @@
         </div>
         <div class="accordion-item faq-item">
           <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q303"><span class="faq-q-badge">Q</span>外貨建て経費はどう入力しますか？</button></h2>
-          <div id="q303" class="accordion-collapse collapse" data-bs-parent="#faq3"><div class="accordion-body small text-muted py-2">金額入力欄の「外貨換算」ボタンを押すと通貨と外貨金額を入力するダイアログが表示されます。Frankfurter APIで取引日の為替レートを取得し、日本円に自動換算します。換算後の円金額・レートは摘要欄に自動補記されます。</div></div>
+          <div id="q303" class="accordion-collapse collapse" data-bs-parent="#faq3"><div class="accordion-body small text-muted py-2">AI解析時に外貨金額・通貨が自動検出され、取引日の為替レートで日本円に自動換算されます。換算後の円金額が金額欄に、換算レートの詳細（例：USD 12.50 × 149.80 = ¥1,873）が摘要欄に自動補記されます。為替レートはFrankfurter APIから取得します。レートが取得できない場合は警告が表示されるので手動で入力してください。</div></div>
         </div>
         <div class="accordion-item faq-item">
           <h2 class="accordion-header"><button class="accordion-button collapsed py-2 small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#q304"><span class="faq-q-badge">Q</span>交通費の経路・運賃はどのように入力しますか？</button></h2>
