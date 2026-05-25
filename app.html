@@ -161,12 +161,15 @@
 
   <!-- FAQ オーバーレイ（Bootstrapモーダル不使用・Android戻るボタン対応） -->
   <div id="faqOverlay" style="display:none;position:fixed;inset:0;z-index:9998;background:#f8f9fa;flex-direction:column;">
-    <div style="display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid #dee2e6;background:#fff;flex-shrink:0;">
-      <i class="bi bi-question-circle me-2 text-primary"></i>
-      <span class="fw-bold">よくある質問</span>
-      <button id="btnCloseFaq" style="margin-left:auto;background:none;border:none;font-size:1.4rem;line-height:1;color:#6c757d;padding:8px 12px;cursor:pointer;min-width:44px;min-height:44px;display:grid;place-items:center;">&times;</button>
+    <div style="border-bottom:1px solid #dee2e6;background:#fff;flex-shrink:0;">
+      <div style="display:flex;align-items:center;padding:12px 16px;max-width:720px;margin:0 auto;">
+        <i class="bi bi-question-circle me-2 text-primary"></i>
+        <span class="fw-bold">よくある質問</span>
+        <button id="btnCloseFaq" style="margin-left:auto;background:none;border:none;font-size:1.4rem;line-height:1;color:#6c757d;padding:8px 12px;cursor:pointer;min-width:44px;min-height:44px;display:grid;place-items:center;">&times;</button>
+      </div>
     </div>
     <div id="faqOverlayBody" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 16px 40px;">
+      <div style="max-width:720px;margin:0 auto;">
 
       <!-- 1. はじめに・初期設定 -->
       <div class="faq-section-label" style="background:#0d6efd;"><i class="bi bi-rocket-takeoff-fill"></i>はじめに・初期設定</div>
@@ -508,6 +511,7 @@
           </div></div>
         </div>
       </div>
+    </div>
 
     </div>
   </div>
