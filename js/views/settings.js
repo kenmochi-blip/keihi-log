@@ -314,6 +314,11 @@ const SettingsView = (() => {
         msg.innerHTML = '<span class="text-danger">すべての項目を入力してください</span>';
         return;
       }
+      const existing = _loadRegulation();
+      if (existing?.confirmedAt) {
+        // 再確定は確定日が今日の日付に更新されるため明示的に確認
+        if (!confirm(`規程を再確定すると確定日が今日の日付（${new Date().getFullYear()}年${new Date().getMonth()+1}月${new Date().getDate()}日）に更新されます。\n現在の確定日：${existing.confirmedAt}\n\n続けますか？`)) return;
+      }
       const today = new Date();
       const confirmedAt = `${today.getFullYear()}年${today.getMonth()+1}月${today.getDate()}日`;
       _saveRegulation({ orgName, repName, address, confirmedAt });
@@ -992,7 +997,7 @@ const SettingsView = (() => {
     };
     const previewText = buildRegulationText(previewReg).replace(/</g, '&lt;');
     const confirmedBadge = reg?.confirmedAt
-      ? `<div class="alert alert-success py-1 mb-2 small"><i class="bi bi-check-circle me-1"></i>確定済み（${reg.confirmedAt.slice(0, 10)}）<button class="btn btn-link btn-sm p-0 ms-2 text-secondary" id="btnEditRegulationInit">再編集</button></div>`
+      ? `<div class="alert alert-success py-1 mb-2 small"><i class="bi bi-check-circle me-1"></i>確定済み（${reg.confirmedAt}）<button class="btn btn-link btn-sm p-0 ms-2 text-secondary" id="btnEditRegulationInit">再編集</button></div>`
       : '';
     return `
           <hr class="my-3">
@@ -1046,10 +1051,12 @@ const SettingsView = (() => {
 
   function _saveRegulation(data) {
     localStorage.setItem('keihi_regulation', JSON.stringify(data));
-    // スプレッドシートにもバックアップ（非同期・失敗しても無視）
+    // スプレッドシートにもバックアップ（失敗時は警告 - シートとlocalStorageの不整合を防ぐ）
     const ssId = localStorage.getItem('keihi_sheet_id');
     if (ssId) {
-      Sheets.update('設定!B6', [[JSON.stringify(data)]]).catch(() => {});
+      Sheets.update('設定!B6', [[JSON.stringify(data)]]).catch(() => {
+        App.showToast('規程のバックアップ保存に失敗しました。再度「確定」を押してください。', 'warning');
+      });
     }
   }
 
