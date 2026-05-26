@@ -308,14 +308,10 @@ const SettingsView = (() => {
           try {
             const sheetData = JSON.parse(raw);
             if (!sheetData?.confirmedAt) return;
-            const local = _loadRegulation();
-            const sheetTime = new Date(sheetData.confirmedAt).getTime();
-            const localTime = local?.confirmedAt ? new Date(local.confirmedAt).getTime() : 0;
-            if (!local || isNaN(localTime) || sheetTime > localTime) {
-              localStorage.setItem('keihi_regulation', JSON.stringify(sheetData));
-              const step = el.querySelector('#regulationInitForm')?.closest('.card');
-              if (step) Router.navigate('settings');
-            }
+            // シートの規程データを常に優先（ワークスペース切り替え後の混在を防ぐ）
+            localStorage.setItem('keihi_regulation', JSON.stringify(sheetData));
+            const step = el.querySelector('#regulationInitForm')?.closest('.card');
+            if (step) Router.navigate('settings');
           } catch (_) {}
         }).catch(() => {});
       }
