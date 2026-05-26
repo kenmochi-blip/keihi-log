@@ -143,6 +143,16 @@ const SettingsView = (() => {
             <button class="btn btn-outline-primary btn-sm" id="btnSaveGeminiKey">保存</button>
           </div>
           <div id="geminiKeyMsg" class="form-text"></div>
+
+          <!-- 自家用車レート（管理者のみ） -->
+          <div class="settings-step-title mt-3">自家用車レート（円/km）</div>
+          <div class="settings-step-hint">全メンバー共通のキロ単価です。メンバーは参照のみ可能です。</div>
+          <div class="input-group mb-1" style="max-width:200px;">
+            <input type="number" class="form-control form-control-sm" id="inputCarRate" min="1" step="1" placeholder="20">
+            <button class="btn btn-outline-primary btn-sm" id="btnSaveCarRate">保存</button>
+          </div>
+          <div id="carRateMsg" class="form-text"></div>
+
           ${_renderRegulationInitStep()}` : ''}
 
         </div>
@@ -537,6 +547,33 @@ const SettingsView = (() => {
         Gemini.clearApiKey();
         msg.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>保存しました</span>';
         App.showToast('Gemini APIキーを保存しました', 'success');
+      } catch (err) {
+        msg.innerHTML = `<span class="text-danger">${_escape(err.message)}</span>`;
+      }
+    });
+
+    // 自家用車レート読み込みと保存
+    try {
+      const carRateVal = await Sheets.readSetting('B7');
+      const carRateInput = el.querySelector('#inputCarRate');
+      if (carRateInput && carRateVal) {
+        carRateInput.value = carRateVal;
+        localStorage.setItem('keihi_car_rate', carRateVal);
+      }
+    } catch (_) {}
+
+    el.querySelector('#btnSaveCarRate')?.addEventListener('click', async () => {
+      const rate = el.querySelector('#inputCarRate').value.trim();
+      const msg = el.querySelector('#carRateMsg');
+      if (!rate || isNaN(Number(rate)) || Number(rate) < 1) {
+        msg.innerHTML = '<span class="text-danger"><i class="bi bi-exclamation-circle me-1"></i>1以上の数値を入力してください</span>';
+        return;
+      }
+      try {
+        await Sheets.update('設定!B7', [[Number(rate)]]);
+        localStorage.setItem('keihi_car_rate', rate);
+        msg.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>保存しました</span>';
+        App.showToast('自家用車レートを保存しました', 'success');
       } catch (err) {
         msg.innerHTML = `<span class="text-danger">${_escape(err.message)}</span>`;
       }

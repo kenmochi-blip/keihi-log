@@ -215,7 +215,8 @@ const SubmitView = (() => {
       <div class="col-6">
         <label class="form-label small fw-semibold">レート（円/km）</label>
         <input type="number" class="form-control form-control-sm" id="numCarRate" min="1" step="1"
-          value="${localStorage.getItem(CAR_RATE_KEY) || 20}">
+          value="${localStorage.getItem(CAR_RATE_KEY) || 20}" readonly>
+        <div class="form-text small text-muted d-none" id="carRateHint">管理者が設定します</div>
       </div>
     </div>
     <div class="d-flex align-items-center gap-2 mb-2 px-1">
@@ -372,6 +373,7 @@ const SubmitView = (() => {
     _bindSplitToggle(el);
     _bindCorpPay(el);
     _bindTransitCalc(el);
+    _initCarRate(el);
     _bindCarCalc(el);
     _bindSubmit(el);
     el.querySelector('#btnRefreshHistory')?.addEventListener('click', () => _loadHistory(el));
@@ -712,12 +714,41 @@ function _bindTypeButtons(el) {
     });
   }
 
+  async function _initCarRate(el) {
+    const isAdmin = App.isAdmin();
+    const rateInput = el.querySelector('#numCarRate');
+    const rateHint  = el.querySelector('#carRateHint');
+    if (!rateInput) return;
+
+    // 非管理者はreadonly表示
+    if (!isAdmin) {
+      rateInput.readOnly = true;
+      rateInput.classList.add('bg-light');
+      if (rateHint) rateHint.classList.remove('d-none');
+    } else {
+      rateInput.readOnly = false;
+      rateInput.classList.remove('bg-light');
+    }
+
+    // シートから最新のレートを取得（localStorageをフォールバックとして使用）
+    const isDemo = typeof Demo !== 'undefined' && Demo.isActive();
+    if (!isDemo) {
+      try {
+        const sheetRate = await Sheets.readSetting('B7');
+        if (sheetRate && !isNaN(Number(sheetRate)) && Number(sheetRate) >= 1) {
+          rateInput.value = Number(sheetRate);
+          localStorage.setItem(CAR_RATE_KEY, sheetRate);
+        }
+      } catch (_) {}
+    }
+  }
+
   function _bindCarCalc(el) {
     const calc = () => {
       const km   = Number(el.querySelector('#numCarKm')?.value)   || 0;
       const rate = Number(el.querySelector('#numCarRate')?.value)  || 20;
       el.querySelector('#lblCarTotal').textContent = Math.ceil(km * rate).toLocaleString() + '円';
-      localStorage.setItem(CAR_RATE_KEY, rate);
+      if (App.isAdmin()) localStorage.setItem(CAR_RATE_KEY, rate);
     };
     el.querySelector('#numCarKm')?.addEventListener('input', calc);
     el.querySelector('#numCarRate')?.addEventListener('input', calc);
