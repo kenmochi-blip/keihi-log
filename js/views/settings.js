@@ -309,9 +309,14 @@ const SettingsView = (() => {
             const sheetData = JSON.parse(raw);
             if (!sheetData?.confirmedAt) return;
             // シートの規程データを常に優先（ワークスペース切り替え後の混在を防ぐ）
-            localStorage.setItem('keihi_regulation', JSON.stringify(sheetData));
-            const step = el.querySelector('#regulationInitForm')?.closest('.card');
-            if (step) Router.navigate('settings');
+            const prev = localStorage.getItem('keihi_regulation');
+            const next = JSON.stringify(sheetData);
+            localStorage.setItem('keihi_regulation', next);
+            // データが変わった場合のみ再描画（無限ループ防止）
+            if (prev !== next) {
+              const step = el.querySelector('#regulationInitForm')?.closest('.card');
+              if (step) Router.navigate('settings');
+            }
           } catch (_) {}
         }).catch(() => {});
       }
