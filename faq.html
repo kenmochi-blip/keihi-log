@@ -209,26 +209,52 @@
 
 <div class="container">
 
-  <!-- 目次 -->
-  <div class="toc">
-    <h2>目次</h2>
-    <ol>
-      <li><a href="#section-start">はじめに・初期設定</a></li>
-      <li><a href="#section-login">Googleログイン・権限について</a></li>
-      <li><a href="#section-submit">経費の申請方法</a></li>
-      <li><a href="#section-ai">AI領収書解析</a></li>
-      <li><a href="#section-file">証票（領収書）の添付</a></li>
-      <li><a href="#section-status">申請ステータスについて</a></li>
-      <li><a href="#section-list">一覧表・集計表の使い方</a></li>
-      <li><a href="#section-law">電子帳簿保存法への対応</a></li>
-      <li><a href="#section-error">よくあるエラーと対処法</a></li>
-      <li><a href="#section-license">ライセンスについて</a></li>
-    </ol>
-  </div>
-
   <!-- 1. はじめに・初期設定 -->
   <div class="section" id="section-start">
     <h2 class="section-title">1. はじめに・初期設定</h2>
+
+    <details>
+      <summary>メンバー向け　基本操作ガイド（3ステップ）<span class="arrow">▼</span></summary>
+      <div class="answer">
+
+        <p><strong>STEP 1　アプリを開いてログイン</strong></p>
+        <p>管理者から共有されたURLをブラウザで開き、「Googleでログイン」をタップします。会社のGoogleアカウントを選択し、権限確認で「許可」をタップしてください（初回のみ）。</p>
+        <div class="tip">ホーム画面に追加しておくと次回から素早く開けます。</div>
+
+        <p class="mt-3"><strong>STEP 2　経費を申請する</strong></p>
+        <p>画面下の「申請」タブを開き、申請タイプを選んでください。</p>
+        <p><strong>立替経費の場合：</strong></p>
+        <ol>
+          <li>タイプ「領収書」「領収書なし」「電車/バス」「自家用車」から選択</li>
+          <li>領収書の写真を追加 → AIが金額・支払先などを自動入力</li>
+          <li>内容を確認し、日付・勘定科目・備考を必要に応じて修正</li>
+          <li>「送信」をタップ</li>
+        </ol>
+        <p><strong>会社払い（法人カード・銀行振込など）の場合：</strong></p>
+        <ol>
+          <li>申請フォームの「会社払い」トグルをON</li>
+          <li>支払元（法人カード・銀行など）を選択</li>
+          <li>領収書の写真を追加 → AIが自動入力</li>
+          <li>内容を確認して「送信」</li>
+        </ol>
+
+        <p class="mt-3"><strong>STEP 3　申請状況を確認する</strong></p>
+        <p>画面下の「一覧」タブで自分の申請履歴と状況を確認できます。</p>
+        <ul>
+          <li><strong>申請済</strong>：申請完了・管理者の承認待ち</li>
+          <li><strong>承認済</strong>：管理者が承認した状態</li>
+          <li><strong>精算済</strong>：立替の支払いが完了した状態</li>
+        </ul>
+        <div class="tip">承認前であれば、一覧の編集ボタンから内容の修正ができます。</div>
+
+        <p class="mt-3"><strong>申請時のご注意</strong></p>
+        <ul>
+          <li>領収書の写真は鮮明に・全体が写るように撮影してください</li>
+          <li>支払日から2ヶ月以上経過した申請は上長への事前確認をお願いします</li>
+          <li>1回の申請につき領収書1枚（複数明細がある場合は明細追加ボタンで分割入力）</li>
+        </ul>
+      </div>
+    </details>
 
     <details>
       <summary>経費ログを使い始めるにはどうすればいいですか？<span class="arrow">▼</span></summary>
