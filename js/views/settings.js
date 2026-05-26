@@ -314,8 +314,14 @@ const SettingsView = (() => {
             localStorage.setItem('keihi_regulation', next);
             // データが変わった場合のみ再描画（無限ループ防止）
             if (prev !== next) {
-              const step = el.querySelector('#regulationInitForm')?.closest('.card');
-              if (step) Router.navigate('settings');
+              // regulationSectionを直接差し替え（Router.navigateは現ビューでは動作しないため）
+              const section = el.querySelector('#regulationSection');
+              if (section) {
+                const tmp = document.createElement('div');
+                tmp.innerHTML = _renderRegulationInitStep();
+                const newSection = tmp.querySelector('#regulationSection');
+                if (newSection) section.replaceWith(newSection);
+              }
             }
           } catch (_) {}
         }).catch(() => {});
@@ -1058,6 +1064,7 @@ const SettingsView = (() => {
       : '';
     return `
           <hr class="my-3">
+          <div id="regulationSection">
           <div class="settings-step-title">訂正・削除防止規程（電帳法）</div>
           <div class="settings-step-hint mb-2">スキャナ保存で紙の原本を廃棄可能にするために必要な社内規程です。確定するとアプリ内に表示されます。</div>
           ${confirmedBadge}
@@ -1098,6 +1105,7 @@ const SettingsView = (() => {
               <i class="bi bi-check-circle me-1"></i>確定して規程を作成する
             </button>
             <div id="regulationInitMsg" class="form-text mt-1"></div>
+          </div>
           </div>`;
   }
 
