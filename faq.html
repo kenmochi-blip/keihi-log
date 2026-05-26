@@ -807,6 +807,19 @@
         </ul>
       </div>
     </details>
+
+    <details>
+      <summary>複数の経費ログURLを使い分けているとき、PWAアイコンが意図しない方を開く<span class="arrow">▼</span></summary>
+      <div class="answer">
+        <p>これはPWAの仕様によるものです。PWAはドメイン単位（<code>keihi-log.com</code>）で1つしかインストールできないため、複数のワークスペースURLがあっても同じアプリとして扱われ、どちらが開くか不安定になります。</p>
+        <p><strong>複数の経費ログを使い分ける場合は、PWAインストールではなくURLショートカットを使ってください。</strong></p>
+        <ul>
+          <li><strong>iPhone / iPad</strong>：SafariでそれぞれのワークスペースのURLを開き、共有ボタン →「ホーム画面に追加」→ 名前を付けて追加。これはSafariのブックマークとして追加されるため、常にそのURLを開きます。</li>
+          <li><strong>Android</strong>：ChromeでそれぞれのワークスペースのURLを開き、メニュー →「ホーム画面に追加」→「ショートカットを追加」を選択（「インストール」ではなく「ショートカット」を選ぶのがポイントです）。</li>
+        </ul>
+        <div class="tip">1つのワークスペースしか使わない場合はPWAインストールでも問題ありません。</div>
+      </div>
+    </details>
   </div>
 
   <!-- 10. ライセンス -->
