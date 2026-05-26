@@ -225,9 +225,6 @@ const App = (() => {
       if (_ssId && (location.pathname === '/app.html' || location.pathname === '/app')) {
         history.replaceState(null, '', '/' + (_alias || _ssId));
       }
-      // チーム別ショートカット用：動的マニフェストを生成してstart_urlにエイリアスURLを設定
-      const startPath = '/' + (_alias || _ssId || 'app.html');
-      _injectDynamicManifest(startPath, companyName);
     }
 
     // 保存済みナビカラーを適用（旧デフォルト#808000は青にリセット）
