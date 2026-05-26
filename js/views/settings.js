@@ -296,23 +296,25 @@ const SettingsView = (() => {
   async function bindEvents(el) {
 
     // スプレッドシートの規程データと localStorage を比較し、新しい方を使う
-    const ssId = localStorage.getItem('keihi_sheet_id');
-    if (ssId) {
-      Sheets.readSetting('B6').then(raw => {
-        if (!raw) return;
-        try {
-          const sheetData = JSON.parse(raw);
-          if (!sheetData?.confirmedAt) return;
-          const local = _loadRegulation();
-          const sheetTime = new Date(sheetData.confirmedAt).getTime();
-          const localTime = local?.confirmedAt ? new Date(local.confirmedAt).getTime() : 0;
-          if (!local || isNaN(localTime) || sheetTime > localTime) {
-            localStorage.setItem('keihi_regulation', JSON.stringify(sheetData));
-            const step = el.querySelector('#regulationInitForm')?.closest('.card');
-            if (step) Router.navigate('settings');
-          }
-        } catch (_) {}
-      }).catch(() => {});
+    {
+      const _regSsId = localStorage.getItem('keihi_sheet_id');
+      if (_regSsId) {
+        Sheets.readSetting('B6').then(raw => {
+          if (!raw) return;
+          try {
+            const sheetData = JSON.parse(raw);
+            if (!sheetData?.confirmedAt) return;
+            const local = _loadRegulation();
+            const sheetTime = new Date(sheetData.confirmedAt).getTime();
+            const localTime = local?.confirmedAt ? new Date(local.confirmedAt).getTime() : 0;
+            if (!local || isNaN(localTime) || sheetTime > localTime) {
+              localStorage.setItem('keihi_regulation', JSON.stringify(sheetData));
+              const step = el.querySelector('#regulationInitForm')?.closest('.card');
+              if (step) Router.navigate('settings');
+            }
+          } catch (_) {}
+        }).catch(() => {});
+      }
     }
 
     // 訂正・削除防止規程（初期設定⑤版）
