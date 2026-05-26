@@ -295,23 +295,24 @@ const SettingsView = (() => {
 
   async function bindEvents(el) {
 
-    // 規程が localStorage にない場合、スプレッドシートから復元する
-    if (!_loadRegulation()) {
-      const ssId = localStorage.getItem('keihi_sheet_id');
-      if (ssId) {
-        Sheets.readSetting('B6').then(raw => {
-          if (!raw) return;
-          try {
-            const data = JSON.parse(raw);
-            if (data?.confirmedAt) {
-              localStorage.setItem('keihi_regulation', JSON.stringify(data));
-              // 確定済みバッジを反映するため規程ステップのみ再描画
-              const step = el.querySelector('#regulationInitForm')?.closest('.card');
-              if (step) Router.navigate('settings');
-            }
-          } catch (_) {}
-        }).catch(() => {});
-      }
+    // スプレッドシートの規程データと localStorage を比較し、新しい方を使う
+    const ssId = localStorage.getItem('keihi_sheet_id');
+    if (ssId) {
+      Sheets.readSetting('B6').then(raw => {
+        if (!raw) return;
+        try {
+          const sheetData = JSON.parse(raw);
+          if (!sheetData?.confirmedAt) return;
+          const local = _loadRegulation();
+          const sheetTime = new Date(sheetData.confirmedAt).getTime();
+          const localTime = local?.confirmedAt ? new Date(local.confirmedAt).getTime() : 0;
+          if (!local || isNaN(localTime) || sheetTime > localTime) {
+            localStorage.setItem('keihi_regulation', JSON.stringify(sheetData));
+            const step = el.querySelector('#regulationInitForm')?.closest('.card');
+            if (step) Router.navigate('settings');
+          }
+        } catch (_) {}
+      }).catch(() => {});
     }
 
     // 訂正・削除防止規程（初期設定⑤版）
@@ -1035,7 +1036,7 @@ const SettingsView = (() => {
     };
     const previewText = buildRegulationText(previewReg).replace(/</g, '&lt;');
     const confirmedBadge = reg?.confirmedAt
-      ? `<div class="alert alert-success py-1 mb-2 small"><i class="bi bi-check-circle me-1"></i>確定済み（${reg.confirmedAt}）<button class="btn btn-link btn-sm p-0 ms-2 text-secondary" id="btnEditRegulationInit">再編集</button></div>`
+      ? `<div class="alert alert-success py-1 mb-2 small"><i class="bi bi-check-circle me-1"></i>確定済み（${_formatConfirmedAt(reg.confirmedAt)}）<button class="btn btn-link btn-sm p-0 ms-2 text-secondary" id="btnEditRegulationInit">再編集</button></div>`
       : '';
     return `
           <hr class="my-3">
@@ -1087,6 +1088,14 @@ const SettingsView = (() => {
     catch (_) { return null; }
   }
 
+  function _formatConfirmedAt(val) {
+    if (!val) return '';
+    // ISO形式（2026-05-25T...）を日本語表記に変換
+    const d = new Date(val);
+    if (!isNaN(d.getTime())) return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;
+    return val; // すでに日本語形式の場合はそのまま
+  }
+
   function _saveRegulation(data) {
     localStorage.setItem('keihi_regulation', JSON.stringify(data));
     // スプレッドシートにもバックアップ（失敗時は警告 - シートとlocalStorageの不整合を防ぐ）
@@ -1131,11 +1140,11 @@ const SettingsView = (() => {
 第9条（規程の遵守）
 役員・従業員・関与メンバーは本規程を遵守しなければならない。
 
-制定日：${reg.confirmedAt}
+制定日：${_formatConfirmedAt(reg.confirmedAt)}
 所在地：${reg.address}
 ${reg.orgName}
 代表者：${reg.repName}`;
   }
 
-  return { render, bindEvents, buildRegulationText, _loadRegulation };
+  return { render, bindEvents, buildRegulationText, _loadRegulation, _formatConfirmedAt };
 })();
