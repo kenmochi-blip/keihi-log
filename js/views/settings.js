@@ -537,9 +537,16 @@ const SettingsView = (() => {
       const geminiKey = await Sheets.readSetting('B5');
       const geminiInput = el.querySelector('#inputGeminiKey');
       if (geminiInput) geminiInput.value = geminiKey || '';
+      if (geminiKey) localStorage.setItem('keihi_gemini_key', geminiKey);
     } catch (err) {
+      const geminiInput = el.querySelector('#inputGeminiKey');
       const geminiMsg = el.querySelector('#geminiKeyMsg');
-      if (geminiMsg) geminiMsg.innerHTML = '<span class="text-warning small"><i class="bi bi-exclamation-triangle me-1"></i>読み込みに失敗しました。キーを再入力して保存してください</span>';
+      const cached = localStorage.getItem('keihi_gemini_key');
+      if (cached && geminiInput) {
+        geminiInput.value = cached;
+      } else if (geminiMsg) {
+        geminiMsg.innerHTML = '<span class="text-warning small"><i class="bi bi-exclamation-triangle me-1"></i>読み込みに失敗しました。キーを再入力して保存してください</span>';
+      }
     }
 
     el.querySelector('#btnSaveGeminiKey')?.addEventListener('click', async () => {
@@ -551,6 +558,7 @@ const SettingsView = (() => {
       }
       try {
         await Sheets.update('設定!B5', [[key]]);
+        localStorage.setItem('keihi_gemini_key', key);
         Gemini.clearApiKey();
         msg.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>保存しました</span>';
         App.showToast('Gemini APIキーを保存しました', 'success');
