@@ -175,7 +175,10 @@ const SettingsView = (() => {
     const isDemo = typeof Demo !== 'undefined' && Demo.isActive();
     const ssId = isDemo ? '' : (localStorage.getItem('keihi_sheet_id') || '');
     const alias = isDemo ? '' : (localStorage.getItem('keihi_alias') || '');
-    const shareUrl = alias ? `${location.origin}/${alias}` : (ssId ? `${location.origin}/${ssId}` : '');
+    // 現在のURLパスがエイリアス形式であればそれを優先（ブラウザURLと設定表示を一致させる）
+    const pathToken = location.pathname.match(/^\/([a-zA-Z0-9_-]{3,43})$/)?.[1];
+    const effectiveAlias = (pathToken && pathToken !== 'app' && pathToken !== 'faq') ? pathToken : alias;
+    const shareUrl = effectiveAlias ? `${location.origin}/${effectiveAlias}` : (ssId ? `${location.origin}/${ssId}` : '');
     return `
   <!-- メンバー管理（管理者のみ） -->
   <div class="card mb-3">
