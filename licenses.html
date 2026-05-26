@@ -1189,11 +1189,13 @@
           <td style="text-align:center;"><span class="status-dot ${st}">${statusLabel[st]}</span></td>
           <td class="pe-last" style="text-align:right;white-space:nowrap;">
             ${!isStripe && !l.upgradedAt ? `<button class="action-btn upgrade btn-upgrade me-1" data-key="${esc(l.key)}" title="有料転換"><i class="bi bi-arrow-up-circle"></i></button>` : ''}
+            <button class="action-btn btn-plan-change me-1" data-key="${esc(l.key)}" data-plan="${plan}" title="プラン変更" style="font-size:0.7rem;width:auto;padding:0 6px;gap:2px;"><i class="bi bi-arrow-left-right"></i>${plan === 'team' ? 'ソロへ' : 'チームへ'}</button>
             <button class="action-btn delete btn-delete" data-key="${esc(l.key)}" title="削除"><i class="bi bi-trash"></i></button>
           </td>
         </tr>`;
       }).join('');
       tbody.querySelectorAll('.btn-upgrade').forEach(btn => btn.addEventListener('click', () => upgradeLicense(btn.dataset.key)));
+      tbody.querySelectorAll('.btn-plan-change').forEach(btn => btn.addEventListener('click', () => changePlan(btn.dataset.key, btn.dataset.plan)));
       tbody.querySelectorAll('.btn-delete').forEach(btn => btn.addEventListener('click', () => deleteLicense(btn.dataset.key)));
       document.getElementById('noResult').classList.toggle('d-none', filtered.length > 0);
     }
@@ -1219,6 +1221,21 @@
       const resp = await fetch(`/api/admin-licenses?secret=${encodeURIComponent(_secret)}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key, action: 'upgrade' }),
+      });
+      if (!resp.ok) { alert('処理に失敗しました'); return; }
+      const data = await resp.json();
+      const idx = _all.findIndex(l => l.key === key);
+      if (idx !== -1) _all[idx] = { ..._all[idx], ...data };
+      updateStats(); updateMonthly(); render();
+    }
+
+    async function changePlan(key, currentPlan) {
+      const newPlan = currentPlan === 'team' ? 'solo' : 'team';
+      const label   = newPlan === 'team' ? 'チームプラン' : 'ソロプラン';
+      if (!confirm(`${key}\n\nプランを「${label}」に変更しますか？\nライセンスキーはそのまま使い続けられます。`)) return;
+      const resp = await fetch(`/api/admin-licenses?secret=${encodeURIComponent(_secret)}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, action: 'upgrade', plan: newPlan }),
       });
       if (!resp.ok) { alert('処理に失敗しました'); return; }
       const data = await resp.json();
