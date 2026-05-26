@@ -113,7 +113,12 @@ const App = (() => {
         _showAccessDeniedError(email);
         return;
       }
-    } catch (_) {
+    } catch (err) {
+      // シートへのアクセス権がない場合は明示的にエラー表示
+      if (err && err.message && err.message.includes('403')) {
+        _showSheetAccessDeniedError();
+        return;
+      }
       _masterCache = { members: [], categories: [], paySources: [], admins: [], viewers: [] };
       // ライセンスオーナーのみ管理者フォールバック（設定画面で復旧できるように）
       try {
@@ -187,6 +192,25 @@ const App = (() => {
         <button class="btn btn-outline-danger btn-sm mt-1 ms-2" id="btnAccessDeniedLogout">別のアカウントでログイン</button>
       </div>`;
     document.getElementById('btnAccessDeniedLogout')?.addEventListener('click', () => Auth.logout());
+    const bottomNav = document.querySelector('nav.fixed-bottom');
+    if (bottomNav) bottomNav.classList.add('d-none');
+  }
+
+  function _showSheetAccessDeniedError() {
+    const email = Auth.getUserEmail();
+    const main = document.getElementById('appMain');
+    if (main) main.innerHTML = `
+      <div class="text-center py-5 px-3">
+        <i class="bi bi-file-earmark-lock text-warning" style="font-size:3rem;"></i>
+        <h5 class="mt-3 fw-bold">スプレッドシートにアクセスできません</h5>
+        <p class="text-muted small mt-2">
+          このURLの経費ログはまだあなたのアカウントに共有されていません。<br>
+          管理者にスプレッドシートの共有を依頼してください。
+        </p>
+        <p class="text-muted small">ログイン中：${email}</p>
+        <button class="btn btn-outline-danger btn-sm mt-1" id="btnSheetDeniedLogout">別のアカウントでログイン</button>
+      </div>`;
+    document.getElementById('btnSheetDeniedLogout')?.addEventListener('click', () => Auth.logout());
     const bottomNav = document.querySelector('nav.fixed-bottom');
     if (bottomNav) bottomNav.classList.add('d-none');
   }
@@ -521,8 +545,9 @@ const App = (() => {
         const data = await r.json();
         if (data.sheetId) {
           const prevSheetId = localStorage.getItem('keihi_sheet_id');
-          if (prevSheetId && prevSheetId !== data.sheetId) {
-            // 別チームのシートに切り替わる場合、チーム固有データをクリア
+          const prevAlias   = localStorage.getItem('keihi_alias');
+          if ((prevSheetId && prevSheetId !== data.sheetId) || (prevAlias && prevAlias !== token)) {
+            // 別チームのシートまたは別エイリアスに切り替わる場合、チーム固有データをクリア
             // ライセンスキーはユーザーレベルのため保持（init()内の検証・B3自動取得で上書きされる）
             ['keihi_company_name', 'keihi_master_cache', 'keihi_folder_id', 'keihi_setup_code',
              'keihi_nav_color', 'keihi_gemini_key', 'keihi_alias', 'keihi_user_email'].forEach(k => localStorage.removeItem(k));
