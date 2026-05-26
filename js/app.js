@@ -245,34 +245,6 @@ const App = (() => {
     // ログアウトボタン
     document.getElementById('btnLogout')?.addEventListener('click', () => Auth.signOut());
 
-    // FAQ オーバーレイ（Bootstrapモーダル不使用・Androidの戻るボタン対応）
-    const _faqOverlay = document.getElementById('faqOverlay');
-
-    function _openFaq() {
-      if (!_faqOverlay) return;
-      _faqOverlay.style.display = 'flex';
-      document.body.style.overflow = 'hidden';
-      history.pushState({ faq: true }, '');
-    }
-
-    function _closeFaq() {
-      if (!_faqOverlay) return;
-      _faqOverlay.style.display = 'none';
-      document.body.style.overflow = '';
-    }
-
-    document.getElementById('btnFaq')?.addEventListener('click', _openFaq);
-    document.getElementById('btnCloseFaq')?.addEventListener('click', () => {
-      _closeFaq(); // 即座に閉じる（history.back()を待たない）
-      if (history.state?.faq) history.back();
-    });
-    // Androidの戻るボタン・iOS/Chromeのスワイプ戻り対応
-    window.addEventListener('popstate', e => {
-      if (_faqOverlay && _faqOverlay.style.display !== 'none') {
-        _closeFaq();
-      }
-    });
-
     // ボトムナビのボタンにイベントリスナーを登録（常に実行）
     Router.init(initialView);
     SwipeNav.init();
