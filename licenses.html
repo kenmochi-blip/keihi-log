@@ -1237,7 +1237,11 @@
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key, action: 'upgrade', plan: newPlan }),
       });
-      if (!resp.ok) { alert('処理に失敗しました'); return; }
+      if (!resp.ok) {
+        const body = await resp.json().catch(() => ({}));
+        alert(`処理に失敗しました (HTTP ${resp.status})\n${body.error || JSON.stringify(body)}`);
+        return;
+      }
       const data = await resp.json();
       const idx = _all.findIndex(l => l.key === key);
       if (idx !== -1) _all[idx] = { ..._all[idx], ...data };
