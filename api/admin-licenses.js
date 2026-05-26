@@ -332,13 +332,15 @@ ${logText}
     if (!data) return res.status(404).json({ error: 'not found' });
 
     if (action === 'upgrade') {
-      const expiresAt = new Date();
-      expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+      const { plan: newPlan, expiresAt: customExpiry } = req.body;
+      const expiresAt = customExpiry ? new Date(customExpiry) : new Date();
+      if (!customExpiry) expiresAt.setFullYear(expiresAt.getFullYear() + 1);
       const updated = {
         ...data,
         upgradedAt: new Date().toISOString(),
         expiresAt:  expiresAt.toISOString().split('T')[0],
         note:       (data.note ? data.note + ' ' : '') + '→有料転換（手動）',
+        ...(newPlan ? { plan: newPlan } : {}),
       };
       await kv.set(`license:${key}`, updated);
       console.log(`License manually upgraded: ${key}`);
