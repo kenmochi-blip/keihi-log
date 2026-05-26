@@ -47,29 +47,6 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png">
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
-  <script>
-    (function() {
-      var alias = localStorage.getItem('keihi_alias');
-      var startUrl = alias ? ('/' + alias) : '/app';
-      var manifest = {
-        name: '経費ログ', short_name: '経費ログ',
-        description: 'AI領収書解析・経費申請・承認・集計をブラウザで完結できる経費管理Webアプリ',
-        start_url: startUrl, scope: startUrl, display: 'standalone',
-        background_color: '#ffffff', theme_color: '#0d6efd', lang: 'ja',
-        icons: [
-          { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
-          { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
-          { src: '/icons/icon-192-maskable.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
-          { src: '/icons/icon-512-maskable.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
-        ]
-      };
-      var blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
-      var link = document.createElement('link');
-      link.rel = 'manifest';
-      link.href = URL.createObjectURL(blob);
-      document.head.appendChild(link);
-    })();
-  </script>
   <meta name="theme-color" content="#0d6efd">
 </head>
 <body class="bg-light">
@@ -182,6 +159,14 @@
   <script src="js/router.js"></script>
   <script src="js/swipe.js"></script>
   <script src="js/app.js"></script>
-  <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});</script>
+  <script>
+    // 既存のService Workerを登録解除してキャッシュをクリア
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(regs => {
+        regs.forEach(r => r.unregister());
+      });
+      caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+    }
+  </script>
 </body>
 </html>

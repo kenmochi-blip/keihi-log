@@ -566,35 +566,6 @@ const App = (() => {
     return m ? decodeURIComponent(m[1]) : null;
   }
 
-  function _injectDynamicManifest(startPath, companyName) {
-    try {
-      const appName = companyName ? `経費ログ - ${companyName}` : '経費ログ';
-      const manifest = {
-        name: appName,
-        short_name: companyName || '経費ログ',
-        description: 'AI領収書解析・経費申請・承認・集計をブラウザで完結できる経費管理Webアプリ',
-        start_url: startPath,
-        scope: startPath,
-        display: 'standalone',
-        background_color: '#ffffff',
-        theme_color: '#0d6efd',
-        lang: 'ja',
-        icons: [
-          { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
-          { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
-        ],
-      };
-      const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
-      const url  = URL.createObjectURL(blob);
-      const link = document.querySelector('link[rel="manifest"]');
-      if (link) link.href = url;
-    } catch (_) {}
-  }
-
-  function updateDynamicManifest(startPath, companyName) {
-    _injectDynamicManifest(startPath, companyName || '');
-  }
-
   return {
     init,
     confirm,
@@ -607,7 +578,6 @@ const App = (() => {
     showLoading,
     hideLoading,
     showToast,
-    updateDynamicManifest,
   };
 })();
 
