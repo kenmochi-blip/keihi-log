@@ -191,7 +191,7 @@ const App = (() => {
         <a href="/" class="btn btn-outline-secondary btn-sm mt-1">トップページへ</a>
         <button class="btn btn-outline-danger btn-sm mt-1 ms-2" id="btnAccessDeniedLogout">別のアカウントでログイン</button>
       </div>`;
-    document.getElementById('btnAccessDeniedLogout')?.addEventListener('click', () => Auth.logout());
+    document.getElementById('btnAccessDeniedLogout')?.addEventListener('click', () => Auth.signOut());
     const bottomNav = document.querySelector('nav.fixed-bottom');
     if (bottomNav) bottomNav.classList.add('d-none');
   }
@@ -210,7 +210,7 @@ const App = (() => {
         <p class="text-muted small">ログイン中：${email}</p>
         <button class="btn btn-outline-danger btn-sm mt-1" id="btnSheetDeniedLogout">別のアカウントでログイン</button>
       </div>`;
-    document.getElementById('btnSheetDeniedLogout')?.addEventListener('click', () => Auth.logout());
+    document.getElementById('btnSheetDeniedLogout')?.addEventListener('click', () => Auth.signOut());
     const bottomNav = document.querySelector('nav.fixed-bottom');
     if (bottomNav) bottomNav.classList.add('d-none');
   }
