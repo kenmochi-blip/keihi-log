@@ -811,7 +811,9 @@ const SettingsView = (() => {
               <div class="mb-2"><label class="form-label small">氏名</label>
                 <input type="text" class="form-control form-control-sm" id="mName" value="${_escape(m.name)}"></div>
               <div class="mb-2"><label class="form-label small">メールアドレス</label>
-                <input type="email" class="form-control form-control-sm" id="mEmail" value="${_escape(m.email)}"></div>
+                <input type="email" class="form-control form-control-sm" id="mEmail" value="${_escape(m.email)}" ${!isNew ? 'readonly' : ''}>
+                <div class="form-text"><i class="bi bi-google me-1 text-primary"></i>Googleアカウントに紐づいたメールアドレスを入力してください（Gmail・Google Workspace）</div>
+              </div>
               <div class="mb-2"><label class="form-label small">所属</label>
                 <input type="text" class="form-control form-control-sm" id="mDept" value="${_escape(m.dept)}"></div>
               <div class="mb-2"><label class="form-label small">権限</label>
@@ -841,6 +843,7 @@ const SettingsView = (() => {
         role:  div.querySelector('#mRole').value,
       };
       if (!updated.name || !updated.email) return App.showToast('氏名・メールは必須です', 'danger');
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(updated.email)) return App.showToast('有効なメールアドレスを入力してください', 'danger');
       if (isLastAdminSelf) updated.role = 'admin';
       if (!isNew && ((_master.members[idx]?.role || '').toLowerCase() === 'admin') && updated.role !== 'admin') {
         const cnt = _master.members.filter(m => (m.role || '').toLowerCase() === 'admin').length;
