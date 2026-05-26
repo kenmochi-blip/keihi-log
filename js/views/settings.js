@@ -216,6 +216,7 @@ const SettingsView = (() => {
           <i class="bi bi-clipboard"></i>
         </button>
       </div>
+      <div class="form-text mb-2"><i class="bi bi-exclamation-circle me-1 text-warning"></i>LINEのアプリ内リンクから開くとGoogleログインがブロックされます。Safari・ChromeなどのブラウザアプリのURLバーに貼り付けて開くよう案内してください。</div>
       <div class="accordion" id="qrAcc">
         <div class="accordion-item border-0">
           <h2 class="accordion-header">
