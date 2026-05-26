@@ -10,6 +10,7 @@
     { "source": "/success", "destination": "/success.html" },
     { "source": "/licenses", "destination": "/licenses.html" },
     { "source": "/faq", "destination": "/faq.html" },
+    { "source": "/guide", "destination": "/guide.html" },
     { "source": "/demo", "destination": "/demo.html" },
     { "source": "/login", "destination": "/login.html" },
     { "source": "/tokusho", "destination": "/tokusho.html" },

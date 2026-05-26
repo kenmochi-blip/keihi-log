@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>使い方ガイド｜経費ログ</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <style>
+    body { font-size: 0.95rem; color: #212529; background: #fff; }
+    .guide-header { background: #0d6efd; color: #fff; padding: 20px 16px 16px; }
+    .guide-header h1 { font-size: 1.2rem; font-weight: 700; margin: 0; }
+    .guide-header p { font-size: 0.82rem; margin: 4px 0 0; opacity: 0.85; }
+    .step-num {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: #0d6efd; color: #fff;
+      font-weight: 700; font-size: 1rem;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .step-title { font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
+    .step-body { font-size: 0.88rem; color: #444; line-height: 1.7; }
+    .step-card { border-left: 3px solid #0d6efd; padding: 12px 14px; background: #f8f9ff; border-radius: 0 8px 8px 0; }
+    .badge-type { font-size: 0.75rem; padding: 3px 8px; border-radius: 4px; font-weight: 600; }
+    .section-label { font-size: 0.78rem; font-weight: 700; color: #0d6efd; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+    .tip-box { background: #fff8e1; border-left: 3px solid #ffc107; border-radius: 0 6px 6px 0; padding: 8px 12px; font-size: 0.84rem; color: #555; }
+    .divider { border: none; border-top: 1px dashed #dee2e6; margin: 20px 0; }
+    @media print {
+      .guide-header { background: #0d6efd !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .step-num { background: #0d6efd !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="guide-header">
+  <h1><i class="bi bi-receipt me-2"></i>経費ログ　使い方ガイド</h1>
+  <p>メンバー向け　基本操作マニュアル</p>
+</div>
+
+<div class="container" style="max-width:600px; padding:20px 16px 40px;">
+
+  <!-- STEP 1 -->
+  <div class="d-flex gap-3 mb-4">
+    <div class="step-num">1</div>
+    <div class="flex-grow-1">
+      <div class="step-title">アプリを開いてログイン</div>
+      <div class="step-card mt-2">
+        <div class="step-body">
+          管理者から共有されたURLをブラウザで開き、<strong>「Googleでログイン」</strong>をタップします。<br>
+          会社のGoogleアカウントを選択し、権限確認で<strong>「許可」</strong>をタップしてください（初回のみ）。
+        </div>
+      </div>
+      <div class="tip-box mt-2">
+        <i class="bi bi-lightbulb me-1"></i>ホーム画面に追加しておくと次回から素早く開けます。
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- STEP 2 -->
+  <div class="d-flex gap-3 mb-4">
+    <div class="step-num">2</div>
+    <div class="flex-grow-1">
+      <div class="step-title">経費を申請する</div>
+      <div class="step-body mt-1 mb-2">画面下の <strong>「申請」</strong> タブを開き、申請タイプを選んでください。</div>
+
+      <!-- 立替 -->
+      <div class="section-label"><i class="bi bi-wallet2 me-1"></i>立替経費の場合</div>
+      <div class="step-card mb-3">
+        <div class="step-body">
+          <ol class="mb-0 ps-3">
+            <li>タイプ「<strong>立替経費</strong>」を選択</li>
+            <li>領収書の写真を追加 → AIが金額・支払先などを自動入力</li>
+            <li>内容を確認し、日付・勘定科目・備考を必要に応じて修正</li>
+            <li><strong>「送信」</strong>をタップ</li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- 会社払い -->
+      <div class="section-label"><i class="bi bi-credit-card me-1"></i>会社払い（法人カード・銀行振込など）の場合</div>
+      <div class="step-card">
+        <div class="step-body">
+          <ol class="mb-0 ps-3">
+            <li>タイプ「<strong>会社払い</strong>」を選択</li>
+            <li>支払元（法人カード・銀行など）を選択</li>
+            <li>領収書の写真を追加 → AIが自動入力</li>
+            <li>内容を確認して <strong>「送信」</strong></li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- STEP 3 -->
+  <div class="d-flex gap-3 mb-4">
+    <div class="step-num">3</div>
+    <div class="flex-grow-1">
+      <div class="step-title">申請状況を確認する</div>
+      <div class="step-card mt-2">
+        <div class="step-body">
+          画面下の <strong>「一覧」</strong> タブで自分の申請履歴と状況を確認できます。
+          <div class="mt-2 d-flex flex-column gap-1">
+            <div><span class="badge bg-secondary badge-type">申請済</span>　申請完了・管理者の承認待ち</div>
+            <div><span class="badge bg-success badge-type">承認済</span>　管理者が承認した状態</div>
+            <div><span class="badge bg-primary badge-type">精算済</span>　立替の支払いが完了した状態</div>
+          </div>
+        </div>
+      </div>
+      <div class="tip-box mt-2">
+        <i class="bi bi-lightbulb me-1"></i>承認前であれば、一覧の編集ボタンから内容の修正ができます。
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- 注意事項 -->
+  <div class="mb-3">
+    <div class="fw-bold mb-2"><i class="bi bi-exclamation-circle text-warning me-1"></i>申請時のご注意</div>
+    <ul class="step-body ps-3 mb-0">
+      <li>領収書の写真は<strong>鮮明に・全体が写るように</strong>撮影してください</li>
+      <li>支払日から<strong>2ヶ月以上</strong>経過した申請は上長への事前確認をお願いします</li>
+      <li>1回の申請につき領収書1枚（複数明細がある場合は1枚ずつ申請）</li>
+    </ul>
+  </div>
+
+  <div class="text-center text-muted mt-4" style="font-size:0.78rem;">
+    ご不明点は管理者までお問い合わせください。<br>
+    <a href="https://keihi-log.com/faq" target="_blank" class="text-muted">よくある質問（FAQ）</a>
+  </div>
+
+</div>
+</body>
+</html>
