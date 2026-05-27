@@ -46,6 +46,9 @@ const Router = (() => {
 
     if (!opts.skipRender) {
       main.style.maxWidth = '480px'; // 集計ビューが広げた場合にリセット
+      // type="password" フィールドを削除前に type="text" へ変換
+      // （Chrome: DOMからpasswordフィールドが消えるとパスワード保存ダイアログが出るため）
+      main.querySelectorAll('input[type="password"]').forEach(el => { el.type = 'text'; });
       main.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div></div>';
 
       const view = VIEWS[viewName];

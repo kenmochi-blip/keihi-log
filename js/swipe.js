@@ -51,12 +51,16 @@ const SwipeNav = (() => {
     const cur = Router.current();
     const main = document.getElementById('appMain');
     if (cur && main) {
-      _cache[cur] = main.innerHTML;
-      // .table-responsive の横スクロール位置もキャッシュ（集計表などの表示位置を保持）
+      // .table-responsive の横スクロール位置をキャッシュ（集計表などの表示位置を保持）
       _scrollCache[cur] = [];
       main.querySelectorAll('.table-responsive').forEach(el => {
         _scrollCache[cur].push(el.scrollLeft);
       });
+      // type="password" を type="text" に変換してからキャッシュ
+      // （スワイプで innerHTML が置き換わる前に変換することで
+      //   Chrome の「パスワードを保存しますか？」ダイアログを抑制する）
+      main.querySelectorAll('input[type="password"]').forEach(el => { el.type = 'text'; });
+      _cache[cur] = main.innerHTML;
     }
   }
 
