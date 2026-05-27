@@ -29,6 +29,7 @@ const SwipeNav = (() => {
   let _decided = false, _isHoriz = false;
   let _overlay = null, _track = null;
   let _W = 0, _cur = '';
+  let _inScrollX = false; // タッチ開始位置が横スクロール可能な要素内 → スワイプをスキップ
 
   function init() {
     const el = document.getElementById('appMain');
@@ -44,6 +45,8 @@ const SwipeNav = (() => {
     _sy = e.touches[0].clientY;
     _decided = false;
     _isHoriz = false;
+    // .table-responsive 内のタッチはスワイプナビをスキップ（横スクロールを優先）
+    _inScrollX = !!e.target.closest('.table-responsive');
     // タッチ開始時に現在ビューの HTML をキャッシュ（データ読み込み済みの状態を保存）
     const cur = Router.current();
     const main = document.getElementById('appMain');
@@ -64,6 +67,8 @@ const SwipeNav = (() => {
       return;
     }
     if (_decided) return;
+    // .table-responsive 内のタッチはブラウザネイティブの横スクロールに委ねる
+    if (_inScrollX) return;
 
     const dx = e.touches[0].clientX - _sx;
     const dy = e.touches[0].clientY - _sy;
