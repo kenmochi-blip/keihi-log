@@ -12,7 +12,9 @@ const App = (() => {
   let _aliasNotFound = false; // URLにエイリアスが指定されたが存在しなかった場合にtrue
   let _expensesCache    = null; // readExpenses() の結果キャッシュ
   let _expensesCacheAt  = 0;   // キャッシュ取得時刻（ms）
-  const EXPENSES_CACHE_TTL = 5 * 60 * 1000; // 5分
+  let _expensesInflight = null; // 進行中のfetchPromise（重複リクエスト防止）
+  const EXPENSES_CACHE_TTL = 5 * 60 * 1000; // 5分（この間はキャッシュを即返す）
+  const EXPENSES_STALE_TTL = 30 * 60 * 1000; // 30分（この間は古いデータを即返しつつバックグラウンドで更新）
 
   // マスターデータのlocalStorageキャッシュTTL（10分）
   const MASTER_CACHE_TTL = 10 * 60 * 1000;
@@ -387,17 +389,58 @@ const App = (() => {
   }
 
   /**
-   * 経費データを返す（5分間キャッシュ付き）
-   * @param {boolean} [force=false] trueの場合はキャッシュを無視して再取得
+   * 経費データを返す（Stale-While-Revalidate + 重複リクエスト防止）
+   *
+   * - 5分以内のキャッシュ  → 即返す（フェッチなし）
+   * - 5〜30分のキャッシュ  → 古いデータを即返しつつバックグラウンドで更新（一覧が即表示される）
+   * - 30分超 or force=true → 待ってから最新データを返す
+   * - 同時複数呼び出し      → 1本のフェッチを共有（重複API呼び出し防止）
+   *
+   * @param {boolean} [force=false] trueの場合はキャッシュを無視して再取得し結果を待つ
    */
   async function getExpenses(force = false) {
     const now = Date.now();
-    if (!force && _expensesCache && (now - _expensesCacheAt) < EXPENSES_CACHE_TTL) {
+    const age = now - _expensesCacheAt;
+
+    // ① フレッシュキャッシュ：即返す
+    if (!force && _expensesCache && age < EXPENSES_CACHE_TTL) {
       return _expensesCache;
     }
-    _expensesCache   = await Sheets.readExpenses();
-    _expensesCacheAt = Date.now();
-    return _expensesCache;
+
+    // ② ステールキャッシュ（5〜30分）：古いデータを即返しつつバックグラウンド更新
+    if (!force && _expensesCache && age < EXPENSES_STALE_TTL) {
+      // すでにバックグラウンド更新中でなければ開始（結果は次回呼び出し時に使われる）
+      if (!_expensesInflight) {
+        _expensesInflight = Sheets.readExpenses()
+          .then(rows => {
+            _expensesCache   = rows;
+            _expensesCacheAt = Date.now();
+          })
+          .catch(() => {}) // バックグラウンド失敗は無視（古いデータを継続使用）
+          .finally(() => { _expensesInflight = null; });
+      }
+      return _expensesCache; // 古いデータを即返す
+    }
+
+    // ③ キャッシュなし / 30分超 / force=true：重複リクエストがあれば相乗り
+    if (_expensesInflight) {
+      await _expensesInflight;
+      return _expensesCache;
+    }
+    let resolve, reject;
+    _expensesInflight = new Promise((res, rej) => { resolve = res; reject = rej; });
+    try {
+      const rows       = await Sheets.readExpenses();
+      _expensesCache   = rows;
+      _expensesCacheAt = Date.now();
+      resolve(rows);
+      return _expensesCache;
+    } catch (err) {
+      reject(err);
+      throw err;
+    } finally {
+      _expensesInflight = null;
+    }
   }
 
   /** 経費データキャッシュを破棄（申請・修正・削除後に呼ぶ） */

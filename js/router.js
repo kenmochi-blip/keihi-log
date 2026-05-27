@@ -43,6 +43,9 @@ const Router = (() => {
     const view = VIEWS[viewName];
     try {
       main.innerHTML = view.render();
+      // コンテンツが描画されたらフェードイン（スピナー表示なしで即切り替わる体感）
+      main.classList.remove('view-fade-in');
+      requestAnimationFrame(() => main.classList.add('view-fade-in'));
     } catch (err) {
       console.error('view.render error:', err);
       main.innerHTML = _errorHtml(`画面の表示でエラーが発生しました: ${err.message}`);

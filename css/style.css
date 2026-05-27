@@ -1,6 +1,13 @@
 /* ベースレイアウト */
 body { font-size: 0.9rem; }
 
+/* タップ遅延を解消（モバイルで300ms遅延をなくす） */
+button, a, [role="button"], .type-card, .upload-card, .upload-card-sm,
+.nav-item-btn, label[for], .list-sp-amount, .list-amount-toggle,
+input[type="checkbox"], input[type="radio"] {
+  touch-action: manipulation;
+}
+
 /* iOS Safari は input[type=date] をデフォルトでcenter寄せにするため上書き */
 input[type="date"] { text-align: left; }
 input[type="date"]::-webkit-date-and-time-value { text-align: left; }
@@ -271,6 +278,15 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
   border-bottom: none;
 }
 .pivot-title { font-size: 0.95rem; }
+
+/* ビュー切り替えフェードイン */
+@keyframes viewFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.view-fade-in {
+  animation: viewFadeIn 0.12s ease-out both;
+}
 
 /* ローディングオーバーレイ */
 #loadingOverlay { display: flex !important; }
