@@ -24,6 +24,11 @@ const SubmitView = (() => {
   let _historyShown    = 15;
   const _HIST_PAGE     = 15;
 
+  // プリフェッチ状態
+  let _aiAutoPromise  = null; // 写真選択後に自動開始するAI解析のPromise
+  let _aiAutoVersion  = 0;   // 写真が差し替えられた際に古い結果を破棄するためのバージョン番号
+  let _prefetchedTime = null; // { jst: string, fetchedAt: number } 申請時刻のプリフェッチ
+
   const TYPES = ['領収書', '領収書なし', '電車/バス', '自家用車'];
   const _typeId = t => t.replace(/\//g, '');
   const CAR_RATE_KEY = 'keihi_car_rate';
@@ -443,6 +448,7 @@ function _bindTypeButtons(el) {
       btn.addEventListener('click', () => {
         _currentType = btn.dataset.type;
         _selectedFiles = []; _compressedFiles = []; _compressPromise = null;
+        _aiAutoPromise = null; _prefetchedTime = null; ++_aiAutoVersion;
         el.querySelectorAll('[data-type]').forEach(b => {
           b.classList.toggle('active', b.dataset.type === _currentType);
         });
@@ -469,12 +475,39 @@ function _bindTypeButtons(el) {
         _addPreviewItem(el, type, base64, file.type, _selectedFiles.length - 1);
       }
 
-      // 領収書タイプの場合：圧縮とAPIキー取得をボタン押下前にバックグラウンドで先読み
+      // 領収書タイプの場合：写真選択直後にバックグラウンドで先読みを開始
       if (type === '領収書' && _selectedFiles.length > 0) {
         _compressedFiles = [];
+        _aiAutoPromise = null;
+        const version = ++_aiAutoVersion; // 写真差し替え時に古い結果を捨てるバージョン
         _compressPromise = Gemini.precompress(_selectedFiles);
         Gemini.warmup();
-        _compressPromise.then(compressed => { _compressedFiles = compressed; });
+
+        // 圧縮完了次第 AI 解析を自動開始（ボタン押下前に解析を済ませる）
+        _compressPromise.then(compressed => {
+          _compressedFiles = compressed;
+          if (version !== _aiAutoVersion) return; // 別の写真に差し替えられた場合は破棄
+
+          const btn = el.querySelector('#btnAnalyze');
+          // AI解析をバックグラウンド実行（エラーは null で吸収してボタン押下時に再試行）
+          _aiAutoPromise = Gemini.analyzeReceipt(compressed, _cats, false).catch(() => null);
+
+          // ボタンに「解析中」インジケーターを追加
+          if (btn && !btn.disabled) {
+            btn.innerHTML = '<i class="bi bi-stars me-2"></i>AIで読み取る'
+              + '<span class="spinner-border spinner-border-sm ms-2" style="width:.7rem;height:.7rem;border-width:.1em;opacity:.5;vertical-align:middle;"></span>';
+          }
+
+          _aiAutoPromise.then(result => {
+            if (version !== _aiAutoVersion || !btn || btn.disabled) return;
+            btn.innerHTML = result
+              ? '<i class="bi bi-check-circle-fill text-success me-2"></i>読み取り完了 — タップで確認'
+              : '<i class="bi bi-stars me-2"></i>AIで読み取る'; // 失敗時はデフォルトに戻す
+          });
+        });
+
+        // 申請時刻をプリフェッチ（申請ボタン押下時の待ちをゼロにする）
+        _prefetchServerTime();
       }
     };
 
@@ -859,13 +892,27 @@ function _bindTypeButtons(el) {
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>解析中...';
     try {
-      // 圧縮済みキャッシュがあればそれを使用（プリフェッチ済みの場合は圧縮時間ゼロ）
-      if (_compressPromise) {
-        _compressedFiles = await _compressPromise;
-        _compressPromise = null;
+      let result = null;
+
+      // バックグラウンド解析が完了済み or 実行中の場合はその結果を使用
+      // → 完了済みなら await は即時 return（待ち時間ゼロ）
+      // → 実行中なら残り時間だけ待つ（フルで待つより大幅に短い）
+      if (_aiAutoPromise) {
+        const savedPromise = _aiAutoPromise;
+        _aiAutoPromise = null;
+        result = await savedPromise.catch(() => null);
       }
-      const filesToAnalyze = _compressedFiles.length > 0 ? _compressedFiles : files;
-      const result = await Gemini.analyzeReceipt(filesToAnalyze, _cats, true);
+
+      if (!result) {
+        // バックグラウンド解析が未開始 or 失敗 → 通常のAPI呼び出し
+        if (_compressPromise) {
+          _compressedFiles = await _compressPromise;
+          _compressPromise = null;
+        }
+        const filesToAnalyze = _compressedFiles.length > 0 ? _compressedFiles : files;
+        result = await Gemini.analyzeReceipt(filesToAnalyze, _cats, true);
+      }
+
       console.log('[AI解析結果]', result);
 
       _showReceiptFields(el);
@@ -987,6 +1034,20 @@ function _bindTypeButtons(el) {
     el.querySelector('#btnSubmit')?.classList.remove('d-none');
   }
 
+  /** サーバー時刻を事前取得して _prefetchedTime に保存する（申請時の待ちをゼロにする） */
+  function _prefetchServerTime() {
+    if (_prefetchedTime) return; // 既にプリフェッチ済み
+    const _licKey = localStorage.getItem('keihi_license_key') || '';
+    const base = window.APP_CONFIG?.apiBase || '';
+    fetch(`${base}/api/time`, {
+      method: _licKey ? 'POST' : 'GET',
+      headers: _licKey ? { 'Content-Type': 'application/json' } : {},
+      body: _licKey ? JSON.stringify({ key: _licKey }) : undefined,
+    }).then(r => r.ok ? r.json() : null)
+      .then(data => { if (data?.jst) _prefetchedTime = { jst: data.jst, fetchedAt: Date.now() }; })
+      .catch(() => {});
+  }
+
   function _bindSubmit(el) {
     el.querySelector('#btnSubmit')?.addEventListener('click', () => _handleSubmit(el));
   }
@@ -1008,16 +1069,27 @@ function _bindTypeButtons(el) {
 
     App.showLoading('申請中...');
     try {
-      // 1. サーバー時刻取得（電帳法対応）、申請カウンターをインクリメント
+      // 1. サーバー時刻取得（電帳法対応）
+      //    写真選択時にプリフェッチ済みの場合は待ちゼロ（経過時間を加算して精度維持）
       const _licKey = localStorage.getItem('keihi_license_key') || '';
-      const timeResp = await fetch(`${window.APP_CONFIG?.apiBase || ''}/api/time`, {
-        method: _licKey ? 'POST' : 'GET',
-        headers: _licKey ? { 'Content-Type': 'application/json' } : {},
-        body: _licKey ? JSON.stringify({ key: _licKey }) : undefined,
-      });
-      const appliedAt = timeResp.ok
-        ? (await timeResp.json()).jst
-        : new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
+      const _timePrefetchTTL = 5 * 60 * 1000; // プリフェッチ有効期限 5分
+      let appliedAt;
+      if (_prefetchedTime && (Date.now() - _prefetchedTime.fetchedAt) < _timePrefetchTTL) {
+        const elapsed = Date.now() - _prefetchedTime.fetchedAt;
+        appliedAt = new Date(new Date(_prefetchedTime.jst).getTime() + elapsed)
+          .toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
+        _prefetchedTime = null;
+      } else {
+        _prefetchedTime = null;
+        const timeResp = await fetch(`${window.APP_CONFIG?.apiBase || ''}/api/time`, {
+          method: _licKey ? 'POST' : 'GET',
+          headers: _licKey ? { 'Content-Type': 'application/json' } : {},
+          body: _licKey ? JSON.stringify({ key: _licKey }) : undefined,
+        });
+        appliedAt = timeResp.ok
+          ? (await timeResp.json()).jst
+          : new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
+      }
 
       // 2. ファイルアップロード + SHA-256ハッシュ計算
       const activeFiles = _selectedFiles.filter(Boolean);
@@ -1462,6 +1534,10 @@ function _bindTypeButtons(el) {
 
   function _resetForm(el) {
     _selectedFiles = []; _compressedFiles = []; _compressPromise = null;
+    _aiAutoPromise = null; _prefetchedTime = null; ++_aiAutoVersion; // プリフェッチ状態をリセット
+    // AIボタンをデフォルトに戻す
+    const analyzeBtn = el.querySelector('#btnAnalyze');
+    if (analyzeBtn && !analyzeBtn.disabled) analyzeBtn.innerHTML = '<i class="bi bi-stars me-2"></i>AIで読み取る';
     _editId = null;
     _returnAfterEdit = null;
     _withholdingAmount = 0;
