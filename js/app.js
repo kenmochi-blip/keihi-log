@@ -14,6 +14,9 @@ const App = (() => {
   let _expensesCacheAt  = 0;   // キャッシュ取得時刻（ms）
   const EXPENSES_CACHE_TTL = 5 * 60 * 1000; // 5分
 
+  // マスターデータのlocalStorageキャッシュTTL（10分）
+  const MASTER_CACHE_TTL = 10 * 60 * 1000;
+
   async function init() {
     // デモモード：認証・ライセンス・シート確認をスキップ
     if (typeof Demo !== 'undefined' && Demo.isActive()) {
@@ -32,16 +35,13 @@ const App = (() => {
       return;
     }
 
-    // ?setup= パラメータがあればライセンスキーをlocalStorageに自動入力
-    await _resolveSetupParam();
-
-    // URLパスからエイリアス/シートIDを解決してlocalStorageに反映
-    await _resolvePathAlias();
-
-    // 認証トークン確認（未認証・リフレッシュ失敗時はログイン画面へ）
-    try {
-      await Auth.getToken();
-    } catch (_) {
+    // ① パス解決・セットアップ・認証トークン取得を並列実行（互いに依存しない）
+    const [,, tokenResult] = await Promise.allSettled([
+      _resolveSetupParam(),
+      _resolvePathAlias(),
+      Auth.getToken(),
+    ]);
+    if (tokenResult.status === 'rejected') {
       const _isGenericPath = location.pathname === '/app.html' || location.pathname === '/app' || location.pathname === '/';
       let ret = _isGenericPath ? '' : location.pathname;
       if (!ret) { const ca = _getCookieAlias(); if (ca) ret = '/' + ca; }
@@ -78,7 +78,6 @@ const App = (() => {
     const lic = await License.verify(licKey);
     if (!lic.valid) {
       _setupUI('settings');
-      // ライセンス無効の理由をトーストで案内
       const reason = lic.reason === 'expired'   ? 'ライセンスの有効期限が切れています。' :
                      lic.reason === 'suspended'  ? 'ライセンスが停止されています。' :
                                                    'ライセンスキーが無効です。';
@@ -89,13 +88,34 @@ const App = (() => {
       return;
     }
 
-    // マスターデータ読み込みと管理者判定
+    // ② マスターデータ取得・設定一括取得を並列実行
     const _userEmail = Auth.getUserEmail().toLowerCase();
     const _licCache  = (() => { try { return JSON.parse(localStorage.getItem('keihi_license_cache') || 'null'); } catch (_) { return null; } })();
     const _isOwner   = !!(_licCache?.result?.ownerEmail && _licCache.result.ownerEmail === _userEmail);
-    try {
-      _masterCache = await Sheets.readMaster();
 
+    // マスターデータ：localStorageキャッシュが有効なら再取得しない（10分TTL）
+    const _cachedMaster = (() => {
+      try {
+        const c = JSON.parse(localStorage.getItem('keihi_master_cache') || 'null');
+        if (c?._cachedAt && Date.now() - c._cachedAt < MASTER_CACHE_TTL) return c;
+      } catch (_) {}
+      return null;
+    })();
+    const masterPromise = _cachedMaster
+      ? Promise.resolve(_cachedMaster)
+      : Sheets.readMaster().then(m => {
+          try { localStorage.setItem('keihi_master_cache', JSON.stringify({ ...m, _cachedAt: Date.now() })); } catch (_) {}
+          return m;
+        });
+
+    const [masterResult, cfgResult] = await Promise.allSettled([
+      masterPromise,
+      Sheets.readAllSettings(),
+    ]);
+
+    // マスターデータ処理
+    if (masterResult.status === 'fulfilled') {
+      _masterCache = masterResult.value;
       if (_isOwner || _masterCache.admins.length === 0 || _masterCache.admins.includes(_userEmail)) {
         _userRole = 'admin';
       } else if (_masterCache.viewers && _masterCache.viewers.includes(_userEmail)) {
@@ -104,36 +124,29 @@ const App = (() => {
         _userRole = 'member';
       }
       _isAdmin = _userRole === 'admin';
-
-      // メンバー制限：登録メンバーが1人以上いる場合、未登録ユーザーはアクセス不可
-      // 管理者（isOwner含む）はメンバーリストの有無に関わらず常にアクセス許可
       if (_userRole !== 'admin' && _masterCache.members.length > 0 && !_masterCache.members.some(m => m.email.toLowerCase() === _userEmail)) {
         _showAccessDeniedError(_userEmail);
         return;
       }
-    } catch (err) {
-      // シートへのアクセス権がない場合は明示的にエラー表示
-      if (err && err.message && err.message.includes('403')) {
+    } else {
+      const err = masterResult.reason;
+      if (err?.message?.includes('403')) {
         _showSheetAccessDeniedError();
         return;
       }
       _masterCache = { members: [], categories: [], paySources: [], admins: [], viewers: [] };
-      // ライセンスオーナーのみ管理者フォールバック（設定画面で復旧できるように）
-      if (_isOwner) {
-        _userRole = 'admin';
-        _isAdmin  = true;
-      }
+      if (_isOwner) { _userRole = 'admin'; _isAdmin = true; }
     }
 
-    // 会社名・フォルダIDをシートから一括取得（キャッシュ優先で即時表示、APIで更新）
+    // 設定シート（B2:B7）処理
     let _companyName = localStorage.getItem('keihi_company_name') || '';
     if (_companyName) {
       const titleEl = document.getElementById('navAppTitle');
       if (titleEl) titleEl.textContent = `経費ログ - ${_truncateCompany(_companyName)}`;
       document.title = `経費ログ | ${_companyName}`;
     }
-    try {
-      const cfg = await Sheets.readAllSettings();
+    if (cfgResult.status === 'fulfilled') {
+      const cfg = cfgResult.value;
       const fetched = cfg.B2 || '';
       if (fetched && fetched !== _companyName) {
         _companyName = fetched;
@@ -142,16 +155,12 @@ const App = (() => {
         if (titleEl) titleEl.textContent = `経費ログ - ${_truncateCompany(fetched)}`;
         document.title = `経費ログ | ${fetched}`;
       }
-      // フォルダIDをシートから復元（新ドメイン等でlocalStorageが空の場合）
       if (cfg.B4 && !localStorage.getItem('keihi_folder_id')) {
         localStorage.setItem('keihi_folder_id', cfg.B4);
       }
-      // 規程JSON（B6）をlocalStorageに保存 → 申請タブのrender()で即時参照できるようにする
-      // ※ 設定タブを開かなくても全ロールで規程が表示されるために必要
-      if (cfg.B6) {
-        localStorage.setItem('keihi_regulation', cfg.B6);
-      }
-    } catch (_) {}
+      // 規程JSON → 申請タブのrender()で即時参照できるようにする（全ロール対応）
+      if (cfg.B6) localStorage.setItem('keihi_regulation', cfg.B6);
+    }
 
     _setupUI('submit', _companyName);
 
@@ -313,7 +322,10 @@ const App = (() => {
     return _masterCache;
   }
 
-  function clearMasterCache() { _masterCache = null; }
+  function clearMasterCache() {
+    _masterCache = null;
+    try { localStorage.removeItem('keihi_master_cache'); } catch (_) {}
+  }
 
   /**
    * 経費データを返す（5分間キャッシュ付き）
