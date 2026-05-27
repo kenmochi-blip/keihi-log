@@ -35,7 +35,16 @@ const App = (() => {
       return;
     }
 
-    // ① パス解決・セットアップ・認証トークン取得を並列実行（互いに依存しない）
+    // ━━ 即時起動（キャッシュ優先）━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // localStorageのキャッシュが揃っていれば、ネットワーク待ちなしでUIを即描画。
+    // バックグラウンドで非同期検証し、問題があれば後からエラーを表示する。
+    const _quickStarted = _tryQuickStart();
+    if (_quickStarted) {
+      _applyAdminVisibility(); // キャッシュのロールで設定タブ表示を即時確定
+    }
+
+    // ━━ 非同期検証フェーズ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // ① パス解決・セットアップ・認証トークン取得を並列実行
     const [,, tokenResult] = await Promise.allSettled([
       _resolveSetupParam(),
       _resolvePathAlias(),
@@ -49,7 +58,7 @@ const App = (() => {
       return;
     }
 
-    // ライセンス・シート未設定の場合は申請画面を表示してバナーで案内
+    // ライセンス・シート未設定の場合
     let licKey = localStorage.getItem('keihi_license_key');
     const ssId = localStorage.getItem('keihi_sheet_id');
 
@@ -63,22 +72,14 @@ const App = (() => {
         }
       } catch (_) {}
     }
-    if (_aliasNotFound) {
-      _showAliasNotFoundError();
-      return;
-    }
-    if (!ssId) {
-      window.location.replace('/setup');
-      return;
-    }
+    if (_aliasNotFound) { _showAliasNotFoundError(); return; }
+    if (!ssId) { window.location.replace('/setup'); return; }
     if (!licKey) {
-      _setupUI('submit');
+      if (!_quickStarted) _setupUI('submit');
       return;
     }
 
     // ② ライセンス検証・マスターデータ・設定シートを一斉並列実行
-    //    ライセンスが無効でもAPIコストはほぼゼロ（Sheets読み取りは無課金）
-    //    直列だった License.verify → readMaster の待ちをなくす
     const _userEmail = Auth.getUserEmail().toLowerCase();
     const _licCache  = (() => { try { return JSON.parse(localStorage.getItem('keihi_license_cache') || 'null'); } catch (_) { return null; } })();
     const _isOwner   = !!(_licCache?.result?.ownerEmail && _licCache.result.ownerEmail === _userEmail);
@@ -103,20 +104,20 @@ const App = (() => {
       Sheets.readAllSettings(),
     ]);
 
-    // ライセンス検証結果を確認（他の結果より先に判定）
+    // ライセンス検証
     const lic = licResult.status === 'fulfilled' ? licResult.value : { valid: false, reason: 'error' };
     if (!lic.valid) {
-      _setupUI('settings');
-      const reason = lic.reason === 'expired'   ? 'ライセンスの有効期限が切れています。' :
-                     lic.reason === 'suspended'  ? 'ライセンスが停止されています。' :
-                                                   'ライセンスキーが無効です。';
-      setTimeout(() => showToast(
-        `${reason}設定画面からライセンスキーを更新してください。`,
-        'danger', 8000
-      ), 500);
+      const reason = lic.reason === 'expired'  ? 'ライセンスの有効期限が切れています。' :
+                     lic.reason === 'suspended' ? 'ライセンスが停止されています。' :
+                                                  'ライセンスキーが無効です。';
+      if (_quickStarted) {
+        Router.navigate('settings'); // 即時描画済みのUIを設定画面で上書き
+      } else {
+        _setupUI('settings');
+      }
+      setTimeout(() => showToast(`${reason}設定画面からライセンスキーを更新してください。`, 'danger', 8000), 500);
       return;
     }
-
 
     // マスターデータ処理
     if (masterResult.status === 'fulfilled') {
@@ -135,43 +136,99 @@ const App = (() => {
       }
     } else {
       const err = masterResult.reason;
-      if (err?.message?.includes('403')) {
-        _showSheetAccessDeniedError();
-        return;
+      if (err?.message?.includes('403')) { _showSheetAccessDeniedError(); return; }
+      if (!_quickStarted) {
+        _masterCache = { members: [], categories: [], paySources: [], admins: [], viewers: [] };
+        if (_isOwner) { _userRole = 'admin'; _isAdmin = true; }
       }
-      _masterCache = { members: [], categories: [], paySources: [], admins: [], viewers: [] };
-      if (_isOwner) { _userRole = 'admin'; _isAdmin = true; }
     }
 
     // 設定シート（B2:B7）処理
     let _companyName = localStorage.getItem('keihi_company_name') || '';
-    if (_companyName) {
-      const titleEl = document.getElementById('navAppTitle');
-      if (titleEl) titleEl.textContent = `経費ログ - ${_truncateCompany(_companyName)}`;
-      document.title = `経費ログ | ${_companyName}`;
-    }
     if (cfgResult.status === 'fulfilled') {
       const cfg = cfgResult.value;
       const fetched = cfg.B2 || '';
       if (fetched && fetched !== _companyName) {
         _companyName = fetched;
         localStorage.setItem('keihi_company_name', fetched);
-        const titleEl = document.getElementById('navAppTitle');
-        if (titleEl) titleEl.textContent = `経費ログ - ${_truncateCompany(fetched)}`;
-        document.title = `経費ログ | ${fetched}`;
       }
-      if (cfg.B4 && !localStorage.getItem('keihi_folder_id')) {
-        localStorage.setItem('keihi_folder_id', cfg.B4);
-      }
-      // 規程JSON → 申請タブのrender()で即時参照できるようにする（全ロール対応）
+      if (cfg.B4 && !localStorage.getItem('keihi_folder_id')) localStorage.setItem('keihi_folder_id', cfg.B4);
       if (cfg.B6) localStorage.setItem('keihi_regulation', cfg.B6);
     }
 
-    _setupUI('submit', _companyName);
+    if (!_quickStarted) {
+      // 通常起動：全検証完了後にUIを初期化
+      if (_companyName) {
+        const titleEl = document.getElementById('navAppTitle');
+        if (titleEl) titleEl.textContent = `経費ログ - ${_truncateCompany(_companyName)}`;
+        document.title = `経費ログ | ${_companyName}`;
+      }
+      _setupUI('submit', _companyName);
+    } else {
+      // 即時起動済み：会社名・タブ表示のみ更新（再描画なし）
+      if (_companyName) {
+        const titleEl = document.getElementById('navAppTitle');
+        if (titleEl) titleEl.textContent = `経費ログ - ${_truncateCompany(_companyName)}`;
+        document.title = `経費ログ | ${_companyName}`;
+      }
+    }
+    _applyAdminVisibility(); // 最新ロールで再適用（キャッシュと異なる場合を考慮）
+  }
 
-    // 管理者以外は設定タブを非表示
-    if (!_isAdmin) {
-      document.querySelector('.nav-item-btn[data-view="settings"]')?.classList.add('d-none');
+  /**
+   * キャッシュが揃っている場合、非同期処理を待たずにUIを即座に描画する。
+   * 条件：有効なセッション・sheetId・licenseKey・ライセンスキャッシュが存在すること。
+   * 起動体験を優先し、バックグラウンドで非同期検証を行う。
+   */
+  function _tryQuickStart() {
+    try {
+      // 認証セッション（アクセストークンまたはリフレッシュトークンがあればOK）
+      const session = JSON.parse(localStorage.getItem('keihi_auth_session') || 'null');
+      if (!session?.access_token && !session?.refresh_token) return false;
+
+      // スプレッドシートIDとライセンスキーが必要
+      const ssId   = localStorage.getItem('keihi_sheet_id');
+      const licKey = localStorage.getItem('keihi_license_key');
+      if (!ssId || !licKey) return false;
+
+      // ライセンスキャッシュが有効期限内であること
+      const licCache = JSON.parse(localStorage.getItem('keihi_license_cache') || 'null');
+      if (!licCache?.result?.valid || !licCache.expiry || licCache.expiry < Date.now()) return false;
+
+      // マスターデータをキャッシュから復元（期限切れでも可：バックグラウンドで更新）
+      const masterRaw = JSON.parse(localStorage.getItem('keihi_master_cache') || 'null');
+      const master    = masterRaw || { members: [], categories: [], paySources: [], admins: [], viewers: [] };
+
+      // ロールをキャッシュから確定
+      const email   = (session.userInfo?.email || localStorage.getItem('keihi_user_email') || '').toLowerCase();
+      const isOwner = !!(licCache.result.ownerEmail && licCache.result.ownerEmail === email);
+      _masterCache  = master;
+      if (isOwner || master.admins.length === 0 || master.admins.includes(email)) {
+        _userRole = 'admin';
+      } else if (master.viewers?.includes(email)) {
+        _userRole = 'viewer';
+      } else {
+        _userRole = 'member';
+      }
+      _isAdmin = _userRole === 'admin';
+
+      // UIを即時描画（会社名もキャッシュから）
+      const companyName = localStorage.getItem('keihi_company_name') || '';
+      _setupUI('submit', companyName);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /** 管理者以外の設定タブを非表示にする（_isAdmin の変化に追従） */
+  function _applyAdminVisibility() {
+    const btn = document.querySelector('.nav-item-btn[data-view="settings"]');
+    if (!btn) return;
+    if (_isAdmin) {
+      btn.classList.remove('d-none');
+    } else {
+      btn.classList.add('d-none');
     }
   }
 
