@@ -371,7 +371,8 @@ const SubmitView = (() => {
       _customFlags = master.customFlags || [];
     } catch (_) {}
 
-    _populateSelects(el);
+    // fromCache=true のとき：キャッシュ済みHTMLに正しい選択肢・選択値が含まれるため再描画不要
+    if (!opts.fromCache) _populateSelects(el);
     _bindAmountInputs(el);
     _bindTypeButtons(el);
     _bindFileInputs(el);

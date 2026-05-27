@@ -510,6 +510,9 @@ const SettingsView = (() => {
 
     if (!App.isAdmin()) return;
 
+    // fromCache=true のとき：スワイプ由来でキャッシュ済みHTMLが表示されているため
+    // シートからの再読み込み（社名・Gemini APIキー・車両レート）をスキップ
+    if (!opts.fromCache) {
     // 設定シートをB2:B7まとめて1回のAPIコールで読み込む
     const isDemo = typeof Demo !== 'undefined' && Demo.isActive();
     const ssId = localStorage.getItem('keihi_sheet_id');
@@ -544,6 +547,7 @@ const SettingsView = (() => {
         }
       }
     }
+    } // end !opts.fromCache
 
     el.querySelector('#btnSaveCompanyName')?.addEventListener('click', async () => {
       const name = el.querySelector('#inputCompanyName').value.trim();

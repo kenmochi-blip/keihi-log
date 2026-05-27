@@ -137,8 +137,7 @@ const SwipeNav = (() => {
       const panel = document.createElement('div');
       panel.style.cssText =
         `position:absolute;top:0;left:${pos * _W}px;width:${_W}px;height:100%;` +
-        `background:#f8f9fa;overflow:hidden;` +
-        (pos !== 1 ? 'opacity:0.6;' : '');
+        `background:#f8f9fa;overflow:hidden;`;
 
       const inner = document.createElement('div');
       inner.className = mainClassName;
@@ -175,6 +174,17 @@ const SwipeNav = (() => {
       inner.style.paddingBottom = '80px';
 
       panel.appendChild(inner);
+
+      // 隣パネル：コンテンツを opacity:1 のまま保ちつつ半透明シートで薄暗く見せる
+      // （panel 自体に opacity:0.6 を使うとコンテンツの effective opacity が変わり、
+      //   スワイプ完了後に main が 100% opacity で現れたときにアイコンが「点滅」して見えるため）
+      if (pos !== 1) {
+        const dimSheet = document.createElement('div');
+        dimSheet.style.cssText =
+          'position:absolute;inset:0;background:rgba(0,0,0,0.22);pointer-events:none;z-index:1;';
+        panel.appendChild(dimSheet);
+      }
+
       _track.appendChild(panel);
     });
 
