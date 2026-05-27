@@ -22,7 +22,14 @@ const Router = (() => {
     navigate(initialView);
   }
 
-  async function navigate(viewName) {
+  /**
+   * ビューを切り替える
+   * @param {string} viewName
+   * @param {{ skipRender?: boolean, skipFade?: boolean }} [opts]
+   *   skipRender: trueのとき render()/innerHTML 書き換えをスキップ（swipe完了後用）
+   *   skipFade:   trueのとき フェードインアニメーションをスキップ
+   */
+  async function navigate(viewName, opts = {}) {
     const main = document.getElementById('appMain');
     if (!main) return;
 
@@ -37,20 +44,27 @@ const Router = (() => {
       btn.classList.toggle('active', btn.dataset.view === viewName);
     });
 
-    main.style.maxWidth = '480px'; // 集計ビューが広げた場合にリセット
-    main.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div></div>';
+    if (!opts.skipRender) {
+      main.style.maxWidth = '480px'; // 集計ビューが広げた場合にリセット
+      main.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div></div>';
+
+      const view = VIEWS[viewName];
+      try {
+        main.innerHTML = view.render();
+        // フェードイン（タブボタンタップ時のみ）
+        // スワイプ遷移はアニメーション済みのためスキップ（skipFade=true）
+        if (!opts.skipFade) {
+          main.classList.remove('view-fade-in');
+          requestAnimationFrame(() => main.classList.add('view-fade-in'));
+        }
+      } catch (err) {
+        console.error('view.render error:', err);
+        main.innerHTML = _errorHtml(`画面の表示でエラーが発生しました: ${err.message}`);
+        return;
+      }
+    }
 
     const view = VIEWS[viewName];
-    try {
-      main.innerHTML = view.render();
-      // コンテンツが描画されたらフェードイン（スピナー表示なしで即切り替わる体感）
-      main.classList.remove('view-fade-in');
-      requestAnimationFrame(() => main.classList.add('view-fade-in'));
-    } catch (err) {
-      console.error('view.render error:', err);
-      main.innerHTML = _errorHtml(`画面の表示でエラーが発生しました: ${err.message}`);
-      return;
-    }
     try {
       await view.bindEvents(main);
     } catch (err) {

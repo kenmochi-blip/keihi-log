@@ -184,9 +184,27 @@ const SwipeNav = (() => {
     _track.style.transition = 'transform 0.22s cubic-bezier(0.25,0.46,0.45,0.94)';
     _track.style.transform  = `translateX(${targetX}px)`;
     _track.addEventListener('transitionend', () => {
-      _cleanup();
+      const main = document.getElementById('appMain');
+
+      // ① オーバーレイが覆っている間に新ビューを main へ先行描画
+      //    → overlay 撤去直後から正しいコンテンツが表示される（旧コンテンツが一瞬現れない）
+      if (main && _views()[targetView]) {
+        main.style.maxWidth = '480px';
+        try { main.innerHTML = _views()[targetView].render(); } catch (_) {}
+        // テーブル横スクロール位置を復元
+        const savedScrolls = _scrollCache[targetView];
+        if (savedScrolls?.length) {
+          main.querySelectorAll('.table-responsive').forEach((el, i) => {
+            if (savedScrolls[i] > 0) el.scrollLeft = savedScrolls[i];
+          });
+        }
+      }
+
       window.scrollTo(0, 0);
-      Router.navigate(targetView);
+      _cleanup(); // overlay 撤去 → main が即座に新コンテンツで表示される
+
+      // ② Router はナビ状態・_current 更新 + bindEvents のみ実行（再描画・フェードインなし）
+      Router.navigate(targetView, { skipRender: true, skipFade: true });
     }, { once: true });
   }
 
