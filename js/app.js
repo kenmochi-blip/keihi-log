@@ -75,25 +75,14 @@ const App = (() => {
       _setupUI('submit');
       return;
     }
-    const lic = await License.verify(licKey);
-    if (!lic.valid) {
-      _setupUI('settings');
-      const reason = lic.reason === 'expired'   ? 'ライセンスの有効期限が切れています。' :
-                     lic.reason === 'suspended'  ? 'ライセンスが停止されています。' :
-                                                   'ライセンスキーが無効です。';
-      setTimeout(() => showToast(
-        `${reason}設定画面からライセンスキーを更新してください。`,
-        'danger', 8000
-      ), 500);
-      return;
-    }
 
-    // ② マスターデータ取得・設定一括取得を並列実行
+    // ② ライセンス検証・マスターデータ・設定シートを一斉並列実行
+    //    ライセンスが無効でもAPIコストはほぼゼロ（Sheets読み取りは無課金）
+    //    直列だった License.verify → readMaster の待ちをなくす
     const _userEmail = Auth.getUserEmail().toLowerCase();
     const _licCache  = (() => { try { return JSON.parse(localStorage.getItem('keihi_license_cache') || 'null'); } catch (_) { return null; } })();
     const _isOwner   = !!(_licCache?.result?.ownerEmail && _licCache.result.ownerEmail === _userEmail);
 
-    // マスターデータ：localStorageキャッシュが有効なら再取得しない（10分TTL）
     const _cachedMaster = (() => {
       try {
         const c = JSON.parse(localStorage.getItem('keihi_master_cache') || 'null');
@@ -108,10 +97,26 @@ const App = (() => {
           return m;
         });
 
-    const [masterResult, cfgResult] = await Promise.allSettled([
+    const [licResult, masterResult, cfgResult] = await Promise.allSettled([
+      License.verify(licKey),
       masterPromise,
       Sheets.readAllSettings(),
     ]);
+
+    // ライセンス検証結果を確認（他の結果より先に判定）
+    const lic = licResult.status === 'fulfilled' ? licResult.value : { valid: false, reason: 'error' };
+    if (!lic.valid) {
+      _setupUI('settings');
+      const reason = lic.reason === 'expired'   ? 'ライセンスの有効期限が切れています。' :
+                     lic.reason === 'suspended'  ? 'ライセンスが停止されています。' :
+                                                   'ライセンスキーが無効です。';
+      setTimeout(() => showToast(
+        `${reason}設定画面からライセンスキーを更新してください。`,
+        'danger', 8000
+      ), 500);
+      return;
+    }
+
 
     // マスターデータ処理
     if (masterResult.status === 'fulfilled') {
@@ -531,11 +536,11 @@ const App = (() => {
       localStorage.setItem('keihi_sheet_id', token);
       return;
     }
-    // 5秒タイムアウト・リトライなし（タイムアウト時は既存localStorageのIDで続行）
+    // 3秒タイムアウト・リトライなし（タイムアウト時は既存localStorageのIDで続行）
     try {
       const base = (window.APP_CONFIG && window.APP_CONFIG.apiBase) || '';
       const ctrl = new AbortController();
-      const tid  = setTimeout(() => ctrl.abort(), 5000);
+      const tid  = setTimeout(() => ctrl.abort(), 3000);
       const r = await fetch(base + '/api/alias?code=' + encodeURIComponent(token),
         { signal: ctrl.signal });
       clearTimeout(tid);
