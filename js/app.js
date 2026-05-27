@@ -146,6 +146,11 @@ const App = (() => {
       if (cfg.B4 && !localStorage.getItem('keihi_folder_id')) {
         localStorage.setItem('keihi_folder_id', cfg.B4);
       }
+      // 規程JSON（B6）をlocalStorageに保存 → 申請タブのrender()で即時参照できるようにする
+      // ※ 設定タブを開かなくても全ロールで規程が表示されるために必要
+      if (cfg.B6) {
+        localStorage.setItem('keihi_regulation', cfg.B6);
+      }
     } catch (_) {}
 
     _setupUI('submit', _companyName);
