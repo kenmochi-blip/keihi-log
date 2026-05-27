@@ -549,6 +549,18 @@ const SettingsView = (() => {
     }
     } // end !opts.fromCache
 
+    // fromCache=true のとき：innerHTML は input の .value プロパティを保存しないため
+    // localStorage から input 値を復元する（APIコールなし）
+    if (opts.fromCache) {
+      const companyInput = el.querySelector('#inputCompanyName');
+      if (companyInput) companyInput.value = localStorage.getItem('keihi_company_name') || '';
+      const geminiInput = el.querySelector('#inputGeminiKey');
+      if (geminiInput) geminiInput.value = localStorage.getItem('keihi_gemini_key') || '';
+      const carRateInput = el.querySelector('#inputCarRate');
+      const cachedRate = localStorage.getItem('keihi_car_rate');
+      if (carRateInput && cachedRate) carRateInput.value = cachedRate;
+    }
+
     el.querySelector('#btnSaveCompanyName')?.addEventListener('click', async () => {
       const name = el.querySelector('#inputCompanyName').value.trim();
       const msg  = el.querySelector('#companyNameMsg');
