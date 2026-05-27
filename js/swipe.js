@@ -58,6 +58,14 @@ const SwipeNav = (() => {
       main.querySelectorAll('.table-responsive').forEach(el => {
         _scrollCache[cur].push(el.scrollLeft);
       });
+      // input の .value プロパティを value 属性に同期する
+      // innerHTML は HTML 属性しか保存しないため、JS でセットした値（社名・APIキー等）が
+      // キャッシュに含まれずスワイプ中のパネルで空欄になる問題を防ぐ
+      main.querySelectorAll('input').forEach(inp => {
+        if (inp.value !== (inp.getAttribute('value') || '')) {
+          inp.setAttribute('value', inp.value);
+        }
+      });
       // type="password" を type="text" に変換してからキャッシュ
       // （スワイプで innerHTML が置き換わる前に変換することで
       //   Chrome の「パスワードを保存しますか？」ダイアログを抑制する）
