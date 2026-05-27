@@ -131,6 +131,10 @@ const SwipeNav = (() => {
 
       const inner = document.createElement('div');
       inner.className = mainClassName;
+      // view-fade-in クラスを除去：CSSアニメーション(opacity:0→1, translateY(4px)→0)は
+      // インラインスタイルより優先度が高く、translateY(offsetY)を上書きして
+      // コンテンツが上詰めになる・タイトルが消える原因になるため
+      inner.classList.remove('view-fade-in');
       inner.style.cssText = mainStyleStr;
 
       try {
