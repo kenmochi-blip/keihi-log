@@ -86,7 +86,7 @@ const SummaryView = (() => {
 </div>`;
   }
 
-  async function bindEvents(el) {
+  async function bindEvents(el, opts = {}) {
     const isDemo = typeof Demo !== 'undefined' && Demo.isActive();
     if (!isDemo && (!localStorage.getItem('keihi_sheet_id') || !localStorage.getItem('keihi_license_key'))) {
       el.innerHTML = `<div class="text-center py-5 text-muted">
@@ -100,14 +100,16 @@ const SummaryView = (() => {
     const appMain = document.getElementById('appMain');
     if (appMain) appMain.style.maxWidth = '';
 
-    App.showLoading('読み込み中...');
-    try {
-      _expenses = await App.getExpenses();
-    } catch (err) {
-      App.showToast(err.message, 'danger');
-      return;
-    } finally {
-      App.hideLoading();
+    if (!opts.fromCache) {
+      App.showLoading('読み込み中...');
+      try {
+        _expenses = await App.getExpenses();
+      } catch (err) {
+        App.showToast(err.message, 'danger');
+        return;
+      } finally {
+        App.hideLoading();
+      }
     }
 
     const update = () => _renderAll(el);

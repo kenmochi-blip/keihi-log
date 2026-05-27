@@ -216,7 +216,8 @@ const SwipeNav = (() => {
       // ① オーバーレイが覆っている間に新ビューを main へ先行描画
       //    → overlay 撤去直後から正しいコンテンツが表示される（旧コンテンツが一瞬現れない）
       if (main) {
-        main.style.maxWidth = '480px';
+        // summary・list は全幅が必要なため maxWidth を '' に。他は 480px でリセット
+        main.style.maxWidth = ['summary', 'list'].includes(targetView) ? '' : '480px';
         // スワイプ中にすでに隣パネルへ描画済みの HTML を再利用する
         // （render() を呼ばないことで画面がいったん白紙に戻ることを防ぐ）
         const panelIndex = targetX === 0 ? 0 : 2;
