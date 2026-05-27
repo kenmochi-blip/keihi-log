@@ -5,7 +5,7 @@
 const License = (() => {
 
   const CACHE_KEY = 'keihi_license_cache';
-  const CACHE_TTL = 60 * 60 * 6 * 1000; // 6時間（ms）
+  const CACHE_TTL = 60 * 60 * 24 * 1000; // 24時間（ms）
 
   async function verify(key) {
     if (!key) return { valid: false, reason: 'no_key' };

@@ -176,32 +176,29 @@ const App = (() => {
   }
 
   /**
-   * キャッシュが揃っている場合、非同期処理を待たずにUIを即座に描画する。
-   * 条件：有効なセッション・sheetId・licenseKey・ライセンスキャッシュが存在すること。
-   * 起動体験を優先し、バックグラウンドで非同期検証を行う。
+   * セッション・sheetId・licKeyが存在すれば、キャッシュの有効期限に関わらず即UIを描画する。
+   * 認証・ライセンス・マスタの検証はバックグラウンドで行い、問題があれば後から上書きする。
+   * 数日ぶりのアクセスでもスピナーなしで起動できるよう、有効期限チェックを撤廃。
    */
   function _tryQuickStart() {
     try {
-      // 認証セッション（アクセストークンまたはリフレッシュトークンがあればOK）
+      // リフレッシュトークンがあれば再認証可能（アクセストークン期限は問わない）
       const session = JSON.parse(localStorage.getItem('keihi_auth_session') || 'null');
-      if (!session?.access_token && !session?.refresh_token) return false;
+      if (!session?.refresh_token && !session?.access_token) return false;
 
-      // スプレッドシートIDとライセンスキーが必要
+      // スプレッドシートIDとライセンスキーが設定済みであること
       const ssId   = localStorage.getItem('keihi_sheet_id');
       const licKey = localStorage.getItem('keihi_license_key');
       if (!ssId || !licKey) return false;
 
-      // ライセンスキャッシュが有効期限内であること
-      const licCache = JSON.parse(localStorage.getItem('keihi_license_cache') || 'null');
-      if (!licCache?.result?.valid || !licCache.expiry || licCache.expiry < Date.now()) return false;
-
-      // マスターデータをキャッシュから復元（期限切れでも可：バックグラウンドで更新）
+      // ライセンス・マスターはキャッシュがあれば期限切れでも使用（バックグラウンドで更新）
+      const licCache  = JSON.parse(localStorage.getItem('keihi_license_cache') || 'null');
       const masterRaw = JSON.parse(localStorage.getItem('keihi_master_cache') || 'null');
       const master    = masterRaw || { members: [], categories: [], paySources: [], admins: [], viewers: [] };
 
-      // ロールをキャッシュから確定
+      // ロールを手元のキャッシュから暫定決定（バックグラウンド検証後に再適用）
       const email   = (session.userInfo?.email || localStorage.getItem('keihi_user_email') || '').toLowerCase();
-      const isOwner = !!(licCache.result.ownerEmail && licCache.result.ownerEmail === email);
+      const isOwner = !!(licCache?.result?.ownerEmail && licCache.result.ownerEmail === email);
       _masterCache  = master;
       if (isOwner || master.admins.length === 0 || master.admins.includes(email)) {
         _userRole = 'admin';
@@ -212,7 +209,7 @@ const App = (() => {
       }
       _isAdmin = _userRole === 'admin';
 
-      // UIを即時描画（会社名もキャッシュから）
+      // UIを即時描画（会社名・規程もキャッシュから）
       const companyName = localStorage.getItem('keihi_company_name') || '';
       _setupUI('submit', companyName);
       return true;
