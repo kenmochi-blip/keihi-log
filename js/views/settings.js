@@ -89,7 +89,7 @@ const SettingsView = (() => {
           ${!licKey ? `<div class="settings-step-hint mb-2">メールにて通知されたライセンスキーを入力してください<br>例：<code>KL-XXXXXXXXXXXXXXXXXXXX</code></div>` : ''}
           <div class="input-group mb-1">
             <input type="password" class="form-control form-control-sm" id="inputLicenseKey"
-              placeholder="KL-XXXXXXXXXXXXXXXXXXXX" value="${_escape(licKey)}">
+              autocomplete="off" placeholder="KL-XXXXXXXXXXXXXXXXXXXX" value="${_escape(licKey)}">
             <button class="btn btn-outline-secondary btn-sm" id="btnToggleLicenseKey" type="button" tabindex="-1">
               <i class="bi bi-eye"></i>
             </button>
@@ -139,7 +139,8 @@ const SettingsView = (() => {
             </div>
           </div>
           <div class="input-group mb-1">
-            <input type="password" class="form-control form-control-sm" id="inputGeminiKey" placeholder="AIzaSy...">
+            <input type="password" class="form-control form-control-sm" id="inputGeminiKey"
+              autocomplete="off" placeholder="AIzaSy...">
             <button class="btn btn-outline-primary btn-sm" id="btnSaveGeminiKey">保存</button>
           </div>
           <div id="geminiKeyMsg" class="form-text"></div>
