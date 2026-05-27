@@ -15,6 +15,8 @@ const SwipeNav = (() => {
 
   // 各ビューの最終レンダリング結果をキャッシュ
   const _cache = {};
+  // 各ビューの .table-responsive 横スクロール位置をキャッシュ
+  const _scrollCache = {};
 
   const _views = () => ({
     submit:   typeof SubmitView   !== 'undefined' ? SubmitView   : null,
@@ -45,7 +47,14 @@ const SwipeNav = (() => {
     // タッチ開始時に現在ビューの HTML をキャッシュ（データ読み込み済みの状態を保存）
     const cur = Router.current();
     const main = document.getElementById('appMain');
-    if (cur && main) _cache[cur] = main.innerHTML;
+    if (cur && main) {
+      _cache[cur] = main.innerHTML;
+      // .table-responsive の横スクロール位置もキャッシュ（集計表などの表示位置を保持）
+      _scrollCache[cur] = [];
+      main.querySelectorAll('.table-responsive').forEach(el => {
+        _scrollCache[cur].push(el.scrollLeft);
+      });
+    }
   }
 
   function _onMove(e) {
@@ -103,9 +112,6 @@ const SwipeNav = (() => {
     const mainClassName = main.className;
     const mainStyleStr  = main.getAttribute('style') || '';
 
-    // 元コンテンツを隠す
-    main.style.visibility = 'hidden';
-
     // オーバーレイ：z-index 499 にすることで
     // 実ナビバー(Bootstrap z-index:1020)とボトムナビ(1030)が上に浮いたままになる
     _overlay = document.createElement('div');
@@ -134,6 +140,15 @@ const SwipeNav = (() => {
           : (_cache[name] || views[name]?.render() || '');
       } catch (_) {}
 
+      // .table-responsive の横スクロール位置を復元（集計表などで右端を表示中の場合）
+      const savedScrolls = _scrollCache[name];
+      if (savedScrolls?.length) {
+        const tbls = inner.querySelectorAll('.table-responsive');
+        savedScrolls.forEach((sl, i) => {
+          if (tbls[i] && sl > 0) tbls[i].scrollLeft = sl;
+        });
+      }
+
       // スクロール位置を transform で再現
       const offsetY = navH - (pos === 1 ? scrollY : 0);
       inner.style.transform = `translateY(${offsetY}px)`;
@@ -144,7 +159,10 @@ const SwipeNav = (() => {
     });
 
     _overlay.appendChild(_track);
+    // ① オーバーレイを先に表示してから元コンテンツを隠す
+    //    （先に hidden にすると 1フレーム分タイトルが消えてちらつく）
     document.body.appendChild(_overlay);
+    main.style.visibility = 'hidden';
   }
 
   // ── スナップ ───────────────────────────────────────────────
