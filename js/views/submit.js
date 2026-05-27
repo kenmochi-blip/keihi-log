@@ -362,7 +362,7 @@ const SubmitView = (() => {
     </div>`;
   }
 
-  async function bindEvents(el) {
+  async function bindEvents(el, opts = {}) {
     // マスタデータ読み込み
     try {
       const master = await App.getMaster();
@@ -385,7 +385,9 @@ const SubmitView = (() => {
     el.querySelector('#btnCancelEdit')?.addEventListener('click', () => _cancelEdit(el));
     // 初期パネルが領収書の場合は申請ボタンを非表示
     if (_currentType === '領収書') el.querySelector('#btnSubmit')?.classList.add('d-none');
-    _loadHistory(el);
+    // fromCache=true のとき：スワイプ由来でキャッシュ済みHTMLが表示されているため再ロード不要
+    // 手動リフレッシュボタンはいつでも使える
+    if (!opts.fromCache) _loadHistory(el);
 
     // 一覧表の鉛筆ボタンからのジャンプ処理
     if (_pendingEdit) {

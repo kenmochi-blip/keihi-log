@@ -69,7 +69,7 @@ const Router = (() => {
 
     const view = VIEWS[viewName];
     try {
-      await view.bindEvents(main);
+      await view.bindEvents(main, opts);
     } catch (err) {
       console.error('view.bindEvents error:', err);
       // 既にrenderされた画面はそのまま、トーストで通知のみ

@@ -17,6 +17,8 @@ const SwipeNav = (() => {
   const _cache = {};
   // 各ビューの .table-responsive 横スクロール位置をキャッシュ
   const _scrollCache = {};
+  // _build() で隣パネルをキャッシュHTMLから構築したか記録（_animate の fromCache 判定用）
+  const _builtFromCache = {};
 
   const _views = () => ({
     submit:   typeof SubmitView   !== 'undefined' ? SubmitView   : null,
@@ -148,9 +150,14 @@ const SwipeNav = (() => {
 
       try {
         // 隣パネル：キャッシュ済みHTML（データ読み込み済）→ 新規render() の順で使用
-        inner.innerHTML = pos === 1
-          ? main.innerHTML
-          : (_cache[name] || views[name]?.render() || '');
+        if (pos === 1) {
+          inner.innerHTML = main.innerHTML;
+        } else {
+          const cached = _cache[name];
+          inner.innerHTML = cached || views[name]?.render() || '';
+          // キャッシュ由来かどうかを記録（_animate で fromCache 判定に使用）
+          _builtFromCache[name] = !!cached;
+        }
       } catch (_) {}
 
       // .table-responsive の横スクロール位置を復元（集計表などで右端を表示中の場合）
@@ -201,9 +208,17 @@ const SwipeNav = (() => {
 
       // ① オーバーレイが覆っている間に新ビューを main へ先行描画
       //    → overlay 撤去直後から正しいコンテンツが表示される（旧コンテンツが一瞬現れない）
-      if (main && _views()[targetView]) {
+      if (main) {
         main.style.maxWidth = '480px';
-        try { main.innerHTML = _views()[targetView].render(); } catch (_) {}
+        // スワイプ中にすでに隣パネルへ描画済みの HTML を再利用する
+        // （render() を呼ばないことで画面がいったん白紙に戻ることを防ぐ）
+        const panelIndex = targetX === 0 ? 0 : 2;
+        const panelInner = _track.children[panelIndex]?.firstElementChild;
+        if (panelInner) {
+          main.innerHTML = panelInner.innerHTML;
+        } else if (_views()[targetView]) {
+          try { main.innerHTML = _views()[targetView].render(); } catch (_) {}
+        }
         // テーブル横スクロール位置を復元
         const savedScrolls = _scrollCache[targetView];
         if (savedScrolls?.length) {
@@ -216,7 +231,10 @@ const SwipeNav = (() => {
       _cleanup(); // overlay 撤去 → main が即座に新コンテンツで表示される
 
       // ② Router はナビ状態・_current 更新 + bindEvents のみ実行（再描画・フェードインなし）
-      Router.navigate(targetView, { skipRender: true, skipFade: true });
+      // fromCache=true のとき bindEvents 側でデータ再ロードをスキップする
+      //（キャッシュ済み HTML にすでにデータが表示されているため）
+      const fromCache = !!_builtFromCache[targetView];
+      Router.navigate(targetView, { skipRender: true, skipFade: true, fromCache });
     }, { once: true });
   }
 

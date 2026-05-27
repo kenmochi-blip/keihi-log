@@ -158,7 +158,7 @@ const ListView = (() => {
     return { fromYM, toYM };
   }
 
-  async function bindEvents(el) {
+  async function bindEvents(el, opts = {}) {
     const isDemo = typeof Demo !== 'undefined' && Demo.isActive();
     if (!isDemo && (!localStorage.getItem('keihi_sheet_id') || !localStorage.getItem('keihi_license_key'))) {
       el.innerHTML = `<div class="text-center py-5 text-muted">
@@ -180,8 +180,53 @@ const ListView = (() => {
       _showAll  = _userRole === 'admin' || _userRole === 'viewer';
       _expenses = await App.getExpenses();
     } catch (err) {
-      el.querySelector('#listTbodyPc').innerHTML = `<tr><td colspan="10" class="text-danger text-center">${err.message}</td></tr>`;
-      el.querySelector('#listCardsSp').innerHTML = `<div class="text-danger text-center py-3">${err.message}</div>`;
+      if (!opts.fromCache) {
+        el.querySelector('#listTbodyPc').innerHTML = `<tr><td colspan="10" class="text-danger text-center">${err.message}</td></tr>`;
+        el.querySelector('#listCardsSp').innerHTML = `<div class="text-danger text-center py-3">${err.message}</div>`;
+      }
+      return;
+    }
+
+    // fromCache=true のとき：スワイプ由来でキャッシュ済みHTMLが表示されているため
+    // テーブル再レンダリングをスキップ（チカチカ防止）
+    if (opts.fromCache) {
+      // イベントハンドラのみ再バインドして早期リターン
+      el.querySelector('#btnRefreshList')?.addEventListener('click', async () => {
+        try {
+          _expenses = await App.getExpenses(true);
+          _populatePaySourceFilter(el);
+          _renderTable(el);
+          App.showToast('更新しました', 'success');
+        } catch (err) { App.showToast(err.message, 'danger'); }
+      });
+      el.querySelector('#btnExportCsv')?.addEventListener('click', () => _exportCsv(el));
+      el.querySelector('#btnExportFreee')?.addEventListener('click', e => { e.preventDefault(); _exportFreee(el); });
+      el.querySelector('#btnExportYayoi')?.addEventListener('click', e => { e.preventDefault(); _exportYayoi(el); });
+      el.querySelector('#btnExportMfc')?.addEventListener('click', e => { e.preventDefault(); _exportMfc(el); });
+      ['filterType','filterStatus','filterKeyword','filterMember','filterPaySource','filterCustomFlag'].forEach(id => {
+        el.querySelector(`#${id}`)?.addEventListener('input', () => { _shownCount = 50; _renderTable(el); });
+      });
+      el.querySelectorAll('#listPresetBtns [data-months]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          el.querySelectorAll('#listPresetBtns [data-months]').forEach(b => {
+            b.classList.remove('active', 'btn-outline-primary');
+            b.classList.add('btn-outline-secondary');
+          });
+          btn.classList.add('active', 'btn-outline-primary');
+          btn.classList.remove('btn-outline-secondary');
+          const months = Number(btn.dataset.months);
+          const customRange = el.querySelector('#listCustomRange');
+          if (months === 0) { customRange.classList.remove('d-none'); }
+          else {
+            customRange.classList.add('d-none');
+            const { fromYM, toYM } = _rangeForMonths(months);
+            el.querySelector('#filterMonthFrom').value = fromYM;
+            el.querySelector('#filterMonthTo').value   = toYM;
+          }
+          _shownCount = 50; _renderTable(el);
+        });
+      });
+      requestAnimationFrame(() => _initResizableColumns(el.querySelector('.list-table-pc')));
       return;
     }
 

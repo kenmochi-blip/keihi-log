@@ -298,7 +298,7 @@ const SettingsView = (() => {
 `;
   }
 
-  async function bindEvents(el) {
+  async function bindEvents(el, opts = {}) {
 
     // スプレッドシートの規程データと localStorage を比較し、新しい方を使う
     {
@@ -596,14 +596,18 @@ const SettingsView = (() => {
     });
 
     // マスタデータ読み込み
+    // fromCache=true のとき：スワイプ由来でキャッシュ済みHTMLが表示されているため
+    // リスト再レンダリングをスキップ（チカチカ防止）。_master は後続イベントで使うため常に取得。
     try {
       _master = await App.getMaster();
-      _renderMembers(el);
-      _renderSimpleList(el, 'categoryList',   _master.categories,        'category');
-      _renderSimpleList(el, 'paySourceList',  _master.paySources,        'paySource');
-      _renderSimpleList(el, 'customFlagList', _master.customFlags || [], 'customFlag');
+      if (!opts.fromCache) {
+        _renderMembers(el);
+        _renderSimpleList(el, 'categoryList',   _master.categories,        'category');
+        _renderSimpleList(el, 'paySourceList',  _master.paySources,        'paySource');
+        _renderSimpleList(el, 'customFlagList', _master.customFlags || [], 'customFlag');
+      }
     } catch (err) {
-      App.showToast('マスタデータの読み込みに失敗しました', 'danger');
+      if (!opts.fromCache) App.showToast('マスタデータの読み込みに失敗しました', 'danger');
     }
 
     _applyMemberPlanRestriction(el);
