@@ -227,7 +227,15 @@ const SwipeNav = (() => {
         }
       }
 
+      // スワイプ完了直後の transition ちらつきを防ぐ：
+      // main が visibility:visible になった瞬間に CSS が初期計算を走らせ、
+      // transition:all を持つ要素（type-card 等）が brief にアニメーションすることがある。
+      // 2フレーム間だけ全 transition を無効化してから復元する。
+      if (main) main.classList.add('swipe-settling');
       _cleanup(); // overlay 撤去 → main が即座に新コンテンツで表示される
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        document.getElementById('appMain')?.classList.remove('swipe-settling');
+      }));
 
       // ② Router はナビ状態・_current 更新 + bindEvents のみ実行（再描画・フェードインなし）
       // fromCache=true のとき bindEvents 側でデータ再ロードをスキップする

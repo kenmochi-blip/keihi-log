@@ -1,6 +1,9 @@
 /* ベースレイアウト */
 body { font-size: 0.9rem; }
 
+/* スワイプ完了直後の2フレーム間、transition によるちらつきを抑制 */
+.swipe-settling, .swipe-settling * { transition: none !important; }
+
 /* タップ遅延を解消（モバイルで300ms遅延をなくす） */
 button, a, [role="button"], .type-card, .upload-card, .upload-card-sm,
 .nav-item-btn, label[for], .list-sp-amount, .list-amount-toggle,
@@ -57,7 +60,9 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
   font-weight: 500;
   color: #495057;
   gap: 8px;
-  transition: all 0.15s;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+  /* opacity は transition 対象から除外：スワイプ完了時にブラウザが opacity:0.8→1 を
+     アニメーションして「点滅」して見える問題を回避 */
 }
 .type-card i { font-size: 1.7rem; color: #6c757d; }
 .type-card { color: #6c757d; border-color: #dee2e6; opacity: 0.8; }
