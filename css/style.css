@@ -8,6 +8,13 @@ input[type="checkbox"], input[type="radio"] {
   touch-action: manipulation;
 }
 
+/* APIキー・ライセンスキー入力欄：type="password"にするとChromeが「保存しますか」を出すため
+   type="text" のまま -webkit-text-security でビジュアルマスクする */
+.keihi-masked {
+  -webkit-text-security: disc;
+  /* Firefox非対応だがモバイルChromeとSafariでカバー */
+}
+
 /* iOS Safari は input[type=date] をデフォルトでcenter寄せにするため上書き */
 input[type="date"] { text-align: left; }
 input[type="date"]::-webkit-date-and-time-value { text-align: left; }

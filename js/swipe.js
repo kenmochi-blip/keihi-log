@@ -213,7 +213,6 @@ const SwipeNav = (() => {
         }
       }
 
-      window.scrollTo(0, 0);
       _cleanup(); // overlay 撤去 → main が即座に新コンテンツで表示される
 
       // ② Router はナビ状態・_current 更新 + bindEvents のみ実行（再描画・フェードインなし）
@@ -234,7 +233,12 @@ const SwipeNav = (() => {
     _isHoriz = false;
     _decided = false;
     const main = document.getElementById('appMain');
-    if (main) main.style.visibility = '';
+    if (main) {
+      // スクロールを最上部に戻してから main を表示することで、
+      // 旧スクロール位置が1フレームでも見えるのを防ぐ
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      main.style.visibility = '';
+    }
   }
 
   return { init };
