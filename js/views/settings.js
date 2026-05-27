@@ -512,10 +512,10 @@ const SettingsView = (() => {
 
     // fromCache=true のとき：スワイプ由来でキャッシュ済みHTMLが表示されているため
     // シートからの再読み込み（社名・Gemini APIキー・車両レート）をスキップ
-    if (!opts.fromCache) {
-    // 設定シートをB2:B7まとめて1回のAPIコールで読み込む
     const isDemo = typeof Demo !== 'undefined' && Demo.isActive();
     const ssId = localStorage.getItem('keihi_sheet_id');
+    if (!opts.fromCache) {
+    // 設定シートをB2:B7まとめて1回のAPIコールで読み込む
     if (isDemo) {
       if (el.querySelector('#inputCompanyName')) el.querySelector('#inputCompanyName').value = Demo.COMPANY_NAME;
     } else if (ssId) {
