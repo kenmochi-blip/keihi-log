@@ -102,7 +102,7 @@ const SummaryView = (() => {
 
     App.showLoading('読み込み中...');
     try {
-      _expenses = await Sheets.readExpenses();
+      _expenses = await App.getExpenses();
     } catch (err) {
       App.showToast(err.message, 'danger');
       return;
@@ -149,7 +149,7 @@ const SummaryView = (() => {
 
     el.querySelector('#btnRefreshSummary')?.addEventListener('click', async () => {
       App.showLoading('更新中...');
-      try { _expenses = await Sheets.readExpenses(); } finally { App.hideLoading(); }
+      try { _expenses = await App.getExpenses(true); } finally { App.hideLoading(); } // キャッシュ無視で強制再取得
       update();
     });
 

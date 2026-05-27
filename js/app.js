@@ -10,6 +10,9 @@ const App = (() => {
   let _confirmModal = null;
   let _confirmResolve = null;
   let _aliasNotFound = false; // URLにエイリアスが指定されたが存在しなかった場合にtrue
+  let _expensesCache    = null; // readExpenses() の結果キャッシュ
+  let _expensesCacheAt  = 0;   // キャッシュ取得時刻（ms）
+  const EXPENSES_CACHE_TTL = 5 * 60 * 1000; // 5分
 
   async function init() {
     // デモモード：認証・ライセンス・シート確認をスキップ
@@ -87,20 +90,15 @@ const App = (() => {
     }
 
     // マスターデータ読み込みと管理者判定
+    const _userEmail = Auth.getUserEmail().toLowerCase();
+    const _licCache  = (() => { try { return JSON.parse(localStorage.getItem('keihi_license_cache') || 'null'); } catch (_) { return null; } })();
+    const _isOwner   = !!(_licCache?.result?.ownerEmail && _licCache.result.ownerEmail === _userEmail);
     try {
       _masterCache = await Sheets.readMaster();
-      const email  = Auth.getUserEmail().toLowerCase();
 
-      // ライセンス購入者メールをキャッシュから取得（シート設定に関わらず管理者扱い）
-      let isOwner = false;
-      try {
-        const _lc = JSON.parse(localStorage.getItem('keihi_license_cache') || 'null');
-        if (_lc?.result?.ownerEmail && _lc.result.ownerEmail === email) isOwner = true;
-      } catch (_e) {}
-
-      if (isOwner || _masterCache.admins.length === 0 || _masterCache.admins.includes(email)) {
+      if (_isOwner || _masterCache.admins.length === 0 || _masterCache.admins.includes(_userEmail)) {
         _userRole = 'admin';
-      } else if (_masterCache.viewers && _masterCache.viewers.includes(email)) {
+      } else if (_masterCache.viewers && _masterCache.viewers.includes(_userEmail)) {
         _userRole = 'viewer';
       } else {
         _userRole = 'member';
@@ -109,8 +107,8 @@ const App = (() => {
 
       // メンバー制限：登録メンバーが1人以上いる場合、未登録ユーザーはアクセス不可
       // 管理者（isOwner含む）はメンバーリストの有無に関わらず常にアクセス許可
-      if (_userRole !== 'admin' && _masterCache.members.length > 0 && !_masterCache.members.some(m => m.email.toLowerCase() === email)) {
-        _showAccessDeniedError(email);
+      if (_userRole !== 'admin' && _masterCache.members.length > 0 && !_masterCache.members.some(m => m.email.toLowerCase() === _userEmail)) {
+        _showAccessDeniedError(_userEmail);
         return;
       }
     } catch (err) {
@@ -121,17 +119,13 @@ const App = (() => {
       }
       _masterCache = { members: [], categories: [], paySources: [], admins: [], viewers: [] };
       // ライセンスオーナーのみ管理者フォールバック（設定画面で復旧できるように）
-      try {
-        const _cached = JSON.parse(localStorage.getItem('keihi_license_cache') || 'null');
-        const _email  = Auth.getUserEmail().toLowerCase();
-        if (_cached?.result?.ownerEmail && _cached.result.ownerEmail === _email) {
-          _userRole = 'admin';
-          _isAdmin  = true;
-        }
-      } catch (_e) {}
+      if (_isOwner) {
+        _userRole = 'admin';
+        _isAdmin  = true;
+      }
     }
 
-    // 会社名をナビタイトルに反映（キャッシュ優先で即時表示、APIで更新）
+    // 会社名・フォルダIDをシートから一括取得（キャッシュ優先で即時表示、APIで更新）
     let _companyName = localStorage.getItem('keihi_company_name') || '';
     if (_companyName) {
       const titleEl = document.getElementById('navAppTitle');
@@ -139,7 +133,8 @@ const App = (() => {
       document.title = `経費ログ | ${_companyName}`;
     }
     try {
-      const fetched = await Sheets.readSetting('B2') || '';
+      const cfg = await Sheets.readAllSettings();
+      const fetched = cfg.B2 || '';
       if (fetched && fetched !== _companyName) {
         _companyName = fetched;
         localStorage.setItem('keihi_company_name', fetched);
@@ -147,14 +142,11 @@ const App = (() => {
         if (titleEl) titleEl.textContent = `経費ログ - ${_truncateCompany(fetched)}`;
         document.title = `経費ログ | ${fetched}`;
       }
+      // フォルダIDをシートから復元（新ドメイン等でlocalStorageが空の場合）
+      if (cfg.B4 && !localStorage.getItem('keihi_folder_id')) {
+        localStorage.setItem('keihi_folder_id', cfg.B4);
+      }
     } catch (_) {}
-
-    // フォルダIDをシートから復元（新ドメイン等でlocalStorageが空の場合）
-    if (!localStorage.getItem('keihi_folder_id')) {
-      Sheets.readSetting('B4').then(fid => {
-        if (fid) localStorage.setItem('keihi_folder_id', fid);
-      }).catch(() => {});
-    }
 
     _setupUI('submit', _companyName);
 
@@ -317,6 +309,26 @@ const App = (() => {
   }
 
   function clearMasterCache() { _masterCache = null; }
+
+  /**
+   * 経費データを返す（5分間キャッシュ付き）
+   * @param {boolean} [force=false] trueの場合はキャッシュを無視して再取得
+   */
+  async function getExpenses(force = false) {
+    const now = Date.now();
+    if (!force && _expensesCache && (now - _expensesCacheAt) < EXPENSES_CACHE_TTL) {
+      return _expensesCache;
+    }
+    _expensesCache   = await Sheets.readExpenses();
+    _expensesCacheAt = Date.now();
+    return _expensesCache;
+  }
+
+  /** 経費データキャッシュを破棄（申請・修正・削除後に呼ぶ） */
+  function clearExpensesCache() {
+    _expensesCache   = null;
+    _expensesCacheAt = 0;
+  }
 
   /**
    * メンバー管理表に登録された名前を返す。
@@ -570,6 +582,8 @@ const App = (() => {
     clearMasterCache,
     reloadMaster,
     getMemberName,
+    getExpenses,
+    clearExpensesCache,
     isAdmin,
     getUserRole,
     showLoading,

@@ -1043,7 +1043,7 @@ function _bindTypeButtons(el) {
       }
 
       // 3. AI監査チェック（重複・2ヶ月超・同一画像）
-      const expenses = await Sheets.readExpenses();
+      const expenses = await App.getExpenses(); // キャッシュ利用（申請直前に再取得不要）
       const alerts = _runAuditChecks(expenses, data, hashes);
       if (alerts.length > 0) {
         App.hideLoading();
@@ -1121,6 +1121,7 @@ function _bindTypeButtons(el) {
         await Sheets.prependExpense(row);
       }
 
+      App.clearExpensesCache(); // 申請・修正後はキャッシュを破棄して一覧/集計を最新化
       App.showToast(_editId ? '修正しました' : '登録しました', 'success');
       const returnTo = _editId ? _returnAfterEdit : null;
       _resetForm(el);

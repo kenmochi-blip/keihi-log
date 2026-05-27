@@ -178,7 +178,7 @@ const ListView = (() => {
       _userRole = App.getUserRole();
       _isAdmin  = _userRole === 'admin';
       _showAll  = _userRole === 'admin' || _userRole === 'viewer';
-      _expenses = await Sheets.readExpenses();
+      _expenses = await App.getExpenses();
     } catch (err) {
       el.querySelector('#listTbodyPc').innerHTML = `<tr><td colspan="10" class="text-danger text-center">${err.message}</td></tr>`;
       el.querySelector('#listCardsSp').innerHTML = `<div class="text-danger text-center py-3">${err.message}</div>`;
@@ -189,9 +189,8 @@ const ListView = (() => {
     if (_isAdmin || _userRole === 'viewer') {
       el.querySelector('#filterMemberWrap').style.display = '';
       const sel = el.querySelector('#filterMember');
-      _master.members.forEach(m => {
-        sel.innerHTML += `<option value="${m.email}">${m.name}</option>`;
-      });
+      sel.insertAdjacentHTML('beforeend',
+        _master.members.map(m => `<option value="${m.email}">${m.name}</option>`).join(''));
     }
 
     // 支払元フィルター：データから動的に生成
@@ -229,7 +228,8 @@ const ListView = (() => {
     const customFlags = _master.customFlags || [];
     if (customFlags.length > 0) {
       const cfSel = el.querySelector('#filterCustomFlag');
-      if (cfSel) customFlags.forEach(f => { cfSel.innerHTML += `<option value="${f}">${f}</option>`; });
+      if (cfSel) cfSel.insertAdjacentHTML('beforeend',
+        customFlags.map(f => `<option value="${f}">${f}</option>`).join(''));
     }
 
     // フィルタリング
@@ -239,7 +239,7 @@ const ListView = (() => {
 
     el.querySelector('#btnRefreshList')?.addEventListener('click', async () => {
       try {
-        _expenses = await Sheets.readExpenses();
+        _expenses = await App.getExpenses(true); // キャッシュ無視で強制再取得
         _populatePaySourceFilter(el);
         _renderTable(el);
         App.showToast('更新しました', 'success');
@@ -623,10 +623,11 @@ const ListView = (() => {
       if (s) sources.add(s);
       else hasIndividual = true;
     });
-    if (hasIndividual) sel.innerHTML += `<option value="__individual__">個人払い</option>`;
-    [...sources].sort().forEach(s => {
-      sel.innerHTML += `<option value="${s}">${s}</option>`;
-    });
+    // innerHTML += を繰り返すと都度 DOM 再解析が走るため、まとめて追記する
+    const opts = [];
+    if (hasIndividual) opts.push('<option value="__individual__">個人払い</option>');
+    [...sources].sort().forEach(s => opts.push(`<option value="${s}">${s}</option>`));
+    if (opts.length) sel.insertAdjacentHTML('beforeend', opts.join(''));
   }
 
   // "会社払い（◯◯）" から支払元名を抽出。会社払いでなければ空文字。
