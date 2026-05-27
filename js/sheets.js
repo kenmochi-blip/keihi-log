@@ -257,6 +257,22 @@ const Sheets = (() => {
     return rows?.[0]?.[0] ?? '';
   }
 
+  /** 設定シートのB2:B7を1回のAPIコールで読んで返す */
+  async function readAllSettings(ssId) {
+    if (typeof Demo !== 'undefined' && Demo.isActive()) {
+      return { B2: 'デモ会社', B3: '', B4: '', B5: '', B6: '', B7: '20' };
+    }
+    const rows = await read('設定!B2:B7', ssId);
+    return {
+      B2: rows?.[0]?.[0] ?? '',
+      B3: rows?.[1]?.[0] ?? '',
+      B4: rows?.[2]?.[0] ?? '',
+      B5: rows?.[3]?.[0] ?? '',
+      B6: rows?.[4]?.[0] ?? '',
+      B7: rows?.[5]?.[0] ?? '',
+    };
+  }
+
   /** マスタ表を読んでメンバー・カテゴリ・支払元・カスタムフラグを返す */
   async function readMaster(ssId) {
     if (typeof Demo !== 'undefined' && Demo.isActive()) return Demo.MASTER;
@@ -449,6 +465,7 @@ const Sheets = (() => {
     prependRow,
     batchSettle,
     readSetting,
+    readAllSettings,
     readMaster,
     _rowToExpense,
   };
