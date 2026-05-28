@@ -167,15 +167,6 @@ const SwipeNav = (() => {
         }
       } catch (_) {}
 
-      // .table-responsive の横スクロール位置を復元（集計表などで右端を表示中の場合）
-      const savedScrolls = _scrollCache[name];
-      if (savedScrolls?.length) {
-        const tbls = inner.querySelectorAll('.table-responsive');
-        savedScrolls.forEach((sl, i) => {
-          if (tbls[i] && sl > 0) tbls[i].scrollLeft = sl;
-        });
-      }
-
       // スクロール位置を transform で再現
       const offsetY = navH - (pos === 1 ? scrollY : 0);
       inner.style.transform = `translateY(${offsetY}px)`;
@@ -190,6 +181,19 @@ const SwipeNav = (() => {
     //    （先に hidden にすると 1フレーム分タイトルが消えてちらつく）
     document.body.appendChild(_overlay);
     main.style.visibility = 'hidden';
+
+    // ② DOM 追加後に横スクロール位置を復元する
+    //    detached 状態では scrollLeft が layout コンテキストなしで 0 にリセットされるため、
+    //    document.body に追加した後でないと正しく設定できない
+    [[prevName, 0], [_cur, 1], [nextName, 2]].forEach(([name, pos]) => {
+      const savedScrolls = _scrollCache[name];
+      if (!savedScrolls?.length) return;
+      const inner = _track.children[pos]?.firstElementChild;
+      if (!inner) return;
+      inner.querySelectorAll('.table-responsive').forEach((el, i) => {
+        if (savedScrolls[i] > 0) el.scrollLeft = savedScrolls[i];
+      });
+    });
   }
 
   // ── スナップ ───────────────────────────────────────────────
