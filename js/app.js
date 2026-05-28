@@ -10,6 +10,7 @@ const App = (() => {
   let _confirmModal = null;
   let _confirmResolve = null;
   let _aliasNotFound = false; // URLにエイリアスが指定されたが存在しなかった場合にtrue
+  let _sheetIdChanged = false; // quickStart後に別シートが検出されたフラグ（init完了後に再描画）
   let _expensesCache    = null; // readExpenses() の結果キャッシュ
   let _expensesCacheAt  = 0;   // キャッシュ取得時刻（ms）
   let _expensesInflight = null; // 進行中のfetchPromise（重複リクエスト防止）
@@ -175,6 +176,12 @@ const App = (() => {
       }
     }
     _applyAdminVisibility(); // 最新ロールで再適用（キャッシュと異なる場合を考慮）
+
+    // quickStart 中に別スプレッドシートが検出された場合、
+    // 正しいシートIDで現在のビューを再描画（旧シートのデータが表示されるのを防ぐ）
+    if (_quickStarted && _sheetIdChanged) {
+      Router.navigate(Router.current());
+    }
   }
 
   /**
@@ -210,6 +217,19 @@ const App = (() => {
         _userRole = 'member';
       }
       _isAdmin = _userRole === 'admin';
+
+      // 経費データを localStorage から先読み（bindEvents で getExpenses() が即返すよう）
+      // _tryQuickStart() → Router.init() → bindEvents の順に同期で動くため、
+      // ここで _expensesCache を設定しておけば最初の await getExpenses() が
+      // マイクロタスクで解決し、ブラウザが描画する前にテーブルが埋まる
+      try {
+        const stored  = JSON.parse(localStorage.getItem('keihi_expenses_cache') || 'null');
+        const sheetId = localStorage.getItem('keihi_sheet_id');
+        if (stored?.sheetId === sheetId && Array.isArray(stored.data)) {
+          _expensesCache   = stored.data;
+          _expensesCacheAt = Date.now() - EXPENSES_CACHE_TTL - 1; // ステール扱いでバックグラウンド更新
+        }
+      } catch (_) {}
 
       // UIを即時描画（会社名・規程もキャッシュから）
       const companyName = localStorage.getItem('keihi_company_name') || '';
@@ -655,6 +675,7 @@ const App = (() => {
          'keihi_nav_color', 'keihi_gemini_key', 'keihi_alias', 'keihi_user_email',
          'keihi_regulation', 'keihi_expenses_cache'].forEach(k => localStorage.removeItem(k));
         _expensesCache = null; _expensesCacheAt = 0; // メモリキャッシュも即時クリア
+        _sheetIdChanged = true; // init完了後に現在ビューを再描画するフラグ
       }
       sessionStorage.setItem('keihi_sheet_id', token);
       localStorage.setItem('keihi_sheet_id', token);
@@ -680,6 +701,7 @@ const App = (() => {
              'keihi_nav_color', 'keihi_gemini_key', 'keihi_alias', 'keihi_user_email',
              'keihi_regulation', 'keihi_expenses_cache'].forEach(k => localStorage.removeItem(k));
             _expensesCache = null; _expensesCacheAt = 0; // メモリキャッシュも即時クリア
+            _sheetIdChanged = true; // init完了後に現在ビューを再描画するフラグ
           }
           sessionStorage.setItem('keihi_sheet_id', data.sheetId);
           localStorage.setItem('keihi_sheet_id', data.sheetId);
