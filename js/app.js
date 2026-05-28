@@ -82,7 +82,13 @@ const App = (() => {
       return;
     }
 
-    // ② ライセンス検証・マスターデータ・設定シートを一斉並列実行
+    // ③ 経費データのバックグラウンド先読み
+    // 認証・シートIDが確定した直後に開始し、ライセンス検証と並列で走らせる。
+    // ユーザーがスワイプするより前に完了することが多く、一覧/集計タブを即表示できる。
+    // _expensesInflight があれば相乗りするだけで重複リクエストは発生しない。
+    if (!_expensesCache) getExpenses().catch(() => {});
+
+    // ④ ライセンス検証・マスターデータ・設定シートを一斉並列実行
     const _userEmail = Auth.getUserEmail().toLowerCase();
     const _licCache  = (() => { try { return JSON.parse(localStorage.getItem('keihi_license_cache') || 'null'); } catch (_) { return null; } })();
     const _isOwner   = !!(_licCache?.result?.ownerEmail && _licCache.result.ownerEmail === _userEmail);
