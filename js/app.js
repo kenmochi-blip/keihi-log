@@ -11,6 +11,9 @@ const App = (() => {
   let _confirmResolve = null;
   let _aliasNotFound = false; // URLにエイリアスが指定されたが存在しなかった場合にtrue
   let _sheetIdChanged = false; // quickStart後に別シートが検出されたフラグ（init完了後に再描画）
+  // シートID確定を待つ Promise（_loadHistory など API 呼び出し前に await する）
+  let _sheetReadyResolve = null;
+  const _sheetReadyPromise = new Promise(res => { _sheetReadyResolve = res; });
   let _expensesCache    = null; // readExpenses() の結果キャッシュ
   let _expensesCacheAt  = 0;   // キャッシュ取得時刻（ms）
   let _expensesInflight = null; // 進行中のfetchPromise（重複リクエスト防止）
@@ -53,6 +56,8 @@ const App = (() => {
       _resolvePathAlias(),
       Auth.getToken(),
     ]);
+    // _resolvePathAlias() 完了 → シートIDが確定。waitSheetReady() を解除する
+    _sheetReadyResolve?.();
     if (tokenResult.status === 'rejected') {
       const _isGenericPath = location.pathname === '/app.html' || location.pathname === '/app' || location.pathname === '/';
       let ret = _isGenericPath ? '' : location.pathname;
@@ -751,6 +756,9 @@ const App = (() => {
     return m ? decodeURIComponent(m[1]) : null;
   }
 
+  /** シートIDが確定するまで待機（_loadHistory など他シートのデータを誤表示しないため） */
+  function waitSheetReady() { return _sheetReadyPromise; }
+
   return {
     init,
     confirm,
@@ -760,6 +768,7 @@ const App = (() => {
     getMemberName,
     getExpenses,
     clearExpensesCache,
+    waitSheetReady,
     isAdmin,
     getUserRole,
     showLoading,

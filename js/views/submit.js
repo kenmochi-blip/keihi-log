@@ -1338,6 +1338,8 @@ function _bindTypeButtons(el) {
     const list = el.querySelector('#historyList');
     if (!list) return;
     list.innerHTML = '<div class="text-muted small text-center py-2">読み込み中...</div>';
+    // シートIDが確定するまで待機（別経費ログの履歴が一瞬表示されるのを防ぐ）
+    await App.waitSheetReady();
     try {
       const all = await Sheets.readExpenses();
       _historyExpenses = all;
