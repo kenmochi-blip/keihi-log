@@ -32,6 +32,7 @@ const SwipeNav = (() => {
   let _overlay = null, _track = null;
   let _W = 0, _cur = '';
   let _inScrollX = false; // タッチ開始位置が横スクロール可能な要素内 → スワイプをスキップ
+  let _scrollXEl = null;  // _inScrollX のとき、対象の .table-responsive 要素
 
   function init() {
     const el = document.getElementById('appMain');
@@ -48,7 +49,8 @@ const SwipeNav = (() => {
     _decided = false;
     _isHoriz = false;
     // .table-responsive 内のタッチはスワイプナビをスキップ（横スクロールを優先）
-    _inScrollX = !!e.target.closest('.table-responsive');
+    _scrollXEl = e.target.closest('.table-responsive');
+    _inScrollX = !!_scrollXEl;
     // タッチ開始時に現在ビューの HTML をキャッシュ（データ読み込み済みの状態を保存）
     const cur = Router.current();
     const main = document.getElementById('appMain');
@@ -81,11 +83,21 @@ const SwipeNav = (() => {
       return;
     }
     if (_decided) return;
-    // .table-responsive 内のタッチはブラウザネイティブの横スクロールに委ねる
-    if (_inScrollX) return;
 
     const dx = e.touches[0].clientX - _sx;
     const dy = e.touches[0].clientY - _sy;
+
+    // .table-responsive 内のタッチ：スクロール端に達している方向のスワイプはナビに委ねる
+    if (_inScrollX && _scrollXEl) {
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      const atLeft  = _scrollXEl.scrollLeft <= 0;
+      const atRight = _scrollXEl.scrollLeft + _scrollXEl.clientWidth >= _scrollXEl.scrollWidth - 1;
+      if ((dx > 0 && atLeft) || (dx < 0 && atRight)) {
+        _inScrollX = false; // 端まで達しているのでスワイプナビに引き渡す
+      } else {
+        return; // まだスクロール余地あり → ブラウザの横スクロールに委ねる
+      }
+    }
     if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
 
     _decided = true;
