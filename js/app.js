@@ -399,6 +399,20 @@ const App = (() => {
    * @param {boolean} [force=false] trueの場合はキャッシュを無視して再取得し結果を待つ
    */
   async function getExpenses(force = false) {
+    // ページリロード後の初回呼び出し：localStorage からキャッシュを復元
+    // シートIDが一致する場合のみ使用（別スプレッドシートのデータを表示しないため）
+    if (!_expensesCache) {
+      try {
+        const stored  = JSON.parse(localStorage.getItem('keihi_expenses_cache') || 'null');
+        const sheetId = localStorage.getItem('keihi_sheet_id');
+        if (stored?.sheetId === sheetId && Array.isArray(stored.data)) {
+          _expensesCache   = stored.data;
+          // 「やや古い」状態として扱い、次の呼び出し時にバックグラウンド更新させる
+          _expensesCacheAt = Date.now() - EXPENSES_CACHE_TTL - 1;
+        }
+      } catch (_) {}
+    }
+
     const now = Date.now();
     const age = now - _expensesCacheAt;
 
@@ -415,6 +429,7 @@ const App = (() => {
           .then(rows => {
             _expensesCache   = rows;
             _expensesCacheAt = Date.now();
+            _saveExpensesLocal(rows);
           })
           .catch(() => {}) // バックグラウンド失敗は無視（古いデータを継続使用）
           .finally(() => { _expensesInflight = null; });
@@ -433,6 +448,7 @@ const App = (() => {
       const rows       = await Sheets.readExpenses();
       _expensesCache   = rows;
       _expensesCacheAt = Date.now();
+      _saveExpensesLocal(rows);
       resolve(rows);
       return _expensesCache;
     } catch (err) {
@@ -443,10 +459,19 @@ const App = (() => {
     }
   }
 
+  /** 経費データを localStorage に保存（次回起動時の即時表示用） */
+  function _saveExpensesLocal(rows) {
+    try {
+      const sheetId = localStorage.getItem('keihi_sheet_id') || '';
+      localStorage.setItem('keihi_expenses_cache', JSON.stringify({ data: rows, sheetId }));
+    } catch (_) {} // quota 超過は無視
+  }
+
   /** 経費データキャッシュを破棄（申請・修正・削除後に呼ぶ） */
   function clearExpensesCache() {
     _expensesCache   = null;
     _expensesCacheAt = 0;
+    try { localStorage.removeItem('keihi_expenses_cache'); } catch (_) {}
   }
 
   /**
@@ -627,7 +652,9 @@ const App = (() => {
       const prevSheetId = localStorage.getItem('keihi_sheet_id');
       if (prevSheetId && prevSheetId !== token) {
         ['keihi_company_name', 'keihi_master_cache', 'keihi_folder_id', 'keihi_setup_code',
-         'keihi_nav_color', 'keihi_gemini_key', 'keihi_alias', 'keihi_user_email', 'keihi_regulation'].forEach(k => localStorage.removeItem(k));
+         'keihi_nav_color', 'keihi_gemini_key', 'keihi_alias', 'keihi_user_email',
+         'keihi_regulation', 'keihi_expenses_cache'].forEach(k => localStorage.removeItem(k));
+        _expensesCache = null; _expensesCacheAt = 0; // メモリキャッシュも即時クリア
       }
       sessionStorage.setItem('keihi_sheet_id', token);
       localStorage.setItem('keihi_sheet_id', token);
@@ -650,7 +677,9 @@ const App = (() => {
             // 別チームのシートまたは別エイリアスに切り替わる場合、チーム固有データをクリア
             // ライセンスキーはユーザーレベルのため保持（init()内の検証・B3自動取得で上書きされる）
             ['keihi_company_name', 'keihi_master_cache', 'keihi_folder_id', 'keihi_setup_code',
-             'keihi_nav_color', 'keihi_gemini_key', 'keihi_alias', 'keihi_user_email', 'keihi_regulation'].forEach(k => localStorage.removeItem(k));
+             'keihi_nav_color', 'keihi_gemini_key', 'keihi_alias', 'keihi_user_email',
+             'keihi_regulation', 'keihi_expenses_cache'].forEach(k => localStorage.removeItem(k));
+            _expensesCache = null; _expensesCacheAt = 0; // メモリキャッシュも即時クリア
           }
           sessionStorage.setItem('keihi_sheet_id', data.sheetId);
           localStorage.setItem('keihi_sheet_id', data.sheetId);
