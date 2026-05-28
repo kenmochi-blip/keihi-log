@@ -503,7 +503,7 @@ const ListView = (() => {
               ${statusBadge}
               <span class="list-sp-cat">${_escape(e.category)}</span>
               ${e.taxRate && e.taxRate !== '課税10%' ? `<span class="badge text-bg-light border" style="font-size:0.65rem;font-weight:normal;">${_escape(e.taxRate)}</span>` : ''}
-              ${e.note ? `<span class="list-sp-note expandable">${_escape(e.note)}<i class="bi bi-chevron-down chevron"></i></span>` : ''}
+              ${e.note ? `<span class="list-sp-note-wrap expandable"><span class="list-sp-note">${_escape(e.note)}</span><i class="bi bi-chevron-down chevron"></i></span>` : ''}
             </div>
             <div class="no-print flex-shrink-0">${ops}</div>
           </div>
@@ -545,15 +545,15 @@ const ListView = (() => {
     });
 
     // SP：備考末尾のシェブロンタップで詳細エリアトグル
-    cardsSp.querySelectorAll('.list-sp-note.expandable').forEach(noteEl => {
-      noteEl.addEventListener('click', (ev) => {
+    cardsSp.querySelectorAll('.list-sp-note-wrap.expandable').forEach(wrapEl => {
+      wrapEl.addEventListener('click', (ev) => {
         ev.stopPropagation();
-        const card  = noteEl.closest('.list-sp-card');
+        const card  = wrapEl.closest('.list-sp-card');
         const extra = card?.querySelector('.list-sp-extra');
         if (!extra) return;
         const opening = extra.classList.contains('d-none');
         extra.classList.toggle('d-none', !opening);
-        noteEl.classList.toggle('open', opening);
+        wrapEl.classList.toggle('open', opening);
       });
     });
 
