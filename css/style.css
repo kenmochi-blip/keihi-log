@@ -6,8 +6,8 @@ body { font-size: 0.9rem; }
 
 /* タップ遅延を解消（モバイルで300ms遅延をなくす） */
 button, a, [role="button"], .type-card, .upload-card, .upload-card-sm,
-.nav-item-btn, label[for], .list-sp-amount, .list-amount-toggle,
-input[type="checkbox"], input[type="radio"] {
+.nav-item-btn, label[for], .list-sp-amount, .list-sp-note, .list-amount-toggle,
+.list-note-cell.expandable, input[type="checkbox"], input[type="radio"] {
   touch-action: manipulation;
 }
 
@@ -199,12 +199,18 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 .list-amount { font-weight: 600; white-space: nowrap; }
 .list-date  { white-space: nowrap; }
 .list-cat   { white-space: nowrap; }
-.list-note-cell { font-size: 0.75rem; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+.list-note-cell { font-size: 0.75rem; max-width: 220px; }
+.list-note-cell .note-text { display: inline-block; max-width: calc(100% - 18px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
+.list-note-cell .note-expand-chevron { font-size: 0.6rem; opacity: 0.55; vertical-align: middle; margin-left: 2px; transition: transform 0.15s; }
+.list-note-cell.expandable { cursor: pointer; user-select: none; }
+.list-note-cell.expandable.open .note-text { max-width: 100%; overflow: visible; text-overflow: unset; white-space: normal; }
+.list-note-cell.expandable.open .note-expand-chevron { transform: rotate(180deg); }
 
 /* PC：セルをゆったり */
 @media (min-width: 768px) {
   .list-table th, .list-table td { font-size: 0.875rem; padding: 0.6rem 0.8rem; }
   .list-note-cell { max-width: 400px; }
+  .list-note-cell .note-text { max-width: calc(100% - 18px); }
 }
 
 /* 列リサイズハンドル */
@@ -422,11 +428,11 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 .list-sp-place { font-size: 0.88rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .list-sp-name  { font-size: 0.7rem; color: #6c757d; }
 .list-sp-amount { font-size: 0.9rem; font-weight: 700; color: #0d6efd; white-space: nowrap; }
-.list-sp-amount.expandable { cursor: pointer; user-select: none; }
-.list-sp-amount.expandable .chevron { font-size: 0.6rem; opacity: 0.55; vertical-align: middle; margin-left: 2px; transition: transform 0.15s; }
-.list-sp-amount.expandable.open .chevron { transform: rotate(180deg); }
 .list-sp-cat   { font-size: 0.72rem; color: #6c757d; }
 .list-sp-note  { font-size: 0.7rem; color: #adb5bd; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px; display: inline-block; vertical-align: middle; }
+.list-sp-note.expandable { cursor: pointer; user-select: none; }
+.list-sp-note .chevron { font-size: 0.6rem; opacity: 0.55; vertical-align: middle; margin-left: 2px; transition: transform 0.15s; }
+.list-sp-note.expandable.open .chevron { transform: rotate(180deg); }
 /* 金額タップで展開される詳細エリア */
 .list-sp-extra {
   margin-top: 0.45rem;

@@ -472,7 +472,7 @@ const ListView = (() => {
         <td class="list-type-cell">${_escape(e.type)}</td>
         <td class="text-end list-amount">¥${e.amount.toLocaleString()}</td>
         <td class="list-cat">${_escape(e.category)}${e.taxRate && e.taxRate !== '課税10%' ? `<br><span class="badge text-bg-light border" style="font-size:0.65rem;font-weight:normal;">${_escape(e.taxRate)}</span>` : ''}</td>
-        <td class="list-note-cell text-muted">${_escape(e.note || '')}</td>
+        <td class="list-note-cell text-muted${e.note ? ' expandable' : ''}">${e.note ? `<span class="note-text">${_escape(e.note)}</span><i class="bi bi-chevron-down note-expand-chevron"></i>` : ''}</td>
         <td class="text-center"><div class="d-flex flex-wrap gap-1 justify-content-center">${receiptBtns}</div></td>
         <td>${statusBadge}</td>
         <td class="text-center" style="font-size:0.75rem;white-space:nowrap;">${_escape(e.settlementDate || '')}</td>
@@ -492,9 +492,8 @@ const ListView = (() => {
               <div class="list-sp-name">${_escape(App.getMemberName(e.email, e.name))}</div>
             </div>
             <div class="flex-shrink-0 text-end">
-              <div class="list-sp-amount${e.note ? ' expandable' : ''}" style="${e.note ? '' : ''}">
+              <div class="list-sp-amount">
                 ¥${e.amount.toLocaleString()}
-                ${e.note ? '<i class="bi bi-chevron-down chevron"></i>' : ''}
               </div>
               ${receiptBtns ? `<div class="d-flex flex-wrap gap-1 justify-content-end mt-1">${receiptBtns}</div>` : ''}
             </div>
@@ -504,7 +503,7 @@ const ListView = (() => {
               ${statusBadge}
               <span class="list-sp-cat">${_escape(e.category)}</span>
               ${e.taxRate && e.taxRate !== '課税10%' ? `<span class="badge text-bg-light border" style="font-size:0.65rem;font-weight:normal;">${_escape(e.taxRate)}</span>` : ''}
-              ${e.note ? `<span class="list-sp-note">${_escape(e.note)}</span>` : ''}
+              ${e.note ? `<span class="list-sp-note expandable">${_escape(e.note)}<i class="bi bi-chevron-down chevron"></i></span>` : ''}
             </div>
             <div class="no-print flex-shrink-0">${ops}</div>
           </div>
@@ -545,16 +544,23 @@ const ListView = (() => {
       });
     });
 
-    // SP：金額タップで詳細エリアトグル
-    cardsSp.querySelectorAll('.list-sp-amount.expandable').forEach(amountEl => {
-      amountEl.addEventListener('click', (ev) => {
+    // SP：備考末尾のシェブロンタップで詳細エリアトグル
+    cardsSp.querySelectorAll('.list-sp-note.expandable').forEach(noteEl => {
+      noteEl.addEventListener('click', (ev) => {
         ev.stopPropagation();
-        const card  = amountEl.closest('.list-sp-card');
+        const card  = noteEl.closest('.list-sp-card');
         const extra = card?.querySelector('.list-sp-extra');
         if (!extra) return;
         const opening = extra.classList.contains('d-none');
         extra.classList.toggle('d-none', !opening);
-        amountEl.classList.toggle('open', opening);
+        noteEl.classList.toggle('open', opening);
+      });
+    });
+
+    // PC：備考末尾のシェブロンクリックで全文展開トグル
+    tbodyPc.querySelectorAll('.list-note-cell.expandable').forEach(td => {
+      td.addEventListener('click', () => {
+        td.classList.toggle('open');
       });
     });
   }
