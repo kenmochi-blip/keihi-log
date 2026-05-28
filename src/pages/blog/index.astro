@@ -6,6 +6,12 @@ const posts = (await getCollection('blog'))
 
 const fmtDate = (d: Date) =>
   d.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
+
+const readingTime = (body: string | undefined) =>
+  Math.max(1, Math.ceil((body?.length ?? 0) / 400));
+
+// タグ一覧を集計
+const allTags = [...new Set(posts.flatMap(p => p.data.tags))].sort();
 ---
 
 <!doctype html>
@@ -16,69 +22,191 @@ const fmtDate = (d: Date) =>
   <title>ブログ | 経費ログ</title>
   <meta name="description" content="経費精算・電子帳簿保存法・フリーランスの経費管理に関するお役立ち情報を発信しています。" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
   <style>
-    body { font-size: 0.95rem; }
-    .blog-nav { border-bottom: 1px solid #dee2e6; }
-    .blog-nav a { text-decoration: none; color: #212529; font-weight: 600; }
-    .blog-nav a:hover { color: #0d6efd; }
-    .post-card { transition: box-shadow 0.15s; text-decoration: none; color: inherit; display: block; }
-    .post-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.10); }
-    .post-title { font-size: 1.05rem; font-weight: 700; line-height: 1.45; }
-    .tag-badge { background: #e8f0fe; color: #1a56db; font-size: 0.72rem; padding: 0.2em 0.6em; border-radius: 20px; }
+    :root {
+      --brand: #0d6efd;
+      --text: #1a202c;
+      --muted: #6c757d;
+      --border: #e9ecef;
+      --bg: #f7f8fc;
+    }
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .blog-nav {
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+    }
+    .blog-nav a { text-decoration: none; color: var(--text); font-weight: 700; }
+    .blog-nav a:hover { color: var(--brand); }
+
+    /* ヒーローヘッダー */
+    .blog-hero {
+      background: linear-gradient(135deg, #0d6efd 0%, #6610f2 100%);
+      color: #fff;
+      padding: 3.5rem 1rem 3rem;
+      text-align: center;
+    }
+    .blog-hero h1 { font-size: 2rem; font-weight: 900; letter-spacing: -0.02em; }
+    .blog-hero p { opacity: 0.85; font-size: 0.9rem; }
+
+    /* タグフィルター */
+    .tag-filter-btn {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: 0.78rem;
+      font-weight: 500;
+      padding: 0.3em 0.9em;
+      cursor: pointer;
+      transition: all 0.15s;
+      color: var(--muted);
+    }
+    .tag-filter-btn:hover, .tag-filter-btn.active {
+      background: var(--brand);
+      border-color: var(--brand);
+      color: #fff;
+    }
+
+    /* 記事カード */
+    .post-card {
+      background: #fff;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      transition: transform 0.18s, box-shadow 0.18s;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    .post-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    }
+    .post-card-body { padding: 1.4rem 1.5rem; flex: 1; display: flex; flex-direction: column; }
+    .post-tag { background: #eef2ff; color: #4361ee; font-size: 0.7rem; font-weight: 500; padding: 0.2em 0.65em; border-radius: 20px; }
+    .post-title { font-size: 1rem; font-weight: 700; line-height: 1.5; margin: 0.5rem 0 0.6rem; color: var(--text); }
+    .post-desc { font-size: 0.82rem; color: var(--muted); line-height: 1.7; flex: 1; }
+    .post-meta { font-size: 0.75rem; color: var(--muted); margin-top: 1rem; display: flex; gap: 0.75rem; }
+    .post-card-accent {
+      height: 4px;
+      background: linear-gradient(90deg, var(--brand), #6610f2);
+    }
+
+    /* 空状態 */
+    .empty-state { text-align: center; padding: 4rem 1rem; color: var(--muted); }
+
+    /* フッター */
+    .blog-footer { border-top: 1px solid var(--border); background: #fff; }
   </style>
 </head>
-<body class="bg-light">
+<body>
 
-  <nav class="blog-nav bg-white py-2 px-3 px-md-4 d-flex align-items-center justify-content-between sticky-top">
+  <nav class="blog-nav py-2 px-3 px-md-4 d-flex align-items-center justify-content-between sticky-top">
     <a href="/" class="d-flex align-items-center gap-2">
-      <img src="/favicon.svg" width="24" height="24" alt="" />
-      <span>経費ログ</span>
+      <img src="/favicon.svg" width="22" height="22" alt="" />
+      <span style="font-size:0.95rem;">経費ログ</span>
     </a>
     <div class="d-flex gap-3 align-items-center">
-      <span class="text-primary fw-semibold small">ブログ</span>
-      <a href="/" class="btn btn-primary btn-sm px-3">無料で試す</a>
+      <span style="font-size:0.85rem;font-weight:700;color:var(--brand);">ブログ</span>
+      <a href="/" class="btn btn-primary btn-sm px-3" style="font-size:0.82rem;">無料で試す</a>
     </div>
   </nav>
 
-  <main class="container py-4 py-md-5" style="max-width:800px;">
-    <h1 class="fw-bold mb-1" style="font-size:1.5rem;">ブログ</h1>
-    <p class="text-muted small mb-4">経費精算・電帳法・フリーランスの経費管理に関するお役立ち情報</p>
+  <!-- ヒーロー -->
+  <div class="blog-hero">
+    <h1>経費ログ ブログ</h1>
+    <p>経費精算・電帳法・フリーランスの経費管理に関するお役立ち情報</p>
+  </div>
 
+  <main class="container py-4 py-md-5" style="max-width:900px;">
+
+    <!-- タグフィルター -->
+    {allTags.length > 0 && (
+      <div class="d-flex flex-wrap gap-2 mb-4" id="tagFilters">
+        <button class="tag-filter-btn active" data-tag="">すべて</button>
+        {allTags.map(tag => (
+          <button class="tag-filter-btn" data-tag={tag}>#{tag}</button>
+        ))}
+      </div>
+    )}
+
+    <!-- 記事一覧 -->
     {posts.length === 0 ? (
-      <p class="text-muted">記事はまだありません。</p>
+      <div class="empty-state">
+        <i class="bi bi-journal-text" style="font-size:3rem;opacity:0.3;"></i>
+        <p class="mt-3">記事はまだありません。</p>
+      </div>
     ) : (
-      <div class="d-flex flex-column gap-3">
+      <div class="row g-3" id="postGrid">
         {posts.map(post => (
-          <a href={`/blog/${post.id}/`} class="post-card card border-0 shadow-sm">
-            <div class="card-body py-3">
-              <div class="d-flex flex-wrap gap-1 mb-2">
-                {post.data.tags.map(tag => (
-                  <span class="tag-badge">#{tag}</span>
-                ))}
+          <div class="col-12 col-md-6" data-tags={post.data.tags.join(',')}>
+            <a href={`/blog/${post.id}/`} class="post-card">
+              <div class="post-card-accent"></div>
+              <div class="post-card-body">
+                <div class="d-flex flex-wrap gap-1">
+                  {post.data.tags.map(tag => (
+                    <span class="post-tag">#{tag}</span>
+                  ))}
+                </div>
+                <div class="post-title">{post.data.title}</div>
+                <p class="post-desc">{post.data.description}</p>
+                <div class="post-meta">
+                  <span><i class="bi bi-calendar3 me-1"></i>
+                    <time datetime={post.data.pubDate.toISOString()}>
+                      {fmtDate(post.data.pubDate)}
+                    </time>
+                  </span>
+                  <span><i class="bi bi-clock me-1"></i>約{readingTime(post.body)}分</span>
+                </div>
               </div>
-              <div class="post-title mb-1">{post.data.title}</div>
-              <p class="text-muted small mb-2" style="line-height:1.6;">{post.data.description}</p>
-              <div class="text-muted" style="font-size:0.75rem;">
-                <i class="bi bi-calendar3 me-1"></i>
-                <time datetime={post.data.pubDate.toISOString()}>{fmtDate(post.data.pubDate)}</time>
-              </div>
-            </div>
-          </a>
+            </a>
+          </div>
         ))}
       </div>
     )}
   </main>
 
-  <footer class="py-4 mt-2 border-top">
-    <div class="container text-center text-muted small">
-      <a href="/privacy" class="me-3">プライバシーポリシー</a>
-      <a href="/terms" class="me-3">利用規約</a>
-      <a href="/faq" class="me-3">よくある質問</a>
-      <div class="mt-2">© 2025 合同会社Smart&amp;Smooth</div>
+  <footer class="blog-footer py-4">
+    <div class="container text-center" style="font-size:0.8rem;color:var(--muted);">
+      <div class="d-flex justify-content-center flex-wrap gap-3 mb-2">
+        <a href="/privacy" class="text-muted text-decoration-none">プライバシーポリシー</a>
+        <a href="/terms" class="text-muted text-decoration-none">利用規約</a>
+        <a href="/faq" class="text-muted text-decoration-none">よくある質問</a>
+        <a href="/" class="text-muted text-decoration-none">アプリトップ</a>
+      </div>
+      <div>© 2025 合同会社Smart&amp;Smooth</div>
     </div>
   </footer>
+
+  <script>
+    // タグフィルター
+    const filterBtns = document.querySelectorAll('.tag-filter-btn');
+    const cards = document.querySelectorAll('#postGrid [data-tags]');
+
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        filterBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const tag = (btn as HTMLButtonElement).dataset.tag ?? '';
+        cards.forEach(card => {
+          const el = card as HTMLElement;
+          const tags = el.dataset.tags ?? '';
+          el.style.display = (!tag || tags.split(',').includes(tag)) ? '' : 'none';
+        });
+      });
+    });
+  </script>
 
 </body>
 </html>
