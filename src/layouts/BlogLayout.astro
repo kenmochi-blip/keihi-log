@@ -1,0 +1,130 @@
+---
+interface Props {
+  title: string;
+  description: string;
+  pubDate: Date;
+  updatedDate?: Date;
+  tags?: string[];
+}
+
+const { title, description, pubDate, updatedDate, tags = [] } = Astro.props;
+
+const fmtDate = (d: Date) =>
+  d.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
+---
+
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{title} | 経費ログ ブログ</title>
+  <meta name="description" content={description} />
+  <meta property="og:title" content={title} />
+  <meta property="og:description" content={description} />
+  <meta property="og:type" content="article" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <style>
+    body { font-size: 0.95rem; color: #212529; }
+    .blog-nav { border-bottom: 1px solid #dee2e6; }
+    .blog-nav a { text-decoration: none; color: #212529; font-weight: 600; }
+    .blog-nav a:hover { color: #0d6efd; }
+    .article-title { font-size: 1.6rem; font-weight: 800; line-height: 1.4; }
+    @media (min-width: 768px) { .article-title { font-size: 2rem; } }
+    .article-body { max-width: 720px; margin: 0 auto; }
+    .article-body h2 { font-size: 1.3rem; font-weight: 700; border-left: 4px solid #0d6efd; padding-left: 0.6rem; margin-top: 2.5rem; margin-bottom: 1rem; }
+    .article-body h3 { font-size: 1.1rem; font-weight: 700; margin-top: 2rem; margin-bottom: 0.75rem; }
+    .article-body p { line-height: 1.85; margin-bottom: 1.2rem; }
+    .article-body ul, .article-body ol { line-height: 1.8; margin-bottom: 1.2rem; padding-left: 1.6rem; }
+    .article-body table { font-size: 0.875rem; margin-bottom: 1.5rem; }
+    .article-body blockquote { border-left: 3px solid #0d6efd; padding: 0.5rem 1rem; background: #f0f5ff; border-radius: 0 6px 6px 0; margin-bottom: 1.2rem; }
+    .article-body code { background: #f1f3f5; padding: 0.1em 0.35em; border-radius: 4px; font-size: 0.875em; }
+    .article-body pre { background: #f1f3f5; padding: 1rem; border-radius: 8px; overflow-x: auto; margin-bottom: 1.2rem; }
+    .article-body pre code { background: none; padding: 0; }
+    .tag-badge { background: #e8f0fe; color: #1a56db; font-size: 0.75rem; padding: 0.25em 0.7em; border-radius: 20px; text-decoration: none; }
+    .tag-badge:hover { background: #c7d7fb; }
+    .blog-footer { border-top: 1px solid #dee2e6; }
+  </style>
+</head>
+<body class="bg-light">
+
+  <!-- ナビバー -->
+  <nav class="blog-nav bg-white py-2 px-3 px-md-4 d-flex align-items-center justify-content-between sticky-top">
+    <a href="/" class="d-flex align-items-center gap-2">
+      <img src="/favicon.svg" width="24" height="24" alt="" />
+      <span>経費ログ</span>
+    </a>
+    <div class="d-flex gap-3 align-items-center">
+      <a href="/blog/" class="text-muted small">ブログ</a>
+      <a href="/" class="btn btn-primary btn-sm px-3">無料で試す</a>
+    </div>
+  </nav>
+
+  <!-- 記事本文 -->
+  <main class="container py-4 py-md-5">
+    <div class="article-body">
+
+      <!-- パンくず -->
+      <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb" style="font-size:0.8rem;">
+          <li class="breadcrumb-item"><a href="/">ホーム</a></li>
+          <li class="breadcrumb-item"><a href="/blog/">ブログ</a></li>
+          <li class="breadcrumb-item active" aria-current="page">{title}</li>
+        </ol>
+      </nav>
+
+      <!-- タグ -->
+      {tags.length > 0 && (
+        <div class="mb-3 d-flex flex-wrap gap-2">
+          {tags.map(tag => (
+            <a href={`/blog/tag/${tag}/`} class="tag-badge">#{tag}</a>
+          ))}
+        </div>
+      )}
+
+      <!-- タイトル -->
+      <h1 class="article-title mb-3">{title}</h1>
+
+      <!-- 日付 -->
+      <div class="text-muted small mb-4">
+        <i class="bi bi-calendar3 me-1"></i>
+        <time datetime={pubDate.toISOString()}>{fmtDate(pubDate)}</time>
+        {updatedDate && (
+          <span class="ms-3">
+            <i class="bi bi-pencil me-1"></i>更新：<time datetime={updatedDate.toISOString()}>{fmtDate(updatedDate)}</time>
+          </span>
+        )}
+      </div>
+
+      <hr class="mb-4" />
+
+      <!-- 記事内容 -->
+      <slot />
+
+      <!-- CTA -->
+      <div class="card border-primary mt-5 mb-4" style="border-width:2px;">
+        <div class="card-body text-center py-4">
+          <div class="fw-bold mb-1">経費精算をもっとかんたんに</div>
+          <p class="text-muted small mb-3">AI領収書解析・電帳法対応・Google スプレッドシート連携<br>2週間無料トライアルあり</p>
+          <a href="/" class="btn btn-primary px-4">無料で試してみる</a>
+        </div>
+      </div>
+
+      <!-- 前後ナビはindex側でinsert -->
+
+    </div>
+  </main>
+
+  <footer class="blog-footer py-4 mt-2">
+    <div class="container text-center text-muted small">
+      <a href="/privacy" class="me-3">プライバシーポリシー</a>
+      <a href="/terms" class="me-3">利用規約</a>
+      <a href="/faq" class="me-3">よくある質問</a>
+      <div class="mt-2">© 2025 合同会社Smart&amp;Smooth</div>
+    </div>
+  </footer>
+
+</body>
+</html>

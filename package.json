@@ -3,10 +3,18 @@
   "version": "1.0.0",
   "private": true,
   "description": "AI領収書解析・経費申請Webアプリ",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview"
+  },
   "dependencies": {
     "@sentry/node": "^8.0.0",
     "@vercel/kv": "^1.0.1",
     "googleapis": "^140.0.0",
     "stripe": "^14.21.0"
+  },
+  "devDependencies": {
+    "astro": "^6.4.1"
   }
 }
