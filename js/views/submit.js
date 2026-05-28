@@ -1094,7 +1094,7 @@ function _bindTypeButtons(el) {
           : new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
       }
 
-      // 2. ファイルアップロード + SHA-256ハッシュ計算
+      // 2. ファイルアップロード + SHA-256ハッシュ計算（並列実行）
       const activeFiles = _selectedFiles.filter(Boolean);
       const uploadedUrls = _existingUrls.filter(Boolean);
       const hashes = _existingHash ? [_existingHash] : [];
@@ -1102,23 +1102,27 @@ function _bindTypeButtons(el) {
       const master = await App.getMaster();
       const userName = master.members.find(m => m.email === Auth.getUserEmail())?.name
         || Auth.getUserInfo()?.name || Auth.getUserEmail();
-
       const dateStr  = data.date.replace(/-/g, '');
       const amtStr   = String(data.amount);
       const placeStr = (data.place || '').replace(/[\\/:*?"<>|]/g, '').trim().slice(0, 20);
 
-      for (let i = 0; i < activeFiles.length; i++) {
-        const f = activeFiles[i];
-        const ext = f.mimeType.split('/')[1]?.replace('jpeg', 'jpg') || 'jpg';
+      // Drive アップロード（複数ファイル並列）と expenses キャッシュ取得を同時に走らせる
+      const uploadPromises = activeFiles.map((f, i) => {
+        const ext      = f.mimeType.split('/')[1]?.replace('jpeg', 'jpg') || 'jpg';
         const filename = `${dateStr}_${placeStr}_${amtStr}円_${userName}_${i + 1}.${ext}`;
-        const { url, hash, warn } = await Drive.uploadReceiptFile(f.base64, f.mimeType, filename);
+        return Drive.uploadReceiptFile(f.base64, f.mimeType, filename);
+      });
+      const [uploadResults, expenses] = await Promise.all([
+        Promise.all(uploadPromises),
+        App.getExpenses(),  // アップロード中にキャッシュを温める
+      ]);
+      for (const { url, hash, warn } of uploadResults) {
         uploadedUrls.push(url);
         hashes.push(hash);
         if (warn) App.showToast(warn, 'warning');
       }
 
       // 3. AI監査チェック（重複・2ヶ月超・同一画像）
-      const expenses = await App.getExpenses(); // キャッシュ利用（申請直前に再取得不要）
       const alerts = _runAuditChecks(expenses, data, hashes);
       if (alerts.length > 0) {
         App.hideLoading();
@@ -1189,8 +1193,11 @@ function _bindTypeButtons(el) {
             `インボイス: ${r[12] || ''}`,
             `税区分: ${r[18] || ''}`,
           ].filter(s => !s.endsWith(': ')).join(' / ');
-          await Sheets.prependRow('修正履歴', [appliedAt, Auth.getUserEmail(), oldSummary]);
-          await Sheets.update(`経費一覧!A${rowNum}:U${rowNum}`, [row]);
+          // 修正履歴への追記と経費一覧の更新を並列実行
+          await Promise.all([
+            Sheets.prependRow('修正履歴', [appliedAt, Auth.getUserEmail(), oldSummary]),
+            Sheets.update(`経費一覧!A${rowNum}:U${rowNum}`, [row]),
+          ]);
         }
       } else {
         await Sheets.prependExpense(row);
