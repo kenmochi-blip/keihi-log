@@ -12,6 +12,7 @@ const ListView = (() => {
   let _userRole  = 'member';
   let _showAll   = false;
   let _shownCount = 50;
+  let _sortMode  = 'applied'; // 'applied'=登録順 / 'date'=日付順
 
   function render() {
     const { fromYM, toYM } = _defaultRange();
@@ -102,9 +103,13 @@ const ListView = (() => {
 
   <!-- 合計表示 -->
   <div class="d-flex justify-content-between align-items-center mb-2">
-    <div class="d-flex align-items-center gap-2">
+    <div class="d-flex align-items-center gap-2 flex-wrap">
       <span class="text-muted small" id="lblCount">読み込み中...</span>
       <span class="text-muted" style="font-size:0.72rem;">🏢 = 会社直接支払</span>
+      <div class="btn-group btn-group-sm no-print" id="listSortBtns">
+        <button class="btn btn-outline-secondary active" data-sort="applied" style="font-size:0.72rem;padding:0.1rem 0.5rem;">登録順</button>
+        <button class="btn btn-outline-secondary" data-sort="date" style="font-size:0.72rem;padding:0.1rem 0.5rem;">日付順</button>
+      </div>
     </div>
     <span class="fw-bold" id="lblFilterTotal"></span>
   </div>
@@ -206,6 +211,15 @@ const ListView = (() => {
       ['filterType','filterStatus','filterKeyword','filterMember','filterPaySource','filterCustomFlag'].forEach(id => {
         el.querySelector(`#${id}`)?.addEventListener('input', () => { _shownCount = 50; _renderTable(el); });
       });
+      el.querySelectorAll('#listSortBtns [data-sort]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          _sortMode = btn.dataset.sort;
+          el.querySelectorAll('#listSortBtns [data-sort]').forEach(b => {
+            b.classList.toggle('active', b === btn);
+          });
+          _shownCount = 50; _renderTable(el);
+        });
+      });
       el.querySelectorAll('#listPresetBtns [data-months]').forEach(btn => {
         btn.addEventListener('click', () => {
           el.querySelectorAll('#listPresetBtns [data-months]').forEach(b => {
@@ -297,6 +311,16 @@ const ListView = (() => {
     el.querySelector('#btnExportFreee')?.addEventListener('click', e => { e.preventDefault(); _exportFreee(el); });
     el.querySelector('#btnExportYayoi')?.addEventListener('click', e => { e.preventDefault(); _exportYayoi(el); });
     el.querySelector('#btnExportMfc')?.addEventListener('click', e => { e.preventDefault(); _exportMfc(el); });
+
+    el.querySelectorAll('#listSortBtns [data-sort]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        _sortMode = btn.dataset.sort;
+        el.querySelectorAll('#listSortBtns [data-sort]').forEach(b => {
+          b.classList.toggle('active', b === btn);
+        });
+        _shownCount = 50; _renderTable(el);
+      });
+    });
 
     _renderTable(el);
     requestAnimationFrame(() => _initResizableColumns(el.querySelector('.list-table-pc')));
@@ -395,7 +419,13 @@ const ListView = (() => {
       }
       return true;
     }).sort((a, b) => {
-      // 申請日時（新しい順）→ 日付（新しい順）の優先順でソート
+      if (_sortMode === 'date') {
+        // 日付順（新しい順）→ 申請日時順
+        const d = String(b.date || '').localeCompare(String(a.date || ''));
+        if (d !== 0) return d;
+        return String(b.appliedAt || '').localeCompare(String(a.appliedAt || ''));
+      }
+      // 登録順（デフォルト）：申請日時（新しい順）→ 日付（新しい順）
       const aKey = String(a.appliedAt || a.date || '');
       const bKey = String(b.appliedAt || b.date || '');
       if (bKey !== aKey) return bKey.localeCompare(aKey);
