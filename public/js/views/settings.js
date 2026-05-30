@@ -84,7 +84,7 @@ const SettingsView = (() => {
           ` : ''}
 
           <!-- ライセンスキー -->
-          <div class="settings-step-title">ライセンスキー</div>
+          <div class="settings-step-title">ライセンスキー <a href="/faq#q1001" class="text-muted ms-1" style="font-size:0.78rem;" title="FAQを見る"><i class="bi bi-question-circle"></i></a></div>
           <div id="licenseStatus" class="mb-2"></div>
           ${!licKey ? `<div class="settings-step-hint mb-2">メールにて通知されたライセンスキーを入力してください<br>例：<code>KL-XXXXXXXXXXXXXXXXXXXX</code></div>` : ''}
           <div class="input-group mb-1">
@@ -99,7 +99,7 @@ const SettingsView = (() => {
 
           <!-- Gemini APIキー（管理者のみ） -->
           ${isAdmin ? `
-          <div class="settings-step-title">Gemini APIキー</div>
+          <div class="settings-step-title">Gemini APIキー <a href="/faq#q402" class="text-muted ms-1" style="font-size:0.78rem;" title="FAQを見る"><i class="bi bi-question-circle"></i></a></div>
           <div class="settings-step-hint">全メンバー共用 — メンバーは個別取得不要です。</div>
           <div class="card bg-light border-0 p-2 mb-2" style="font-size:0.82rem;line-height:1.6;">
             <div class="fw-semibold mb-1"><i class="bi bi-key me-1 text-warning"></i>APIキーの取得手順</div>
@@ -146,7 +146,7 @@ const SettingsView = (() => {
           <div id="geminiKeyMsg" class="form-text"></div>
 
           <!-- 自家用車レート（管理者のみ） -->
-          <div class="settings-step-title mt-3">自家用車レート（円/km）</div>
+          <div class="settings-step-title mt-3">自家用車レート（円/km） <a href="/faq#q307" class="text-muted ms-1" style="font-size:0.78rem;" title="FAQを見る"><i class="bi bi-question-circle"></i></a></div>
           <div class="settings-step-hint">全メンバー共通のキロ単価です。メンバーは参照のみ可能です。</div>
           <div class="input-group mb-1" style="max-width:200px;">
             <input type="number" class="form-control form-control-sm" id="inputCarRate" min="1" step="1" placeholder="20">
@@ -185,7 +185,7 @@ const SettingsView = (() => {
   <div class="card mb-3">
     <div class="card-body">
       <div class="settings-section-title d-flex justify-content-between align-items-center">
-        <span>メンバー管理</span>
+        <span>メンバー管理 <a href="/faq#q104" class="text-muted ms-1" style="font-size:0.78rem;" title="FAQを見る"><i class="bi bi-question-circle"></i></a></span>
         <button class="btn btn-outline-primary btn-sm" id="btnAddMember"><i class="bi bi-plus me-1"></i>追加</button>
       </div>
       <div id="memberPlanHint" class="d-none mt-2">
@@ -257,7 +257,7 @@ const SettingsView = (() => {
   <div class="card mb-3">
     <div class="card-body">
       <div class="settings-section-title d-flex justify-content-between align-items-center">
-        <span>会社払い支払元</span>
+        <span>会社払い支払元 <a href="/faq#q107" class="text-muted ms-1" style="font-size:0.78rem;" title="FAQを見る"><i class="bi bi-question-circle"></i></a></span>
         <button class="btn btn-outline-primary btn-sm" id="btnAddPaySource"><i class="bi bi-plus me-1"></i>追加</button>
       </div>
       <div id="paySourceList" class="mt-2">
@@ -270,7 +270,7 @@ const SettingsView = (() => {
   <div class="card mb-3">
     <div class="card-body">
       <div class="settings-section-title d-flex justify-content-between align-items-center">
-        <span>カスタムフラグ</span>
+        <span>カスタムフラグ <a href="/faq#q109" class="text-muted ms-1" style="font-size:0.78rem;" title="FAQを見る"><i class="bi bi-question-circle"></i></a></span>
         <button class="btn btn-outline-primary btn-sm" id="btnAddCustomFlag"><i class="bi bi-plus me-1"></i>追加</button>
       </div>
       <p class="text-muted small mb-2">部門・プロジェクト等、申請時に自由に使えるタグを定義します。</p>
@@ -1079,7 +1079,7 @@ const SettingsView = (() => {
     return `
           <hr class="my-3">
           <div id="regulationSection">
-          <div class="settings-step-title">訂正・削除防止規程（電帳法）</div>
+          <div class="settings-step-title">訂正・削除防止規程（電帳法） <a href="/faq#q802" class="text-muted ms-1" style="font-size:0.78rem;" title="FAQを見る"><i class="bi bi-question-circle"></i></a></div>
           <div class="settings-step-hint mb-2">スキャナ保存で紙の原本を廃棄可能にするために必要な社内規程です。確定するとアプリ内に表示されます。</div>
           ${confirmedBadge}
           <div class="accordion mb-2" id="regPreviewAcc">

@@ -5,943 +5,1144 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>よくある質問（FAQ）｜経費ログ</title>
   <meta name="description" content="経費ログのよくある質問（FAQ）ページです。初期設定・経費申請・AI解析・電帳法対応・エラー対処法などをまとめています。">
+  <link rel="canonical" href="https://keihi-log.com/faq" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <style>
-    * { box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
-      line-height: 1.8;
-      color: #333;
-      background: #f8f9fa;
-      margin: 0;
-      padding: 0;
-    }
-    header {
-      background: #0d6efd;
-      color: #fff;
-      padding: 28px 24px 24px;
-      text-align: center;
-    }
-    header h1 {
-      margin: 0 0 4px;
-      font-size: 1.5rem;
-      font-weight: 700;
-    }
-    header p {
-      margin: 0;
-      font-size: 0.9rem;
-      opacity: 0.85;
-    }
-    .back-link {
-      display: inline-block;
-      margin-bottom: 12px;
-      color: rgba(255,255,255,0.85);
-      text-decoration: none;
-      font-size: 0.85rem;
-    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif; background: #f8f9fa; }
+    header { background: #0d6efd; color: #fff; padding: 24px 20px 20px; }
+    header h1 { margin: 0 0 4px; font-size: 1.4rem; font-weight: 700; }
+    header p { margin: 0; font-size: 0.88rem; opacity: 0.85; }
+    .back-link { display: inline-block; margin-bottom: 10px; color: rgba(255,255,255,0.85); text-decoration: none; font-size: 0.85rem; }
     .back-link:hover { color: #fff; }
-    .container {
-      max-width: 760px;
-      margin: 0 auto;
-      padding: 32px 20px 80px;
+    .faq-container { max-width: 760px; margin: 0 auto; padding: 24px 16px 80px; }
+    .faq-section-label {
+      display: flex; align-items: center; gap: 8px;
+      color: #fff; font-size: 0.92rem; font-weight: 700;
+      padding: 8px 14px; border-radius: 8px;
+      margin: 28px 0 8px;
     }
-    .toc {
-      background: #fff;
-      border-radius: 10px;
-      padding: 20px 24px;
-      margin-bottom: 32px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-    }
-    .toc h2 {
-      font-size: 0.95rem;
-      font-weight: 700;
-      margin: 0 0 12px;
-      color: #555;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-    .toc ol {
-      margin: 0;
-      padding-left: 1.4em;
-    }
-    .toc li {
-      font-size: 0.9rem;
-      margin-bottom: 4px;
-    }
-    .toc a {
-      color: #0d6efd;
-      text-decoration: none;
-    }
-    .toc a:hover { text-decoration: underline; }
-    .section {
-      margin-bottom: 36px;
-    }
-    .section-title {
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: #0d6efd;
-      border-left: 4px solid #0d6efd;
-      padding-left: 12px;
-      margin: 0 0 16px;
-    }
-    details {
-      background: #fff;
-      border-radius: 8px;
-      margin-bottom: 8px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+    .faq-section-label.text-dark { color: #212529 !important; }
+    .faq-section-label:first-of-type { margin-top: 8px; }
+    .faq-item {
+      border: none !important;
+      border-radius: 10px !important;
+      margin-bottom: 6px !important;
       overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
     }
-    details[open] {
-      box-shadow: 0 2px 8px rgba(13,110,253,0.1);
-    }
-    summary {
-      font-size: 0.95rem;
+    .faq-item .accordion-button {
+      font-size: 0.92rem;
       font-weight: 600;
-      padding: 14px 18px;
-      cursor: pointer;
-      list-style: none;
-      display: flex;
-      align-items: flex-start;
+      padding: 12px 16px;
       gap: 10px;
-      user-select: none;
+      align-items: flex-start;
     }
-    summary::-webkit-details-marker { display: none; }
-    summary::before {
-      content: "Q";
+    .faq-item .accordion-button::after { flex-shrink: 0; margin-left: auto; margin-top: 2px; }
+    .faq-item .accordion-button:not(.collapsed) { background: #f0f6ff !important; color: #0d6efd !important; box-shadow: none; }
+    .faq-q-badge {
       flex-shrink: 0;
-      display: inline-block;
-      background: #0d6efd;
-      color: #fff;
-      font-size: 0.75rem;
-      font-weight: 700;
-      width: 20px;
-      height: 20px;
-      border-radius: 4px;
-      text-align: center;
-      line-height: 20px;
+      display: inline-flex; align-items: center; justify-content: center;
+      background: #0d6efd; color: #fff;
+      font-size: 0.72rem; font-weight: 700;
+      width: 20px; height: 20px; border-radius: 4px;
       margin-top: 1px;
     }
-    summary .arrow {
-      flex-shrink: 0;
-      margin-left: auto;
-      transition: transform 0.2s;
-      color: #999;
-      font-size: 0.8rem;
-      margin-top: 3px;
-    }
-    details[open] summary .arrow {
-      transform: rotate(180deg);
-    }
+    .faq-item .accordion-button:not(.collapsed) .faq-q-badge { background: #0d6efd; }
     .answer {
-      padding: 4px 18px 16px 48px;
-      font-size: 0.9rem;
-      border-top: 1px solid #f0f0f0;
-      color: #444;
+      font-size: 0.9rem; color: #444; line-height: 1.8;
+      padding: 12px 16px 16px;
     }
     .answer p { margin: 8px 0 0; }
-    .answer p:first-child { margin-top: 10px; }
-    .answer ul, .answer ol {
-      padding-left: 1.4em;
-      margin: 8px 0;
-    }
+    .answer p:first-child { margin-top: 6px; }
+    .answer ul, .answer ol { padding-left: 1.4em; margin: 8px 0; }
     .answer li { margin-bottom: 4px; }
-    .answer code {
-      background: #f0f4ff;
-      color: #0d6efd;
-      padding: 1px 6px;
-      border-radius: 4px;
-      font-size: 0.88em;
-      font-family: monospace;
-    }
-    .answer .note {
-      background: #fff8e1;
-      border-left: 3px solid #ffc107;
-      padding: 8px 12px;
-      border-radius: 0 6px 6px 0;
-      margin-top: 10px;
-      font-size: 0.87rem;
-      color: #666;
-    }
-    .answer .tip {
-      background: #e8f5e9;
-      border-left: 3px solid #4caf50;
-      padding: 8px 12px;
-      border-radius: 0 6px 6px 0;
-      margin-top: 10px;
-      font-size: 0.87rem;
-      color: #444;
-    }
-    .answer table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 10px 0;
-      font-size: 0.88rem;
-    }
-    .answer th, .answer td {
-      border: 1px solid #e0e0e0;
-      padding: 7px 10px;
-      text-align: left;
-    }
-    .answer th {
-      background: #f0f4ff;
-      font-weight: 600;
-    }
-    footer {
-      margin-top: 3rem;
-      font-size: 0.82rem;
-      color: #999;
-      border-top: 1px solid #e0e0e0;
-      padding-top: 16px;
-      text-align: center;
-    }
+    .answer code { background: #f0f4ff; color: #0d6efd; padding: 1px 6px; border-radius: 4px; font-size: 0.88em; font-family: monospace; }
+    .answer .note { background: #fff8e1; border-left: 3px solid #ffc107; padding: 8px 12px; border-radius: 0 6px 6px 0; margin-top: 10px; font-size: 0.87rem; color: #666; }
+    .answer .tip { background: #e8f5e9; border-left: 3px solid #4caf50; padding: 8px 12px; border-radius: 0 6px 6px 0; margin-top: 10px; font-size: 0.87rem; color: #444; }
+    .answer table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 0.88rem; }
+    .answer th, .answer td { border: 1px solid #e0e0e0; padding: 7px 10px; text-align: left; }
+    .answer th { background: #f0f4ff; font-weight: 600; }
+    footer { margin-top: 2rem; font-size: 0.82rem; color: #999; border-top: 1px solid #e0e0e0; padding-top: 16px; text-align: center; }
     footer a { color: #0d6efd; text-decoration: none; }
-    @media (max-width: 600px) {
-      .answer { padding-left: 18px; }
-    }
   </style>
-  <link rel="canonical" href="https://keihi-log.com/faq" />
 </head>
 <body>
 
 <header>
-  <a href="/" class="back-link">← 経費ログ トップに戻る</a>
-  <h1>よくある質問（FAQ）</h1>
+  <a href="javascript:history.back()" class="back-link" id="backLink">← 戻る</a>
+  <h1><i class="bi bi-question-circle me-2"></i>よくある質問（FAQ）</h1>
   <p>初期設定・使い方・エラー対処など、よくある疑問をまとめました</p>
 </header>
 
-<div class="container">
+<div class="faq-container">
 
   <!-- 1. はじめに・初期設定 -->
-  <div class="section" id="section-start">
-    <h2 class="section-title">1. はじめに・初期設定</h2>
+  <div class="faq-section-label" style="background:#0d6efd;">
+    <i class="bi bi-rocket-takeoff-fill"></i>1. はじめに・初期設定
+  </div>
+  <div class="accordion mb-2" id="faq1">
 
-    <details>
-      <summary>メンバー向け　基本操作ガイド（3ステップ）<span class="arrow">▼</span></summary>
-      <div class="answer">
-
-        <p><strong>STEP 1　アプリを開いてログイン</strong></p>
-        <p>管理者から共有されたURLをブラウザで開き、「Googleでログイン」をタップします。会社のGoogleアカウントを選択し、権限確認で「許可」をタップしてください（初回のみ）。</p>
-        <div class="tip">ホーム画面に追加しておくと次回から素早く開けます。</div>
-
-        <p class="mt-3"><strong>STEP 2　経費を申請する</strong></p>
-        <p>画面下の「申請」タブを開き、申請タイプを選んでください。</p>
-        <p><strong>立替経費の場合：</strong></p>
-        <ol>
-          <li>タイプ「領収書」「領収書なし」「電車/バス」「自家用車」から選択</li>
-          <li>領収書の写真を追加 → AIが金額・支払先などを自動入力</li>
-          <li>内容を確認し、日付・勘定科目・備考を必要に応じて修正</li>
-          <li>「送信」をタップ</li>
-        </ol>
-        <p><strong>会社払い（法人カード・銀行振込など）の場合：</strong></p>
-        <ol>
-          <li>申請フォームの「会社払い」トグルをON</li>
-          <li>支払元（法人カード・銀行など）を選択</li>
-          <li>領収書の写真を追加 → AIが自動入力</li>
-          <li>内容を確認して「送信」</li>
-        </ol>
-
-        <p class="mt-3"><strong>STEP 3　申請状況を確認する</strong></p>
-        <p>画面下の「一覧」タブで自分の申請履歴と状況を確認できます。</p>
-        <ul>
-          <li><strong>申請済</strong>：申請完了・管理者の承認待ち</li>
-          <li><strong>承認済</strong>：管理者が承認した状態</li>
-          <li><strong>精算済</strong>：立替の支払いが完了した状態</li>
-        </ul>
-        <div class="tip">承認前であれば、一覧の編集ボタンから内容の修正ができます。</div>
-
-        <p class="mt-3"><strong>申請時のご注意</strong></p>
-        <ul>
-          <li>領収書の写真は鮮明に・全体が写るように撮影してください</li>
-          <li>支払日から2ヶ月以上経過した申請は上長への事前確認をお願いします</li>
-          <li>1回の申請につき領収書1枚（複数明細がある場合は明細追加ボタンで分割入力）</li>
-        </ul>
-      </div>
-    </details>
-
-    <details>
-      <summary>経費ログを使い始めるにはどうすればいいですか？<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>利用開始は「管理者」と「メンバー」で手順が異なります。</p>
-        <p><strong>管理者（初回セットアップをする方）：</strong></p>
-        <ol>
-          <li><a href="/setup">keihi-log.com/setup</a> にアクセス</li>
-          <li>ライセンスキーを入力して確認</li>
-          <li>会社名・チーム名と、任意でチームURL（例：<code>keihi-log.com/yamada-trading</code>）を設定</li>
-          <li>Gemini APIキーを入力（AI領収書解析に必要。後から設定可）</li>
-          <li>電帳法対応の事務処理規程を作成（任意。後から設定可）</li>
-          <li>「セットアップ開始」ボタンを押すと、スプレッドシートと証票フォルダが自動作成されます</li>
-          <li>完了画面に表示されるチームURLをSlackやメールでメンバーに共有</li>
-        </ol>
-        <p><strong>メンバー（管理者からURLを受け取った方）：</strong></p>
-        <ol>
-          <li>管理者から受け取ったURL（<code>keihi-log.com/xxxxxxxxxx</code>）にアクセス</li>
-          <li>Googleでサインイン → 完了</li>
-        </ol>
-        <div class="tip">メンバーはスプレッドシートURLやライセンスキー・Gemini APIキーの入力は一切不要です。共有URLを開いてGoogleアカウントでサインインするだけで使い始められます。</div>
-      </div>
-    </details>
-
-    <details>
-      <summary>スプレッドシートはどのように作成されますか？<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>初期セットアップ（<a href="/setup">keihi-log.com/setup</a>）の最終ステップで「セットアップ開始」ボタンを押すと、アプリが自動でGoogleスプレッドシートと証票フォルダを作成します。作成されるシート構成は以下の通りです：</p>
-        <ul>
-          <li><strong>経費一覧</strong>：申請データのメインシート</li>
-          <li><strong>設定</strong>：会社名・GeminiAPIキーなどの設定値</li>
-          <li><strong>マスタ表</strong>：メンバー情報・勘定科目・支払元リスト</li>
-          <li><strong>修正履歴</strong>：申請の修正操作の記録（電帳法対応）</li>
-          <li><strong>削除一覧</strong>：削除済み申請の記録（電帳法対応）</li>
-        </ul>
-        <p>作成後、完了画面に表示されるチームURLをメンバーに共有するだけで完了です。スプレッドシート自体をメンバーに共有する必要はありません。</p>
-      </div>
-    </details>
-
-    <details>
-      <summary>メンバーごとに操作や閲覧の権限を変えることはできますか？<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>はい。メンバーごとに以下の3段階から権限を設定できます。</p>
-        <table>
-          <tr><th>権限</th><th>できること</th></tr>
-          <tr><td><strong>管理者</strong></td><td>全機能（申請・一覧・集計・承認・メンバー管理・設定変更）</td></tr>
-          <tr><td><strong>閲覧者</strong></td><td>申請 ＋ 全員の一覧・集計の閲覧（承認・管理は不可）</td></tr>
-          <tr><td><strong>一般</strong></td><td>申請 ＋ 自分の履歴のみ閲覧</td></tr>
-        </table>
-        <p>設定は管理者が設定画面の「メンバー管理」から変更できます。権限が異なると見える画面も異なります（例：一般メンバーには全員の一覧・集計タブが表示されません）。</p>
-      </div>
-    </details>
-
-    <details>
-      <summary>管理者・閲覧者・一般の違いは何ですか？<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>3段階の権限ごとに使える機能が異なります。</p>
-        <table>
-          <tr><th>機能</th><th>管理者</th><th>閲覧者</th><th>一般</th></tr>
-          <tr><td>経費申請</td><td>○</td><td>○</td><td>○</td></tr>
-          <tr><td>自分の申請を修正・削除</td><td>○</td><td>○（未承認のみ）</td><td>○（未承認のみ）</td></tr>
-          <tr><td>全員の申請を一覧で見る</td><td>○</td><td>○</td><td>自分のみ</td></tr>
-          <tr><td>集計を見る</td><td>○</td><td>○</td><td>×</td></tr>
-          <tr><td>承認操作</td><td>○</td><td>×</td><td>×</td></tr>
-          <tr><td>メンバー・科目管理</td><td>○</td><td>×</td><td>×</td></tr>
-          <tr><td>Gemini APIキー設定</td><td>○</td><td>×</td><td>×</td></tr>
-        </table>
-        <p>権限はメンバー管理画面からいつでも変更できます。スプレッドシート新規作成時は、作成者が自動的に管理者として登録されます。</p>
-      </div>
-    </details>
-
-    <details>
-      <summary>会社払いとはどんな場合に使いますか？<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>社員が個人で立て替えず、会社の資金・与信で直接支払った経費が対象です。代表的な例は以下の通りです：</p>
-        <ul>
-          <li><strong>法人クレジットカード</strong>：会社名義のカードで決済した交通費・飲食費・消耗品費など</li>
-          <li><strong>小口現金</strong>：経理部門が管理する手元現金から支出した経費</li>
-          <li><strong>会社口座振込</strong>：会社の銀行口座から直接支払った経費（外注費・広告費など）</li>
-          <li><strong>ETCコーポレートカード</strong>：会社契約の ETC カードで通行した高速道路料金</li>
-        </ul>
-        <p>これらは社員への精算が不要なため、一覧での識別・集計の分離を目的として「会社払い」として記録します。</p>
-        <div class="tip">
-          <strong>仕訳データへの影響：</strong>会計ソフト向け CSV（freee・弥生・MFクラウド形式）を出力すると、会社払い経費の貸方科目は<strong>未払金</strong>となり、補助科目に支払方法（例：法人カード・小口現金）が自動で設定されます。個人立替（貸方：未払金→現金・普通預金）と区別して仕訳が生成されるため、会計ソフトへの取り込みがそのまま行えます。
+    <div class="accordion-item faq-item" id="q101">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c101">
+          <span class="faq-q-badge">Q</span>メンバー向け　基本操作ガイド（3ステップ）
+        </button>
+      </h2>
+      <div id="c101" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p><strong>STEP 1　アプリを開いてログイン</strong></p>
+          <p>管理者から共有されたURLをブラウザで開き、「Googleでログイン」をタップします。会社のGoogleアカウントを選択し、権限確認で「許可」をタップしてください（初回のみ）。</p>
+          <div class="tip">ホーム画面に追加しておくと次回から素早く開けます。</div>
+          <p class="mt-3"><strong>STEP 2　経費を申請する</strong></p>
+          <p>画面下の「申請」タブを開き、申請タイプを選んでください。</p>
+          <p><strong>立替経費の場合：</strong></p>
+          <ol>
+            <li>タイプ「領収書」「領収書なし」「電車/バス」「自家用車」から選択</li>
+            <li>領収書の写真を追加 → AIが金額・支払先などを自動入力</li>
+            <li>内容を確認し、日付・勘定科目・備考を必要に応じて修正</li>
+            <li>「送信」をタップ</li>
+          </ol>
+          <p><strong>会社払い（法人カード・銀行振込など）の場合：</strong></p>
+          <ol>
+            <li>申請フォームの「会社払い」トグルをON</li>
+            <li>支払元（法人カード・銀行など）を選択</li>
+            <li>領収書の写真を追加 → AIが自動入力</li>
+            <li>内容を確認して「送信」</li>
+          </ol>
+          <p class="mt-3"><strong>STEP 3　申請状況を確認する</strong></p>
+          <p>画面下の「一覧」タブで自分の申請履歴と状況を確認できます。</p>
+          <ul>
+            <li><strong>申請済</strong>：申請完了・管理者の承認待ち</li>
+            <li><strong>承認済</strong>：管理者が承認した状態</li>
+            <li><strong>精算済</strong>：立替の支払いが完了した状態</li>
+          </ul>
+          <div class="tip">承認前であれば、一覧の編集ボタンから内容の修正ができます。</div>
+          <p class="mt-3"><strong>申請時のご注意</strong></p>
+          <ul>
+            <li>領収書の写真は鮮明に・全体が写るように撮影してください</li>
+            <li>支払日から2ヶ月以上経過した申請は上長への事前確認をお願いします</li>
+            <li>1回の申請につき領収書1枚（複数明細がある場合は明細追加ボタンで分割入力）</li>
+          </ul>
         </div>
       </div>
-    </details>
+    </div>
 
-    <details>
-      <summary>会社払いの支払元はどこで追加しますか？<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>管理者アカウントでログインし、設定画面の「会社払い支払元」で追加・削除できます。追加した支払元は申請フォームの「会社払いトグル」をONにしたときに選択肢として表示されます。</p>
-        <div class="note">初期状態では「法人カード」「小口現金」「○○銀行」「▲▲銀行」が登録されています。実際の支払方法に合わせて編集してください。</div>
+    <div class="accordion-item faq-item" id="q102">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c102">
+          <span class="faq-q-badge">Q</span>経費ログを使い始めるにはどうすればいいですか？
+        </button>
+      </h2>
+      <div id="c102" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>利用開始は「管理者」と「メンバー」で手順が異なります。</p>
+          <p><strong>管理者（初回セットアップをする方）：</strong></p>
+          <ol>
+            <li><a href="/setup">keihi-log.com/setup</a> にアクセス</li>
+            <li>ライセンスキーを入力して確認</li>
+            <li>会社名・チーム名と、任意でチームURL（例：<code>keihi-log.com/yamada-trading</code>）を設定</li>
+            <li>Gemini APIキーを入力（AI領収書解析に必要。後から設定可）</li>
+            <li>電帳法対応の事務処理規程を作成（任意。後から設定可）</li>
+            <li>「セットアップ開始」ボタンを押すと、スプレッドシートと証票フォルダが自動作成されます</li>
+            <li>完了画面に表示されるチームURLをSlackやメールでメンバーに共有</li>
+          </ol>
+          <p><strong>メンバー（管理者からURLを受け取った方）：</strong></p>
+          <ol>
+            <li>管理者から受け取ったURL（<code>keihi-log.com/xxxxxxxxxx</code>）にアクセス</li>
+            <li>Googleでサインイン → 完了</li>
+          </ol>
+          <div class="tip">メンバーはスプレッドシートURLやライセンスキー・Gemini APIキーの入力は一切不要です。共有URLを開いてGoogleアカウントでサインインするだけで使い始められます。</div>
+        </div>
       </div>
-    </details>
+    </div>
 
-    <details>
-      <summary>部門別・プロジェクトごとに経費を把握したいのですが、できますか？<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>はい、<strong>カスタムフラグ</strong>機能を使って実現できます。</p>
-        <p>管理者が設定画面の「カスタムフラグ」で部門名やプロジェクト名を選択肢として登録しておくと、メンバーが申請時にいずれかを選べるようになります。あとは一覧表でフラグ別に絞り込んだり、CSVをエクスポートしてフラグ列で集計するだけです。</p>
-        <p><strong>設定例：</strong></p>
-        <ul>
-          <li>部門別 → 「営業部」「開発部」「管理部」</li>
-          <li>プロジェクト別 → 「PJ-A」「PJ-B」「PJ-C」</li>
-          <li>用途別 → 「採用」「マーケ」「接待」</li>
-        </ul>
-        <p>フラグは任意入力のため、すべての申請にタグを付ける必要はありません。特定のプロジェクトに関連する経費だけに付与する運用も可能です。</p>
+    <div class="accordion-item faq-item" id="q103">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c103">
+          <span class="faq-q-badge">Q</span>スプレッドシートはどのように作成されますか？
+        </button>
+      </h2>
+      <div id="c103" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>初期セットアップ（<a href="/setup">keihi-log.com/setup</a>）の最終ステップで「セットアップ開始」ボタンを押すと、アプリが自動でGoogleスプレッドシートと証票フォルダを作成します。作成されるシート構成は以下の通りです：</p>
+          <ul>
+            <li><strong>経費一覧</strong>：申請データのメインシート</li>
+            <li><strong>設定</strong>：会社名・GeminiAPIキーなどの設定値</li>
+            <li><strong>マスタ表</strong>：メンバー情報・勘定科目・支払元リスト</li>
+            <li><strong>修正履歴</strong>：申請の修正操作の記録（電帳法対応）</li>
+            <li><strong>削除一覧</strong>：削除済み申請の記録（電帳法対応）</li>
+          </ul>
+          <p>作成後、完了画面に表示されるチームURLをメンバーに共有するだけで完了です。スプレッドシート自体をメンバーに共有する必要はありません。</p>
+        </div>
       </div>
-    </details>
+    </div>
 
-    <details>
-      <summary>カスタムフラグとは何ですか？<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>部門・プロジェクト・用途など、チームの運用に合わせて自由に使えるタグ機能です。</p>
-        <p><strong>設定方法（管理者のみ）：</strong>設定画面の「カスタムフラグ」セクションで選択肢を追加します（例：営業部・開発部・プロジェクトA）。</p>
-        <p><strong>使い方：</strong>申請フォームの「カスタムフラグ」ドロップダウンから任意のタグを選択します。選択肢が未設定の場合はフォームに表示されません。</p>
-        <p><strong>活用例：</strong></p>
-        <ul>
-          <li>部門別に集計したい → 「営業部」「開発部」「管理部」など</li>
-          <li>プロジェクトごとに管理したい → 「PJ-A」「PJ-B」など</li>
-          <li>用途で分類したい → 「採用」「マーケ」「接待」など</li>
-        </ul>
-        <p>一覧表のフィルターでフラグ別に絞り込め、CSVエクスポートにも列として含まれます。</p>
-        <p><strong>フラグを削除した場合の影響：</strong>設定からフラグの選択肢を削除しても、すでに登録済みの申請データに記録されたフラグ値はそのまま保持されます。過去データが変わったり消えたりすることはありません。削除後は新規申請でそのフラグを選べなくなるだけです。</p>
+    <div class="accordion-item faq-item" id="q104">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c104">
+          <span class="faq-q-badge">Q</span>メンバーごとに操作や閲覧の権限を変えることはできますか？
+        </button>
+      </h2>
+      <div id="c104" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>はい。メンバーごとに以下の3段階から権限を設定できます。</p>
+          <table>
+            <tr><th>権限</th><th>できること</th></tr>
+            <tr><td><strong>管理者</strong></td><td>全機能（申請・一覧・集計・承認・メンバー管理・設定変更）</td></tr>
+            <tr><td><strong>閲覧者</strong></td><td>申請 ＋ 全員の一覧・集計の閲覧（承認・管理は不可）</td></tr>
+            <tr><td><strong>一般</strong></td><td>申請 ＋ 自分の履歴のみ閲覧</td></tr>
+          </table>
+          <p>設定は管理者が設定画面の「メンバー管理」から変更できます。権限が異なると見える画面も異なります（例：一般メンバーには全員の一覧・集計タブが表示されません）。</p>
+        </div>
       </div>
-    </details>
+    </div>
+
+    <div class="accordion-item faq-item" id="q105">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c105">
+          <span class="faq-q-badge">Q</span>管理者・閲覧者・一般の違いは何ですか？
+        </button>
+      </h2>
+      <div id="c105" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>3段階の権限ごとに使える機能が異なります。</p>
+          <table>
+            <tr><th>機能</th><th>管理者</th><th>閲覧者</th><th>一般</th></tr>
+            <tr><td>経費申請</td><td>○</td><td>○</td><td>○</td></tr>
+            <tr><td>自分の申請を修正・削除</td><td>○</td><td>○（未承認のみ）</td><td>○（未承認のみ）</td></tr>
+            <tr><td>全員の申請を一覧で見る</td><td>○</td><td>○</td><td>自分のみ</td></tr>
+            <tr><td>集計を見る</td><td>○</td><td>○</td><td>×</td></tr>
+            <tr><td>承認操作</td><td>○</td><td>×</td><td>×</td></tr>
+            <tr><td>メンバー・科目管理</td><td>○</td><td>×</td><td>×</td></tr>
+            <tr><td>Gemini APIキー設定</td><td>○</td><td>×</td><td>×</td></tr>
+          </table>
+          <p>権限はメンバー管理画面からいつでも変更できます。スプレッドシート新規作成時は、作成者が自動的に管理者として登録されます。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion-item faq-item" id="q106">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c106">
+          <span class="faq-q-badge">Q</span>会社払いとはどんな場合に使いますか？
+        </button>
+      </h2>
+      <div id="c106" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>社員が個人で立て替えず、会社の資金・与信で直接支払った経費が対象です。代表的な例は以下の通りです：</p>
+          <ul>
+            <li><strong>法人クレジットカード</strong>：会社名義のカードで決済した交通費・飲食費・消耗品費など</li>
+            <li><strong>小口現金</strong>：経理部門が管理する手元現金から支出した経費</li>
+            <li><strong>会社口座振込</strong>：会社の銀行口座から直接支払った経費（外注費・広告費など）</li>
+            <li><strong>ETCコーポレートカード</strong>：会社契約の ETC カードで通行した高速道路料金</li>
+          </ul>
+          <p>これらは社員への精算が不要なため、一覧での識別・集計の分離を目的として「会社払い」として記録します。</p>
+          <div class="tip"><strong>仕訳データへの影響：</strong>会計ソフト向け CSV（freee・弥生・MFクラウド形式）を出力すると、会社払い経費の貸方科目は<strong>未払金</strong>となり、補助科目に支払方法（例：法人カード・小口現金）が自動で設定されます。個人立替と区別して仕訳が生成されるため、会計ソフトへの取り込みがそのまま行えます。</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion-item faq-item" id="q107">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c107">
+          <span class="faq-q-badge">Q</span>会社払いの支払元はどこで追加しますか？
+        </button>
+      </h2>
+      <div id="c107" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>管理者アカウントでログインし、設定画面の「会社払い支払元」で追加・削除できます。追加した支払元は申請フォームの「会社払いトグル」をONにしたときに選択肢として表示されます。</p>
+          <div class="note">初期状態では「法人カード」「小口現金」「○○銀行」「▲▲銀行」が登録されています。実際の支払方法に合わせて編集してください。</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion-item faq-item" id="q108">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c108">
+          <span class="faq-q-badge">Q</span>部門別・プロジェクトごとに経費を把握したいのですが、できますか？
+        </button>
+      </h2>
+      <div id="c108" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>はい、<strong>カスタムフラグ</strong>機能を使って実現できます。</p>
+          <p>管理者が設定画面の「カスタムフラグ」で部門名やプロジェクト名を選択肢として登録しておくと、メンバーが申請時にいずれかを選べるようになります。あとは一覧表でフラグ別に絞り込んだり、CSVをエクスポートしてフラグ列で集計するだけです。</p>
+          <p><strong>設定例：</strong></p>
+          <ul>
+            <li>部門別 → 「営業部」「開発部」「管理部」</li>
+            <li>プロジェクト別 → 「PJ-A」「PJ-B」「PJ-C」</li>
+            <li>用途別 → 「採用」「マーケ」「接待」</li>
+          </ul>
+          <p>フラグは任意入力のため、すべての申請にタグを付ける必要はありません。特定のプロジェクトに関連する経費だけに付与する運用も可能です。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion-item faq-item" id="q109">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c109">
+          <span class="faq-q-badge">Q</span>カスタムフラグとは何ですか？
+        </button>
+      </h2>
+      <div id="c109" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>部門・プロジェクト・用途など、チームの運用に合わせて自由に使えるタグ機能です。</p>
+          <p><strong>設定方法（管理者のみ）：</strong>設定画面の「カスタムフラグ」セクションで選択肢を追加します（例：営業部・開発部・プロジェクトA）。</p>
+          <p><strong>使い方：</strong>申請フォームの「カスタムフラグ」ドロップダウンから任意のタグを選択します。選択肢が未設定の場合はフォームに表示されません。</p>
+          <p><strong>活用例：</strong></p>
+          <ul>
+            <li>部門別に集計したい → 「営業部」「開発部」「管理部」など</li>
+            <li>プロジェクトごとに管理したい → 「PJ-A」「PJ-B」など</li>
+            <li>用途で分類したい → 「採用」「マーケ」「接待」など</li>
+          </ul>
+          <p>一覧表のフィルターでフラグ別に絞り込め、CSVエクスポートにも列として含まれます。</p>
+          <p><strong>フラグを削除した場合の影響：</strong>設定からフラグの選択肢を削除しても、すでに登録済みの申請データに記録されたフラグ値はそのまま保持されます。削除後は新規申請でそのフラグを選べなくなるだけです。</p>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <!-- 2. Googleログイン・権限 -->
-  <div class="section" id="section-login">
-    <h2 class="section-title">2. Googleログイン・権限について</h2>
+  <div class="faq-section-label" style="background:#6f42c1;">
+    <i class="bi bi-person-check-fill"></i>2. Googleログイン・権限について
+  </div>
+  <div class="accordion mb-2" id="faq2">
 
-    <details>
-      <summary>Googleアカウントは全員必要ですか？<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>はい、管理者だけでなく<strong>利用するメンバー全員がGoogleアカウントを持っている必要があります</strong>。各メンバーが自分のGoogleアカウントでサインインすることで、誰が申請したかを識別しています。</p>
-        <p>個人用Gmailアカウント・Google Workspaceアカウントどちらでもご利用いただけます。</p>
+    <div class="accordion-item faq-item" id="q201">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c201">
+          <span class="faq-q-badge">Q</span>Googleアカウントは全員必要ですか？
+        </button>
+      </h2>
+      <div id="c201" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>はい、管理者だけでなく<strong>利用するメンバー全員がGoogleアカウントを持っている必要があります</strong>。各メンバーが自分のGoogleアカウントでサインインすることで、誰が申請したかを識別しています。</p>
+          <p>個人用Gmailアカウント・Google Workspaceアカウントどちらでもご利用いただけます。</p>
+        </div>
       </div>
-    </details>
+    </div>
 
-    <details>
-      <summary>ログイン時に求められる権限は何ですか？<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>初回ログイン時に以下の権限をGoogleアカウントに求めます：</p>
-        <table>
-          <tr><th>権限</th><th>用途</th></tr>
-          <tr><td>メールアドレスの参照</td><td>ユーザー識別・管理者判定</td></tr>
-          <tr><td>Googleスプレッドシート（指定シートのみ）</td><td>経費データの読み書き</td></tr>
-          <tr><td>Google Drive（アプリ作成ファイルのみ）</td><td>領収書画像のアップロード・取得</td></tr>
-        </table>
-        <div class="note">アプリが作成・指定したファイル以外のGoogle DriveやGmailにはアクセスしません。経費データ・領収書画像がアプリ開発者のサーバーに送信されることもありません。</div>
+    <div class="accordion-item faq-item" id="q202">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c202">
+          <span class="faq-q-badge">Q</span>ログイン時に求められる権限は何ですか？
+        </button>
+      </h2>
+      <div id="c202" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>初回ログイン時に以下の権限をGoogleアカウントに求めます：</p>
+          <table>
+            <tr><th>権限</th><th>用途</th></tr>
+            <tr><td>メールアドレスの参照</td><td>ユーザー識別・管理者判定</td></tr>
+            <tr><td>Googleスプレッドシート（指定シートのみ）</td><td>経費データの読み書き</td></tr>
+            <tr><td>Google Drive（アプリ作成ファイルのみ）</td><td>領収書画像のアップロード・取得</td></tr>
+          </table>
+          <div class="note">アプリが作成・指定したファイル以外のGoogle DriveやGmailにはアクセスしません。経費データ・領収書画像がアプリ開発者のサーバーに送信されることもありません。</div>
+        </div>
       </div>
-    </details>
+    </div>
 
-    <details>
-      <summary>ログアウトするにはどうすればいいですか？<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>画面右上のログアウトボタン（→のアイコン）をタップ（またはクリック）するとログアウトできます。ログアウトするとブラウザ上のアクセストークンが破棄されます。</p>
-        <p>完全に権限を取り消したい場合は、Googleアカウントの「セキュリティ」→「サードパーティのアクセス」から「経費ログ」のアクセスを削除してください。</p>
+    <div class="accordion-item faq-item" id="q203">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c203">
+          <span class="faq-q-badge">Q</span>ログアウトするにはどうすればいいですか？
+        </button>
+      </h2>
+      <div id="c203" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>画面右上のログアウトボタン（→のアイコン）をタップ（またはクリック）するとログアウトできます。ログアウトするとブラウザ上のアクセストークンが破棄されます。</p>
+          <p>完全に権限を取り消したい場合は、Googleアカウントの「セキュリティ」→「サードパーティのアクセス」から「経費ログ」のアクセスを削除してください。</p>
+        </div>
       </div>
-    </details>
+    </div>
 
-    <details>
-      <summary>「アクセスをブロック」と表示されてログインできません<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>「エラー 403: disallowed_useragent」が表示される場合、<strong>アプリ内の組み込みブラウザ</strong>からアクセスしています。GoogleはLINEやSNSアプリ内のブラウザからのログインを禁止しています。</p>
-        <p><strong>ログインできないアプリ（URLをそのまま開いた場合）：</strong></p>
-        <ul>
-          <li>LINE</li>
-          <li>Facebook / Instagram / Twitter(X)</li>
-          <li>Chatwork（アプリ版）</li>
-          <li>TikTok・Snapchat などSNSアプリ全般</li>
-        </ul>
-        <p><strong>対処法：</strong>URLをコピーして <strong>Safari（iOS）</strong> または <strong>Chrome（Android）</strong> のブラウザアプリに貼り付けて開いてください。</p>
-        <div class="tip">管理者がURLを共有する際は「LINEではなくメール・Slack・TeamsなどでURLを送るか、ブラウザで開くよう一言添える」と親切です。</div>
+    <div class="accordion-item faq-item" id="q204">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c204">
+          <span class="faq-q-badge">Q</span>「アクセスをブロック」と表示されてログインできません
+        </button>
+      </h2>
+      <div id="c204" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>「エラー 403: disallowed_useragent」が表示される場合、<strong>アプリ内の組み込みブラウザ</strong>からアクセスしています。GoogleはLINEやSNSアプリ内のブラウザからのログインを禁止しています。</p>
+          <p><strong>ログインできないアプリ（URLをそのまま開いた場合）：</strong></p>
+          <ul>
+            <li>LINE</li>
+            <li>Facebook / Instagram / Twitter(X)</li>
+            <li>Chatwork（アプリ版）</li>
+            <li>TikTok・Snapchat などSNSアプリ全般</li>
+          </ul>
+          <p><strong>対処法：</strong>URLをコピーして <strong>Safari（iOS）</strong> または <strong>Chrome（Android）</strong> のブラウザアプリに貼り付けて開いてください。</p>
+          <div class="tip">管理者がURLを共有する際は「LINEではなくメール・Slack・TeamsなどでURLを送るか、ブラウザで開くよう一言添える」と親切です。</div>
+        </div>
       </div>
-    </details>
+    </div>
+
   </div>
 
   <!-- 3. 経費申請 -->
-  <div class="section" id="section-submit">
-    <h2 class="section-title">3. 経費の申請方法</h2>
+  <div class="faq-section-label" style="background:#198754;">
+    <i class="bi bi-file-earmark-text-fill"></i>3. 経費の申請方法
+  </div>
+  <div class="accordion mb-2" id="faq3">
 
-    <details>
-      <summary>申請できる経費のタイプは何種類ありますか？<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>4種類のタイプに対応しています：</p>
-        <table>
-          <tr><th>タイプ</th><th>概要</th><th>主な入力項目</th></tr>
-          <tr><td>領収書</td><td>物品・飲食・消耗品・タクシーなど、証票あり</td><td>日付・支払先・金額・勘定科目・証票画像</td></tr>
-          <tr><td>領収書なし</td><td>証票が取得できない経費（慶弔費など）</td><td>日付・支払先・金額・勘定科目・理由</td></tr>
-          <tr><td>交通費</td><td>領収書が出ない近距離の電車・バスなど</td><td>日付・区間・交通手段・金額・往復区分</td></tr>
-          <tr><td>自家用車</td><td>マイカー通勤・出張時の走行距離</td><td>日付・区間・距離（km）・単価</td></tr>
-        </table>
-        <p>各タイプは申請フォーム上部のタブで切り替えられます。</p>
+    <div class="accordion-item faq-item" id="q301">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c301">
+          <span class="faq-q-badge">Q</span>申請できる経費のタイプは何種類ありますか？
+        </button>
+      </h2>
+      <div id="c301" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>4種類のタイプに対応しています：</p>
+          <table>
+            <tr><th>タイプ</th><th>概要</th><th>主な入力項目</th></tr>
+            <tr><td>領収書</td><td>物品・飲食・消耗品・タクシーなど、証票あり</td><td>日付・支払先・金額・勘定科目・証票画像</td></tr>
+            <tr><td>領収書なし</td><td>証票が取得できない経費（慶弔費など）</td><td>日付・支払先・金額・勘定科目・理由</td></tr>
+            <tr><td>交通費</td><td>領収書が出ない近距離の電車・バスなど</td><td>日付・区間・交通手段・金額・往復区分</td></tr>
+            <tr><td>自家用車</td><td>マイカー通勤・出張時の走行距離</td><td>日付・区間・距離（km）・単価</td></tr>
+          </table>
+          <p>各タイプは申請フォーム上部のタブで切り替えられます。</p>
+        </div>
       </div>
-    </details>
+    </div>
 
-    <details>
-      <summary>複数の明細をまとめて申請できますか？（明細分割）<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>はい、「明細を追加」ボタンで最大10件まで明細を分割入力できます。1枚の領収書に異なる勘定科目にまたがる項目が含まれる場合に使います。</p>
-        <p><strong>例：</strong>ホテルの請求書で「宿泊費（旅費交通費）」と「宿泊税（租税公課）」を別科目に分けて登録、コンビニで「文具（消耗品費）」と「接待用菓子（交際費）」を同時購入した場合など。</p>
-        <p>各明細に金額・勘定科目・摘要を入力してください。証票（レシート画像）は申請全体で1枚紐付けられます。</p>
+    <div class="accordion-item faq-item" id="q302">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c302">
+          <span class="faq-q-badge">Q</span>複数の明細をまとめて申請できますか？（明細分割）
+        </button>
+      </h2>
+      <div id="c302" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>はい、「明細を追加」ボタンで最大10件まで明細を分割入力できます。1枚の領収書に異なる勘定科目にまたがる項目が含まれる場合に使います。</p>
+          <p><strong>例：</strong>ホテルの請求書で「宿泊費（旅費交通費）」と「宿泊税（租税公課）」を別科目に分けて登録、コンビニで「文具（消耗品費）」と「接待用菓子（交際費）」を同時購入した場合など。</p>
+          <p>各明細に金額・勘定科目・摘要を入力してください。証票（レシート画像）は申請全体で1枚紐付けられます。</p>
+        </div>
       </div>
-    </details>
+    </div>
 
-    <details>
-      <summary>外貨建て経費はどう入力しますか？<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>金額入力欄の「外貨換算」ボタンを押すと、通貨と外貨金額を入力するダイアログが表示されます。外貨金額を入力すると、Frankfurter APIを使って取引日の為替レートで日本円に自動換算されます（インターネット接続が必要です）。</p>
-        <div class="tip">換算後の円金額・換算レートは摘要欄に自動で補記されます。</div>
+    <div class="accordion-item faq-item" id="q303">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c303">
+          <span class="faq-q-badge">Q</span>外貨建て経費はどう入力しますか？
+        </button>
+      </h2>
+      <div id="c303" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>金額入力欄の「外貨換算」ボタンを押すと、通貨と外貨金額を入力するダイアログが表示されます。外貨金額を入力すると、Frankfurter APIを使って取引日の為替レートで日本円に自動換算されます（インターネット接続が必要です）。</p>
+          <div class="tip">換算後の円金額・換算レートは摘要欄に自動で補記されます。</div>
+        </div>
       </div>
-    </details>
+    </div>
 
-    <details>
-      <summary>交通費の経路・運賃はどのように入力しますか？<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>出発地・到着地を入力すると、Yahoo!乗換案内APIを使って経路と運賃を自動検索・入力します。検索結果を確認したうえで、必要に応じて金額や経路を手修正できます。</p>
-        <div class="tip">タクシーや高速代（紙レシートあり）は「領収書」タブでレシートを撮影してAI解析できます。ETCの場合はカード明細をもとに「領収書なし」タブで入力してください。</div>
+    <div class="accordion-item faq-item" id="q304">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c304">
+          <span class="faq-q-badge">Q</span>交通費の経路・運賃はどのように入力しますか？
+        </button>
+      </h2>
+      <div id="c304" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>出発地・到着地を入力すると、Yahoo!乗換案内APIを使って経路と運賃を自動検索・入力します。検索結果を確認したうえで、必要に応じて金額や経路を手修正できます。</p>
+          <div class="tip">タクシーや高速代（紙レシートあり）は「領収書」タブでレシートを撮影してAI解析できます。ETCの場合はカード明細をもとに「領収書なし」タブで入力してください。</div>
+        </div>
       </div>
-    </details>
+    </div>
 
-    <details>
-      <summary>会社払いで立替がない経費はどう申請しますか？<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>申請フォームの「会社払い」トグルをONにしてください。ONにすると支払元（法人カード・小口現金・銀行口座名など）を選択する欄が表示されます。会社払いの経費は個人立替と区別されます。</p>
-        <p>支払元の選択肢は管理者が設定画面の「会社払い支払元」で追加・管理します。</p>
+    <div class="accordion-item faq-item" id="q305">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c305">
+          <span class="faq-q-badge">Q</span>会社払いで立替がない経費はどう申請しますか？
+        </button>
+      </h2>
+      <div id="c305" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>申請フォームの「会社払い」トグルをONにしてください。ONにすると支払元（法人カード・小口現金・銀行口座名など）を選択する欄が表示されます。会社払いの経費は個人立替と区別されます。</p>
+          <p>支払元の選択肢は管理者が設定画面の「会社払い支払元」で追加・管理します。</p>
+        </div>
       </div>
-    </details>
+    </div>
 
-    <details>
-      <summary>2ヶ月以上前の日付で申請するとどうなりますか？<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>申請日から2ヶ月以上過去の日付を入力すると「申請日から2ヶ月以上経過しています。申請を続けますか？」という確認アラートが表示されます。問題なければそのまま申請できます。</p>
-        <div class="note">電子帳簿保存法では、経費発生から一定期間内の記録が求められています。遅延申請の場合は上長への報告・確認を推奨します。</div>
+    <div class="accordion-item faq-item" id="q306">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c306">
+          <span class="faq-q-badge">Q</span>2ヶ月以上前の日付で申請するとどうなりますか？
+        </button>
+      </h2>
+      <div id="c306" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>申請日から2ヶ月以上過去の日付を入力すると「申請日から2ヶ月以上経過しています。申請を続けますか？」という確認アラートが表示されます。問題なければそのまま申請できます。</p>
+          <div class="note">電子帳簿保存法では、経費発生から一定期間内の記録が求められています。遅延申請の場合は上長への報告・確認を推奨します。</div>
+        </div>
       </div>
-    </details>
+    </div>
 
-    <details>
-      <summary>自家用車のキロ単価はいくらに設定すればいいですか？<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>ガソリン代だけでなく、車両維持費全体を考慮して決めるのが一般的です。目安として、以下のように試算できます。</p>
-        <ul>
-          <li>ガソリン代：リッター150円 ÷ 燃費10km/L ＝ <strong>15円/km</strong></li>
-          <li>車両維持費（自動車税・車検・タイヤ等の消耗品）：<strong>約5円/km</strong></li>
-        </ul>
-        <p>デフォルト値は上記の合計の <strong>20円/km</strong> としています。管理者が設定画面から全メンバー共通のキロ単価を変更できます。</p>
+    <div class="accordion-item faq-item" id="q307">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c307">
+          <span class="faq-q-badge">Q</span>自家用車のキロ単価はいくらに設定すればいいですか？
+        </button>
+      </h2>
+      <div id="c307" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>ガソリン代だけでなく、車両維持費全体を考慮して決めるのが一般的です。目安として、以下のように試算できます。</p>
+          <ul>
+            <li>ガソリン代：リッター150円 ÷ 燃費10km/L ＝ <strong>15円/km</strong></li>
+            <li>車両維持費（自動車税・車検・タイヤ等の消耗品）：<strong>約5円/km</strong></li>
+          </ul>
+          <p>デフォルト値は上記の合計の <strong>20円/km</strong> としています。管理者が設定画面から全メンバー共通のキロ単価を変更できます。</p>
+        </div>
       </div>
-    </details>
+    </div>
+
   </div>
 
   <!-- 4. AI領収書解析 -->
-  <div class="section" id="section-ai">
-    <h2 class="section-title">4. AI領収書解析</h2>
+  <div class="faq-section-label" style="background:#fd7e14;">
+    <i class="bi bi-stars"></i>4. AI領収書解析
+  </div>
+  <div class="accordion mb-2" id="faq4">
 
-    <details>
-      <summary>AI解析で何が自動入力されますか？<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>領収書・レシートの画像をアップロードすると、Gemini AIが以下の項目を自動で読み取り・入力します：</p>
-        <ul>
-          <li>日付</li>
-          <li>支払先・店名</li>
-          <li>金額（明細ありの場合は各品目の内訳も）</li>
-          <li>インボイス番号（適格請求書発行事業者の登録番号 T+13桁）</li>
-          <li>摘要・品目</li>
-        </ul>
-        <div class="tip">画像がぼやけていたり傾いていたりすると読み取り精度が下がります。なるべく明るく、文字がはっきり写るように撮影してください。</div>
+    <div class="accordion-item faq-item" id="q401">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c401">
+          <span class="faq-q-badge">Q</span>AI解析で何が自動入力されますか？
+        </button>
+      </h2>
+      <div id="c401" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>領収書・レシートの画像をアップロードすると、Gemini AIが以下の項目を自動で読み取り・入力します：</p>
+          <ul>
+            <li>日付</li>
+            <li>支払先・店名</li>
+            <li>金額（明細ありの場合は各品目の内訳も）</li>
+            <li>インボイス番号（適格請求書発行事業者の登録番号 T+13桁）</li>
+            <li>摘要・品目</li>
+          </ul>
+          <div class="tip">画像がぼやけていたり傾いていたりすると読み取り精度が下がります。なるべく明るく、文字がはっきり写るように撮影してください。</div>
+        </div>
       </div>
-    </details>
+    </div>
 
-    <details>
-      <summary>AI解析はいつでも無料で使えますか？<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>AI解析にはGemini APIを使用します。APIキーはチームの管理者が設定・管理します。領収書1枚の登録につきAPIリクエストは<strong>1回</strong>です。</p>
-        <p>Google AI Studioの無料アカウントは<strong>1日1,500リクエストまで無料</strong>です。たとえば10名のチームが1人1日15件ずつ登録しても合計150リクエストでまだ余裕があり、数十名規模のチームでも通常の業務量であれば無料枠内に収まります。使用量が増えた場合はGoogleのAPI料金が発生することがあります（Gemini 2.5 Flashで約0.003円/枚程度）。詳細はGoogle AI Studioの料金ページをご確認ください。</p>
-        <p>メンバー個人でAPIキーを用意・入力する必要はありません。</p>
+    <div class="accordion-item faq-item" id="q402">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c402">
+          <span class="faq-q-badge">Q</span>AI解析はいつでも無料で使えますか？
+        </button>
+      </h2>
+      <div id="c402" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>AI解析にはGemini APIを使用します。APIキーはチームの管理者が設定・管理します。領収書1枚の登録につきAPIリクエストは<strong>1回</strong>です。</p>
+          <p>Google AI Studioの無料アカウントは<strong>1日1,500リクエストまで無料</strong>です。たとえば10名のチームが1人1日15件ずつ登録しても合計150リクエストでまだ余裕があり、数十名規模のチームでも通常の業務量であれば無料枠内に収まります。使用量が増えた場合はGoogleのAPI料金が発生することがあります（Gemini 2.5 Flashで約0.003円/枚程度）。詳細はGoogle AI Studioの料金ページをご確認ください。</p>
+          <p>メンバー個人でAPIキーを用意・入力する必要はありません。</p>
+        </div>
       </div>
-    </details>
+    </div>
 
-    <details>
-      <summary>Gemini APIキーが漏洩するリスクはありますか？対策方法は？<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>APIキーはスプレッドシートの設定シートに保存されます。スプレッドシートへのアクセス権を持つメンバーはキーを閲覧できる状態です。以下の対策を推奨します。</p>
-        <p><strong>① HTTPリファラー制限（推奨・無料・即効性あり）</strong></p>
-        <ol>
-          <li>Google AI Studioでキー一覧を開く</li>
-          <li>該当キーの「編集」→「APIの制限」→「HTTPリファラー（ウェブサイト）」を選択</li>
-          <li><code>keihi-log.com/*</code> を許可ドメインに追加</li>
-        </ol>
-        <p>これによりキーが流出しても、指定ドメイン以外からは使用できなくなります。</p>
-        <p><strong>② 使用量上限の設定</strong></p>
-        <p>Google AI Studioのキー設定で1日あたりのリクエスト上限を設定しておくと、万一の大量悪用によるコスト被害を防げます。</p>
-        <p><strong>③ スプレッドシートの共有範囲を最小化</strong></p>
-        <p>スプレッドシートの共有設定は「リンクを知っている全員」ではなく「特定のメンバーのみ」に設定することを推奨します。</p>
-        <div class="note">設定画面のGemini APIキー欄にもリファラー制限の設定手順を掲載しています。</div>
+    <div class="accordion-item faq-item" id="q403">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c403">
+          <span class="faq-q-badge">Q</span>Gemini APIキーが漏洩するリスクはありますか？対策方法は？
+        </button>
+      </h2>
+      <div id="c403" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>APIキーはスプレッドシートの設定シートに保存されます。スプレッドシートへのアクセス権を持つメンバーはキーを閲覧できる状態です。以下の対策を推奨します。</p>
+          <p><strong>① HTTPリファラー制限（推奨・無料・即効性あり）</strong></p>
+          <ol>
+            <li>Google AI Studioでキー一覧を開く</li>
+            <li>該当キーの「編集」→「APIの制限」→「HTTPリファラー（ウェブサイト）」を選択</li>
+            <li><code>keihi-log.com/*</code> を許可ドメインに追加</li>
+          </ol>
+          <p>これによりキーが流出しても、指定ドメイン以外からは使用できなくなります。</p>
+          <p><strong>② 使用量上限の設定</strong></p>
+          <p>Google AI Studioのキー設定で1日あたりのリクエスト上限を設定しておくと、万一の大量悪用によるコスト被害を防げます。</p>
+          <p><strong>③ スプレッドシートの共有範囲を最小化</strong></p>
+          <p>スプレッドシートの共有設定は「リンクを知っている全員」ではなく「特定のメンバーのみ」に設定することを推奨します。</p>
+          <div class="note">設定画面のGemini APIキー欄にもリファラー制限の設定手順を掲載しています。</div>
+        </div>
       </div>
-    </details>
+    </div>
 
-    <details>
-      <summary>「同じ領収書が既に登録されている可能性があります」と表示されました<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>アップロードした画像のSHA-256ハッシュ値を過去の申請と照合し、同一の画像ファイルが既に登録されている場合に警告します。</p>
-        <p>これは二重申請を防ぐための電帳法対応機能です。別の経費であることが明らかな場合は「このまま申請する」を選択して続行できます。</p>
+    <div class="accordion-item faq-item" id="q404">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c404">
+          <span class="faq-q-badge">Q</span>「同じ領収書が既に登録されている可能性があります」と表示されました
+        </button>
+      </h2>
+      <div id="c404" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>アップロードした画像のSHA-256ハッシュ値を過去の申請と照合し、同一の画像ファイルが既に登録されている場合に警告します。</p>
+          <p>これは二重申請を防ぐための電帳法対応機能です。別の経費であることが明らかな場合は「このまま申請する」を選択して続行できます。</p>
+        </div>
       </div>
-    </details>
+    </div>
 
-    <details>
-      <summary>「同じ日付・金額・支払先の申請が既にあります」と表示されました<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>申請内容（日付・金額・支払先）が既存の申請と一致する場合に警告します。意図しない二重申請がないかご確認ください。別の申請であれば「このまま申請する」で続行できます。</p>
+    <div class="accordion-item faq-item" id="q405">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c405">
+          <span class="faq-q-badge">Q</span>「同じ日付・金額・支払先の申請が既にあります」と表示されました
+        </button>
+      </h2>
+      <div id="c405" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>申請内容（日付・金額・支払先）が既存の申請と一致する場合に警告します。意図しない二重申請がないかご確認ください。別の申請であれば「このまま申請する」で続行できます。</p>
+        </div>
       </div>
-    </details>
+    </div>
+
   </div>
 
   <!-- 5. ファイル添付 -->
-  <div class="section" id="section-file">
-    <h2 class="section-title">5. 証票（領収書）の添付</h2>
+  <div class="faq-section-label text-dark" style="background:#0dcaf0;">
+    <i class="bi bi-camera-fill"></i>5. 証票（領収書）の添付
+  </div>
+  <div class="accordion mb-2" id="faq5">
 
-    <details>
-      <summary>添付できるファイルの種類・サイズ制限は？<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <table>
-          <tr><th>項目</th><th>制限</th></tr>
-          <tr><td>対応形式</td><td>JPEG、PNG、GIF、PDF、HEIC など</td></tr>
-          <tr><td>最大ファイルサイズ</td><td>10MB</td></tr>
-          <tr><td>推奨解像度</td><td>200万画素以上（約1400×1400px以上）</td></tr>
-        </table>
-        <p>画像は自動的に最大2000px・JPEG形式に圧縮してからGoogle Driveにアップロードされます。元画像の向き（EXIF情報）は自動補正されます。</p>
-        <div class="note">電子帳簿保存法では解像度200万画素以上が推奨されています。それ未満の場合は警告が表示されますが、申請は続行可能です。</div>
+    <div class="accordion-item faq-item" id="q501">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c501">
+          <span class="faq-q-badge">Q</span>添付できるファイルの種類・サイズ制限は？
+        </button>
+      </h2>
+      <div id="c501" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <table>
+            <tr><th>項目</th><th>制限</th></tr>
+            <tr><td>対応形式</td><td>JPEG、PNG、GIF、PDF、HEIC など</td></tr>
+            <tr><td>最大ファイルサイズ</td><td>10MB</td></tr>
+            <tr><td>推奨解像度</td><td>200万画素以上（約1400×1400px以上）</td></tr>
+          </table>
+          <p>画像は自動的に最大2000px・JPEG形式に圧縮してからGoogle Driveにアップロードされます。元画像の向き（EXIF情報）は自動補正されます。</p>
+          <div class="note">電子帳簿保存法では解像度200万画素以上が推奨されています。それ未満の場合は警告が表示されますが、申請は続行可能です。</div>
+        </div>
       </div>
-    </details>
+    </div>
 
-    <details>
-      <summary>領収書の画像はどこに保存されますか？<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>アップロードされた領収書画像は、管理者が設定した共有フォルダ（「経費証票」フォルダ）にまとめて一元管理されます。メンバー全員の証票が同じフォルダに集約されるため、管理者が一括で確認できます。アプリ開発者のサーバーには一切保存されません。</p>
-        <p>保存先フォルダは設定画面で確認・変更できます。</p>
+    <div class="accordion-item faq-item" id="q502">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c502">
+          <span class="faq-q-badge">Q</span>領収書の画像はどこに保存されますか？
+        </button>
+      </h2>
+      <div id="c502" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>アップロードされた領収書画像は、管理者が設定した共有フォルダ（「経費証票」フォルダ）にまとめて一元管理されます。メンバー全員の証票が同じフォルダに集約されるため、管理者が一括で確認できます。アプリ開発者のサーバーには一切保存されません。</p>
+          <p>保存先フォルダは設定画面で確認・変更できます。</p>
+        </div>
       </div>
-    </details>
+    </div>
 
-    <details>
-      <summary>PDFの領収書も添付できますか？<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>はい、PDF形式も添付・AI解析できます。使用しているGemini 2.5 FlashはPDFのインライン解析に対応しているため、画像と同様に日付・支払先・金額などを自動読み取りします。</p>
+    <div class="accordion-item faq-item" id="q503">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c503">
+          <span class="faq-q-badge">Q</span>PDFの領収書も添付できますか？
+        </button>
+      </h2>
+      <div id="c503" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>はい、PDF形式も添付・AI解析できます。使用しているGemini 2.5 FlashはPDFのインライン解析に対応しているため、画像と同様に日付・支払先・金額などを自動読み取りします。</p>
+        </div>
       </div>
-    </details>
+    </div>
+
   </div>
 
   <!-- 6. ステータス -->
-  <div class="section" id="section-status">
-    <h2 class="section-title">6. 申請ステータスについて</h2>
+  <div class="faq-section-label text-dark" style="background:#ffc107;">
+    <i class="bi bi-check-circle-fill"></i>6. 申請ステータスについて
+  </div>
+  <div class="accordion mb-2" id="faq6">
 
-    <details>
-      <summary>申請ステータスの「申請済」「登録済」「精算済」の違いは何ですか？<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <table>
-          <tr><th>ステータス</th><th>意味</th><th>編集・削除</th></tr>
-          <tr><td>申請済</td><td>申請が提出され、承認待ちの状態</td><td>本人・管理者ともに可</td></tr>
-          <tr><td>登録済</td><td>管理者が承認済みの状態</td><td>一般メンバーは不可・管理者は可</td></tr>
-          <tr><td>精算済</td><td>支払・精算が完了した状態</td><td>一般メンバーは不可・管理者は可</td></tr>
-        </table>
-        <p>承認はWebアプリの一覧画面から管理者が操作できます（スプレッドシートを直接操作する必要はありません）。</p>
+    <div class="accordion-item faq-item" id="q601">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c601">
+          <span class="faq-q-badge">Q</span>申請ステータスの「申請済」「登録済」「精算済」の違いは何ですか？
+        </button>
+      </h2>
+      <div id="c601" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <table>
+            <tr><th>ステータス</th><th>意味</th><th>編集・削除</th></tr>
+            <tr><td>申請済</td><td>申請が提出され、承認待ちの状態</td><td>本人・管理者ともに可</td></tr>
+            <tr><td>登録済</td><td>管理者が承認済みの状態</td><td>一般メンバーは不可・管理者は可</td></tr>
+            <tr><td>精算済</td><td>支払・精算が完了した状態</td><td>一般メンバーは不可・管理者は可</td></tr>
+          </table>
+          <p>承認はWebアプリの一覧画面から管理者が操作できます（スプレッドシートを直接操作する必要はありません）。</p>
+        </div>
       </div>
-    </details>
+    </div>
 
-    <details>
-      <summary>申請を承認（登録済に）するにはどうすればいいですか？<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>管理者アカウントでWebアプリにログインし、一覧表タブを開きます。「申請済」になっているレコードの操作列に<strong>✓（チェック）ボタン</strong>が表示されるので、それをクリックすると「登録済」に変わります。スプレッドシートを直接操作する必要はありません。</p>
-        <p>承認前にAI監査コメントが設定されている場合は、確認ダイアログに内容が表示されます。</p>
+    <div class="accordion-item faq-item" id="q602">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c602">
+          <span class="faq-q-badge">Q</span>申請を承認（登録済に）するにはどうすればいいですか？
+        </button>
+      </h2>
+      <div id="c602" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>管理者アカウントでWebアプリにログインし、一覧表タブを開きます。「申請済」になっているレコードの操作列に<strong>✓（チェック）ボタン</strong>が表示されるので、それをクリックすると「登録済」に変わります。スプレッドシートを直接操作する必要はありません。</p>
+          <p>承認前にAI監査コメントが設定されている場合は、確認ダイアログに内容が表示されます。</p>
+        </div>
       </div>
-    </details>
+    </div>
 
-    <details>
-      <summary>精算済にするにはどうすればいいですか？<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>管理者アカウントで集計表タブを開き、<strong>未精算一覧</strong>の表中の金額をクリックすると内訳モーダルが表示されます。モーダル上部の<strong>「この月をまとめて精算済みにする」</strong>ボタンで、対象月の申請をまとめて精算済みにできます。</p>
+    <div class="accordion-item faq-item" id="q603">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c603">
+          <span class="faq-q-badge">Q</span>精算済にするにはどうすればいいですか？
+        </button>
+      </h2>
+      <div id="c603" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>管理者アカウントで集計表タブを開き、<strong>未精算一覧</strong>の表中の金額をクリックすると内訳モーダルが表示されます。モーダル上部の<strong>「この月をまとめて精算済みにする」</strong>ボタンで、対象月の申請をまとめて精算済みにできます。</p>
+        </div>
       </div>
-    </details>
+    </div>
 
-    <details>
-      <summary>申請を修正したいのですが、編集ボタンが表示されません<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>編集・削除ボタンは以下の条件を満たす場合のみ表示されます：</p>
-        <ul>
-          <li>申請者本人のレコードであること</li>
-          <li>ステータスが「申請済」であること（「登録済」「精算済」は不可。ただし管理者は自分が登録した「登録済」も可）</li>
-        </ul>
-        <p>承認済み（登録済・精算済）の申請を修正したい場合は、管理者に承認を一度取り消してもらってから再申請してください。</p>
+    <div class="accordion-item faq-item" id="q604">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c604">
+          <span class="faq-q-badge">Q</span>申請を修正したいのですが、編集ボタンが表示されません
+        </button>
+      </h2>
+      <div id="c604" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>編集・削除ボタンは以下の条件を満たす場合のみ表示されます：</p>
+          <ul>
+            <li>申請者本人のレコードであること</li>
+            <li>ステータスが「申請済」であること（「登録済」「精算済」は不可。ただし管理者は自分が登録した「登録済」も可）</li>
+          </ul>
+          <p>承認済み（登録済・精算済）の申請を修正したい場合は、管理者に承認を一度取り消してもらってから再申請してください。</p>
+        </div>
       </div>
-    </details>
+    </div>
 
-    <details>
-      <summary>申請を削除するとデータはどうなりますか？<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>削除したレコードは「削除一覧」シートに移動され、完全には消えません。これは電子帳簿保存法の「訂正・削除の防止規程」に対応するためです。管理者はスプレッドシートの「削除一覧」シートで過去の削除記録を確認できます。</p>
+    <div class="accordion-item faq-item" id="q605">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c605">
+          <span class="faq-q-badge">Q</span>申請を削除するとデータはどうなりますか？
+        </button>
+      </h2>
+      <div id="c605" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>削除したレコードは「削除一覧」シートに移動され、完全には消えません。これは電子帳簿保存法の「訂正・削除の防止規程」に対応するためです。管理者はスプレッドシートの「削除一覧」シートで過去の削除記録を確認できます。</p>
+        </div>
       </div>
-    </details>
+    </div>
+
   </div>
 
   <!-- 7. 一覧・集計 -->
-  <div class="section" id="section-list">
-    <h2 class="section-title">7. 一覧表・集計表の使い方</h2>
+  <div class="faq-section-label" style="background:#6610f2;">
+    <i class="bi bi-bar-chart-fill"></i>7. 一覧表・集計表の使い方
+  </div>
+  <div class="accordion mb-2" id="faq7">
 
-    <details>
-      <summary>一覧表のフィルター機能はどんな絞り込みができますか？<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>以下の条件で絞り込みができます：</p>
-        <ul>
-          <li>期間（3ヶ月・6ヶ月・12ヶ月のプリセット、またはカスタム範囲）</li>
-          <li>タイプ（領収書・領収書なし・交通費・自家用車）</li>
-          <li>承認ステータス（申請済・登録済・精算済）</li>
-          <li>申請者名（管理者・閲覧者のみ。一般メンバーは自分の申請のみ表示）</li>
-          <li>支払元（個人払い／会社払い支払元ごとに絞り込み）</li>
-          <li>カスタムフラグ（部門・プロジェクトなど任意のタグ）</li>
-          <li>キーワード検索（支払先・備考・勘定科目）</li>
-        </ul>
+    <div class="accordion-item faq-item" id="q701">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c701">
+          <span class="faq-q-badge">Q</span>一覧表のフィルター機能はどんな絞り込みができますか？
+        </button>
+      </h2>
+      <div id="c701" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>以下の条件で絞り込みができます：</p>
+          <ul>
+            <li>期間（3ヶ月・6ヶ月・12ヶ月のプリセット、またはカスタム範囲）</li>
+            <li>タイプ（領収書・領収書なし・交通費・自家用車）</li>
+            <li>承認ステータス（申請済・登録済・精算済）</li>
+            <li>申請者名（管理者・閲覧者のみ。一般メンバーは自分の申請のみ表示）</li>
+            <li>支払元（個人払い／会社払い支払元ごとに絞り込み）</li>
+            <li>カスタムフラグ（部門・プロジェクトなど任意のタグ）</li>
+            <li>キーワード検索（支払先・備考・勘定科目）</li>
+          </ul>
+        </div>
       </div>
-    </details>
+    </div>
 
-    <details>
-      <summary>CSVエクスポートはどんな形式で出力できますか？<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>4種類の形式でエクスポートできます：</p>
-        <table>
-          <tr><th>形式</th><th>用途</th></tr>
-          <tr><td>標準CSV</td><td>一般的なスプレッドシートへの取り込み（支払元列含む）</td></tr>
-          <tr><td>freee 経費精算形式</td><td>freeeへの一括インポート</td></tr>
-          <tr><td>弥生 仕訳日記帳形式</td><td>弥生会計・弥生青色申告へのインポート</td></tr>
-          <tr><td>MFクラウド 仕訳帳形式</td><td>マネーフォワードクラウド会計へのインポート</td></tr>
-        </table>
-        <p>一覧画面の「CSVエクスポート」ボタン横の▼をクリックすると形式を選べます。現在の絞り込み条件に該当するデータのみエクスポートされます。</p>
+    <div class="accordion-item faq-item" id="q702">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c702">
+          <span class="faq-q-badge">Q</span>CSVエクスポートはどんな形式で出力できますか？
+        </button>
+      </h2>
+      <div id="c702" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>4種類の形式でエクスポートできます：</p>
+          <table>
+            <tr><th>形式</th><th>用途</th></tr>
+            <tr><td>標準CSV</td><td>一般的なスプレッドシートへの取り込み（支払元列含む）</td></tr>
+            <tr><td>freee 経費精算形式</td><td>freeeへの一括インポート</td></tr>
+            <tr><td>弥生 仕訳日記帳形式</td><td>弥生会計・弥生青色申告へのインポート</td></tr>
+            <tr><td>MFクラウド 仕訳帳形式</td><td>マネーフォワードクラウド会計へのインポート</td></tr>
+          </table>
+          <p>一覧画面の「CSVエクスポート」ボタン横の▼をクリックすると形式を選べます。現在の絞り込み条件に該当するデータのみエクスポートされます。</p>
+        </div>
       </div>
-    </details>
+    </div>
 
-    <details>
-      <summary>集計表の期間（3ヶ月・6ヶ月・12ヶ月）はどこで変更しますか？<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>集計画面の上部にある「3ヶ月」「6ヶ月」「12ヶ月」のタブで切り替えられます。表示を切り替えると、各テーブルが右端（最新月・合計列）にスクロールした状態で表示されます。</p>
+    <div class="accordion-item faq-item" id="q703">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c703">
+          <span class="faq-q-badge">Q</span>集計表の期間（3ヶ月・6ヶ月・12ヶ月）はどこで変更しますか？
+        </button>
+      </h2>
+      <div id="c703" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>集計画面の上部にある「3ヶ月」「6ヶ月」「12ヶ月」のタブで切り替えられます。表示を切り替えると、各テーブルが右端（最新月・合計列）にスクロールした状態で表示されます。</p>
+        </div>
       </div>
-    </details>
+    </div>
 
-    <details>
-      <summary>集計表で特定の月・科目の内訳を確認できますか？<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>はい、集計表の金額セルをタップ（クリック）すると、その月・その科目の内訳をポップアップで確認できます。内訳には申請者・支払先・金額が一覧表示されます。</p>
+    <div class="accordion-item faq-item" id="q704">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c704">
+          <span class="faq-q-badge">Q</span>集計表で特定の月・科目の内訳を確認できますか？
+        </button>
+      </h2>
+      <div id="c704" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>はい、集計表の金額セルをタップ（クリック）すると、その月・その科目の内訳をポップアップで確認できます。内訳には申請者・支払先・金額が一覧表示されます。</p>
+        </div>
       </div>
-    </details>
+    </div>
+
   </div>
 
   <!-- 8. 電帳法 -->
-  <div class="section" id="section-law">
-    <h2 class="section-title">8. 電子帳簿保存法への対応</h2>
+  <div class="faq-section-label" style="background:#d63384;">
+    <i class="bi bi-shield-check"></i>8. 電子帳簿保存法への対応
+  </div>
+  <div class="accordion mb-2" id="faq8">
 
-    <details>
-      <summary>電子帳簿保存法にはどの程度対応していますか？<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>以下の要件に対応しています：</p>
-        <table>
-          <tr><th>要件</th><th>対応内容</th></tr>
-          <tr><td>申請日時の信頼性</td><td>サーバー側で取得した時刻を記録（クライアント時刻は使用しない）</td></tr>
-          <tr><td>修正・削除の証跡</td><td>修正履歴シート・削除一覧シートに全操作を自動記録</td></tr>
-          <tr><td>画像の改ざん検知</td><td>SHA-256ハッシュをシートに記録し、再アップ時に照合</td></tr>
-          <tr><td>解像度要件</td><td>200万画素未満の場合に警告表示</td></tr>
-          <tr><td>検索機能</td><td>日付・取引先・金額・インボイス番号で検索可能</td></tr>
-          <tr><td>可視性</td><td>一覧・集計画面は印刷対応レイアウト</td></tr>
-          <tr><td>相互関連性</td><td>UUIDで領収書画像と経費記録を紐付け</td></tr>
-          <tr><td>インボイス確認</td><td>AIがT+13桁の登録番号を自動抽出・記録</td></tr>
-        </table>
-        <div class="note">電帳法への完全対応には「訂正・削除防止規程」の社内策定が必要です。本アプリは規程テンプレートを設定画面で提供しています。社内で採用・承認してご利用ください。</div>
+    <div class="accordion-item faq-item" id="q801">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c801">
+          <span class="faq-q-badge">Q</span>電子帳簿保存法にはどの程度対応していますか？
+        </button>
+      </h2>
+      <div id="c801" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>以下の要件に対応しています：</p>
+          <table>
+            <tr><th>要件</th><th>対応内容</th></tr>
+            <tr><td>申請日時の信頼性</td><td>サーバー側で取得した時刻を記録（クライアント時刻は使用しない）</td></tr>
+            <tr><td>修正・削除の証跡</td><td>修正履歴シート・削除一覧シートに全操作を自動記録</td></tr>
+            <tr><td>画像の改ざん検知</td><td>SHA-256ハッシュをシートに記録し、再アップ時に照合</td></tr>
+            <tr><td>解像度要件</td><td>200万画素未満の場合に警告表示</td></tr>
+            <tr><td>検索機能</td><td>日付・取引先・金額・インボイス番号で検索可能</td></tr>
+            <tr><td>可視性</td><td>一覧・集計画面は印刷対応レイアウト</td></tr>
+            <tr><td>相互関連性</td><td>UUIDで領収書画像と経費記録を紐付け</td></tr>
+            <tr><td>インボイス確認</td><td>AIがT+13桁の登録番号を自動抽出・記録</td></tr>
+          </table>
+          <div class="note">電帳法への完全対応には「訂正・削除防止規程」の社内策定が必要です。本アプリは規程テンプレートを設定画面で提供しています。社内で採用・承認してご利用ください。</div>
+        </div>
       </div>
-    </details>
+    </div>
 
-    <details>
-      <summary>「事務処理規程」のテンプレートはどこにありますか？<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>設定画面の初期設定ステップ⑤に「電子取引データの訂正・削除防止に関する規程」のひな型が用意されています。内容を確認し、自社情報（組織名・代表者名・所在地・施行日）を入力して「この規程を採用する」ボタンを押すと確定できます。</p>
-        <p>確定後は法的な文書として保管・運用してください。</p>
+    <div class="accordion-item faq-item" id="q802">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c802">
+          <span class="faq-q-badge">Q</span>「事務処理規程」のテンプレートはどこにありますか？
+        </button>
+      </h2>
+      <div id="c802" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>設定画面の初期設定セクション内に「電子取引データの訂正・削除防止に関する規程」のひな型が用意されています。内容を確認し、自社情報（組織名・代表者名・所在地・施行日）を入力して「この規程を採用する」ボタンを押すと確定できます。</p>
+          <p>確定後は法的な文書として保管・運用してください。</p>
+        </div>
       </div>
-    </details>
+    </div>
 
-    <details>
-      <summary>タイムスタンプサービスへの加入は必要ですか？<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>経費精算・電子取引データの保存においては、「訂正・削除防止規程」を策定・運用することでタイムスタンプサービス（月額数万円）の代替として認められています（国税庁のガイドラインに基づく）。本アプリの規程テンプレートはこの方式に対応しています。</p>
-        <div class="note">ご不明な点は税理士・顧問会計士にご確認ください。</div>
+    <div class="accordion-item faq-item" id="q803">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c803">
+          <span class="faq-q-badge">Q</span>タイムスタンプサービスへの加入は必要ですか？
+        </button>
+      </h2>
+      <div id="c803" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>経費精算・電子取引データの保存においては、「訂正・削除防止規程」を策定・運用することでタイムスタンプサービス（月額数万円）の代替として認められています（国税庁のガイドラインに基づく）。本アプリの規程テンプレートはこの方式に対応しています。</p>
+          <div class="note">ご不明な点は税理士・顧問会計士にご確認ください。</div>
+        </div>
       </div>
-    </details>
+    </div>
+
   </div>
 
   <!-- 9. エラーと対処法 -->
-  <div class="section" id="section-error">
-    <h2 class="section-title">9. よくあるエラーと対処法</h2>
+  <div class="faq-section-label" style="background:#dc3545;">
+    <i class="bi bi-exclamation-triangle-fill"></i>9. よくあるエラーと対処法
+  </div>
+  <div class="accordion mb-2" id="faq9">
 
-    <details>
-      <summary>「スプレッドシートにアクセスできません」と表示される<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>以下を順番に確認してください：</p>
-        <ol>
-          <li>設定画面のスプレッドシートURLが正しく入力されているか確認する</li>
-          <li>そのスプレッドシートに自分のGoogleアカウントがアクセスできるか（Driveで開けるか）確認する</li>
-          <li>管理者にスプレッドシートの共有設定（「リンクを知っている全員が編集可」など）を確認してもらう</li>
-          <li>一度ログアウトし、再ログインしてアクセストークンを更新する</li>
-        </ol>
+    <div class="accordion-item faq-item" id="q901">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c901">
+          <span class="faq-q-badge">Q</span>「スプレッドシートにアクセスできません」と表示される
+        </button>
+      </h2>
+      <div id="c901" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>以下を順番に確認してください：</p>
+          <ol>
+            <li>設定画面のスプレッドシートURLが正しく入力されているか確認する</li>
+            <li>そのスプレッドシートに自分のGoogleアカウントがアクセスできるか（Driveで開けるか）確認する</li>
+            <li>管理者にスプレッドシートの共有設定（「リンクを知っている全員が編集可」など）を確認してもらう</li>
+            <li>一度ログアウトし、再ログインしてアクセストークンを更新する</li>
+          </ol>
+        </div>
       </div>
-    </details>
+    </div>
 
-    <details>
-      <summary>「AI解析に失敗しました」と表示される<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>以下の原因が考えられます：</p>
-        <ul>
-          <li>管理者がGemini APIキーを設定していない（設定画面→マスタ管理で確認）</li>
-          <li>APIキーが無効・期限切れ（管理者がGemini APIキーを再取得・再設定する）</li>
-          <li>無料枠の上限に達している（Google AI Studioの利用状況を確認）</li>
-          <li>インターネット接続が不安定</li>
-        </ul>
-        <p>AI解析は失敗してもフォームへの手動入力で申請は続行できます。</p>
+    <div class="accordion-item faq-item" id="q902">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c902">
+          <span class="faq-q-badge">Q</span>「AI解析に失敗しました」と表示される
+        </button>
+      </h2>
+      <div id="c902" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>以下の原因が考えられます：</p>
+          <ul>
+            <li>管理者がGemini APIキーを設定していない（設定画面で確認）</li>
+            <li>APIキーが無効・期限切れ（管理者がGemini APIキーを再取得・再設定する）</li>
+            <li>無料枠の上限に達している（Google AI Studioの利用状況を確認）</li>
+            <li>インターネット接続が不安定</li>
+          </ul>
+          <p>AI解析は失敗してもフォームへの手動入力で申請は続行できます。</p>
+        </div>
       </div>
-    </details>
+    </div>
 
-    <details>
-      <summary>「ライセンスキーが無効です」と表示される<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>以下を確認してください：</p>
-        <ul>
-          <li>ライセンスキーに余分なスペースや改行が含まれていないか（コピペ時に注意）</li>
-          <li>ライセンスの有効期限が切れていないか</li>
-          <li>入力したライセンスキーが正しいか（購入時のメールを再確認）</li>
-        </ul>
-        <p>問題が解決しない場合はサポート（<a href="mailto:support@keihi-log.com">support@keihi-log.com</a>）にお問い合わせください。</p>
+    <div class="accordion-item faq-item" id="q903">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c903">
+          <span class="faq-q-badge">Q</span>「ライセンスキーが無効です」と表示される
+        </button>
+      </h2>
+      <div id="c903" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>以下を確認してください：</p>
+          <ul>
+            <li>ライセンスキーに余分なスペースや改行が含まれていないか（コピペ時に注意）</li>
+            <li>ライセンスの有効期限が切れていないか</li>
+            <li>入力したライセンスキーが正しいか（購入時のメールを再確認）</li>
+          </ul>
+          <p>問題が解決しない場合はサポート（<a href="mailto:support@keihi-log.com">support@keihi-log.com</a>）にお問い合わせください。</p>
+        </div>
       </div>
-    </details>
+    </div>
 
-    <details>
-      <summary>申請後、スプレッドシートにデータが反映されない<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>以下を確認してください：</p>
-        <ol>
-          <li>申請完了のトースト通知（「申請しました」）が表示されたか確認する。表示されていない場合はエラーが発生しています。</li>
-          <li>ブラウザのデベロッパーツール（F12）→コンソールタブでエラーメッセージを確認する</li>
-          <li>スプレッドシートURLが設定画面に正しく入力されているか確認する</li>
-          <li>ログアウト→再ログインしてから再度申請する</li>
-        </ol>
+    <div class="accordion-item faq-item" id="q904">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c904">
+          <span class="faq-q-badge">Q</span>申請後、スプレッドシートにデータが反映されない
+        </button>
+      </h2>
+      <div id="c904" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>以下を確認してください：</p>
+          <ol>
+            <li>申請完了のトースト通知（「申請しました」）が表示されたか確認する。表示されていない場合はエラーが発生しています。</li>
+            <li>ブラウザのデベロッパーツール（F12）→コンソールタブでエラーメッセージを確認する</li>
+            <li>スプレッドシートURLが設定画面に正しく入力されているか確認する</li>
+            <li>ログアウト→再ログインしてから再度申請する</li>
+          </ol>
+        </div>
       </div>
-    </details>
+    </div>
 
-    <details>
-      <summary>画像をアップロードしてもDriveに保存されない<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>Google Driveへのアクセス権限が有効かどうかを確認してください。設定画面のDriveフォルダ設定が空の場合は「フォルダを自動作成」ボタンを押してフォルダを再作成してください。それでも解決しない場合はログアウト→再ログインをお試しください。</p>
+    <div class="accordion-item faq-item" id="q905">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c905">
+          <span class="faq-q-badge">Q</span>画像をアップロードしてもDriveに保存されない
+        </button>
+      </h2>
+      <div id="c905" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>Google Driveへのアクセス権限が有効かどうかを確認してください。設定画面の証票保存フォルダが未設定の場合は管理者に確認してください。それでも解決しない場合はログアウト→再ログインをお試しください。</p>
+        </div>
       </div>
-    </details>
+    </div>
 
-    <details>
-      <summary>アプリの画面が古いまま更新されない（変更が反映されない）<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>ブラウザのキャッシュが原因の場合があります。以下をお試しください：</p>
-        <ul>
-          <li>ブラウザのハードリロード（Windows: <code>Ctrl+Shift+R</code>、Mac: <code>Cmd+Shift+R</code>）</li>
-          <li>スマートフォンの場合：ブラウザのキャッシュをクリアしてからページを再読み込み</li>
-          <li>PWA（ホーム画面追加版）の場合：アプリを一度終了してから再起動</li>
-        </ul>
+    <div class="accordion-item faq-item" id="q906">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c906">
+          <span class="faq-q-badge">Q</span>アプリの画面が古いまま更新されない（変更が反映されない）
+        </button>
+      </h2>
+      <div id="c906" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>ブラウザのキャッシュが原因の場合があります。以下をお試しください：</p>
+          <ul>
+            <li>ブラウザのハードリロード（Windows: <code>Ctrl+Shift+R</code>、Mac: <code>Cmd+Shift+R</code>）</li>
+            <li>スマートフォンの場合：ブラウザのキャッシュをクリアしてからページを再読み込み</li>
+            <li>PWA（ホーム画面追加版）の場合：アプリを一度終了してから再起動</li>
+          </ul>
+        </div>
       </div>
-    </details>
+    </div>
 
-    <details>
-      <summary>複数の経費ログURLを使い分けているとき、PWAアイコンが意図しない方を開く<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>これはPWAの仕様によるものです。PWAはドメイン単位（<code>keihi-log.com</code>）で1つしかインストールできないため、複数のワークスペースURLがあっても同じアプリとして扱われ、どちらが開くか不安定になります。</p>
-        <p><strong>複数の経費ログを使い分ける場合は、PWAインストールではなくURLショートカットを使ってください。</strong></p>
-        <ul>
-          <li><strong>iPhone / iPad</strong>：SafariでそれぞれのワークスペースのURLを開き、共有ボタン →「ホーム画面に追加」→ 名前を付けて追加。これはSafariのブックマークとして追加されるため、常にそのURLを開きます。</li>
-          <li><strong>Android</strong>：ChromeでそれぞれのワークスペースのURLを開き、メニュー →「ホーム画面に追加」→「ショートカットを追加」を選択（「インストール」ではなく「ショートカット」を選ぶのがポイントです）。</li>
-        </ul>
-        <div class="tip">1つのワークスペースしか使わない場合はPWAインストールでも問題ありません。</div>
+    <div class="accordion-item faq-item" id="q907">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c907">
+          <span class="faq-q-badge">Q</span>複数の経費ログURLを使い分けているとき、PWAアイコンが意図しない方を開く
+        </button>
+      </h2>
+      <div id="c907" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>これはPWAの仕様によるものです。PWAはドメイン単位（<code>keihi-log.com</code>）で1つしかインストールできないため、複数のワークスペースURLがあっても同じアプリとして扱われ、どちらが開くか不安定になります。</p>
+          <p><strong>複数の経費ログを使い分ける場合は、PWAインストールではなくURLショートカットを使ってください。</strong></p>
+          <ul>
+            <li><strong>iPhone / iPad</strong>：SafariでそれぞれのワークスペースのURLを開き、共有ボタン →「ホーム画面に追加」→ 名前を付けて追加。これはSafariのブックマークとして追加されるため、常にそのURLを開きます。</li>
+            <li><strong>Android</strong>：ChromeでそれぞれのワークスペースのURLを開き、メニュー →「ホーム画面に追加」→「ショートカットを追加」を選択（「インストール」ではなく「ショートカット」を選ぶのがポイントです）。</li>
+          </ul>
+          <div class="tip">1つのワークスペースしか使わない場合はPWAインストールでも問題ありません。</div>
+        </div>
       </div>
-    </details>
+    </div>
+
   </div>
 
   <!-- 10. ライセンス -->
-  <div class="section" id="section-license">
-    <h2 class="section-title">10. ライセンスについて</h2>
+  <div class="faq-section-label" style="background:#20c997;">
+    <i class="bi bi-key-fill"></i>10. ライセンスについて
+  </div>
+  <div class="accordion mb-2" id="faq10">
 
-    <details>
-      <summary>ライセンスはどこで購入できますか？<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>アプリのトップページまたは設定画面の「ライセンスを購入する」リンクから購入ページにアクセスできます。購入完了後、登録メールアドレス宛にライセンスキーが自動送信されます。</p>
+    <div class="accordion-item faq-item" id="q1001">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c1001">
+          <span class="faq-q-badge">Q</span>ライセンスはどこで購入できますか？
+        </button>
+      </h2>
+      <div id="c1001" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>アプリのトップページまたは設定画面の「ライセンスを購入する」リンクから購入ページにアクセスできます。購入完了後、登録メールアドレス宛にライセンスキーが自動送信されます。</p>
+        </div>
       </div>
-    </details>
+    </div>
 
-    <details>
-      <summary>ライセンスは何名で使えますか？<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>プランによって異なります：</p>
-        <table>
-          <tr><th>プラン</th><th>利用人数</th></tr>
-          <tr><td>ソロプラン</td><td>1名（メンバー追加機能は利用不可）</td></tr>
-          <tr><td>チームプラン</td><td>人数制限なし</td></tr>
-        </table>
-        <p>チームプランでは、同じスプレッドシートを利用するメンバー全員が1つのライセンスキーを共用します。管理者がスプレッドシートにキーを設定すれば、メンバーがアプリにログインした際に自動で取得されるため、メンバー個人が手動入力する必要はありません。</p>
+    <div class="accordion-item faq-item" id="q1002">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c1002">
+          <span class="faq-q-badge">Q</span>ライセンスは何名で使えますか？
+        </button>
+      </h2>
+      <div id="c1002" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>プランによって異なります：</p>
+          <table>
+            <tr><th>プラン</th><th>利用人数</th></tr>
+            <tr><td>ソロプラン</td><td>1名（メンバー追加機能は利用不可）</td></tr>
+            <tr><td>チームプラン</td><td>人数制限なし</td></tr>
+          </table>
+          <p>チームプランでは、同じスプレッドシートを利用するメンバー全員が1つのライセンスキーを共用します。管理者がスプレッドシートにキーを設定すれば、メンバーがアプリにログインした際に自動で取得されるため、メンバー個人が手動入力する必要はありません。</p>
+        </div>
       </div>
-    </details>
+    </div>
 
-    <details>
-      <summary>ライセンスキーのメールが届かない場合は？<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>以下をご確認ください：</p>
-        <ul>
-          <li>迷惑メールフォルダに振り分けられていないか確認する</li>
-          <li>購入時に入力したメールアドレスが正しいか確認する</li>
-          <li>購入後、数分お待ちいただく（決済処理に最大5分程度かかる場合があります）</li>
-        </ul>
-        <p>それでも届かない場合は <a href="mailto:support@keihi-log.com">support@keihi-log.com</a> にご連絡ください。購入時のStripe決済ID（メールに記載）をお知らせいただくと対応がスムーズです。</p>
+    <div class="accordion-item faq-item" id="q1003">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c1003">
+          <span class="faq-q-badge">Q</span>ライセンスキーのメールが届かない場合は？
+        </button>
+      </h2>
+      <div id="c1003" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>以下をご確認ください：</p>
+          <ul>
+            <li>迷惑メールフォルダに振り分けられていないか確認する</li>
+            <li>購入時に入力したメールアドレスが正しいか確認する</li>
+            <li>購入後、数分お待ちいただく（決済処理に最大5分程度かかる場合があります）</li>
+          </ul>
+          <p>それでも届かない場合は <a href="mailto:support@keihi-log.com">support@keihi-log.com</a> にご連絡ください。購入時のStripe決済ID（メールに記載）をお知らせいただくと対応がスムーズです。</p>
+        </div>
       </div>
-    </details>
+    </div>
 
-    <details>
-      <summary>ライセンスの有効期限はいつですか？<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>ライセンスキー送付メールに有効期限が記載されています。有効期限が近づいた場合は更新をお願いします。有効期限切れのライセンスキーは設定画面で警告が表示されます。</p>
+    <div class="accordion-item faq-item" id="q1004">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c1004">
+          <span class="faq-q-badge">Q</span>ライセンスの有効期限はいつですか？
+        </button>
+      </h2>
+      <div id="c1004" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>ライセンスキー送付メールに有効期限が記載されています。有効期限が近づいた場合は更新をお願いします。有効期限切れのライセンスキーは設定画面で警告が表示されます。</p>
+        </div>
       </div>
-    </details>
+    </div>
 
-    <details>
-      <summary>テスト環境で発行したライセンスキーは本番でも使えますか？<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>はい、ライセンスキーはテスト・本番に関わらず同一のシステムで管理されているため、テスト環境で発行されたキーは本番環境でもそのまま有効です。</p>
+    <div class="accordion-item faq-item" id="q1005">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c1005">
+          <span class="faq-q-badge">Q</span>テスト環境で発行したライセンスキーは本番でも使えますか？
+        </button>
+      </h2>
+      <div id="c1005" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>はい、ライセンスキーはテスト・本番に関わらず同一のシステムで管理されているため、テスト環境で発行されたキーは本番環境でもそのまま有効です。</p>
+        </div>
       </div>
-    </details>
+    </div>
 
-    <details>
-      <summary>ソロプランとチームプランは途中で変更できますか？<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>はい、いつでも変更できます。変更はStripeのカスタマーポータルから行えます。</p>
-        <ul>
-          <li><strong>アップグレード（ソロ→チーム）：</strong>即時反映されます。差額は残り日数に応じて日割り計算され、次回の請求に充当されます。</li>
-          <li><strong>ダウングレード（チーム→ソロ）：</strong>現在の契約期間が終了するタイミングで切り替わります。変更直後に料金が変わるわけではありません。</li>
-        </ul>
-        <p>なお、ダウングレード後もライセンスキー自体は変わらないため、設定画面の再入力は不要です。</p>
+    <div class="accordion-item faq-item" id="q1006">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c1006">
+          <span class="faq-q-badge">Q</span>ソロプランとチームプランは途中で変更できますか？
+        </button>
+      </h2>
+      <div id="c1006" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>はい、いつでも変更できます。変更はStripeのカスタマーポータルから行えます。</p>
+          <ul>
+            <li><strong>アップグレード（ソロ→チーム）：</strong>即時反映されます。差額は残り日数に応じて日割り計算され、次回の請求に充当されます。</li>
+            <li><strong>ダウングレード（チーム→ソロ）：</strong>現在の契約期間が終了するタイミングで切り替わります。変更直後に料金が変わるわけではありません。</li>
+          </ul>
+          <p>なお、ダウングレード後もライセンスキー自体は変わらないため、設定画面の再入力は不要です。</p>
+        </div>
       </div>
-    </details>
+    </div>
 
-    <details>
-      <summary>解約はいつでもできますか？返金はありますか？<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>はい、いつでも解約できます。Stripeのカスタマーポータルから手続きしてください。解約後は現在の契約期間が終了するまでサービスを継続してご利用いただけます。</p>
-        <p>原則として返金は承っておりませんが、初回請求直後など個別のご事情がある場合はサポートまでご相談ください。</p>
+    <div class="accordion-item faq-item" id="q1007">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c1007">
+          <span class="faq-q-badge">Q</span>解約はいつでもできますか？返金はありますか？
+        </button>
+      </h2>
+      <div id="c1007" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>はい、いつでも解約できます。Stripeのカスタマーポータルから手続きしてください。解約後は現在の契約期間が終了するまでサービスを継続してご利用いただけます。</p>
+          <p>原則として返金は承っておりませんが、初回請求直後など個別のご事情がある場合はサポートまでご相談ください。</p>
+        </div>
       </div>
-    </details>
+    </div>
 
-    <details>
-      <summary>年契約を途中でプラン変更・解約した場合はどうなりますか？<span class="arrow">▼</span></summary>
-      <div class="answer">
-        <p>年契約の場合、変更の種類によって動作が異なります。</p>
-        <table style="width:100%;border-collapse:collapse;font-size:0.88rem;margin-top:8px;">
-          <thead>
-            <tr style="background:#f8f9fa;">
-              <th style="padding:6px 8px;border:1px solid #dee2e6;text-align:left;">操作</th>
-              <th style="padding:6px 8px;border:1px solid #dee2e6;text-align:left;">反映タイミング</th>
-              <th style="padding:6px 8px;border:1px solid #dee2e6;text-align:left;">料金の扱い</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td style="padding:6px 8px;border:1px solid #dee2e6;">アップグレード<br><small class="text-muted">（ソロ→チーム）</small></td>
-              <td style="padding:6px 8px;border:1px solid #dee2e6;">即時</td>
-              <td style="padding:6px 8px;border:1px solid #dee2e6;">残り日数の差額を日割り計算し、次回請求に充当</td>
-            </tr>
-            <tr>
-              <td style="padding:6px 8px;border:1px solid #dee2e6;">ダウングレード<br><small class="text-muted">（チーム→ソロ）</small></td>
-              <td style="padding:6px 8px;border:1px solid #dee2e6;">現在の契約期間終了時<br><small class="text-muted">（最大1年後）</small></td>
-              <td style="padding:6px 8px;border:1px solid #dee2e6;">返金なし。期間終了まで現在のプランを継続利用</td>
-            </tr>
-            <tr>
-              <td style="padding:6px 8px;border:1px solid #dee2e6;">解約</td>
-              <td style="padding:6px 8px;border:1px solid #dee2e6;">現在の契約期間終了時<br><small class="text-muted">（最大1年後）</small></td>
-              <td style="padding:6px 8px;border:1px solid #dee2e6;">返金なし。期間終了まで継続利用可</td>
-            </tr>
-          </tbody>
-        </table>
-        <p class="mt-2 mb-0">ダウングレードや解約の手続きをしても<strong>すぐにサービスが止まることはありません</strong>が、年契約の残り期間は返金されない点にご注意ください。</p>
+    <div class="accordion-item faq-item" id="q1008">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c1008">
+          <span class="faq-q-badge">Q</span>年契約を途中でプラン変更・解約した場合はどうなりますか？
+        </button>
+      </h2>
+      <div id="c1008" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>年契約の場合、変更の種類によって動作が異なります。</p>
+          <table>
+            <tr><th>操作</th><th>反映タイミング</th><th>料金の扱い</th></tr>
+            <tr><td>アップグレード（ソロ→チーム）</td><td>即時</td><td>残り日数の差額を日割り計算し、次回請求に充当</td></tr>
+            <tr><td>ダウングレード（チーム→ソロ）</td><td>現在の契約期間終了時（最大1年後）</td><td>返金なし。期間終了まで現在のプランを継続利用</td></tr>
+            <tr><td>解約</td><td>現在の契約期間終了時（最大1年後）</td><td>返金なし。期間終了まで継続利用可</td></tr>
+          </table>
+          <p class="mt-2 mb-0">ダウングレードや解約の手続きをしても<strong>すぐにサービスが止まることはありません</strong>が、年契約の残り期間は返金されない点にご注意ください。</p>
+        </div>
       </div>
-    </details>
+    </div>
+
   </div>
 
   <footer>
@@ -951,19 +1152,29 @@
 
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  // ページ内リンクでアコーディオンを自動で開く
-  window.addEventListener('hashchange', openFromHash);
+  // ハッシュで指定されたアコーディオン項目を自動で開く
   function openFromHash() {
-    const hash = location.hash.replace('#', '');
+    var hash = location.hash.replace('#', '');
     if (!hash) return;
-    const target = document.getElementById(hash);
-    if (target && target.tagName === 'DETAILS') {
-      target.open = true;
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    var itemEl = document.getElementById(hash);
+    if (!itemEl) return;
+    var collapseEl = itemEl.querySelector('.accordion-collapse');
+    if (collapseEl) new bootstrap.Collapse(collapseEl, { show: true });
+    setTimeout(function() {
+      itemEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 80);
   }
   document.addEventListener('DOMContentLoaded', openFromHash);
+  window.addEventListener('hashchange', openFromHash);
+
+  // referrerがなければ「← 経費ログ トップ」に変更
+  var backLink = document.getElementById('backLink');
+  if (!document.referrer || !document.referrer.includes(location.hostname)) {
+    backLink.href = '/';
+    backLink.textContent = '← 経費ログ トップに戻る';
+  }
 </script>
 
 </body>
