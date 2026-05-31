@@ -30,6 +30,7 @@ const App = (() => {
       const demoRole = Demo.getRole();
       _userRole = demoRole;
       _isAdmin = demoRole === 'admin';
+      _sheetReadyResolve?.(); // waitSheetReady() を即時解決（履歴読み込みのブロック解除）
       _setupUI('submit');
       const titleEl = document.getElementById('navAppTitle');
       if (titleEl) titleEl.textContent = `経費ログ - ${_truncateCompany(Demo.COMPANY_NAME)}`;
