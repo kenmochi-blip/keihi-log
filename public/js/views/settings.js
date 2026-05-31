@@ -302,7 +302,8 @@ const SettingsView = (() => {
 
     // スプレッドシートの規程データと localStorage を比較し、新しい方を使う
     {
-      const _regSsId = localStorage.getItem('keihi_sheet_id');
+      const _isDemo = typeof Demo !== 'undefined' && Demo.isActive();
+      const _regSsId = !_isDemo && localStorage.getItem('keihi_sheet_id');
       if (_regSsId) {
         Sheets.readSetting('B6').then(raw => {
           if (!raw) return;
@@ -1128,6 +1129,7 @@ const SettingsView = (() => {
   }
 
   function _loadRegulation() {
+    if (typeof Demo !== 'undefined' && Demo.isActive()) return Demo.REGULATION;
     try { return JSON.parse(localStorage.getItem('keihi_regulation') || 'null'); }
     catch (_) { return null; }
   }
@@ -1141,6 +1143,7 @@ const SettingsView = (() => {
   }
 
   function _saveRegulation(data) {
+    if (typeof Demo !== 'undefined' && Demo.isActive()) return;
     localStorage.setItem('keihi_regulation', JSON.stringify(data));
     // スプレッドシートにもバックアップ（失敗時は警告 - シートとlocalStorageの不整合を防ぐ）
     const ssId = localStorage.getItem('keihi_sheet_id');

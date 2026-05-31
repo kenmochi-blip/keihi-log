@@ -10,15 +10,6 @@ const Demo = (() => {
 
   function enable() {
     sessionStorage.setItem(KEY, '1');
-    // 訂正・削除防止規程のデモデータ（未設定の場合のみ）
-    if (!localStorage.getItem('keihi_regulation')) {
-      localStorage.setItem('keihi_regulation', JSON.stringify({
-        orgName: 'デモCo.',
-        repName: 'デモ ユーザー',
-        address: '東京都渋谷区デモ町1-2-3',
-        confirmedAt: '2026年1月1日',
-      }));
-    }
   }
   function disable()  { sessionStorage.removeItem(KEY); sessionStorage.removeItem(ROLE_KEY); _role = 'admin'; }
   function isActive() { return sessionStorage.getItem(KEY) === '1'; }
@@ -173,5 +164,12 @@ const Demo = (() => {
   // デモ用スプレッドシートID（「リンクを知っている全員が閲覧可」のシートIDを入力）
   const SHEET_ID = '18wDzX43PgeUAXm_Wri-vPogEkkhWNeUhk5F_R1OyFi4';
 
-  return { enable, disable, isActive, getRole, setRole, getUserEmail, MASTER, EXPENSES, SHEET_ID, COMPANY_NAME };
+  const REGULATION = {
+    orgName: 'デモCo.',
+    repName: 'デモ 太郎',
+    address: '東京都渋谷区デモ町1-2-3',
+    confirmedAt: '2026年1月1日',
+  };
+
+  return { enable, disable, isActive, getRole, setRole, getUserEmail, MASTER, EXPENSES, SHEET_ID, COMPANY_NAME, REGULATION };
 })();
