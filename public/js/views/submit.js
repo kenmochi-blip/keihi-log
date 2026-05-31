@@ -77,6 +77,7 @@ const SubmitView = (() => {
       <div class="form-check form-switch d-flex align-items-center gap-2 mb-0">
         <input class="form-check-input" type="checkbox" id="chkCorpPay" style="width:2.5rem;height:1.3rem;">
         <label class="form-check-label fw-semibold" for="chkCorpPay">会社払い（立替精算なし）</label>
+        <a href="/faq#q106" class="text-muted ms-1" style="font-size:0.78rem;" title="会社払いについて"><i class="bi bi-question-circle"></i></a>
       </div>
       <div id="corpPayDetails" class="d-none mt-2">
         <select class="form-select form-select-sm" id="selPaySource">
@@ -218,7 +219,7 @@ const SubmitView = (() => {
         <input type="number" class="form-control form-control-sm" id="numCarKm" min="0" step="0.1">
       </div>
       <div class="col-6">
-        <label class="form-label small fw-semibold">レート（円/km）</label>
+        <label class="form-label small fw-semibold">レート（円/km） <a href="/faq#q307" class="text-muted" style="font-size:0.78rem;" title="キロ単価について"><i class="bi bi-question-circle"></i></a></label>
         <input type="number" class="form-control form-control-sm" id="numCarRate" min="1" step="1"
           value="${localStorage.getItem(CAR_RATE_KEY) || 20}" readonly>
         <div class="form-text small text-muted d-none" id="carRateHint">管理者が設定します</div>
@@ -251,7 +252,7 @@ const SubmitView = (() => {
 
   <!-- カスタムフラグ（管理者が選択肢を設定した場合のみ表示） -->
   <div id="customFlagWrap" class="d-none mb-3">
-    <label class="form-label small fw-semibold">カスタムフラグ <span class="text-muted fw-normal">（任意）</span></label>
+    <label class="form-label small fw-semibold">カスタムフラグ <span class="text-muted fw-normal">（任意）</span> <a href="/faq#q109" class="text-muted" style="font-size:0.78rem;" title="カスタムフラグについて"><i class="bi bi-question-circle"></i></a></label>
     <select class="form-select form-select-sm" id="selCustomFlag">
       <option value="">未設定</option>
     </select>
@@ -337,7 +338,10 @@ const SubmitView = (() => {
     <div class="mb-2">
       <div class="d-flex justify-content-between align-items-center mb-1">
         <label class="form-label small fw-semibold mb-0">金額・勘定科目 <span class="text-danger">*</span></label>
-        <button class="btn btn-link btn-sm p-0 text-decoration-none" id="btnToggleSplit">明細分割</button>
+        <div class="d-flex align-items-center gap-2">
+          <button class="btn btn-link btn-sm p-0 text-decoration-none" id="btnToggleSplit">明細分割</button>
+          <a href="/faq#q302" class="text-muted" style="font-size:0.78rem;" title="明細分割について"><i class="bi bi-question-circle"></i></a>
+        </div>
       </div>
       <div id="singleLine" class="row g-2">
         <div class="col-5">

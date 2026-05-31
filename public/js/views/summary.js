@@ -77,7 +77,7 @@ const SummaryView = (() => {
   <!-- ③ 未精算一覧 -->
   <div class="card mb-3">
     <div class="card-body">
-      <h6 class="fw-bold mb-2 pivot-title"><i class="bi bi-exclamation-triangle-fill me-1 text-warning"></i><span id="titleUnpaid">未精算一覧</span></h6>
+      <h6 class="fw-bold mb-2 pivot-title"><i class="bi bi-exclamation-triangle-fill me-1 text-warning"></i><span id="titleUnpaid">未精算一覧</span> <a href="/faq#q603" class="text-muted" style="font-size:0.78rem;font-weight:400;" title="精算済にする方法"><i class="bi bi-question-circle"></i></a></h6>
       <div class="table-responsive" id="wrapUnpaid">
         <div class="text-muted small text-center py-3">読み込み中...</div>
       </div>

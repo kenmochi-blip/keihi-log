@@ -28,7 +28,7 @@ const ListView = (() => {
         <button class="btn btn-outline-secondary btn-sm dropdown-toggle dropdown-toggle-split px-2"
           data-bs-toggle="dropdown" aria-expanded="false"></button>
         <ul class="dropdown-menu dropdown-menu-end">
-          <li><h6 class="dropdown-header" style="font-size:0.7rem;">会計ソフト形式</h6></li>
+          <li><h6 class="dropdown-header" style="font-size:0.7rem;">会計ソフト形式 <a href="/faq#q702" class="text-muted" style="font-size:0.75rem;" title="CSVエクスポートについて"><i class="bi bi-question-circle"></i></a></h6></li>
           <li><a class="dropdown-item small" href="#" id="btnExportFreee">freee 経費精算</a></li>
           <li><a class="dropdown-item small" href="#" id="btnExportYayoi">弥生 仕訳日記帳</a></li>
           <li><a class="dropdown-item small" href="#" id="btnExportMfc">MFクラウド 仕訳帳</a></li>
