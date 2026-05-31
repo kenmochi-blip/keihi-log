@@ -400,6 +400,7 @@ const App = (() => {
 
   /** マスターデータを返す（キャッシュがあればキャッシュ優先） */
   async function getMaster() {
+    if (typeof Demo !== 'undefined' && Demo.isActive()) return Demo.MASTER;
     if (_masterCache) return _masterCache;
     _masterCache = await Sheets.readMaster();
     const email = Auth.getUserEmail().toLowerCase();
@@ -430,6 +431,9 @@ const App = (() => {
    * @param {boolean} [force=false] trueの場合はキャッシュを無視して再取得し結果を待つ
    */
   async function getExpenses(force = false) {
+    // デモモード：localStorageキャッシュを読まずに固定サンプルデータを返す
+    if (typeof Demo !== 'undefined' && Demo.isActive()) return Demo.EXPENSES;
+
     // ページリロード後の初回呼び出し：localStorage からキャッシュを復元
     // シートIDが一致する場合のみ使用（別スプレッドシートのデータを表示しないため）
     if (!_expensesCache) {
