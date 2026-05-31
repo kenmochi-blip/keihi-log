@@ -281,7 +281,9 @@ const SubmitView = (() => {
   <!-- 訂正・削除防止規程（確定済みの場合のみ表示） -->
   ${(() => {
     try {
-      const reg = JSON.parse(localStorage.getItem('keihi_regulation') || 'null');
+      const reg = (typeof Demo !== 'undefined' && Demo.isActive())
+        ? Demo.REGULATION
+        : JSON.parse(localStorage.getItem('keihi_regulation') || 'null');
       if (!reg?.confirmedAt) return '';
       const text = SettingsView.buildRegulationText(reg);
       return `
