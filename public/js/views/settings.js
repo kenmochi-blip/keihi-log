@@ -952,9 +952,13 @@ const SettingsView = (() => {
   }
 
   async function _deleteSimpleItem(el, type, idx) {
-    if (type === 'category')        _master.categories.splice(idx, 1);
-    else if (type === 'paySource')  _master.paySources.splice(idx, 1);
-    else if (type === 'customFlag') (_master.customFlags || []).splice(idx, 1);
+    const lists = { category: _master.categories, paySource: _master.paySources, customFlag: _master.customFlags || [] };
+    const labels = { category: '勘定科目', paySource: '会社払い支払元', customFlag: 'カスタムフラグ' };
+    const item = lists[type]?.[idx];
+    if (!item) return;
+    const ok = await App.confirm(`「${item}」を削除しますか？`);
+    if (!ok) return;
+    lists[type].splice(idx, 1);
     await _saveMasterToSheet(el);
   }
 
