@@ -5,13 +5,27 @@
  */
 const SummaryView = (() => {
 
+  const _SS_KEY = 'keihi_summary_range'; // sessionStorage key for period persistence
+
   let _expenses = [];
+
+  function _saveRange(fromYM, toYM, months) {
+    try { sessionStorage.setItem(_SS_KEY, JSON.stringify({ fromYM, toYM, months })); } catch (_) {}
+  }
+
+  function _loadRange() {
+    try { return JSON.parse(sessionStorage.getItem(_SS_KEY) || 'null'); } catch (_) { return null; }
+  }
 
   function render() {
     const defaultMonths = window.innerWidth >= 768 ? 12 : 3;
-    const { fromYM, toYM } = _rangeForMonths(defaultMonths);
+    const saved = _loadRange();
+    const activeMonths = saved ? (saved.months ?? 0) : defaultMonths;
+    const { fromYM: defaultFrom, toYM: defaultTo } = _rangeForMonths(saved ? 0 : defaultMonths);
+    const fromYM = saved?.fromYM || defaultFrom;
+    const toYM   = saved?.toYM   || defaultTo;
     const _btn = (m, label) => {
-      const active = m === defaultMonths;
+      const active = m === activeMonths;
       return `<button class="btn ${active ? 'btn-outline-primary active' : 'btn-outline-secondary'}" data-months="${m}">${label}</button>`;
     };
     return `
@@ -43,7 +57,7 @@ const SummaryView = (() => {
           ${_btn(12, '12ヶ月')}
           <button class="btn btn-outline-secondary" data-months="0">カスタム</button>
         </div>
-        <div id="customRange" class="d-none d-flex align-items-center gap-1">
+        <div id="customRange" class="${activeMonths === 0 ? 'd-flex' : 'd-none'} align-items-center gap-1">
           <input type="month" class="form-control form-control-sm" id="inputFrom"
             value="${fromYM}" style="width:140px;">
           <span class="text-muted small">〜</span>
@@ -134,18 +148,29 @@ const SummaryView = (() => {
         const customRange = el.querySelector('#customRange');
         if (months === 0) {
           customRange.classList.remove('d-none');
+          // カスタムモードに切り替えた時点の値を保存
+          const from = el.querySelector('#inputFrom').value;
+          const to   = el.querySelector('#inputTo').value;
+          _saveRange(from, to, 0);
         } else {
           customRange.classList.add('d-none');
           const { fromYM, toYM } = _rangeForMonths(months);
           el.querySelector('#inputFrom').value = fromYM;
           el.querySelector('#inputTo').value   = toYM;
+          _saveRange(fromYM, toYM, months);
         }
         update();
       });
     });
 
-    el.querySelector('#inputFrom')?.addEventListener('change', update);
-    el.querySelector('#inputTo')?.addEventListener('change', update);
+    el.querySelector('#inputFrom')?.addEventListener('change', () => {
+      _saveRange(el.querySelector('#inputFrom').value, el.querySelector('#inputTo').value, 0);
+      update();
+    });
+    el.querySelector('#inputTo')?.addEventListener('change', () => {
+      _saveRange(el.querySelector('#inputFrom').value, el.querySelector('#inputTo').value, 0);
+      update();
+    });
 
     el.querySelector('#btnPrintSummary')?.addEventListener('click', () => window.print());
 
