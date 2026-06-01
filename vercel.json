@@ -2,8 +2,20 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "redirects": [
-    { "source": "/lp", "destination": "/", "permanent": true },
-    { "source": "/lp.html", "destination": "/", "permanent": true }
+    { "source": "/lp",           "destination": "/",         "permanent": true },
+    { "source": "/lp.html",      "destination": "/",         "permanent": true },
+    { "source": "/index.html",   "destination": "/",         "permanent": true },
+    { "source": "/faq.html",     "destination": "/faq",      "permanent": true },
+    { "source": "/guide.html",   "destination": "/guide",    "permanent": true },
+    { "source": "/privacy.html", "destination": "/privacy",  "permanent": true },
+    { "source": "/terms.html",   "destination": "/terms",    "permanent": true },
+    { "source": "/tokusho.html", "destination": "/tokusho",  "permanent": true },
+    { "source": "/licenses.html","destination": "/licenses", "permanent": true },
+    { "source": "/success.html", "destination": "/success",  "permanent": true },
+    { "source": "/demo.html",    "destination": "/demo",     "permanent": true },
+    { "source": "/login.html",   "destination": "/login",    "permanent": true },
+    { "source": "/setup.html",   "destination": "/setup",    "permanent": true },
+    { "source": "/app.html",     "destination": "/app",      "permanent": true }
   ],
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api/:path*" },
