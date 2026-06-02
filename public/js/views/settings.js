@@ -244,7 +244,7 @@ const SettingsView = (() => {
   <div class="card mb-3">
     <div class="card-body">
       <div class="settings-section-title d-flex justify-content-between align-items-center">
-        <span>勘定科目</span>
+        <span>勘定科目　<a href="/faq#q110" target="_blank" rel="noopener" class="text-muted" title="この機能についての説明を見る" style="font-size:0.9rem;"><i class="bi bi-question-circle"></i></a></span>
         <button class="btn btn-outline-primary btn-sm" id="btnAddCategory"><i class="bi bi-plus me-1"></i>追加</button>
       </div>
       <div id="categoryList" class="mt-2">
