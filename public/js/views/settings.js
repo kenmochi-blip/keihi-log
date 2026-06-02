@@ -619,7 +619,7 @@ const SettingsView = (() => {
       _master = await App.getMaster();
       if (!opts.fromCache) {
         _renderMembers(el);
-        _renderSimpleList(el, 'categoryList',   _master.categories,        'category');
+        _renderCategoryList(el);
         _renderSimpleList(el, 'paySourceList',  _master.paySources,        'paySource');
         _renderSimpleList(el, 'customFlagList', _master.customFlags || [], 'customFlag');
       }
@@ -825,6 +825,54 @@ const SettingsView = (() => {
       btn.addEventListener('click', () => _deleteSimpleItem(el, btn.dataset.type, Number(btn.dataset.index))));
   }
 
+  function _renderCategoryList(el) {
+    const container = el.querySelector('#categoryList');
+    if (!container) return;
+    const categories = _master.categories || [];
+    const mappings   = _master.categoryMappings || {};
+    if (!categories.length) { container.innerHTML = '<div class="text-muted small">登録がありません</div>'; return; }
+    container.innerHTML = categories.map((item, i) => `
+      <div class="d-flex align-items-center gap-2 py-1 border-bottom flex-wrap">
+        <div class="d-flex flex-column" style="gap:2px;flex-shrink:0;">
+          <button class="btn btn-outline-secondary btn-sm py-0 px-1 lh-1 btn-cat-up" data-index="${i}" ${i === 0 ? 'disabled' : ''} style="font-size:0.7rem;">▲</button>
+          <button class="btn btn-outline-secondary btn-sm py-0 px-1 lh-1 btn-cat-down" data-index="${i}" ${i === categories.length - 1 ? 'disabled' : ''} style="font-size:0.7rem;">▼</button>
+        </div>
+        <span class="flex-grow-1 small master-item-name">${_escape(item)}</span>
+        <input type="text" class="form-control form-control-sm cat-code-input" placeholder="科目コード"
+          style="width:110px;font-size:0.82rem;" value="${_escape(mappings[item] || '')}"
+          data-category="${_escape(item)}" title="会計ソフトの勘定科目コード・名称">
+        <button class="btn btn-outline-danger btn-sm btn-del-item" data-type="category" data-index="${i}">
+          <i class="bi bi-trash"></i>
+        </button>
+      </div>`).join('');
+
+    container.querySelectorAll('.btn-cat-up').forEach(btn =>
+      btn.addEventListener('click', async () => {
+        const idx = Number(btn.dataset.index);
+        if (idx <= 0) return;
+        [_master.categories[idx - 1], _master.categories[idx]] = [_master.categories[idx], _master.categories[idx - 1]];
+        await _saveMasterToSheet(el);
+      }));
+    container.querySelectorAll('.btn-cat-down').forEach(btn =>
+      btn.addEventListener('click', async () => {
+        const idx = Number(btn.dataset.index);
+        if (idx >= _master.categories.length - 1) return;
+        [_master.categories[idx], _master.categories[idx + 1]] = [_master.categories[idx + 1], _master.categories[idx]];
+        await _saveMasterToSheet(el);
+      }));
+    container.querySelectorAll('.cat-code-input').forEach(input =>
+      input.addEventListener('blur', async () => {
+        const cat  = input.dataset.category;
+        const code = input.value.trim();
+        if (!_master.categoryMappings) _master.categoryMappings = {};
+        if (code) _master.categoryMappings[cat] = code;
+        else delete _master.categoryMappings[cat];
+        await _saveMasterToSheet(el);
+      }));
+    container.querySelectorAll('.btn-del-item').forEach(btn =>
+      btn.addEventListener('click', () => _deleteSimpleItem(el, btn.dataset.type, Number(btn.dataset.index))));
+  }
+
   function _showMemberForm(el, idx) {
     const m = idx !== null ? _master.members[idx] : { name: '', email: '', dept: '', role: '' };
     const isNew = idx === null;
@@ -960,11 +1008,13 @@ const SettingsView = (() => {
     const ok = await App.confirm(`「${item}」を削除しますか？`);
     if (!ok) return;
     lists[type].splice(idx, 1);
+    if (type === 'category' && _master.categoryMappings) delete _master.categoryMappings[item];
     await _saveMasterToSheet(el);
   }
 
   async function _saveMasterToSheet(el) {
     const customFlags = _master.customFlags || [];
+    const categoryMappings = _master.categoryMappings || {};
     const maxRows = Math.max(_master.members.length, _master.categories.length, _master.paySources.length, customFlags.length, 1);
     const rows = [];
     for (let i = 0; i < maxRows; i++) {
@@ -972,10 +1022,11 @@ const SettingsView = (() => {
       const c = _master.categories[i] || '';
       const p = _master.paySources[i] || '';
       const f = customFlags[i]        || '';
-      // A:氏名 B:メール C:所属 D:権限 E:備考 F:会社払い支払元 G:勘定科目 H:カスタムフラグ
-      rows.push([m.name || '', m.email || '', m.dept || '', m.role || '', '', p, c, f]);
+      const code = c ? (categoryMappings[c] || '') : '';
+      // A:氏名 B:メール C:所属 D:権限 E:備考 F:会社払い支払元 G:勘定科目 H:カスタムフラグ I:科目コード
+      rows.push([m.name || '', m.email || '', m.dept || '', m.role || '', '', p, c, f, code]);
     }
-    await Sheets.update(`マスタ表!A2:H${rows.length + 1}`, rows);
+    await Sheets.update(`マスタ表!A2:I${rows.length + 1}`, rows);
     App.showToast('保存しました', 'success');
 
     const syncCount = await _syncMemberNamesToExpenses(_master.members);

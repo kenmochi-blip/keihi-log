@@ -641,14 +641,20 @@ const ListView = (() => {
 
   function _exportCsv(el) {
     const filtered = _getFiltered(el);
-    const header = ['申請日時','申請者名','タイプ','日付','支払先','金額','勘定科目','備考','証票URL','ステータス','インボイス番号','申請者Email','ID','精算日','税区分','支払元','源泉徴収','カスタムフラグ'];
+    const mappings = _master?.categoryMappings || {};
+    const hasMappings = Object.keys(mappings).length > 0;
+    const header = ['申請日時','申請者名','タイプ','日付','支払先','金額','勘定科目',
+      ...(hasMappings ? ['科目コード'] : []),
+      '備考','証票URL','ステータス','インボイス番号','申請者Email','ID','精算日','税区分','支払元','源泉徴収','カスタムフラグ'];
     const _isoToSlash = s => s ? String(s).replace(/^(\d{4})-(\d{2})-(\d{2}).*/, '$1/$2/$3') : '';
     const rows = filtered.map(e => {
       const corpSrc = _corpPaySource(e);
       const paySource = corpSrc ? corpSrc : `個人（${App.getMemberName(e.email, e.name)}）`;
       return [
         _isoToSlash(e.appliedAt), App.getMemberName(e.email, e.name), e.type, _isoToSlash(e.date), e.place, e.amount,
-        e.category, e.note, e.imageLinks.split(',')[0]?.trim() || '',
+        e.category,
+        ...(hasMappings ? [mappings[e.category] || ''] : []),
+        e.note, e.imageLinks.split(',')[0]?.trim() || '',
         _getStatus(e), e.invoice, e.email, e.id,
         e.settlementDate || '', e.taxRate || '課税10%', paySource,
         e.withholding || 0, e.customFlag || ''
@@ -729,6 +735,8 @@ const ListView = (() => {
 
   function _exportFreee(el) {
     const filtered = _getFiltered(el);
+    const mappings = _master?.categoryMappings || {};
+    const _catName = cat => mappings[cat] || cat;
     const _isoToSlash = s => s ? String(s).replace(/^(\d{4})-(\d{2})-(\d{2}).*/, '$1/$2/$3') : '';
     const header = ['発生日','勘定科目','税区分','金額(税込)','税額','摘要','支払方法','申請者','備考'];
     const rows = [];
@@ -738,7 +746,7 @@ const ListView = (() => {
       const { tax, freeeKbn } = _taxInfo(amount, e.taxRate);
       const payMethod = corpSrc ? corpSrc : `個人（${App.getMemberName(e.email, e.name)}）`;
       rows.push([
-        _isoToSlash(e.date), e.category, freeeKbn, amount, tax,
+        _isoToSlash(e.date), _catName(e.category), freeeKbn, amount, tax,
         e.place, payMethod, App.getMemberName(e.email, e.name), e.note
       ]);
       // 源泉徴収がある場合は預り金行を追加
@@ -758,6 +766,8 @@ const ListView = (() => {
 
   function _exportYayoi(el) {
     const filtered = _getFiltered(el);
+    const mappings = _master?.categoryMappings || {};
+    const _catName = cat => mappings[cat] || cat;
     const _isoToSlash = s => s ? String(s).replace(/^(\d{4})-(\d{2})-(\d{2}).*/, '$1/$2/$3') : '';
     const header = ['伝票No.','決算','取引日','借方勘定科目','借方補助科目','借方税区分','借方金額','借方消費税額','貸方勘定科目','貸方補助科目','貸方税区分','貸方金額','貸方消費税額','摘要','番号'];
     const rows = [];
@@ -775,7 +785,7 @@ const ListView = (() => {
         const payAmt = amount - wh;
         rows.push([
           slipNo, '', _isoToSlash(e.date),
-          e.category, '', yayoiKbn, amount, tax,
+          _catName(e.category), '', yayoiKbn, amount, tax,
           '未払金', creditSub, '', payAmt, '',
           summary, e.id
         ]);
@@ -788,7 +798,7 @@ const ListView = (() => {
       } else {
         rows.push([
           slipNo, '', _isoToSlash(e.date),
-          e.category, '', yayoiKbn, amount, tax,
+          _catName(e.category), '', yayoiKbn, amount, tax,
           '未払金', creditSub, '', amount, '',
           summary, e.id
         ]);
@@ -802,6 +812,8 @@ const ListView = (() => {
 
   function _exportMfc(el) {
     const filtered = _getFiltered(el);
+    const mappings = _master?.categoryMappings || {};
+    const _catName = cat => mappings[cat] || cat;
     const _isoToSlash = s => s ? String(s).replace(/^(\d{4})-(\d{2})-(\d{2}).*/, '$1/$2/$3') : '';
     const header = ['取引日','借方勘定科目','借方補助科目','借方税区分','借方金額','貸方勘定科目','貸方補助科目','貸方税区分','貸方金額','摘要','メモ'];
     const rows = [];
@@ -817,7 +829,7 @@ const ListView = (() => {
         // 経費行（借方:経費科目 / 貸方:未払金 = 支払額）
         rows.push([
           _isoToSlash(e.date),
-          e.category, '', mfcKbn, amount,
+          _catName(e.category), '', mfcKbn, amount,
           '未払金', creditSub, '', payAmt,
           summary, e.id
         ]);
@@ -831,7 +843,7 @@ const ListView = (() => {
       } else {
         rows.push([
           _isoToSlash(e.date),
-          e.category, '', mfcKbn, amount,
+          _catName(e.category), '', mfcKbn, amount,
           '未払金', creditSub, '', amount,
           summary, e.id
         ]);

@@ -276,19 +276,23 @@ const Sheets = (() => {
   /** マスタ表を読んでメンバー・カテゴリ・支払元・カスタムフラグを返す */
   async function readMaster(ssId) {
     if (typeof Demo !== 'undefined' && Demo.isActive()) return Demo.MASTER;
-    const rows = await read('マスタ表!A2:H', ssId);
+    const rows = await read('マスタ表!A2:I', ssId);
     const members     = [];
     const categories  = [];
     const paySources  = [];
     const customFlags = [];
     const admins      = [];
     const viewers     = [];
+    const categoryMappings = {};
 
     rows.forEach(r => {
-      // A:氏名 B:メール C:所属 D:権限 E:備考 F:会社払い支払元 G:勘定科目 H:カスタムフラグ
+      // A:氏名 B:メール C:所属 D:権限 E:備考 F:会社払い支払元 G:勘定科目 H:カスタムフラグ I:科目コード
       if (r[0] || r[1]) members.push({ name: r[0] || '', email: r[1] || '', dept: r[2] || '', role: r[3] || '' });
       if (r[5]) paySources.push(r[5]);
-      if (r[6]) categories.push(r[6]);
+      if (r[6]) {
+        categories.push(r[6]);
+        if (r[8]) categoryMappings[r[6]] = r[8];
+      }
       if (r[7]) customFlags.push(r[7]);
       const role = (r[3] || '').toLowerCase();
       if (role === 'admin' && r[1]) admins.push(r[1].toLowerCase());
@@ -300,6 +304,7 @@ const Sheets = (() => {
       categories:  [...new Set(categories)],
       paySources:  [...new Set(paySources)],
       customFlags: [...new Set(customFlags)],
+      categoryMappings,
       admins,
       viewers,
     };
