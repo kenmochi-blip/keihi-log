@@ -867,7 +867,7 @@ const SettingsView = (() => {
         container.querySelectorAll('.cat-row').forEach(r => { r.style.background = ''; });
         row.style.background = '#e8f4fd';
       });
-      row.addEventListener('drop', async e => {
+      row.addEventListener('drop', e => {
         e.preventDefault();
         const dropIdx = Number(row.dataset.index);
         _clearDragHighlight();
@@ -875,7 +875,8 @@ const SettingsView = (() => {
         const moved = _master.categories.splice(_dragIdx, 1)[0];
         _master.categories.splice(dropIdx, 0, moved);
         _dragIdx = null;
-        await _saveMasterToSheet(el);
+        _renderCategoryList(el); // ローカルデータで即再描画
+        _saveCategoriesQuiet().catch(() => App.showToast('並び替えの保存に失敗しました', 'danger'));
       });
     });
 
@@ -889,7 +890,12 @@ const SettingsView = (() => {
         if (newVal) _master.categoryMappings[cat] = newVal;
         else delete _master.categoryMappings[cat];
         input.dataset.orig = newVal;
-        await _saveMasterToSheet(el);
+        try {
+          await _saveCategoriesQuiet();
+          App.showToast('保存しました', 'success');
+        } catch (_) {
+          App.showToast('保存に失敗しました', 'danger');
+        }
       });
     });
 
@@ -1035,6 +1041,24 @@ const SettingsView = (() => {
     lists[type].splice(idx, 1);
     if (type === 'category' && _master.categoryMappings) delete _master.categoryMappings[item];
     await _saveMasterToSheet(el);
+  }
+
+  // カテゴリ専用の静かな保存（シート再読込・全体再描画なし）
+  async function _saveCategoriesQuiet() {
+    const customFlags = _master.customFlags || [];
+    const categoryMappings = _master.categoryMappings || {};
+    const maxRows = Math.max(_master.members.length, _master.categories.length, _master.paySources.length, customFlags.length, 1);
+    const rows = [];
+    for (let i = 0; i < maxRows; i++) {
+      const m = _master.members[i]    || {};
+      const c = _master.categories[i] || '';
+      const p = _master.paySources[i] || '';
+      const f = customFlags[i]        || '';
+      const code = c ? (categoryMappings[c] || '') : '';
+      rows.push([m.name || '', m.email || '', m.dept || '', m.role || '', '', p, c, f, code]);
+    }
+    await Sheets.update(`マスタ表!A2:I${rows.length + 1}`, rows);
+    App.clearMasterCache();
   }
 
   async function _saveMasterToSheet(el) {
