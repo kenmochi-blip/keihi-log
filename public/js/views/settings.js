@@ -832,43 +832,68 @@ const SettingsView = (() => {
     const mappings   = _master.categoryMappings || {};
     if (!categories.length) { container.innerHTML = '<div class="text-muted small">登録がありません</div>'; return; }
     container.innerHTML = categories.map((item, i) => `
-      <div class="d-flex align-items-center gap-2 py-1 border-bottom flex-wrap">
-        <div class="d-flex flex-column" style="gap:2px;flex-shrink:0;">
-          <button class="btn btn-outline-secondary btn-sm py-0 px-1 lh-1 btn-cat-up" data-index="${i}" ${i === 0 ? 'disabled' : ''} style="font-size:0.7rem;">▲</button>
-          <button class="btn btn-outline-secondary btn-sm py-0 px-1 lh-1 btn-cat-down" data-index="${i}" ${i === categories.length - 1 ? 'disabled' : ''} style="font-size:0.7rem;">▼</button>
-        </div>
+      <div class="d-flex align-items-center gap-2 py-1 border-bottom cat-row" data-index="${i}">
+        <i class="bi bi-grip-vertical text-muted cat-drag-handle"
+           style="font-size:1.1rem;cursor:grab;flex-shrink:0;" title="ドラッグして並び替え"></i>
         <span class="flex-grow-1 small master-item-name">${_escape(item)}</span>
-        <input type="text" class="form-control form-control-sm cat-code-input" placeholder="科目コード"
-          style="width:110px;font-size:0.82rem;" value="${_escape(mappings[item] || '')}"
-          data-category="${_escape(item)}" title="会計ソフトの勘定科目コード・名称">
+        <input type="text" class="form-control form-control-sm cat-code-input"
+          placeholder="科目コード（任意）" style="width:130px;font-size:0.82rem;"
+          value="${_escape(mappings[item] || '')}"
+          data-category="${_escape(item)}"
+          data-orig="${_escape(mappings[item] || '')}"
+          title="会計ソフトの勘定科目コード・名称">
         <button class="btn btn-outline-danger btn-sm btn-del-item" data-type="category" data-index="${i}">
           <i class="bi bi-trash"></i>
         </button>
       </div>`).join('');
 
-    container.querySelectorAll('.btn-cat-up').forEach(btn =>
-      btn.addEventListener('click', async () => {
-        const idx = Number(btn.dataset.index);
-        if (idx <= 0) return;
-        [_master.categories[idx - 1], _master.categories[idx]] = [_master.categories[idx], _master.categories[idx - 1]];
+    // ── ドラッグ＆ドロップ並び替え ──
+    let _dragIdx = null;
+    function _clearDragHighlight() {
+      container.querySelectorAll('.cat-row').forEach(r => { r.style.background = ''; r.style.opacity = ''; });
+    }
+    container.querySelectorAll('.cat-row').forEach(row => {
+      const handle = row.querySelector('.cat-drag-handle');
+      handle.addEventListener('mousedown', () => { row.draggable = true; });
+      document.addEventListener('mouseup', () => { row.draggable = false; }, { once: false });
+      row.addEventListener('dragstart', e => {
+        _dragIdx = Number(row.dataset.index);
+        e.dataTransfer.effectAllowed = 'move';
+        setTimeout(() => { row.style.opacity = '0.4'; }, 0);
+      });
+      row.addEventListener('dragend', () => { row.draggable = false; _clearDragHighlight(); });
+      row.addEventListener('dragover', e => {
+        e.preventDefault();
+        container.querySelectorAll('.cat-row').forEach(r => { r.style.background = ''; });
+        row.style.background = '#e8f4fd';
+      });
+      row.addEventListener('drop', async e => {
+        e.preventDefault();
+        const dropIdx = Number(row.dataset.index);
+        _clearDragHighlight();
+        if (_dragIdx === null || _dragIdx === dropIdx) return;
+        const moved = _master.categories.splice(_dragIdx, 1)[0];
+        _master.categories.splice(dropIdx, 0, moved);
+        _dragIdx = null;
         await _saveMasterToSheet(el);
-      }));
-    container.querySelectorAll('.btn-cat-down').forEach(btn =>
-      btn.addEventListener('click', async () => {
-        const idx = Number(btn.dataset.index);
-        if (idx >= _master.categories.length - 1) return;
-        [_master.categories[idx], _master.categories[idx + 1]] = [_master.categories[idx + 1], _master.categories[idx]];
-        await _saveMasterToSheet(el);
-      }));
-    container.querySelectorAll('.cat-code-input').forEach(input =>
+      });
+    });
+
+    // ── 科目コード保存（値が変わった時のみ） ──
+    container.querySelectorAll('.cat-code-input').forEach(input => {
       input.addEventListener('blur', async () => {
-        const cat  = input.dataset.category;
-        const code = input.value.trim();
+        const newVal = input.value.trim();
+        if (newVal === (input.dataset.orig || '')) return;
+        const cat = input.dataset.category;
         if (!_master.categoryMappings) _master.categoryMappings = {};
-        if (code) _master.categoryMappings[cat] = code;
+        if (newVal) _master.categoryMappings[cat] = newVal;
         else delete _master.categoryMappings[cat];
+        input.dataset.orig = newVal;
         await _saveMasterToSheet(el);
-      }));
+      });
+    });
+
+    // ── 削除 ──
     container.querySelectorAll('.btn-del-item').forEach(btn =>
       btn.addEventListener('click', () => _deleteSimpleItem(el, btn.dataset.type, Number(btn.dataset.index))));
   }
