@@ -841,7 +841,8 @@ const SettingsView = (() => {
           value="${_escape(mappings[item] || '')}"
           data-category="${_escape(item)}"
           data-orig="${_escape(mappings[item] || '')}"
-          title="会計ソフトの勘定科目コード・名称">
+          pattern="[A-Za-z0-9]*" inputmode="latin"
+          title="半角英数字のみ入力できます">
         <button class="btn btn-outline-danger btn-sm btn-del-item" data-type="category" data-index="${i}">
           <i class="bi bi-trash"></i>
         </button>
@@ -882,8 +883,12 @@ const SettingsView = (() => {
 
     // ── 科目コード保存（値が変わった時のみ） ──
     container.querySelectorAll('.cat-code-input').forEach(input => {
+      input.addEventListener('input', () => {
+        input.value = input.value.replace(/[^A-Za-z0-9]/g, '');
+      });
       input.addEventListener('blur', async () => {
-        const newVal = input.value.trim();
+        const newVal = input.value.replace(/[^A-Za-z0-9]/g, '').trim();
+        input.value = newVal;
         if (newVal === (input.dataset.orig || '')) return;
         const cat = input.dataset.category;
         if (!_master.categoryMappings) _master.categoryMappings = {};
