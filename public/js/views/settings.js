@@ -244,7 +244,7 @@ const SettingsView = (() => {
   <div class="card mb-3">
     <div class="card-body">
       <div class="settings-section-title d-flex justify-content-between align-items-center">
-        <span>勘定科目　<a href="/faq#q110" target="_blank" rel="noopener" class="text-muted" title="この機能についての説明を見る" style="font-size:0.9rem;"><i class="bi bi-question-circle"></i></a></span>
+        <span>勘定科目</span>
         <button class="btn btn-outline-primary btn-sm" id="btnAddCategory"><i class="bi bi-plus me-1"></i>追加</button>
       </div>
       <div id="categoryList" class="mt-2">
@@ -829,20 +829,12 @@ const SettingsView = (() => {
     const container = el.querySelector('#categoryList');
     if (!container) return;
     const categories = _master.categories || [];
-    const mappings   = _master.categoryMappings || {};
     if (!categories.length) { container.innerHTML = '<div class="text-muted small">登録がありません</div>'; return; }
     container.innerHTML = categories.map((item, i) => `
       <div class="d-flex align-items-center gap-2 py-1 border-bottom cat-row" data-index="${i}">
         <i class="bi bi-grip-vertical text-muted cat-drag-handle"
            style="font-size:1.1rem;cursor:grab;flex-shrink:0;" title="ドラッグして並び替え"></i>
         <span class="flex-grow-1 small master-item-name">${_escape(item)}</span>
-        <input type="text" class="form-control form-control-sm cat-code-input"
-          placeholder="科目コード（任意）" style="width:130px;font-size:0.82rem;"
-          value="${_escape(mappings[item] || '')}"
-          data-category="${_escape(item)}"
-          data-orig="${_escape(mappings[item] || '')}"
-          pattern="[A-Za-z0-9]*" inputmode="latin"
-          title="半角英数字のみ入力できます">
         <button class="btn btn-outline-danger btn-sm btn-del-item" data-type="category" data-index="${i}">
           <i class="bi bi-trash"></i>
         </button>
@@ -878,29 +870,6 @@ const SettingsView = (() => {
         _dragIdx = null;
         _renderCategoryList(el); // ローカルデータで即再描画
         _saveCategoriesQuiet().catch(() => App.showToast('並び替えの保存に失敗しました', 'danger'));
-      });
-    });
-
-    // ── 科目コード保存（値が変わった時のみ） ──
-    container.querySelectorAll('.cat-code-input').forEach(input => {
-      input.addEventListener('input', () => {
-        input.value = input.value.replace(/[^A-Za-z0-9]/g, '');
-      });
-      input.addEventListener('blur', async () => {
-        const newVal = input.value.replace(/[^A-Za-z0-9]/g, '').trim();
-        input.value = newVal;
-        if (newVal === (input.dataset.orig || '')) return;
-        const cat = input.dataset.category;
-        if (!_master.categoryMappings) _master.categoryMappings = {};
-        if (newVal) _master.categoryMappings[cat] = newVal;
-        else delete _master.categoryMappings[cat];
-        input.dataset.orig = newVal;
-        try {
-          await _saveCategoriesQuiet();
-          App.showToast('保存しました', 'success');
-        } catch (_) {
-          App.showToast('保存に失敗しました', 'danger');
-        }
       });
     });
 
@@ -1044,14 +1013,12 @@ const SettingsView = (() => {
     const ok = await App.confirm(`「${item}」を削除しますか？`);
     if (!ok) return;
     lists[type].splice(idx, 1);
-    if (type === 'category' && _master.categoryMappings) delete _master.categoryMappings[item];
     await _saveMasterToSheet(el);
   }
 
   // カテゴリ専用の静かな保存（シート再読込・全体再描画なし）
   async function _saveCategoriesQuiet() {
     const customFlags = _master.customFlags || [];
-    const categoryMappings = _master.categoryMappings || {};
     const maxRows = Math.max(_master.members.length, _master.categories.length, _master.paySources.length, customFlags.length, 1);
     const rows = [];
     for (let i = 0; i < maxRows; i++) {
@@ -1059,16 +1026,14 @@ const SettingsView = (() => {
       const c = _master.categories[i] || '';
       const p = _master.paySources[i] || '';
       const f = customFlags[i]        || '';
-      const code = c ? (categoryMappings[c] || '') : '';
-      rows.push([m.name || '', m.email || '', m.dept || '', m.role || '', '', p, c, f, code]);
+      rows.push([m.name || '', m.email || '', m.dept || '', m.role || '', '', p, c, f]);
     }
-    await Sheets.update(`マスタ表!A2:I${rows.length + 1}`, rows);
+    await Sheets.update(`マスタ表!A2:H${rows.length + 1}`, rows);
     App.clearMasterCache();
   }
 
   async function _saveMasterToSheet(el) {
     const customFlags = _master.customFlags || [];
-    const categoryMappings = _master.categoryMappings || {};
     const maxRows = Math.max(_master.members.length, _master.categories.length, _master.paySources.length, customFlags.length, 1);
     const rows = [];
     for (let i = 0; i < maxRows; i++) {
@@ -1076,11 +1041,10 @@ const SettingsView = (() => {
       const c = _master.categories[i] || '';
       const p = _master.paySources[i] || '';
       const f = customFlags[i]        || '';
-      const code = c ? (categoryMappings[c] || '') : '';
-      // A:氏名 B:メール C:所属 D:権限 E:備考 F:会社払い支払元 G:勘定科目 H:カスタムフラグ I:科目コード
-      rows.push([m.name || '', m.email || '', m.dept || '', m.role || '', '', p, c, f, code]);
+      // A:氏名 B:メール C:所属 D:権限 E:備考 F:会社払い支払元 G:勘定科目 H:カスタムフラグ
+      rows.push([m.name || '', m.email || '', m.dept || '', m.role || '', '', p, c, f]);
     }
-    await Sheets.update(`マスタ表!A2:I${rows.length + 1}`, rows);
+    await Sheets.update(`マスタ表!A2:H${rows.length + 1}`, rows);
     App.showToast('保存しました', 'success');
 
     const syncCount = await _syncMemberNamesToExpenses(_master.members);
@@ -1089,7 +1053,7 @@ const SettingsView = (() => {
     App.clearMasterCache();
     _master = await App.getMaster();
     _renderMembers(el);
-    _renderSimpleList(el, 'categoryList',   _master.categories,        'category');
+    _renderCategoryList(el);
     _renderSimpleList(el, 'paySourceList',  _master.paySources,        'paySource');
     _renderSimpleList(el, 'customFlagList', _master.customFlags || [], 'customFlag');
   }
