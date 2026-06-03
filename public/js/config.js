@@ -8,7 +8,7 @@ window.APP_CONFIG = {
 
   // Google Picker API 用ブラウザキー
   // GCPコンソール → 認証情報 → 「APIキーを作成」→ Google Picker API のみ許可 → keihi-log.com/* に制限
-  pickerApiKey: '',
+  pickerApiKey: 'AIzaSyBcbA7bIvdTIrKkt_1X0C4ZUyFtRNUm504',
 
   // ライセンス検証・サーバー時刻APIのベースURL
   // ローカル開発時: 'http://localhost:3000'
