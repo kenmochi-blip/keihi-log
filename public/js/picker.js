@@ -132,7 +132,7 @@ const Picker = (() => {
           overlay.style.background = 'rgba(0,0,0,0.6)';
           overlay.style.zIndex = '9999';
           if (err.message === 'wrong_file') {
-            errEl.textContent = '選択されたファイルが正しくありません。チームのスプレッドシートを選んでください。';
+            errEl.textContent = '別のファイルが選択されました。もう一度ボタンを押して、チームのスプレッドシートを選び直してください。';
             errEl.style.display = '';
           } else if (err.message === 'cancelled') {
             // キャンセルは再試行を促すだけ
