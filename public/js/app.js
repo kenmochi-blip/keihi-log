@@ -71,16 +71,25 @@ const App = (() => {
     let licKey = localStorage.getItem('keihi_license_key');
     const ssId = localStorage.getItem('keihi_sheet_id');
 
-    // drive.file スコープ：初回接続時に Google Picker でファイルアクセスを許可してもらう
+    // drive.file スコープ：ファイルアクセス確認
+    // まず直接アクセスを試み、失敗時のみ Picker を表示する
+    // （管理者が作成したシートは drive.file で直接アクセス可能なため Picker 不要）
     if (ssId && typeof Picker !== 'undefined' && !Picker.isAuthorized(ssId)) {
-      try {
-        await Picker.requestAuthorization(ssId);
-      } catch (err) {
-        if (err?.message === 'cancelled') {
-          showToast('スプレッドシートへのアクセス許可が必要です', 'danger');
-          return;
+      const probe = await Auth.authFetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${ssId}?fields=spreadsheetId`
+      ).catch(() => null);
+      if (probe && probe.ok) {
+        Picker.markAuthorized(ssId);
+      } else {
+        try {
+          await Picker.requestAuthorization(ssId);
+        } catch (err) {
+          if (err?.message === 'cancelled') {
+            showToast('スプレッドシートへのアクセス許可が必要です', 'danger');
+            return;
+          }
+          // API キー未設定など → そのまま進む（開発環境フォールバック）
         }
-        // API キー未設定など → そのまま進む（開発環境フォールバック）
       }
     }
 
