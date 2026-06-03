@@ -6,6 +6,10 @@
 const Picker = (() => {
   const AUTHED_KEY = 'keihi_picker_authed';
 
+  // モジュールレベルでPickerロード状態をキャッシュ（重複ロード防止・同期判定用）
+  let _pickerLoaded = false;
+  let _loadPromise = null;
+
   function _getAuthed() {
     try { return JSON.parse(localStorage.getItem(AUTHED_KEY) || '[]'); }
     catch (_) { return []; }
@@ -27,8 +31,15 @@ const Picker = (() => {
   }
 
   function _loadGapiPicker() {
-    return new Promise((resolve, reject) => {
-      function doLoad() { gapi.load('picker', { callback: resolve, onerror: reject }); }
+    if (_pickerLoaded) return Promise.resolve();
+    if (_loadPromise) return _loadPromise;
+    _loadPromise = new Promise((resolve, reject) => {
+      function doLoad() {
+        gapi.load('picker', {
+          callback: () => { _pickerLoaded = true; resolve(); },
+          onerror: reject,
+        });
+      }
       if (typeof gapi !== 'undefined') {
         doLoad();
       } else {
@@ -39,17 +50,20 @@ const Picker = (() => {
         document.head.appendChild(s);
       }
     });
+    return _loadPromise;
   }
 
+  /**
+   * Pickerを同期的に開く（_pickerLoaded が true のときのみ呼ぶこと）
+   * Promise executorは同期実行されるため、picker.setVisible(true) が
+   * クリックハンドラのコールスタック内で呼ばれ、モバイルのジェスチャーが維持される
+   */
   function _openPicker(expectedSheetId) {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       const apiKey = window.APP_CONFIG?.pickerApiKey;
       if (!apiKey) { reject(new Error('no_api_key')); return; }
       const token = (typeof Auth !== 'undefined') ? Auth.getAccessToken() : null;
       if (!token) { reject(new Error('no_token')); return; }
-
-      try { await _loadGapiPicker(); }
-      catch (_) { reject(new Error('picker_load_failed')); return; }
 
       const myView = new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS)
         .setIncludeFolders(false).setSelectFolderEnabled(false);
@@ -78,7 +92,7 @@ const Picker = (() => {
           }
         })
         .build();
-      picker.setVisible(true);
+      picker.setVisible(true); // クリックと同一コールスタック内で実行
     });
   }
 
@@ -88,6 +102,10 @@ const Picker = (() => {
    */
   async function requestAuthorization(expectedSheetId) {
     if (!window.APP_CONFIG?.pickerApiKey) return;
+
+    // オーバーレイ表示と並行してPickerライブラリをプリロード開始
+    // → ユーザーがボタンを押す頃にはロード完了しており、クリック時に非同期処理が入らない
+    _loadGapiPicker().catch(() => {});
 
     const companyName = localStorage.getItem('keihi_company_name') || '';
     const fileHint = companyName
@@ -104,43 +122,59 @@ const Picker = (() => {
           初回のみ必要な操作です。<br>${fileHint}
         </p>
         <div id="picker-error" class="text-danger mb-2" style="display:none;font-size:0.82rem;"></div>
-        <button id="picker-btn" class="btn btn-primary w-100 mb-2">
-          <i class="bi bi-google me-2"></i>Googleドライブから選択
+        <button id="picker-btn" class="btn btn-primary w-100 mb-2" disabled>
+          <span class="spinner-border spinner-border-sm me-2" id="picker-load-spinner" role="status"></span>読み込み中...
         </button>
         <div class="text-muted" style="font-size:0.75rem;">ボタンを押すと候補ファイルが表示されます（初回のみ）</div>
       </div>`;
     document.body.appendChild(overlay);
 
     const card  = overlay.querySelector('div');
-    return new Promise((resolve, reject) => {
-      const btn   = overlay.querySelector('#picker-btn');
-      const errEl = overlay.querySelector('#picker-error');
+    const btn   = overlay.querySelector('#picker-btn');
+    const errEl = overlay.querySelector('#picker-error');
 
-      btn.addEventListener('click', async () => {
+    // ライブラリロード完了でボタンを有効化
+    _loadGapiPicker()
+      .then(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-google me-2"></i>Googleドライブから選択';
+      })
+      .catch(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-google me-2"></i>Googleドライブから選択';
+        errEl.textContent = 'ライブラリの読み込みに失敗しました。ページを再読み込みしてから再試行してください。';
+        errEl.style.display = '';
+      });
+
+    return new Promise((resolve, reject) => {
+      // クリックハンドラを非同期にしない: picker.setVisible(true) がジェスチャーと同一スタックで呼ばれるよう保証
+      btn.addEventListener('click', () => {
+        if (!_pickerLoaded) return;
         errEl.style.display = 'none';
         // カードを隠してPickerが全面に出るようにする
         card.style.display = 'none';
         overlay.style.background = 'transparent';
         overlay.style.zIndex = '100';
-        try {
-          const fileId = await _openPicker(expectedSheetId);
-          overlay.remove();
-          resolve(fileId);
-        } catch (err) {
-          // カードを再表示
-          card.style.display = '';
-          overlay.style.background = 'rgba(0,0,0,0.6)';
-          overlay.style.zIndex = '9999';
-          if (err.message === 'wrong_file') {
-            errEl.textContent = '別のファイルが選択されました。もう一度ボタンを押して、チームのスプレッドシートを選び直してください。';
-            errEl.style.display = '';
-          } else if (err.message === 'cancelled') {
-            // キャンセルは再試行を促すだけ
-          } else {
+        _openPicker(expectedSheetId)
+          .then(fileId => {
             overlay.remove();
-            reject(err);
-          }
-        }
+            resolve(fileId);
+          })
+          .catch(err => {
+            // カードを再表示
+            card.style.display = '';
+            overlay.style.background = 'rgba(0,0,0,0.6)';
+            overlay.style.zIndex = '9999';
+            if (err.message === 'wrong_file') {
+              errEl.textContent = '別のファイルが選択されました。もう一度ボタンを押して、チームのスプレッドシートを選び直してください。';
+              errEl.style.display = '';
+            } else if (err.message === 'cancelled') {
+              // キャンセルは再試行を促すだけ
+            } else {
+              overlay.remove();
+              reject(err);
+            }
+          });
       });
     });
   }
