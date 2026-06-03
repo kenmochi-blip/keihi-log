@@ -790,6 +790,10 @@ const App = (() => {
           if (data.licenseKey && data.licenseKey.startsWith('KL-')) {
             localStorage.setItem('keihi_license_key', data.licenseKey);
           }
+          // 会社名が取得できた場合は保存（Picker のフィルタ・案内文に使用）
+          if (data.companyName) {
+            localStorage.setItem('keihi_company_name', data.companyName);
+          }
         } else if (data.licenseKey && data.licenseKey.startsWith('KL-')) {
           localStorage.setItem('keihi_license_key', data.licenseKey);
           localStorage.setItem('keihi_setup_code', token); // setupCodeとしてパスのトークンを保存

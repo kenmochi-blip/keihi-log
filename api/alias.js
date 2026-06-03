@@ -39,8 +39,13 @@ export default async function handler(req, res) {
     }
     const sheetId = await kv.get(`alias:${code}`).catch(() => null);
     if (sheetId) {
-      const aliasLic = await kv.get(`alias_lic:${code}`).catch(() => null);
-      return res.status(200).json({ sheetId, ...(aliasLic ? { licenseKey: aliasLic } : {}) });
+      const aliasLic     = await kv.get(`alias_lic:${code}`).catch(() => null);
+      const companyName  = await kv.get(`alias_company:${code}`).catch(() => null);
+      return res.status(200).json({
+        sheetId,
+        ...(aliasLic    ? { licenseKey: aliasLic }     : {}),
+        ...(companyName ? { companyName }               : {}),
+      });
     }
     // シートエイリアスで見つからない場合はセットアップコードとして試みる
     const lk2 = await kv.get(`lic_ref:${code}`).catch(() => null);
@@ -92,6 +97,8 @@ export default async function handler(req, res) {
     await kv.set(`alias_by_sheet:${sheetId}`, code);
     await kv.set(`license_alias:${licenseKey}`, code);
     await kv.set(`alias_lic:${code}`, licenseKey);
+    const { companyName } = req.body;
+    if (companyName) await kv.set(`alias_company:${code}`, companyName);
     return res.status(200).json({ ok: true });
   }
 

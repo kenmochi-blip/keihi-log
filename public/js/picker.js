@@ -115,23 +115,25 @@ const Picker = (() => {
     const companyName = localStorage.getItem('keihi_company_name') || '';
     const sheetName   = companyName ? `経費ログ - ${companyName}` : null;
     const fileHint    = sheetName
-      ? `管理者から共有された「<strong>${sheetName}</strong>」を選んでください。`
-      : '管理者から共有されたスプレッドシートを選んでください。<br><span style="color:#666">（ファイル名は「経費ログ - 会社名」の形式です）</span>';
+      ? `「<strong>${sheetName}</strong>」が表示されます。それを選択してください。`
+      : '管理者から共有されたスプレッドシート（ファイル名：経費ログ - 会社名）が表示されます。それを選択してください。';
     const overlay = document.createElement('div');
     overlay.id = 'picker-overlay';
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
     overlay.innerHTML = `
       <div style="background:#fff;border-radius:12px;padding:28px 24px;max-width:400px;width:100%;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.25);">
         <i class="bi bi-folder2-open" style="font-size:2.2rem;color:#0d6efd;"></i>
-        <h5 class="mt-3 mb-1" style="font-size:1rem;font-weight:700;">スプレッドシートへのアクセス許可</h5>
+        <h5 class="mt-3 mb-1" style="font-size:1rem;font-weight:700;">スプレッドシートへの接続（初回のみ）</h5>
         <p class="text-muted mb-3" style="font-size:0.85rem;line-height:1.6;">
-          初回のみ必要な操作です。<br>${fileHint}
+          ボタンを押すとGoogleドライブの選択画面が開きます。<br>
+          ${fileHint}<br>
+          <span style="font-size:0.8rem;color:#888;">通常は1件だけ表示されます</span>
         </p>
         <div id="picker-error" class="text-danger mb-2" style="display:none;font-size:0.82rem;"></div>
         <button id="picker-btn" class="btn btn-primary w-100 mb-2" disabled>
           <span class="spinner-border spinner-border-sm me-2" id="picker-load-spinner" role="status"></span>読み込み中...
         </button>
-        <div class="text-muted" style="font-size:0.75rem;">ボタンを押すと候補ファイルが表示されます（初回のみ）</div>
+        <div class="text-muted" style="font-size:0.75rem;">この操作は初回ログイン時のみ必要です</div>
       </div>`;
     document.body.appendChild(overlay);
 
@@ -179,7 +181,9 @@ const Picker = (() => {
             overlay.style.background = 'rgba(0,0,0,0.6)';
             overlay.style.zIndex = '9999';
             if (err.message === 'wrong_file') {
-              errEl.textContent = '別のファイルが選択されました。もう一度ボタンを押して、チームのスプレッドシートを選び直してください。';
+              const _cn = localStorage.getItem('keihi_company_name') || '';
+              const _fn = _cn ? `「経費ログ - ${_cn}」` : 'チームのスプレッドシート';
+              errEl.textContent = `別のファイルが選択されました。もう一度ボタンを押して${_fn}を選び直してください。`;
               errEl.style.display = '';
             } else if (err.message === 'picker_api_unavailable') {
               errEl.textContent = 'Google Picker APIが読み込まれていません。ページを再読み込みしてください。';

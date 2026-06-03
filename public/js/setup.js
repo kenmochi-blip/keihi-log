@@ -74,7 +74,7 @@ const Setup = (() => {
     // 7. エイリアス生成・登録（スプレッドシートIDをURLに露出させない）
     const alias = customAlias || _generateAlias();
     const licenseKey = localStorage.getItem('keihi_license_key') || '';
-    await _registerAlias(alias, ssId, licenseKey).catch(() => {});
+    await _registerAlias(alias, ssId, licenseKey, companyName).catch(() => {});
 
     // 8. localStorageに保存
     localStorage.setItem('keihi_sheet_id', ssId);
@@ -96,13 +96,13 @@ const Setup = (() => {
     return s;
   }
 
-  async function _registerAlias(alias, sheetId, licenseKey) {
+  async function _registerAlias(alias, sheetId, licenseKey, companyName = '') {
     const base = window.APP_CONFIG?.apiBase || '';
     const setupCode = localStorage.getItem('keihi_setup_code') || '';
     await fetch(`${base}/api/alias`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code: alias, sheetId, licenseKey, setupCode }),
+      body: JSON.stringify({ code: alias, sheetId, licenseKey, setupCode, companyName }),
     });
   }
 
