@@ -66,18 +66,21 @@ const Picker = (() => {
       if (!token) { reject(new Error('no_token')); return; }
       if (typeof google === 'undefined' || !google.picker) { reject(new Error('picker_api_unavailable')); return; }
 
-      // Picker が表示される = probe(403) = 自分が作成したファイルではないケース
-      // → 自分が所有するファイルは不要。管理者から共有されたファイルのみ表示する
       const companyName = localStorage.getItem('keihi_company_name') || '';
       const sheetTitle  = companyName ? `経費ログ - ${companyName}` : '経費ログ';
+      // 共有ファイル（メンバー向け）と自分のファイル（元管理者が新規セッションの場合等）を両方表示
       const sharedView = new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS)
         .setIncludeFolders(false).setSelectFolderEnabled(false)
         .setOwnedByMe(false)
         .setQuery(sheetTitle);
+      const myView = new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS)
+        .setIncludeFolders(false).setSelectFolderEnabled(false)
+        .setQuery(sheetTitle);
 
       let builder = new google.picker.PickerBuilder()
-        .setTitle('管理者から共有されたスプレッドシートを選択')
+        .setTitle('チームのスプレッドシートを選択')
         .addView(sharedView)
+        .addView(myView)
         .setOAuthToken(token)
         .setDeveloperKey(apiKey);
       const picker = builder
