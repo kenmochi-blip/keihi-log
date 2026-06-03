@@ -90,7 +90,7 @@ const Picker = (() => {
             if (expectedSheetId && fileId !== expectedSheetId) {
               reject(new Error('wrong_file')); return;
             }
-            markAuthorized(fileId);
+            // markAuthorized は呼び出し元で API アクセス確認後に行う
             resolve(fileId);
           } else if (data.action === google.picker.Action.CANCEL) {
             reject(new Error('cancelled'));

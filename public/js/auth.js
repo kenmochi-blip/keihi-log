@@ -304,7 +304,10 @@ const Auth = (() => {
     });
   }
 
-  return { init, getToken, getAccessToken, getUserInfo, getUserEmail, signOut, authFetch, initiateLogin, handleCallback };
+  /** アクセストークンを強制リフレッシュする（Picker 選択後の drive.file 認可反映用）。 */
+  async function refresh() { return _refreshToken(); }
+
+  return { init, getToken, getAccessToken, getUserInfo, getUserEmail, signOut, authFetch, initiateLogin, handleCallback, refresh };
 })();
 
 // ── ログイン画面初期化 ──────────────────────────────────────

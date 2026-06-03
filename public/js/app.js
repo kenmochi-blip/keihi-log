@@ -83,6 +83,36 @@ const App = (() => {
       } else {
         try {
           await Picker.requestAuthorization(ssId);
+          // Picker 選択後に drive.file 認可が API に反映されているか確認
+          // 反映されていれば markAuthorized してそのまま続行
+          // 未反映（Picker選択直後のタイムラグ等）であればトークンリフレッシュして再確認
+          const _vp1 = await Auth.authFetch(
+            `https://sheets.googleapis.com/v4/spreadsheets/${ssId}?fields=spreadsheetId`
+          ).catch(() => null);
+          if (_vp1?.ok) {
+            Picker.markAuthorized(ssId);
+          } else {
+            await Auth.refresh().catch(() => {});
+            const _vp2 = await Auth.authFetch(
+              `https://sheets.googleapis.com/v4/spreadsheets/${ssId}?fields=spreadsheetId`
+            ).catch(() => null);
+            if (_vp2?.ok) {
+              Picker.markAuthorized(ssId);
+            } else {
+              // 認可未反映 → リロードを促す（isAuthorized 未設定なので次回は probe から再試行）
+              const _mainElP = document.getElementById('appMain');
+              if (_mainElP) _mainElP.innerHTML = `
+                <div class="text-center py-5 px-3">
+                  <i class="bi bi-check-circle text-success" style="font-size:3rem;"></i>
+                  <h5 class="mt-3 fw-bold">ファイルの選択が完了しました</h5>
+                  <p class="text-muted small mt-2">「アプリを開く」を押してください。</p>
+                  <button class="btn btn-primary mt-2" onclick="location.reload()">アプリを開く</button>
+                </div>`;
+              const _navElP = document.querySelector('nav.fixed-bottom');
+              if (_navElP) _navElP.classList.add('d-none');
+              return;
+            }
+          }
         } catch (err) {
           if (err?.message === 'cancelled') {
             // _tryQuickStart() で描画済みのUIを差し替え
