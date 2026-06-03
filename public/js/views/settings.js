@@ -13,29 +13,10 @@ const SettingsView = (() => {
     const licKey = isDemo ? 'KL-XXXXXXXXXXXXXXXXXXXX（デモ）' : (localStorage.getItem('keihi_license_key') || '');
     const email  = Auth.getUserEmail();
     const isAdmin = App.isAdmin();
-    const companyName = localStorage.getItem('keihi_company_name') || '';
-    const alias = localStorage.getItem('keihi_alias') || '';
-    const appUrl = alias ? `${location.origin}/${alias}` : '';
 
     return `
 <div class="pt-3">
   <h5 class="fw-bold mb-3"><i class="bi bi-gear-fill me-2 text-primary"></i>設定</h5>
-
-  <!-- 接続中のチーム情報（全ユーザー・シート設定済みの場合のみ） -->
-  ${!isAdmin && ssId ? `
-  <div class="card mb-3">
-    <div class="card-body">
-      <div class="settings-section-title">接続中のチーム</div>
-      ${companyName ? `<div class="mb-1" style="font-size:0.9rem;font-weight:600;">${_escape(companyName)}</div>` : ''}
-      ${appUrl ? `
-      <div class="d-flex align-items-center gap-2 flex-wrap">
-        <span class="text-muted small text-break">${_escape(appUrl)}</span>
-        <button class="btn btn-outline-secondary btn-sm py-0" id="btnCopyAppUrlMember">
-          <i class="bi bi-clipboard me-1"></i>コピー
-        </button>
-      </div>` : ''}
-    </div>
-  </div>` : ''}
 
   <!-- アプリの表示名（管理者のみ・トップ） -->
   ${isAdmin ? `
@@ -528,12 +509,6 @@ const SettingsView = (() => {
       if (url) navigator.clipboard.writeText(url).then(() => App.showToast('URLをコピーしました', 'success'));
     });
 
-    // 接続中チームURLコピー（一般ユーザー向け）
-    el.querySelector('#btnCopyAppUrlMember')?.addEventListener('click', () => {
-      const alias = localStorage.getItem('keihi_alias') || '';
-      const url = alias ? `${location.origin}/${alias}` : '';
-      if (url) navigator.clipboard.writeText(url).then(() => App.showToast('URLをコピーしました', 'success'));
-    });
 
     if (!App.isAdmin()) return;
 

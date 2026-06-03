@@ -82,6 +82,8 @@ const Setup = (() => {
     localStorage.setItem('keihi_folder_id', folderId);
     // アプリが作成したシートは Picker 不要（drive.file 自動認可済み）
     if (typeof Picker !== 'undefined') Picker.markAuthorized(ssId);
+    // 新規作成後は古いマスターキャッシュを破棄して次回アクセス時に新シートから再読み込みさせる
+    if (typeof App !== 'undefined') App.clearMasterCache();
 
     return ssId;
   }
