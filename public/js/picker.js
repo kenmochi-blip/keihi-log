@@ -64,6 +64,7 @@ const Picker = (() => {
       if (!apiKey) { reject(new Error('no_api_key')); return; }
       const token = (typeof Auth !== 'undefined') ? Auth.getAccessToken() : null;
       if (!token) { reject(new Error('no_token')); return; }
+      if (typeof google === 'undefined' || !google.picker) { reject(new Error('picker_api_unavailable')); return; }
 
       const myView = new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS)
         .setIncludeFolders(false).setSelectFolderEnabled(false);
@@ -177,11 +178,25 @@ const Picker = (() => {
             if (err.message === 'wrong_file') {
               errEl.textContent = '別のファイルが選択されました。もう一度ボタンを押して、チームのスプレッドシートを選び直してください。';
               errEl.style.display = '';
+            } else if (err.message === 'picker_api_unavailable') {
+              errEl.textContent = 'Google Picker APIが読み込まれていません。ページを再読み込みしてください。';
+              errEl.style.display = '';
             } else if (err.message === 'cancelled') {
               // キャンセルは再試行を促すだけ
             } else {
-              overlay.remove();
-              reject(err);
+              // オーバーレイを維持してエラー内容を表示（調査・再試行を促す）
+              console.error('[Picker] unexpected error:', err);
+              errEl.innerHTML = `ファイルの選択に失敗しました（${err.message || err}）。<br>再読み込みして再試行してください。`;
+              errEl.style.display = '';
+              // 再読み込みボタンを追加（まだなければ）
+              if (!overlay.querySelector('#picker-reload-btn')) {
+                const reloadBtn = document.createElement('button');
+                reloadBtn.id = 'picker-reload-btn';
+                reloadBtn.className = 'btn btn-sm btn-outline-secondary mt-2';
+                reloadBtn.textContent = '再読み込み';
+                reloadBtn.onclick = () => location.reload();
+                errEl.after(reloadBtn);
+              }
             }
           });
       });
