@@ -71,87 +71,39 @@ const App = (() => {
     let licKey = localStorage.getItem('keihi_license_key');
     const ssId = localStorage.getItem('keihi_sheet_id');
 
-    // drive.file スコープ：ファイルアクセス確認
-    // まず直接アクセスを試み、失敗時のみ Picker を表示する
-    // （管理者が作成したシートは drive.file で直接アクセス可能なため Picker 不要）
-    if (ssId && typeof Picker !== 'undefined' && !Picker.isAuthorized(ssId)) {
+    // スプレッドシートアクセス確認
+    // 管理者（シート作成者）は drive.file で直接アクセス可能。
+    // メンバー（共有されたシートへのアクセス）は drive.file では不可のため、
+    // 初回のみ spreadsheets スコープへの追加認可を促す。
+    if (ssId && !Picker.isAuthorized(ssId)) {
       const probe = await Auth.authFetch(
         `https://sheets.googleapis.com/v4/spreadsheets/${ssId}?fields=spreadsheetId`
       ).catch(() => null);
-      if (probe && probe.ok) {
+      if (probe?.ok) {
         Picker.markAuthorized(ssId);
       } else {
-        try {
-          await Picker.requestAuthorization(ssId);
-          // Picker 選択後に drive.file 認可が API に反映されているか確認
-          // 反映されていれば markAuthorized してそのまま続行
-          // 未反映（Picker選択直後のタイムラグ等）であればトークンリフレッシュして再確認
-          const _vp1 = await Auth.authFetch(
-            `https://sheets.googleapis.com/v4/spreadsheets/${ssId}?fields=spreadsheetId`
-          ).catch(() => null);
-          if (_vp1?.ok) {
-            Picker.markAuthorized(ssId);
-          } else {
-            await Auth.refresh().catch(() => {});
-            const _vp2 = await Auth.authFetch(
-              `https://sheets.googleapis.com/v4/spreadsheets/${ssId}?fields=spreadsheetId`
-            ).catch(() => null);
-            if (_vp2?.ok) {
-              Picker.markAuthorized(ssId);
-            } else {
-              // 認可未反映 → リロードを促す（isAuthorized 未設定なので次回は probe から再試行）
-              const _mainElP = document.getElementById('appMain');
-              if (_mainElP) _mainElP.innerHTML = `
-                <div class="text-center py-5 px-3">
-                  <i class="bi bi-check-circle text-success" style="font-size:3rem;"></i>
-                  <h5 class="mt-3 fw-bold">ファイルの選択が完了しました</h5>
-                  <p class="text-muted small mt-2">「アプリを開く」を押してください。</p>
-                  <button class="btn btn-primary mt-2" onclick="location.reload()">アプリを開く</button>
-                </div>`;
-              const _navElP = document.querySelector('nav.fixed-bottom');
-              if (_navElP) _navElP.classList.add('d-none');
-              return;
-            }
-          }
-        } catch (err) {
-          if (err?.message === 'cancelled') {
-            // _tryQuickStart() で描画済みのUIを差し替え
-            const _mainEl2 = document.getElementById('appMain');
-            if (_mainEl2) _mainEl2.innerHTML = `
-              <div class="text-center py-5 px-3">
-                <i class="bi bi-folder2-open text-warning" style="font-size:3rem;"></i>
-                <h5 class="mt-3 fw-bold">スプレッドシートへのアクセスが必要です</h5>
-                <p class="text-muted small mt-2">
-                  「Googleドライブから選択」でチームのスプレッドシートを選択してください。<br>
-                  ページを再読み込みして再試行できます。
-                </p>
-                <button class="btn btn-primary btn-sm mt-2" onclick="location.reload()">再読み込み</button>
-              </div>`;
-            const _navEl2 = document.querySelector('nav.fixed-bottom');
-            if (_navEl2) _navEl2.classList.add('d-none');
-            return;
-          }
-          if (err?.message === 'no_api_key') {
-            // pickerApiKey 未設定（開発環境フォールバック）: そのまま続行
-          } else {
-            // no_token, gapi エラー等: Picker 認可なしで続行しても 403 になるため停止
-            // _tryQuickStart() で描画済みのUIを差し替えてナビも非表示にする
-            const _mainEl = document.getElementById('appMain');
-            if (_mainEl) _mainEl.innerHTML = `
-              <div class="text-center py-5 px-3">
-                <i class="bi bi-folder2-open text-warning" style="font-size:3rem;"></i>
-                <h5 class="mt-3 fw-bold">ファイルへのアクセスに失敗しました</h5>
-                <p class="text-muted small mt-2">
-                  ページを再読み込みしてください。<br>
-                  繰り返し発生する場合は管理者にお問い合わせください。
-                </p>
-                <button class="btn btn-primary btn-sm mt-2" onclick="location.reload()">再読み込み</button>
-              </div>`;
-            const _navEl = document.querySelector('nav.fixed-bottom');
-            if (_navEl) _navEl.classList.add('d-none');
-            return;
-          }
-        }
+        // アクセス不可 → spreadsheets スコープへの追加認可画面を表示
+        const _mainEl = document.getElementById('appMain');
+        if (_mainEl) _mainEl.innerHTML = `
+          <div class="text-center py-5 px-3">
+            <i class="bi bi-shield-lock text-primary" style="font-size:3rem;"></i>
+            <h5 class="mt-3 fw-bold">スプレッドシートへのアクセス許可（初回のみ）</h5>
+            <p class="text-muted mb-3" style="font-size:0.88rem; line-height:1.8;">
+              チームのスプレッドシートにアクセスするため、<br>Googleの追加権限が必要です。<br><br>
+              次の画面で確認が表示された場合は<br>
+              <strong>「詳細設定」→「keihi-logに移動」</strong>を選択してください。<br>
+              <small class="text-muted">※Googleによるアプリ審査の完了まで表示される確認です</small>
+            </p>
+            <button id="btnGrantSheets" class="btn btn-primary w-100">
+              <i class="bi bi-google me-2"></i>アクセスを許可する（初回のみ）
+            </button>
+          </div>`;
+        const _navEl = document.querySelector('nav.fixed-bottom');
+        if (_navEl) _navEl.classList.add('d-none');
+        document.getElementById('btnGrantSheets')?.addEventListener('click', () => {
+          Auth.requestSpreadsheetsScope();
+        });
+        return;
       }
     }
 

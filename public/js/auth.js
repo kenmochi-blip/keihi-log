@@ -304,10 +304,39 @@ const Auth = (() => {
     });
   }
 
-  /** アクセストークンを強制リフレッシュする（Picker 選択後の drive.file 認可反映用）。 */
+  /** アクセストークンを強制リフレッシュする。 */
   async function refresh() { return _refreshToken(); }
 
-  return { init, getToken, getAccessToken, getUserInfo, getUserEmail, signOut, authFetch, initiateLogin, handleCallback, refresh };
+  /**
+   * spreadsheets スコープへの追加認可をリクエストする（メンバー初回のみ）。
+   * drive.file では共有スプレッドシートにアクセスできないため、
+   * spreadsheets スコープを追加して既存スコープと合わせて再認可する。
+   */
+  async function requestSpreadsheetsScope() {
+    const verifier  = await _generateVerifier();
+    const challenge = await _generateChallenge(verifier);
+    const state     = btoa(encodeURIComponent(location.pathname + location.search));
+    localStorage.setItem('keihi_pkce_verifier', verifier);
+    localStorage.setItem('keihi_oauth_state',   state);
+    const params = new URLSearchParams({
+      client_id:             CLIENT_ID,
+      redirect_uri:          _redirectUri(),
+      response_type:         'code',
+      scope:                 [
+        'https://www.googleapis.com/auth/drive.file',
+        'https://www.googleapis.com/auth/spreadsheets',
+        'openid', 'email', 'profile',
+      ].join(' '),
+      code_challenge:        challenge,
+      code_challenge_method: 'S256',
+      state,
+      access_type:           'offline',
+      prompt:                'consent',
+    });
+    location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
+  }
+
+  return { init, getToken, getAccessToken, getUserInfo, getUserEmail, signOut, authFetch, initiateLogin, handleCallback, refresh, requestSpreadsheetsScope };
 })();
 
 // ── ログイン画面初期化 ──────────────────────────────────────
