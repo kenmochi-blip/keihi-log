@@ -66,20 +66,17 @@ const Picker = (() => {
       if (!token) { reject(new Error('no_token')); return; }
       if (typeof google === 'undefined' || !google.picker) { reject(new Error('picker_api_unavailable')); return; }
 
+      // Picker が表示される = probe(403) = 自分が作成したファイルではないケース
+      // → 自分が所有するファイルは不要。管理者から共有されたファイルのみ表示する
       const companyName = localStorage.getItem('keihi_company_name') || '';
       const sheetTitle  = companyName ? `経費ログ - ${companyName}` : '経費ログ';
-
-      // setQuery は DocsView のメソッド（PickerBuilder にはない）
-      const myView = new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS)
-        .setIncludeFolders(false).setSelectFolderEnabled(false)
-        .setQuery(sheetTitle);
       const sharedView = new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS)
-        .setIncludeFolders(false).setSelectFolderEnabled(false).setOwnedByMe(false)
+        .setIncludeFolders(false).setSelectFolderEnabled(false)
+        .setOwnedByMe(false)
         .setQuery(sheetTitle);
 
       let builder = new google.picker.PickerBuilder()
-        .setTitle('チームのスプレッドシートを選択')
-        .addView(myView)
+        .setTitle('管理者から共有されたスプレッドシートを選択')
         .addView(sharedView)
         .setOAuthToken(token)
         .setDeveloperKey(apiKey);
@@ -115,8 +112,8 @@ const Picker = (() => {
     const companyName = localStorage.getItem('keihi_company_name') || '';
     const sheetName   = companyName ? `経費ログ - ${companyName}` : null;
     const fileHint    = sheetName
-      ? `「<strong>${sheetName}</strong>」を選んでください。`
-      : '経費ログのスプレッドシートを選んでください（ファイル名は「経費ログ - 会社名」の形式です）。';
+      ? `管理者から共有された「<strong>${sheetName}</strong>」を選んでください。`
+      : '管理者から共有されたスプレッドシートを選んでください。<br><span style="color:#666">（ファイル名は「経費ログ - 会社名」の形式です）</span>';
     const overlay = document.createElement('div');
     overlay.id = 'picker-overlay';
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
