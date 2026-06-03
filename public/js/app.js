@@ -85,14 +85,40 @@ const App = (() => {
           await Picker.requestAuthorization(ssId);
         } catch (err) {
           if (err?.message === 'cancelled') {
-            showToast('スプレッドシートへのアクセス許可が必要です', 'danger');
+            // _tryQuickStart() で描画済みのUIを差し替え
+            const _mainEl2 = document.getElementById('appMain');
+            if (_mainEl2) _mainEl2.innerHTML = `
+              <div class="text-center py-5 px-3">
+                <i class="bi bi-folder2-open text-warning" style="font-size:3rem;"></i>
+                <h5 class="mt-3 fw-bold">スプレッドシートへのアクセスが必要です</h5>
+                <p class="text-muted small mt-2">
+                  「Googleドライブから選択」でチームのスプレッドシートを選択してください。<br>
+                  ページを再読み込みして再試行できます。
+                </p>
+                <button class="btn btn-primary btn-sm mt-2" onclick="location.reload()">再読み込み</button>
+              </div>`;
+            const _navEl2 = document.querySelector('nav.fixed-bottom');
+            if (_navEl2) _navEl2.classList.add('d-none');
             return;
           }
           if (err?.message === 'no_api_key') {
             // pickerApiKey 未設定（開発環境フォールバック）: そのまま続行
           } else {
             // no_token, gapi エラー等: Picker 認可なしで続行しても 403 になるため停止
-            showToast('ファイルの選択に失敗しました。ページを再読み込みしてください。', 'danger');
+            // _tryQuickStart() で描画済みのUIを差し替えてナビも非表示にする
+            const _mainEl = document.getElementById('appMain');
+            if (_mainEl) _mainEl.innerHTML = `
+              <div class="text-center py-5 px-3">
+                <i class="bi bi-folder2-open text-warning" style="font-size:3rem;"></i>
+                <h5 class="mt-3 fw-bold">ファイルへのアクセスに失敗しました</h5>
+                <p class="text-muted small mt-2">
+                  ページを再読み込みしてください。<br>
+                  繰り返し発生する場合は管理者にお問い合わせください。
+                </p>
+                <button class="btn btn-primary btn-sm mt-2" onclick="location.reload()">再読み込み</button>
+              </div>`;
+            const _navEl = document.querySelector('nav.fixed-bottom');
+            if (_navEl) _navEl.classList.add('d-none');
             return;
           }
         }
@@ -254,7 +280,10 @@ const App = (() => {
       _masterCache  = master;
       const myEntry = master.members?.find(m => m.email?.toLowerCase() === email);
       const explicitNonAdmin = myEntry && ['member', 'viewer'].includes((myEntry.role || '').toLowerCase());
-      if (isOwner || (!explicitNonAdmin && master.admins.length === 0) || master.admins.includes(email)) {
+      // admins.length===0 フォールバックはキャッシュがある場合のみ適用
+      // （キャッシュ未取得の初回アクセス時に全員adminと判定されるのを防ぐ）
+      const hasMasterCache = masterRaw !== null;
+      if (isOwner || (hasMasterCache && !explicitNonAdmin && master.admins.length === 0) || master.admins.includes(email)) {
         _userRole = 'admin';
       } else if (master.viewers?.includes(email)) {
         _userRole = 'viewer';
