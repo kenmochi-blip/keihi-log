@@ -80,6 +80,8 @@ const Setup = (() => {
     localStorage.setItem('keihi_sheet_id', ssId);
     localStorage.setItem('keihi_alias', alias);
     localStorage.setItem('keihi_folder_id', folderId);
+    // アプリが作成したシートは Picker 不要（drive.file 自動認可済み）
+    if (typeof Picker !== 'undefined') Picker.markAuthorized(ssId);
 
     return ssId;
   }

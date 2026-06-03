@@ -71,6 +71,19 @@ const App = (() => {
     let licKey = localStorage.getItem('keihi_license_key');
     const ssId = localStorage.getItem('keihi_sheet_id');
 
+    // drive.file スコープ：初回接続時に Google Picker でファイルアクセスを許可してもらう
+    if (ssId && typeof Picker !== 'undefined' && !Picker.isAuthorized(ssId)) {
+      try {
+        await Picker.requestAuthorization(ssId);
+      } catch (err) {
+        if (err?.message === 'cancelled') {
+          showToast('スプレッドシートへのアクセス許可が必要です', 'danger');
+          return;
+        }
+        // API キー未設定など → そのまま進む（開発環境フォールバック）
+      }
+    }
+
     // シートIDはあるがライセンスキーが未設定の場合、シートから自動取得（メンバー向け）
     if (!licKey && ssId) {
       try {
