@@ -88,7 +88,13 @@ const App = (() => {
             showToast('スプレッドシートへのアクセス許可が必要です', 'danger');
             return;
           }
-          // API キー未設定など → そのまま進む（開発環境フォールバック）
+          if (err?.message === 'no_api_key') {
+            // pickerApiKey 未設定（開発環境フォールバック）: そのまま続行
+          } else {
+            // no_token, gapi エラー等: Picker 認可なしで続行しても 403 になるため停止
+            showToast('ファイルの選択に失敗しました。ページを再読み込みしてください。', 'danger');
+            return;
+          }
         }
       }
     }

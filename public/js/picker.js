@@ -152,6 +152,13 @@ const Picker = (() => {
       // クリックハンドラを非同期にしない: picker.setVisible(true) がジェスチャーと同一スタックで呼ばれるよう保証
       btn.addEventListener('click', () => {
         if (!_pickerLoaded) return;
+        // セッション切れ確認（no_token をオーバーレイ内で処理）
+        const _tok = (typeof Auth !== 'undefined') ? Auth.getAccessToken() : null;
+        if (!_tok) {
+          errEl.textContent = 'セッションが切れました。ページを再読み込みしてください。';
+          errEl.style.display = '';
+          return;
+        }
         errEl.style.display = 'none';
         // カードを隠してPickerが全面に出るようにする
         card.style.display = 'none';
