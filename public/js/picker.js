@@ -66,20 +66,23 @@ const Picker = (() => {
       if (!token) { reject(new Error('no_token')); return; }
       if (typeof google === 'undefined' || !google.picker) { reject(new Error('picker_api_unavailable')); return; }
 
-      const myView = new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS)
-        .setIncludeFolders(false).setSelectFolderEnabled(false);
-      const sharedView = new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS)
-        .setIncludeFolders(false).setSelectFolderEnabled(false).setOwnedByMe(false);
-
       const companyName = localStorage.getItem('keihi_company_name') || '';
       const sheetTitle  = companyName ? `経費ログ - ${companyName}` : '経費ログ';
+
+      // setQuery は DocsView のメソッド（PickerBuilder にはない）
+      const myView = new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS)
+        .setIncludeFolders(false).setSelectFolderEnabled(false)
+        .setQuery(sheetTitle);
+      const sharedView = new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS)
+        .setIncludeFolders(false).setSelectFolderEnabled(false).setOwnedByMe(false)
+        .setQuery(sheetTitle);
+
       let builder = new google.picker.PickerBuilder()
         .setTitle('チームのスプレッドシートを選択')
         .addView(myView)
         .addView(sharedView)
         .setOAuthToken(token)
-        .setDeveloperKey(apiKey)
-        .setQuery(sheetTitle);
+        .setDeveloperKey(apiKey);
       const picker = builder
         .setCallback(data => {
           if (data.action === google.picker.Action.PICKED) {
@@ -184,11 +187,9 @@ const Picker = (() => {
             } else if (err.message === 'cancelled') {
               // キャンセルは再試行を促すだけ
             } else {
-              // オーバーレイを維持してエラー内容を表示（調査・再試行を促す）
               console.error('[Picker] unexpected error:', err);
-              errEl.innerHTML = `ファイルの選択に失敗しました（${err.message || err}）。<br>再読み込みして再試行してください。`;
+              errEl.textContent = 'エラーが発生しました。ページを再読み込みしてください。';
               errEl.style.display = '';
-              // 再読み込みボタンを追加（まだなければ）
               if (!overlay.querySelector('#picker-reload-btn')) {
                 const reloadBtn = document.createElement('button');
                 reloadBtn.id = 'picker-reload-btn';
