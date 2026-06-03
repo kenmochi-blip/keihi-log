@@ -56,12 +56,15 @@ const Picker = (() => {
       const sharedView = new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS)
         .setIncludeFolders(false).setSelectFolderEnabled(false).setOwnedByMe(false);
 
-      const picker = new google.picker.PickerBuilder()
+      const companyName = localStorage.getItem('keihi_company_name') || '';
+      let builder = new google.picker.PickerBuilder()
         .setTitle('チームのスプレッドシートを選択')
         .addView(myView)
         .addView(sharedView)
         .setOAuthToken(token)
-        .setDeveloperKey(apiKey)
+        .setDeveloperKey(apiKey);
+      if (companyName) builder = builder.setQuery(companyName);
+      const picker = builder
         .setCallback(data => {
           if (data.action === google.picker.Action.PICKED) {
             const fileId = data.docs[0]?.id;
@@ -86,6 +89,10 @@ const Picker = (() => {
   async function requestAuthorization(expectedSheetId) {
     if (!window.APP_CONFIG?.pickerApiKey) return;
 
+    const companyName = localStorage.getItem('keihi_company_name') || '';
+    const fileHint = companyName
+      ? `「<strong>${companyName}</strong>」の経費ログスプレッドシートを選んでください。`
+      : '管理者から共有されたスプレッドシートを選んでください。';
     const overlay = document.createElement('div');
     overlay.id = 'picker-overlay';
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
@@ -94,32 +101,36 @@ const Picker = (() => {
         <i class="bi bi-folder2-open" style="font-size:2.2rem;color:#0d6efd;"></i>
         <h5 class="mt-3 mb-1" style="font-size:1rem;font-weight:700;">スプレッドシートへのアクセス許可</h5>
         <p class="text-muted mb-3" style="font-size:0.85rem;line-height:1.6;">
-          初回のみ必要な操作です。<br>
-          Googleドライブからチームのスプレッドシートを選択してください。
+          初回のみ必要な操作です。<br>${fileHint}
         </p>
         <div id="picker-error" class="text-danger mb-2" style="display:none;font-size:0.82rem;"></div>
         <button id="picker-btn" class="btn btn-primary w-100 mb-2">
           <i class="bi bi-google me-2"></i>Googleドライブから選択
         </button>
-        <div class="text-muted" style="font-size:0.75rem;">管理者から共有されたスプレッドシートを選んでください</div>
+        <div class="text-muted" style="font-size:0.75rem;">ボタンを押すと候補ファイルが表示されます（初回のみ）</div>
       </div>`;
     document.body.appendChild(overlay);
 
+    const card  = overlay.querySelector('div');
     return new Promise((resolve, reject) => {
       const btn   = overlay.querySelector('#picker-btn');
       const errEl = overlay.querySelector('#picker-error');
 
       btn.addEventListener('click', async () => {
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>選択中...';
         errEl.style.display = 'none';
+        // カードを隠してPickerが全面に出るようにする
+        card.style.display = 'none';
+        overlay.style.background = 'transparent';
+        overlay.style.zIndex = '100';
         try {
           const fileId = await _openPicker(expectedSheetId);
           overlay.remove();
           resolve(fileId);
         } catch (err) {
-          btn.disabled = false;
-          btn.innerHTML = '<i class="bi bi-google me-2"></i>Googleドライブから選択';
+          // カードを再表示
+          card.style.display = '';
+          overlay.style.background = 'rgba(0,0,0,0.6)';
+          overlay.style.zIndex = '9999';
           if (err.message === 'wrong_file') {
             errEl.textContent = '選択されたファイルが正しくありません。チームのスプレッドシートを選んでください。';
             errEl.style.display = '';
