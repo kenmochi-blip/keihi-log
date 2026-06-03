@@ -80,8 +80,11 @@ const Setup = (() => {
     localStorage.setItem('keihi_sheet_id', ssId);
     localStorage.setItem('keihi_alias', alias);
     localStorage.setItem('keihi_folder_id', folderId);
-    // アプリが作成したシートは Picker 不要（drive.file 自動認可済み）
-    if (typeof Picker !== 'undefined') Picker.markAuthorized(ssId);
+    // アプリが作成したシートは drive.file で自動認可済み → アクセス確認済みとして記録（次回 /app 起動時の probe を省く）
+    try {
+      const _arr = JSON.parse(localStorage.getItem('keihi_sheet_access_ok') || '[]');
+      if (!_arr.includes(ssId)) { _arr.push(ssId); localStorage.setItem('keihi_sheet_access_ok', JSON.stringify(_arr)); }
+    } catch (_) {}
     // 新規作成後は古いマスターキャッシュを破棄して次回アクセス時に新シートから再読み込みさせる
     if (typeof App !== 'undefined') App.clearMasterCache();
 

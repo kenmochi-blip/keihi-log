@@ -23,6 +23,22 @@ const App = (() => {
   // マスターデータのlocalStorageキャッシュTTL（10分）
   const MASTER_CACHE_TTL = 10 * 60 * 1000;
 
+  // シートアクセス確認済みキャッシュ
+  // （drive.file で Sheets API アクセス可能と確認できたシートIDを記録し、次回以降の probe を省く）
+  const _SHEET_OK_KEY = 'keihi_sheet_access_ok';
+  function _isSheetAccessVerified(id) {
+    if (!id) return false;
+    try { return JSON.parse(localStorage.getItem(_SHEET_OK_KEY) || '[]').includes(id); }
+    catch (_) { return false; }
+  }
+  function _markSheetAccessVerified(id) {
+    if (!id) return;
+    try {
+      const arr = JSON.parse(localStorage.getItem(_SHEET_OK_KEY) || '[]');
+      if (!arr.includes(id)) { arr.push(id); localStorage.setItem(_SHEET_OK_KEY, JSON.stringify(arr)); }
+    } catch (_) {}
+  }
+
   async function init() {
     // デモモード：認証・ライセンス・シート確認をスキップ
     if (typeof Demo !== 'undefined' && Demo.isActive()) {
@@ -73,36 +89,31 @@ const App = (() => {
 
     // スプレッドシートアクセス確認
     // 管理者（シート作成者）は drive.file で直接アクセス可能。
-    // メンバー（共有されたシートへのアクセス）は drive.file では不可のため、
-    // 初回のみ spreadsheets スコープへの追加認可を促す。
-    if (ssId && !Picker.isAuthorized(ssId)) {
+    // メンバー（別管理者が作成した共有シート）への直接アクセスは drive.file では不可。
+    // → メンバーアクセスはプロキシ経由（クリーンAPI / B'案）で別途実装予定。
+    //   未実装の現時点では、直接アクセスできないユーザーには案内のみ表示する。
+    if (ssId && !_isSheetAccessVerified(ssId)) {
       const probe = await Auth.authFetch(
         `https://sheets.googleapis.com/v4/spreadsheets/${ssId}?fields=spreadsheetId`
       ).catch(() => null);
       if (probe?.ok) {
-        Picker.markAuthorized(ssId);
+        _markSheetAccessVerified(ssId);
       } else {
-        // アクセス不可 → spreadsheets スコープへの追加認可画面を表示
+        // drive.file では共有シートにアクセスできない（管理者以外）
+        // → プロキシ経由のメンバーアクセス実装までは案内のみ表示
         const _mainEl = document.getElementById('appMain');
         if (_mainEl) _mainEl.innerHTML = `
           <div class="text-center py-5 px-3">
-            <i class="bi bi-shield-lock text-primary" style="font-size:3rem;"></i>
-            <h5 class="mt-3 fw-bold">スプレッドシートへのアクセス許可（初回のみ）</h5>
+            <i class="bi bi-people text-primary" style="font-size:3rem;"></i>
+            <h5 class="mt-3 fw-bold">チーム機能を準備中です</h5>
             <p class="text-muted mb-3" style="font-size:0.88rem; line-height:1.8;">
-              チームのスプレッドシートにアクセスするため、<br>Googleの追加権限が必要です。<br><br>
-              次の画面で確認が表示された場合は<br>
-              <strong>「詳細設定」→「keihi-logに移動」</strong>を選択してください。<br>
-              <small class="text-muted">※Googleによるアプリ審査の完了まで表示される確認です</small>
+              メンバーとしてのアクセス機能は現在アップデート中です。<br>
+              ご不便をおかけして申し訳ありません。<br>
+              <small class="text-muted">管理者の方は、ご自身で作成したチームURLからアクセスしてください。</small>
             </p>
-            <button id="btnGrantSheets" class="btn btn-primary w-100">
-              <i class="bi bi-google me-2"></i>アクセスを許可する（初回のみ）
-            </button>
           </div>`;
         const _navEl = document.querySelector('nav.fixed-bottom');
         if (_navEl) _navEl.classList.add('d-none');
-        document.getElementById('btnGrantSheets')?.addEventListener('click', () => {
-          Auth.requestSpreadsheetsScope();
-        });
         return;
       }
     }
