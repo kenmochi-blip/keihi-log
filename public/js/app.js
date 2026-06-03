@@ -159,8 +159,10 @@ const App = (() => {
     // マスターデータ処理
     if (masterResult.status === 'fulfilled') {
       _masterCache = masterResult.value;
-      const _isFirstSetup = _masterCache.admins.length === 0 && _masterCache.members.length === 0;
-      if (_isOwner || _isFirstSetup || _masterCache.admins.includes(_userEmail)) {
+      // 明示的に member/viewer 権限で登録されている場合は admins 空配列フォールバックを適用しない
+      const _myEntry = _masterCache.members.find(m => m.email?.toLowerCase() === _userEmail);
+      const _explicitNonAdmin = _myEntry && ['member', 'viewer'].includes((_myEntry.role || '').toLowerCase());
+      if (_isOwner || (!_explicitNonAdmin && _masterCache.admins.length === 0) || _masterCache.admins.includes(_userEmail)) {
         _userRole = 'admin';
       } else if (_masterCache.viewers && _masterCache.viewers.includes(_userEmail)) {
         _userRole = 'viewer';
@@ -244,8 +246,9 @@ const App = (() => {
       const email   = (session.userInfo?.email || localStorage.getItem('keihi_user_email') || '').toLowerCase();
       const isOwner = !!(licCache?.result?.ownerEmail && licCache.result.ownerEmail === email);
       _masterCache  = master;
-      const isFirstSetup = master.admins.length === 0 && master.members.length === 0;
-      if (isOwner || isFirstSetup || master.admins.includes(email)) {
+      const myEntry = master.members?.find(m => m.email?.toLowerCase() === email);
+      const explicitNonAdmin = myEntry && ['member', 'viewer'].includes((myEntry.role || '').toLowerCase());
+      if (isOwner || (!explicitNonAdmin && master.admins.length === 0) || master.admins.includes(email)) {
         _userRole = 'admin';
       } else if (master.viewers?.includes(email)) {
         _userRole = 'viewer';
@@ -556,8 +559,9 @@ const App = (() => {
       _masterCache = { members: [], categories: [], paySources: [], admins: [], viewers: [] };
     }
     const email = Auth.getUserEmail().toLowerCase();
-    const isFirstSetup2 = _masterCache.admins.length === 0 && _masterCache.members.length === 0;
-    if (isFirstSetup2 || _masterCache.admins.includes(email)) {
+    const myEntry2 = _masterCache.members?.find(m => m.email?.toLowerCase() === email);
+    const explicitNonAdmin2 = myEntry2 && ['member', 'viewer'].includes((myEntry2.role || '').toLowerCase());
+    if ((!explicitNonAdmin2 && _masterCache.admins.length === 0) || _masterCache.admins.includes(email)) {
       _userRole = 'admin';
     } else if (_masterCache.viewers?.includes(email)) {
       _userRole = 'viewer';

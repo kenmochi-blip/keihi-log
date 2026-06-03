@@ -1354,7 +1354,7 @@ function _bindTypeButtons(el) {
     // シートIDが確定するまで待機（別経費ログの履歴が一瞬表示されるのを防ぐ）
     await App.waitSheetReady();
     try {
-      const all = await Sheets.readExpenses();
+      const all = await App.getExpenses();
       _historyExpenses = all;
       _historyAll = all
         .filter(e => e.email === Auth.getUserEmail())
