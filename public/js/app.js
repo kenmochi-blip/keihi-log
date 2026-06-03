@@ -159,7 +159,8 @@ const App = (() => {
     // マスターデータ処理
     if (masterResult.status === 'fulfilled') {
       _masterCache = masterResult.value;
-      if (_isOwner || _masterCache.admins.length === 0 || _masterCache.admins.includes(_userEmail)) {
+      const _isFirstSetup = _masterCache.admins.length === 0 && _masterCache.members.length === 0;
+      if (_isOwner || _isFirstSetup || _masterCache.admins.includes(_userEmail)) {
         _userRole = 'admin';
       } else if (_masterCache.viewers && _masterCache.viewers.includes(_userEmail)) {
         _userRole = 'viewer';
@@ -243,7 +244,8 @@ const App = (() => {
       const email   = (session.userInfo?.email || localStorage.getItem('keihi_user_email') || '').toLowerCase();
       const isOwner = !!(licCache?.result?.ownerEmail && licCache.result.ownerEmail === email);
       _masterCache  = master;
-      if (isOwner || master.admins.length === 0 || master.admins.includes(email)) {
+      const isFirstSetup = master.admins.length === 0 && master.members.length === 0;
+      if (isOwner || isFirstSetup || master.admins.includes(email)) {
         _userRole = 'admin';
       } else if (master.viewers?.includes(email)) {
         _userRole = 'viewer';
@@ -554,7 +556,8 @@ const App = (() => {
       _masterCache = { members: [], categories: [], paySources: [], admins: [], viewers: [] };
     }
     const email = Auth.getUserEmail().toLowerCase();
-    if (_masterCache.admins.length === 0 || _masterCache.admins.includes(email)) {
+    const isFirstSetup2 = _masterCache.admins.length === 0 && _masterCache.members.length === 0;
+    if (isFirstSetup2 || _masterCache.admins.includes(email)) {
       _userRole = 'admin';
     } else if (_masterCache.viewers?.includes(email)) {
       _userRole = 'viewer';

@@ -71,13 +71,14 @@ const Picker = (() => {
         .setIncludeFolders(false).setSelectFolderEnabled(false).setOwnedByMe(false);
 
       const companyName = localStorage.getItem('keihi_company_name') || '';
+      const sheetTitle  = companyName ? `経費ログ - ${companyName}` : '経費ログ';
       let builder = new google.picker.PickerBuilder()
         .setTitle('チームのスプレッドシートを選択')
         .addView(myView)
         .addView(sharedView)
         .setOAuthToken(token)
-        .setDeveloperKey(apiKey);
-      if (companyName) builder = builder.setQuery(companyName);
+        .setDeveloperKey(apiKey)
+        .setQuery(sheetTitle);
       const picker = builder
         .setCallback(data => {
           if (data.action === google.picker.Action.PICKED) {
@@ -108,9 +109,10 @@ const Picker = (() => {
     _loadGapiPicker().catch(() => {});
 
     const companyName = localStorage.getItem('keihi_company_name') || '';
-    const fileHint = companyName
-      ? `「<strong>${companyName}</strong>」の経費ログスプレッドシートを選んでください。`
-      : '管理者から共有されたスプレッドシートを選んでください。';
+    const sheetName   = companyName ? `経費ログ - ${companyName}` : null;
+    const fileHint    = sheetName
+      ? `「<strong>${sheetName}</strong>」を選んでください。`
+      : '経費ログのスプレッドシートを選んでください（ファイル名は「経費ログ - 会社名」の形式です）。';
     const overlay = document.createElement('div');
     overlay.id = 'picker-overlay';
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
