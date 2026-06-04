@@ -15,6 +15,12 @@ const Sheets = (() => {
   const BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
   const _RETRYABLE = new Set([429, 500, 502, 503, 504]);
 
+  /** B' プロキシ経由を使うか（オプトイン）。localStorage keihi_use_proxy === '1' のときON。
+   *  デフォルトOFFのため本番ユーザーは従来通り直接 Google API を叩く。 */
+  function _useProxy() {
+    try { return localStorage.getItem('keihi_use_proxy') === '1'; } catch (_) { return false; }
+  }
+
   /** 一時的なサーバーエラー時に指数バックオフでリトライする fetch ラッパー。 */
   async function _fetchWithRetry(fn, maxRetries = 3) {
     let delay = 1000;
@@ -120,6 +126,26 @@ const Sheets = (() => {
   async function readExpenses(ssId) {
     if (typeof Demo !== 'undefined' && Demo.isActive()) return [...Demo.EXPENSES];
     ssId = ssId || _ssId();
+
+    // B' プロキシ経由（オプトイン）。失敗時は従来の直接アクセスにフォールバックする。
+    if (_useProxy()) {
+      try {
+        const idToken = await Auth.getIdToken();
+        const resp = await _fetchWithRetry(() =>
+          fetch(`/api/data/expenses?sheetId=${encodeURIComponent(ssId)}`, {
+            headers: { Authorization: `Bearer ${idToken}` },
+          })
+        );
+        if (resp.ok) {
+          const data = await resp.json();
+          return data.expenses || [];
+        }
+        console.warn(`[proxy] readExpenses ${resp.status} → 直接アクセスにフォールバック`);
+      } catch (e) {
+        console.warn('[proxy] readExpenses エラー → 直接アクセスにフォールバック', e);
+      }
+    }
+
     const range  = encodeURIComponent('経費一覧!A2:U');
     const fields = encodeURIComponent('sheets.data.rowData.values(effectiveValue,hyperlink)');
     const resp = await _fetchWithRetry(() =>

@@ -9,6 +9,7 @@ const Auth = (() => {
 
   // プライベート状態（Safari PWA再開時のlet消失バグを避けるためvar使用）
   var _accessToken = null;
+  var _idToken     = null;
   var _tokenExpiry = 0;
   var _userInfo    = null;
 
@@ -59,6 +60,7 @@ const Auth = (() => {
     }
     if (saved.expiry > Date.now()) {
       _accessToken = saved.access_token;
+      _idToken     = saved.id_token || null;
       _tokenExpiry = saved.expiry;
       _userInfo    = saved.userInfo;
       _setGapiToken(_accessToken);
@@ -159,6 +161,9 @@ const Auth = (() => {
   // ── トークン管理 ────────────────────────────────────────
   async function _storeTokens(tokens) {
     _accessToken = tokens.access_token;
+    // ID トークン（JWT）。B' プロキシAPI（/api/data/*）の本人認証に使う。
+    // refresh 時も Google は新しい id_token を返すため毎回更新する。
+    if (tokens.id_token) _idToken = tokens.id_token;
     _tokenExpiry = Date.now() + (tokens.expires_in - 60) * 1000;
     _setGapiToken(_accessToken);
 
@@ -168,6 +173,7 @@ const Auth = (() => {
     const saved = _loadSession();
     _saveSession({
       access_token:  _accessToken,
+      id_token:      _idToken || '',
       refresh_token: tokens.refresh_token || saved?.refresh_token || '',
       expiry:        _tokenExpiry,
       userInfo:      _userInfo,
@@ -195,6 +201,7 @@ const Auth = (() => {
   /** リフレッシュトークンがない場合、consent付き再ログインに自動リダイレクト */
   function _forceRelogin() {
     _accessToken = null;
+    _idToken     = null;
     _userInfo    = null;
     _tokenExpiry = 0;
     localStorage.removeItem(SESSION_KEY);
@@ -251,6 +258,17 @@ const Auth = (() => {
 
   function getAccessToken() { return _accessToken; }
 
+  /**
+   * 有効な Google ID トークン（JWT）を返す（async）。
+   * B' プロキシAPI（/api/data/*）に Authorization: Bearer として渡す本人証明。
+   * 期限切れ、または旧セッションで未保持の場合はリフレッシュして取得する。
+   */
+  function getIdToken() {
+    _restoreIfNeeded();
+    if (_idToken && Date.now() < _tokenExpiry) return Promise.resolve(_idToken);
+    return _refreshToken().then(() => _idToken);
+  }
+
   function getUserInfo() {
     if (typeof Demo !== 'undefined' && Demo.isActive()) {
       const email = Demo.getUserEmail();
@@ -280,6 +298,7 @@ const Auth = (() => {
       fetch(`https://oauth2.googleapis.com/revoke?token=${_accessToken}`, { method: 'POST' }).catch(() => {});
     }
     _accessToken = null;
+    _idToken     = null;
     _userInfo    = null;
     _tokenExpiry = 0;
     localStorage.removeItem(SESSION_KEY);
@@ -310,7 +329,7 @@ const Auth = (() => {
     });
   }
 
-  return { init, getToken, getAccessToken, getUserInfo, getUserEmail, signOut, authFetch, initiateLogin, handleCallback };
+  return { init, getToken, getAccessToken, getIdToken, getUserInfo, getUserEmail, signOut, authFetch, initiateLogin, handleCallback };
 })();
 
 // ── ログイン画面初期化 ──────────────────────────────────────
