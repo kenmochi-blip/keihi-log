@@ -1101,7 +1101,15 @@ function _bindTypeButtons(el) {
       }
 
       // 2. ファイルアップロード + SHA-256ハッシュ計算（並列実行）
-      const activeFiles = _selectedFiles.filter(Boolean);
+      // 圧縮済みファイルが揃っていればそちらを使う（バックグラウンド圧縮がまだ走っていれば待つ）
+      if (_compressPromise) {
+        _compressedFiles = await _compressPromise;
+        _compressPromise = null;
+      }
+      const _rawFiles = _selectedFiles.filter(Boolean);
+      const activeFiles = _compressedFiles.length === _rawFiles.length
+        ? _compressedFiles  // 圧縮済みを優先
+        : _rawFiles;        // 未圧縮フォールバック（交通費等でprecompressが走らないケース）
       const uploadedUrls = _existingUrls.filter(Boolean);
       const hashes = _existingHash ? [_existingHash] : [];
 
