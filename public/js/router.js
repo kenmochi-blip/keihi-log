@@ -11,7 +11,6 @@ const Router = (() => {
   if (typeof ListView     !== 'undefined') VIEWS.list     = ListView;
   if (typeof SummaryView  !== 'undefined') VIEWS.summary  = SummaryView;
   if (typeof SettingsView !== 'undefined') VIEWS.settings = SettingsView;
-  if (typeof AdminView    !== 'undefined') VIEWS.admin    = AdminView;
 
   let _current = null;
 
