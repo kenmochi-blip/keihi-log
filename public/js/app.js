@@ -155,14 +155,15 @@ const App = (() => {
     const _cachedMaster = (() => {
       try {
         const c = JSON.parse(localStorage.getItem('keihi_master_cache') || 'null');
-        if (c?._cachedAt && Date.now() - c._cachedAt < MASTER_CACHE_TTL) return c;
+        // email が一致する場合のみ使用（別アカウントの admin 判定を引き継がない）
+        if (c?._cachedAt && c._email === _userEmail && Date.now() - c._cachedAt < MASTER_CACHE_TTL) return c;
       } catch (_) {}
       return null;
     })();
     const masterPromise = _cachedMaster
       ? Promise.resolve(_cachedMaster)
       : Sheets.readMaster().then(m => {
-          try { localStorage.setItem('keihi_master_cache', JSON.stringify({ ...m, _cachedAt: Date.now() })); } catch (_) {}
+          try { localStorage.setItem('keihi_master_cache', JSON.stringify({ ...m, _cachedAt: Date.now(), _email: _userEmail })); } catch (_) {}
           return m;
         });
 
@@ -268,13 +269,16 @@ const App = (() => {
       const licKey = localStorage.getItem('keihi_license_key');
       if (!ssId || !licKey) return false;
 
-      // ライセンス・マスターはキャッシュがあれば期限切れでも使用（バックグラウンドで更新）
-      const licCache  = JSON.parse(localStorage.getItem('keihi_license_cache') || 'null');
-      const masterRaw = JSON.parse(localStorage.getItem('keihi_master_cache') || 'null');
-      const master    = masterRaw || { members: [], categories: [], paySources: [], admins: [], viewers: [] };
-
       // ロールを手元のキャッシュから暫定決定（バックグラウンド検証後に再適用）
       const email   = (session.userInfo?.email || localStorage.getItem('keihi_user_email') || '').toLowerCase();
+
+      // ライセンス・マスターはキャッシュがあれば期限切れでも使用（バックグラウンドで更新）
+      const licCache  = JSON.parse(localStorage.getItem('keihi_license_cache') || 'null');
+      let   masterRaw = JSON.parse(localStorage.getItem('keihi_master_cache') || 'null');
+      // 別アカウントのマスタキャッシュ（admin判定）を引き継がない。
+      // email タグが無い/不一致のキャッシュは使わず member 扱いで起動し、背景検証で正しく上書きする。
+      if (masterRaw && masterRaw._email !== email) masterRaw = null;
+      const master    = masterRaw || { members: [], categories: [], paySources: [], admins: [], viewers: [] };
       const isOwner = !!(licCache?.result?.ownerEmail && licCache.result.ownerEmail === email);
       _masterCache  = master;
       const myEntry = master.members?.find(m => m.email?.toLowerCase() === email);
@@ -298,7 +302,8 @@ const App = (() => {
       try {
         const stored  = JSON.parse(localStorage.getItem('keihi_expenses_cache') || 'null');
         const sheetId = localStorage.getItem('keihi_sheet_id');
-        if (stored?.sheetId === sheetId && Array.isArray(stored.data)) {
+        // sheetId と email の両方が一致する場合のみ使用（別アカウントのデータ表示を防ぐ）
+        if (stored?.sheetId === sheetId && stored.email === email && Array.isArray(stored.data)) {
           _expensesCache   = stored.data;
           _expensesCacheAt = Date.now() - EXPENSES_CACHE_TTL - 1; // ステール扱いでバックグラウンド更新
         }
@@ -502,7 +507,8 @@ const App = (() => {
       try {
         const stored  = JSON.parse(localStorage.getItem('keihi_expenses_cache') || 'null');
         const sheetId = localStorage.getItem('keihi_sheet_id');
-        if (stored?.sheetId === sheetId && Array.isArray(stored.data)) {
+        // sheetId と email の両方が一致する場合のみ使用（別アカウントのデータ表示を防ぐ）
+        if (stored?.sheetId === sheetId && stored.email === _curEmail() && Array.isArray(stored.data)) {
           _expensesCache   = stored.data;
           // 「やや古い」状態として扱い、次の呼び出し時にバックグラウンド更新させる
           _expensesCacheAt = Date.now() - EXPENSES_CACHE_TTL - 1;
@@ -558,11 +564,22 @@ const App = (() => {
     }
   }
 
-  /** 経費データを localStorage に保存（次回起動時の即時表示用） */
+  /** 現在ログイン中のユーザーemail（小文字）。同一端末でのアカウント切替検出に使う。 */
+  function _curEmail() {
+    try {
+      const s = JSON.parse(localStorage.getItem('keihi_auth_session') || 'null');
+      return (s?.userInfo?.email || localStorage.getItem('keihi_user_email') || '').toLowerCase();
+    } catch (_) {
+      return (localStorage.getItem('keihi_user_email') || '').toLowerCase();
+    }
+  }
+
+  /** 経費データを localStorage に保存（次回起動時の即時表示用）。
+   *  email を付与し、別アカウントで開いた際に他人のデータを表示しないようにする。 */
   function _saveExpensesLocal(rows) {
     try {
       const sheetId = localStorage.getItem('keihi_sheet_id') || '';
-      localStorage.setItem('keihi_expenses_cache', JSON.stringify({ data: rows, sheetId }));
+      localStorage.setItem('keihi_expenses_cache', JSON.stringify({ data: rows, sheetId, email: _curEmail() }));
     } catch (_) {} // quota 超過は無視
   }
 
