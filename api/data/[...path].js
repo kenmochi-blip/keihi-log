@@ -45,6 +45,8 @@ export default async function handler(req, res) {
         return await settings(req, res);
       case 'receipt':
         return await receipt(req, res);
+      case 'gemini':
+        return await gemini(req, res);
       default:
         return res.status(404).json({ error: 'not_found', resource });
     }
@@ -539,6 +541,44 @@ function _normalizeImageLinks(links) {
     const id = m.match(/[?&]fileId=([a-zA-Z0-9_-]+)/)?.[1] || '';
     return id ? `https://drive.google.com/file/d/${id}/view` : m;
   });
+}
+
+/* ───────────────────────── Gemini プロキシ ───────────────────────── */
+
+/**
+ * POST /api/data/gemini?sheetId=XXX  body: { contents, generationConfig }
+ *   設定B5（Gemini APIキー）を SA で読み、Gemini API を代理呼び出しする。
+ *   ★ APIキーはブラウザに一切返さない（B'の趣旨：BYOK鍵をサーバー側に留める）。
+ *   レスポンスは Gemini の生JSONをそのまま透過（クライアントの既存パースに合わせる）。
+ */
+async function gemini(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
+  const authz = await _authorize(req, res);
+  if (!authz) return;
+
+  const sheets = sheetsClient();
+  const cfg = await sheets.spreadsheets.values.get({
+    spreadsheetId: authz.sheetId, range: '設定!B5',
+  });
+  const apiKey = cfg.data.values?.[0]?.[0] || '';
+  if (!apiKey) return res.status(400).json({ error: 'no_gemini_key' });
+
+  const body = await _body(req);
+  if (!body?.contents) return res.status(400).json({ error: 'invalid_request' });
+
+  const MODEL = 'gemini-2.5-flash';
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`;
+  const upstream = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = await upstream.json().catch(() => ({}));
+  // 鍵が含まれ得るエラー詳細はそのまま返さず、ステータスのみ透過
+  if (!upstream.ok) {
+    return res.status(upstream.status).json({ error: 'gemini_error', message: data?.error?.message || '' });
+  }
+  return res.status(200).json(data);
 }
 
 /** カンマ区切りの証票URL群を署名付きプロキシURLへ書き換える。抽出不能URLは原文維持。 */

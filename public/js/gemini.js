@@ -45,6 +45,8 @@ const Gemini = (() => {
 
   /** APIキーをプリフェッチしてキャッシュに乗せる（呼び出し元はawait不要） */
   function warmup() {
+    // B' プロキシモードではキーをブラウザに持たない（サーバーが代理保持）ためプリフェッチ不要
+    if (typeof Sheets !== 'undefined' && Sheets.useProxy && Sheets.useProxy()) return;
     _getApiKey().catch(() => {});
   }
 
@@ -116,16 +118,27 @@ const Gemini = (() => {
       generationConfig: { temperature: 0.1, responseMimeType: 'application/json' },
     });
 
-    // デモモード：サーバーサイドプロキシ経由（APIキーをフロントに持たない）
+    // 呼び出し経路の選択
     let resp;
     if (typeof Demo !== 'undefined' && Demo.isActive()) {
+      // デモモード：開発者キーのサーバープロキシ経由
       const apiBase = window.APP_CONFIG?.apiBase || '';
       resp = await fetch(`${apiBase}/api/gemini-proxy`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body,
       });
+    } else if (typeof Sheets !== 'undefined' && Sheets.useProxy && Sheets.useProxy()) {
+      // B' プロキシ経由：APIキー(設定B5)はサーバー側でSAが読み、ブラウザに出さない
+      const idToken = await Auth.getIdToken();
+      const ssId = localStorage.getItem('keihi_sheet_id') || '';
+      resp = await fetch(`/api/data/gemini?sheetId=${encodeURIComponent(ssId)}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${idToken}`, 'Content-Type': 'application/json' },
+        body,
+      });
     } else {
+      // 直接アクセス（プロキシOFF）：設定B5またはローカルのキーで直接呼び出し
       const key = await _getApiKey();
       resp = await fetch(`${API_URL}?key=${key}`, {
         method: 'POST',

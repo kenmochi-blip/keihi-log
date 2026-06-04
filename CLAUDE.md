@@ -80,7 +80,8 @@
   - 書き込み時はサーバーが署名URL→永続Drive URLへ逆変換（`_normalizeImageLinks`）し正準URLを保存。
   - ⚠️ 前提: 各チームの**証票フォルダにも SA をエディタ共有**が必要（共有前は upload/閲覧が失敗）。
     署名URLの秘密鍵は `GOOGLE_SA_KEY` から導出（新規環境変数なし）。
-- [ ] Gemini をサーバープロキシ化（APIキーをブラウザに出さない）
+- [x] Gemini をサーバープロキシ化（`POST /api/data/gemini`・設定B5をSAで読み代理呼び出し）
+  - APIキーはブラウザに一切返さない。Geminiの生JSONのみ透過。プロキシOFF時は従来の直接呼び出し。
 - [ ] メンバーのシートアクセスをプロキシ完全移行（`keihi_use_proxy` のデフォルトON化）
 - 運用中の本番シート（2チーム）には SA をエディタ共有済み
 
