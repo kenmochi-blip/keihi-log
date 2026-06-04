@@ -274,10 +274,11 @@ const App = (() => {
 
       // ライセンス・マスターはキャッシュがあれば期限切れでも使用（バックグラウンドで更新）
       const licCache  = JSON.parse(localStorage.getItem('keihi_license_cache') || 'null');
-      let   masterRaw = JSON.parse(localStorage.getItem('keihi_master_cache') || 'null');
-      // 別アカウントのマスタキャッシュ（admin判定）を引き継がない。
-      // email タグが無い/不一致のキャッシュは使わず member 扱いで起動し、背景検証で正しく上書きする。
-      if (masterRaw && masterRaw._email !== email) masterRaw = null;
+      const masterRaw = JSON.parse(localStorage.getItem('keihi_master_cache') || 'null');
+      // マスタキャッシュはチーム全員で共通（admins/membersリストは同一）。
+      // 別アカウントが取得したキャッシュでも現ユーザーのロール判定に使用可能。
+      // init() の _cachedMaster では email タグで TTL チェックするため、
+      // email 不一致時は必ずサーバーから再取得される（セキュリティはサーバー側で担保）。
       const master    = masterRaw || { members: [], categories: [], paySources: [], admins: [], viewers: [] };
       const isOwner = !!(licCache?.result?.ownerEmail && licCache.result.ownerEmail === email);
       _masterCache  = master;
