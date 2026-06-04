@@ -144,8 +144,9 @@ async function health(req, res) {
  */
 async function expenses(req, res) {
   const sub = _pathSegs(req)[3] || '';
-  if (sub === 'approve') return expensesApprove(req, res);
-  if (sub === 'settle')  return expensesSettle(req, res);
+  if (sub === 'approve')  return expensesApprove(req, res);
+  if (sub === 'settle')   return expensesSettle(req, res);
+  if (sub === 'unsettle') return expensesUnsettle(req, res);
   if (req.method === 'GET')    return expensesGet(req, res);
   if (req.method === 'POST')   return expensesCreate(req, res);
   if (req.method === 'PUT')    return expensesEdit(req, res);
@@ -321,6 +322,35 @@ async function expensesSettle(req, res) {
 
   const rowNums = await _rowNumsByIds(authz.sheetId, ids);
   const data = rowNums.map(n => ({ range: `経費一覧!L${n}`, values: [[String(date)]] }));
+  if (data.length) await batchUpdateValuesViaSA(authz.sheetId, data);
+  await kv.del(`data:exp:${authz.sheetId}`).catch(() => {});
+
+  return res.status(200).json({ ok: true, updated: data.length });
+}
+
+/**
+ * POST /api/data/expenses/unsettle  body: { ids: [...] }
+ *   精算済（L列=精算日）を解除して登録済に戻す。admin 専用。
+ *   電帳法上、レコードの削除は不可だが、精算ステータスの訂正（戻し）は
+ *   修正履歴で追える操作として許容する。会社払いマーカーは対象外（実精算のみ解除）。
+ */
+async function expensesUnsettle(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
+  const authz = await _authorize(req, res);
+  if (!authz) return;
+  if (!authz.isAdmin) return res.status(403).json({ error: 'admin_only' });
+
+  const body = await _body(req);
+  const ids = body?.ids;
+  if (!Array.isArray(ids) || !ids.length) return res.status(400).json({ error: 'invalid_request' });
+
+  // 実精算（会社払いマーカー以外の精算日）のみ解除対象とする
+  const rowNums = [];
+  for (const id of ids) {
+    const found = await _getExpenseByIdViaSA(authz.sheetId, id);
+    if (found && _isRealSettled(found.raw)) rowNums.push(found.rowNum);
+  }
+  const data = rowNums.map(n => ({ range: `経費一覧!L${n}`, values: [['']] }));
   if (data.length) await batchUpdateValuesViaSA(authz.sheetId, data);
   await kv.del(`data:exp:${authz.sheetId}`).catch(() => {});
 

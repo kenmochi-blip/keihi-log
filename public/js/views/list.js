@@ -484,7 +484,10 @@ const ListView = (() => {
       const canDelete = canEdit;
       const deleteBtn = canDelete
         ? `<button class="btn btn-outline-danger btn-sm py-0 px-1 btn-del-list" data-id="${e.id}" title="削除"><i class="bi bi-trash"></i></button>` : '';
-      const ops = `<div class="d-flex gap-1">${approveBtn}${editBtn}${deleteBtn}</div>`;
+      // 精算解除ボタン（精算済→登録済に戻す）：管理者のみ。誤精算の訂正用。
+      const unsettleBtn = _isAdmin && isSettled
+        ? `<button class="btn btn-outline-warning btn-sm py-0 px-1 btn-unsettle" data-id="${e.id}" title="精算を解除して登録済に戻す"><i class="bi bi-arrow-counterclockwise"></i></button>` : '';
+      const ops = `<div class="d-flex gap-1">${approveBtn}${editBtn}${deleteBtn}${unsettleBtn}</div>`;
 
       // 証票リンク（複数対応）
       const imgUrls = e.imageLinks ? e.imageLinks.split(',').map(s => s.trim()).filter(Boolean) : [];
@@ -563,6 +566,9 @@ const ListView = (() => {
       container.querySelectorAll('.btn-del-list').forEach(btn => {
         btn.addEventListener('click', () => _deleteExpense(btn.dataset.id, el));
       });
+      container.querySelectorAll('.btn-unsettle').forEach(btn => {
+        btn.addEventListener('click', () => _unsettleExpense(btn.dataset.id, el));
+      });
     });
 
     // PC：金額クリックで詳細行トグル
@@ -628,6 +634,27 @@ const ListView = (() => {
       App.showToast('登録済にしました', 'success');
     } catch (err) {
       App.showToast('承認エラー: ' + err.message, 'danger');
+    } finally {
+      App.hideLoading();
+    }
+  }
+
+  async function _unsettleExpense(id, el) {
+    const e = _expenses.find(x => x.id === id);
+    const detailHtml = `<div class="alert alert-warning py-2 mb-0 small">
+        精算日：${_escape(e?.settlementDate || '')}<br>
+        精算ステータスを解除し「登録済」に戻します。誤って精算した場合の訂正用です。
+      </div>`;
+    const ok = await App.confirm('この申請の精算を解除して登録済に戻しますか？', detailHtml);
+    if (!ok) return;
+    App.showLoading('精算解除中...');
+    try {
+      await Sheets.batchUnsettle([id]);
+      if (e) e.settlementDate = '';
+      _renderTable(el);
+      App.showToast('精算を解除しました', 'success');
+    } catch (err) {
+      App.showToast('精算解除エラー: ' + err.message, 'danger');
     } finally {
       App.hideLoading();
     }

@@ -525,6 +525,32 @@ const Sheets = (() => {
   }
 
   /**
+   * 指定IDの経費の精算を解除して登録済に戻す（L列の精算日を空にする）。admin専用。
+   * @param {string[]} ids  精算解除対象の expense ID 配列
+   */
+  async function batchUnsettle(ids, ssId) {
+    if (typeof Demo !== 'undefined' && Demo.isActive()) return {};
+    if (!ids.length) return {};
+    ssId = ssId || _ssId();
+
+    // B' プロキシ経由（オプトイン）。admin専用・サーバー認可。書き込みのためフォールバックなし。
+    if (_useProxy()) {
+      return _proxyWrite('expenses/unsettle', ssId, 'POST', { ids });
+    }
+
+    const qRows = await read('経費一覧!Q2:Q', ssId);
+    const updates = [];
+    ids.forEach(id => {
+      const idx = qRows.findIndex(r => r[0] === id);
+      if (idx !== -1) {
+        updates.push({ range: `経費一覧!L${idx + 2}`, values: [['']] });
+      }
+    });
+    if (!updates.length) return {};
+    return batchUpdateValues(updates, ssId);
+  }
+
+  /**
    * 経費一覧の先頭（ヘッダー直下の2行目）に新規行を挿入する。
    * append と異なり最新データが常に先頭に並ぶ。
    */
@@ -596,6 +622,7 @@ const Sheets = (() => {
     prependExpense,
     prependRow,
     batchSettle,
+    batchUnsettle,
     editExpense,
     deleteExpense,
     approveExpense,
