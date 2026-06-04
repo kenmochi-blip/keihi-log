@@ -71,6 +71,14 @@ const Setup = (() => {
     // 7. フォルダIDを設定シートに保存
     await Sheets.update('設定!B4', [[folderId]], ssId);
 
+    // 8. SA（サービスアカウント）をシートとフォルダにエディタ共有
+    //    → B'プロキシが代理読み書きするために必須。drive.file スコープで作成直後なので共有可能。
+    const SA_EMAIL = 'keihi-log-proxy@keihi-log.iam.gserviceaccount.com';
+    await Promise.all([
+      Drive.grantEditorAccess(SA_EMAIL, ssId).catch(() => {}),
+      Drive.grantEditorAccess(SA_EMAIL, folderId).catch(() => {}),
+    ]);
+
     // 7. エイリアス生成・登録（スプレッドシートIDをURLに露出させない）
     const alias = customAlias || _generateAlias();
     const licenseKey = localStorage.getItem('keihi_license_key') || '';
