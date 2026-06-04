@@ -36,7 +36,7 @@
             el.innerHTML = `<div class="text-center text-muted small py-2">確認中... (${i}/5)</div>`;
             await new Promise(r => setTimeout(r, 2000));
           }
-          const resp = await fetch(`/api/get-license?session=${encodeURIComponent(session)}`);
+          const resp = await fetch(`/api/license?session=${encodeURIComponent(session)}`);
           if (resp.ok) { data = await resp.json(); break; }
         }
         if (!data) throw new Error('not_found');

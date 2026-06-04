@@ -17,6 +17,30 @@ import { rateLimit } from './_rateLimit.js';
 import { captureException } from './_sentry.js';
 
 export default async function handler(req, res) {
+  // GET /api/license?session=cs_xxx → セッションIDからライセンスキーを返す（サンクスページ用）
+  // ※ Hobbyプランの関数数上限のため旧 /api/get-license をここに統合
+  if (req.method === 'GET') {
+    const { session } = req.query;
+    if (!session) return res.status(400).json({ error: 'session required' });
+    try {
+      const licenseKey = await kv.get(`session:${session}`);
+      if (!licenseKey) return res.status(404).json({ error: 'not_found' });
+      const data = await kv.get(`license:${licenseKey}`);
+      if (!data) return res.status(404).json({ error: 'not_found' });
+      const setupCode = await kv.get(`license_ref:${licenseKey}`).catch(() => null);
+      return res.status(200).json({
+        licenseKey,
+        company:   data.company,
+        expiresAt: data.expiresAt,
+        email:     data.email,
+        setupCode: setupCode || null,
+      });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ error: 'server_error' });
+    }
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
