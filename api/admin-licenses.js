@@ -37,6 +37,78 @@ export default async function handler(req, res) {
     return res.status(200).json({ total: entries.length, entries });
   }
 
+  // 紹介者マスタ管理
+  if (req.query.referrers != null) {
+    if (req.method === 'GET') {
+      const list = await kv.get('referrer_master').catch(() => null) || [];
+      return res.status(200).json({ referrers: list });
+    }
+    if (req.method === 'POST') {
+      const { code, name, email, note } = req.body || {};
+      if (!code || !name) return res.status(400).json({ error: 'code_and_name_required' });
+      if (!/^[a-z0-9_]{2,30}$/.test(code)) return res.status(400).json({ error: 'invalid_code_format' });
+      const list = await kv.get('referrer_master').catch(() => null) || [];
+      if (list.find(r => r.code === code)) return res.status(409).json({ error: 'code_exists' });
+      list.push({ code, name, email: email || '', note: note || '', addedAt: new Date().toISOString() });
+      await kv.set('referrer_master', list);
+      return res.status(200).json({ referrers: list });
+    }
+    if (req.method === 'DELETE') {
+      const { code } = req.query;
+      if (!code) return res.status(400).json({ error: 'code_required' });
+      let list = await kv.get('referrer_master').catch(() => null) || [];
+      list = list.filter(r => r.code !== code);
+      await kv.set('referrer_master', list);
+      return res.status(200).json({ referrers: list });
+    }
+    return res.status(405).json({ error: 'method_not_allowed' });
+  }
+
+  // 紹介者別支払いサマリー
+  if (req.query.payout) {
+    const month = /^\d{4}-\d{2}$/.test(req.query.payout)
+      ? req.query.payout
+      : new Date().toISOString().slice(0, 7);
+    const startOfMonth = new Date(`${month}-01T00:00:00Z`);
+    const endOfMonth   = new Date(startOfMonth);
+    endOfMonth.setMonth(endOfMonth.getMonth() + 1);
+
+    const keys = [];
+    let cursor = 0;
+    do {
+      const [nextCursor, batch] = await kv.scan(cursor, { match: 'license:*', count: 100 });
+      keys.push(...batch);
+      cursor = Number(nextCursor);
+    } while (cursor !== 0);
+
+    const [licenseList, referrers] = await Promise.all([
+      Promise.all(keys.map(k => kv.get(k))),
+      kv.get('referrer_master').catch(() => null),
+    ]);
+
+    const refMaster = referrers || [];
+    const payoutByCode = {};
+    licenseList.forEach(lic => {
+      if (!lic || !lic.referrer || lic.suspended) return;
+      const created = lic.createdAt ? new Date(lic.createdAt) : null;
+      const expires = lic.expiresAt ? new Date(`${lic.expiresAt}T23:59:59Z`) : null;
+      if (created && created >= endOfMonth) return;
+      if (expires && expires < startOfMonth) return;
+      payoutByCode[lic.referrer] = (payoutByCode[lic.referrer] || 0) + 1;
+    });
+
+    const payout = refMaster.map(r => ({
+      code:        r.code,
+      name:        r.name,
+      email:       r.email || '',
+      activeCount: payoutByCode[r.code] || 0,
+      amount:      (payoutByCode[r.code] || 0) * 200,
+    }));
+    const totalAmount = payout.reduce((s, r) => s + r.amount, 0);
+    const totalActive = payout.reduce((s, r) => s + r.activeCount, 0);
+    return res.status(200).json({ month, payout, totalAmount, totalActive });
+  }
+
   // Sentryプロキシ
   if (req.query.sentry_path) {
     const sentryPath = req.query.sentry_path;
@@ -331,6 +403,15 @@ ${logText}
     const data = await kv.get(`license:${key}`).catch(() => null);
     if (!data) return res.status(404).json({ error: 'not found' });
 
+    if (action === 'set_referrer') {
+      const { referrer } = req.body;
+      const updated = { ...data };
+      if (referrer) updated.referrer = referrer;
+      else delete updated.referrer;
+      await kv.set(`license:${key}`, updated);
+      return res.status(200).json({ ok: true, ...updated });
+    }
+
     if (action === 'upgrade') {
       const { plan: newPlan, expiresAt: customExpiry } = req.body;
       const expiresAt = customExpiry ? new Date(customExpiry) : new Date();
@@ -449,9 +530,11 @@ ${logText}
     );
 
     licenses.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    const referrers = await kv.get('referrer_master').catch(() => null) || [];
     return res.status(200).json({
       total: licenses.length,
       licenses,
+      referrers,
       sentryToken:  process.env.SENTRY_AUTH_TOKEN  || null,
       hasClaudeKey:  !!process.env.ANTHROPIC_API_KEY,
       hasCfKey:      !!(process.env.CLOUDFLARE_API_TOKEN && process.env.CLOUDFLARE_ZONE_ID),

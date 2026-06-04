@@ -130,6 +130,11 @@
     .log-level-info  { background:#dbeafe;color:#1d4ed8;font-size:0.6rem;font-weight:700;padding:2px 6px;border-radius:4px; }
     .log-analysis-card { background:#fefce8;border:1px solid #fde68a;border-left:3px solid #eab308;border-radius:8px;padding:0.85rem 1.1rem;margin-bottom:1rem; }
     .log-analysis-card .la-text { font-size:0.82rem;color:var(--text);white-space:pre-wrap;line-height:1.6; }
+    .referrer-select { border:1px solid var(--border);border-radius:4px;padding:2px 4px;font-size:0.72rem;background:var(--surface-sub);outline:none;max-width:115px;cursor:pointer;color:var(--text-sub); }
+    .referrer-select:focus { border-color:var(--accent); }
+    .payout-total { background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:0.75rem 1rem;display:flex;align-items:center;gap:1.5rem;margin-bottom:0.75rem; }
+    .payout-total .pt-label { font-size:0.78rem;color:#166534; }
+    .payout-total .pt-val { font-size:1.4rem;font-weight:700;color:#16a34a;line-height:1; }
   </style>
   <link rel="canonical" href="https://keihi-log.com/licenses" />
 </head>
@@ -352,6 +357,7 @@
                 <th style="width:48px;text-align:right;">今月</th>
                 <th style="width:48px;text-align:right;">先月</th>
                 <th style="width:80px;text-align:center;">状態</th>
+                <th style="width:120px;">紹介者</th>
                 <th class="pe-last" style="width:56px;text-align:right;"></th>
               </tr>
             </thead>
@@ -410,6 +416,59 @@
         </div>
       </div>
 
+      <!-- 紹介者マスタ -->
+      <div class="panel" style="margin-top:1rem;">
+        <div class="panel-header" style="justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:0.5rem;">
+            <i class="bi bi-people" style="color:#7c3aed;"></i>
+            <span class="title">紹介者マスタ</span>
+            <span id="referrerCount" style="font-size:0.72rem;color:var(--text-mute);"></span>
+          </div>
+          <button class="btn-ghost" id="btnReferrerRefresh" style="font-size:0.75rem;padding:0.25rem 0.6rem;">
+            <i class="bi bi-arrow-clockwise"></i>更新
+          </button>
+        </div>
+        <div class="panel-body">
+          <div style="display:flex;gap:0.5rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:0.75rem;">
+            <input type="text" class="filter-input" id="refCode" placeholder="コード例: ta_yamada（半角英数_）" style="flex:2;min-width:160px;">
+            <input type="text" class="filter-input" id="refName" placeholder="氏名・事務所名 *" style="flex:2;min-width:150px;">
+            <input type="email" class="filter-input" id="refEmail" placeholder="メール（任意）" style="flex:2;min-width:150px;">
+            <button class="btn-accent" id="btnAddReferrer" style="background:#7c3aed;white-space:nowrap;"><i class="bi bi-plus"></i>追加</button>
+          </div>
+          <div id="referrerMsg" style="font-size:0.78rem;margin-bottom:0.5rem;"></div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th class="ps-first" style="width:140px;">コード</th>
+                <th>氏名・事務所名</th>
+                <th style="width:180px;">メール</th>
+                <th class="pe-last" style="width:40px;"></th>
+              </tr>
+            </thead>
+            <tbody id="referrerTableBody">
+              <tr><td colspan="4" style="text-align:center;padding:1.5rem;color:var(--text-mute);">読み込み中...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 紹介者別支払いサマリー -->
+      <div class="panel" style="margin-top:1rem;">
+        <div class="panel-header" style="justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:0.5rem;">
+            <i class="bi bi-cash-coin" style="color:#16a34a;"></i>
+            <span class="title">紹介者別支払いサマリー（200円×件数）</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:0.5rem;">
+            <input type="month" id="payoutMonth" class="filter-input" style="width:auto;">
+            <button class="btn-accent" id="btnPayoutLoad" style="background:#16a34a;white-space:nowrap;"><i class="bi bi-calculator"></i>計算</button>
+          </div>
+        </div>
+        <div class="panel-body" id="payoutBody">
+          <div style="color:var(--text-mute);font-size:0.85rem;text-align:center;padding:0.5rem 0;">月を選択して「計算」を押してください</div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -419,6 +478,7 @@
     let _sentryToken = '';
     let _hasClaudeKey = false;
     let _hasCfKey = false;
+    let _referrers = [];
     const _notesCache = {};
     const _notesOpen  = {};
     const _analyzing     = {};
@@ -435,6 +495,10 @@
     document.getElementById('btnAppLogClear').addEventListener('click', () => clearAppLogs());
     document.getElementById('btnNotifyRefresh').addEventListener('click', () => loadNotifyList());
     document.getElementById('btnIssue').addEventListener('click', issueLicense);
+    document.getElementById('btnAddReferrer').addEventListener('click', addReferrer);
+    document.getElementById('btnReferrerRefresh').addEventListener('click', loadReferrers);
+    document.getElementById('btnPayoutLoad').addEventListener('click', loadPayout);
+    document.getElementById('payoutMonth').value = new Date().toISOString().slice(0, 7);
     document.getElementById('filterText').addEventListener('input', render);
     document.getElementById('filterStatus').addEventListener('change', render);
     document.getElementById('btnCsvExport').addEventListener('click', exportCsv);
@@ -872,11 +936,13 @@
       if (data.sentryToken) _sentryToken = data.sentryToken;
       _hasClaudeKey = !!data.hasClaudeKey;
       _hasCfKey     = !!data.hasCfKey;
+      _referrers    = data.referrers || [];
       document.getElementById('authArea').classList.add('d-none');
       document.getElementById('summary').classList.remove('d-none');
       updateStats();
       updateMonthly();
       render();
+      renderReferrerTable();
       loadAppLogs();
       loadNotifyList();
       if (_hasCfKey) loadCloudflare();
@@ -1188,6 +1254,7 @@
           <td class="usage-num ${usageThis > 0 ? 'active' : 'zero'}">${usageThis || '—'}</td>
           <td class="usage-num zero">${usageLast || '—'}</td>
           <td style="text-align:center;"><span class="status-dot ${st}">${statusLabel[st]}</span></td>
+          <td>${_referrerCell(l)}</td>
           <td class="pe-last" style="text-align:right;white-space:nowrap;">
             ${!isStripe && !l.upgradedAt ? `<button class="action-btn upgrade btn-upgrade me-1" data-key="${esc(l.key)}" title="有料転換"><i class="bi bi-arrow-up-circle"></i></button>` : ''}
             <button class="action-btn btn-plan-change me-1" data-key="${esc(l.key)}" data-plan="${plan}" title="プラン変更" style="font-size:0.7rem;width:auto;padding:0 6px;gap:2px;"><i class="bi bi-arrow-left-right"></i>${plan === 'team' ? 'ソロへ' : 'チームへ'}</button>
@@ -1198,6 +1265,7 @@
       tbody.querySelectorAll('.btn-upgrade').forEach(btn => btn.addEventListener('click', () => upgradeLicense(btn.dataset.key)));
       tbody.querySelectorAll('.btn-plan-change').forEach(btn => btn.addEventListener('click', () => changePlan(btn.dataset.key, btn.dataset.plan)));
       tbody.querySelectorAll('.btn-delete').forEach(btn => btn.addEventListener('click', () => deleteLicense(btn.dataset.key)));
+      tbody.querySelectorAll('.referrer-select').forEach(sel => sel.addEventListener('change', () => setReferrer(sel.dataset.key, sel.value)));
       document.getElementById('noResult').classList.toggle('d-none', filtered.length > 0);
     }
 
@@ -1255,6 +1323,155 @@
       if (!resp.ok) { alert('削除に失敗しました'); return; }
       _all = _all.filter(l => l.key !== key);
       updateStats(); render();
+    }
+
+    // ── 紹介者機能 ─────────────────────────────────────────────
+    function _referrerCell(l) {
+      const current = l.referrer || '';
+      const opts = [`<option value="">— 紹介なし —</option>`]
+        .concat(_referrers.map(r =>
+          `<option value="${esc(r.code)}"${current === r.code ? ' selected' : ''}>${esc(r.name)}</option>`
+        )).join('');
+      return `<select class="referrer-select" data-key="${esc(l.key)}">${opts}</select>`;
+    }
+
+    async function setReferrer(key, referrerCode) {
+      const resp = await fetch(`/api/admin-licenses?secret=${encodeURIComponent(_secret)}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, action: 'set_referrer', referrer: referrerCode }),
+      });
+      if (!resp.ok) { alert('紹介者の設定に失敗しました'); render(); return; }
+      const data = await resp.json();
+      const idx = _all.findIndex(l => l.key === key);
+      if (idx !== -1) _all[idx] = { ..._all[idx], referrer: data.referrer || null };
+    }
+
+    async function loadReferrers() {
+      try {
+        const resp = await fetch(`/api/admin-licenses?secret=${encodeURIComponent(_secret)}&referrers=1`);
+        const data = await resp.json();
+        _referrers = data.referrers || [];
+        renderReferrerTable();
+        render();
+      } catch (err) {
+        alert('紹介者マスタの取得に失敗: ' + err.message);
+      }
+    }
+
+    function renderReferrerTable() {
+      const tbody = document.getElementById('referrerTableBody');
+      const countEl = document.getElementById('referrerCount');
+      countEl.textContent = _referrers.length ? `${_referrers.length}件` : '';
+      if (_referrers.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:1.5rem;color:var(--text-mute);">紹介者はまだ登録されていません</td></tr>';
+        return;
+      }
+      tbody.innerHTML = _referrers.map(r => `
+        <tr>
+          <td class="ps-first"><code style="font-size:0.78rem;background:var(--surface-sub);padding:2px 6px;border-radius:4px;">${esc(r.code)}</code></td>
+          <td style="font-size:0.82rem;font-weight:500;">${esc(r.name)}</td>
+          <td style="font-size:0.78rem;color:var(--text-sub);">${r.email ? esc(r.email) : '—'}</td>
+          <td class="pe-last" style="text-align:center;">
+            <button class="action-btn delete" data-code="${esc(r.code)}" title="削除"><i class="bi bi-trash"></i></button>
+          </td>
+        </tr>`).join('');
+      tbody.querySelectorAll('.action-btn.delete').forEach(btn =>
+        btn.addEventListener('click', () => deleteReferrer(btn.dataset.code))
+      );
+    }
+
+    async function addReferrer() {
+      const code  = document.getElementById('refCode').value.trim();
+      const name  = document.getElementById('refName').value.trim();
+      const email = document.getElementById('refEmail').value.trim();
+      const msg   = document.getElementById('referrerMsg');
+      if (!code || !name) { msg.innerHTML = '<span style="color:#dc2626;">コードと氏名は必須です</span>'; return; }
+      if (!/^[a-z0-9_]{2,30}$/.test(code)) {
+        msg.innerHTML = '<span style="color:#dc2626;">コードは半角英小文字・数字・アンダースコアのみ（2〜30文字）</span>'; return;
+      }
+      msg.innerHTML = '<span style="color:var(--text-mute);">追加中...</span>';
+      try {
+        const resp = await fetch(`/api/admin-licenses?secret=${encodeURIComponent(_secret)}&referrers=1`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code, name, email }),
+        });
+        const data = await resp.json();
+        if (!resp.ok) {
+          const errMsg = data.error === 'code_exists' ? 'そのコードは既に登録されています' : data.error;
+          msg.innerHTML = `<span style="color:#dc2626;">${esc(errMsg)}</span>`; return;
+        }
+        _referrers = data.referrers || [];
+        renderReferrerTable();
+        render();
+        document.getElementById('refCode').value  = '';
+        document.getElementById('refName').value  = '';
+        document.getElementById('refEmail').value = '';
+        msg.innerHTML = '<span style="color:#16a34a;"><i class="bi bi-check-circle me-1"></i>追加しました</span>';
+        setTimeout(() => { msg.innerHTML = ''; }, 3000);
+      } catch (err) {
+        msg.innerHTML = `<span style="color:#dc2626;">${esc(err.message)}</span>`;
+      }
+    }
+
+    async function deleteReferrer(code) {
+      if (!confirm(`紹介者コード「${code}」を削除しますか？\n既存ライセンスへの紐付けは残りますが、一覧には表示されなくなります。`)) return;
+      try {
+        const resp = await fetch(`/api/admin-licenses?secret=${encodeURIComponent(_secret)}&referrers=1&code=${encodeURIComponent(code)}`, {
+          method: 'DELETE',
+        });
+        const data = await resp.json();
+        if (!resp.ok) { alert('削除に失敗しました'); return; }
+        _referrers = data.referrers || [];
+        renderReferrerTable();
+        render();
+      } catch (err) {
+        alert('削除エラー: ' + err.message);
+      }
+    }
+
+    async function loadPayout() {
+      const month = document.getElementById('payoutMonth').value;
+      if (!month) { alert('月を選択してください'); return; }
+      const body = document.getElementById('payoutBody');
+      body.innerHTML = '<div style="color:var(--text-mute);font-size:0.85rem;">計算中...</div>';
+      try {
+        const resp = await fetch(`/api/admin-licenses?secret=${encodeURIComponent(_secret)}&payout=${encodeURIComponent(month)}`);
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || 'エラー');
+        const { payout, totalAmount, totalActive } = data;
+        if (!payout || payout.length === 0) {
+          body.innerHTML = '<div style="color:var(--text-mute);font-size:0.85rem;text-align:center;padding:0.5rem 0;">紹介者が登録されていません</div>';
+          return;
+        }
+        const fmtAmt = n => `¥${n.toLocaleString('ja-JP')}`;
+        const rows = payout.map(r => `<tr>
+          <td class="ps-first"><code style="font-size:0.78rem;background:var(--surface-sub);padding:1px 5px;border-radius:3px;">${esc(r.code)}</code></td>
+          <td style="font-size:0.82rem;font-weight:500;">${esc(r.name)}</td>
+          <td style="font-size:0.78rem;color:var(--text-sub);">${r.email ? esc(r.email) : '—'}</td>
+          <td style="text-align:right;font-variant-numeric:tabular-nums;">${r.activeCount}</td>
+          <td class="pe-last" style="text-align:right;font-variant-numeric:tabular-nums;font-weight:600;color:${r.amount > 0 ? '#16a34a' : 'var(--text-mute)'};">${r.amount > 0 ? fmtAmt(r.amount) : '—'}</td>
+        </tr>`).join('');
+        body.innerHTML = `
+          <div class="payout-total">
+            <div><div class="pt-label">${data.month} 支払い合計</div><div class="pt-val">${fmtAmt(totalAmount)}</div></div>
+            <div style="color:var(--text-mute);font-size:0.8rem;">${totalActive}件 × 200円</div>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="data-table">
+              <thead><tr>
+                <th class="ps-first" style="width:130px;">コード</th>
+                <th>氏名・事務所名</th>
+                <th style="width:180px;">振込先メール</th>
+                <th style="width:80px;text-align:right;">有効件数</th>
+                <th class="pe-last" style="width:100px;text-align:right;">支払額</th>
+              </tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+          <div style="margin-top:0.75rem;font-size:0.72rem;color:var(--text-mute);">※ 有効件数: 対象月に有効だったライセンス数（停止・期限切れを除く）</div>`;
+      } catch (err) {
+        body.innerHTML = `<div style="color:#dc2626;font-size:0.85rem;">${esc(err.message)}</div>`;
+      }
     }
 
     function esc(s) {
