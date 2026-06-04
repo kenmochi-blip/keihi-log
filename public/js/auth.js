@@ -22,8 +22,14 @@ const Auth = (() => {
   const SESSION_KEY = 'keihi_auth_session';
 
   // redirect_uri は常に固定（GCPに登録した値と完全一致させるため）
+  // - localhost: ローカル開発用
+  // - *.vercel.app: ブランチPreview環境（テスト用。GCPに各Preview URLの /login を登録すること）
+  // - それ以外: 本番
   function _redirectUri() {
     if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+      return `${location.origin}/login`;
+    }
+    if (location.hostname.endsWith('.vercel.app')) {
       return `${location.origin}/login`;
     }
     return 'https://keihi-log.com/login';
