@@ -949,14 +949,6 @@ const SettingsView = (() => {
       const oldEmail = isNew ? null : (_master.members[idx]?.email || null);
       if (isNew) _master.members.push(updated);
       else       _master.members[idx] = updated;
-      // Drive権限：メールアドレスが変わった場合は旧アドレスの権限を削除
-      if (oldEmail && oldEmail.toLowerCase() !== updated.email.toLowerCase()) {
-        _revokeMemberAccess(oldEmail).catch(() => {});
-      }
-      // 新規追加または新しいメールアドレスに権限付与
-      if (isNew || (oldEmail && oldEmail.toLowerCase() !== updated.email.toLowerCase())) {
-        _grantMemberAccess(updated.email).catch(() => {});
-      }
       await _saveMasterToSheet(el);
       modal.hide();
     });
@@ -990,7 +982,6 @@ const SettingsView = (() => {
     const ok = await App.confirm(`${member.name} を削除しますか？`);
     if (!ok) return;
     _master.members.splice(idx, 1);
-    _revokeMemberAccess(member.email).catch(() => {});
     try {
       await _saveMasterToSheet(el);
     } catch (err) {
@@ -998,24 +989,6 @@ const SettingsView = (() => {
       _master.members.splice(idx, 0, member); // ロールバック
       _renderMembers(el);
     }
-  }
-
-  async function _grantMemberAccess(email) {
-    const ssId     = localStorage.getItem('keihi_sheet_id');
-    const folderId = localStorage.getItem('keihi_folder_id');
-    const tasks = [];
-    if (ssId)     tasks.push(Drive.grantEditorAccess(email, ssId).catch(() => {}));
-    if (folderId) tasks.push(Drive.grantEditorAccess(email, folderId).catch(() => {}));
-    await Promise.all(tasks);
-  }
-
-  async function _revokeMemberAccess(email) {
-    const ssId     = localStorage.getItem('keihi_sheet_id');
-    const folderId = localStorage.getItem('keihi_folder_id');
-    const tasks = [];
-    if (ssId)     tasks.push(Drive.revokeAccess(email, ssId).catch(() => {}));
-    if (folderId) tasks.push(Drive.revokeAccess(email, folderId).catch(() => {}));
-    await Promise.all(tasks);
   }
 
   async function _deleteSimpleItem(el, type, idx) {
