@@ -1412,7 +1412,8 @@ function _bindTypeButtons(el) {
          </a>`
       : '';
     const isAdmin = App.isAdmin();
-    const canEdit = isAdmin || (!e.settlementDate && !e.confirmed);
+    const isSettled = !!e.settlementDate && !String(e.settlementDate).startsWith('会社払い');
+    const canEdit = !isSettled && (isAdmin || (!e.settlementDate && !e.confirmed));
     const editBtn = canEdit
       ? `<button class="btn btn-sm btn-outline-secondary btn-edit-history" data-id="${e.id}">
            <i class="bi bi-pencil"></i>

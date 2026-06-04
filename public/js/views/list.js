@@ -471,14 +471,16 @@ const ListView = (() => {
     visible.forEach(e => {
       const status = _getStatus(e);
       const statusBadge = _statusBadge(status);
-      // 編集可否：管理者は全ステータス可、一般は申請済かつ本人のみ
-      const canEdit = _isAdmin || (status === '申請済' && e.email === email);
+      // 精算済み判定：サーバー側 _isRealSettled と同じロジック
+      const isSettled = status === '精算済' && !String(e.settlementDate || '').startsWith('会社払い');
+      // 編集可否：精算済は不可。管理者は全ステータス可、一般は申請済かつ本人のみ
+      const canEdit = !isSettled && (_isAdmin || (status === '申請済' && e.email === email));
       // 承認ボタン（申請済→登録済）：管理者のみ
       const approveBtn = _isAdmin && status === '申請済'
         ? `<button class="btn btn-outline-success btn-sm py-0 px-1 btn-approve" data-id="${e.id}" title="登録済にする"><i class="bi bi-check"></i></button>` : '';
       const editBtn = canEdit
         ? `<button class="btn btn-outline-secondary btn-sm py-0 px-1 btn-edit-list" data-id="${e.id}"><i class="bi bi-pencil"></i></button>` : '';
-      // 削除可否：管理者かつ自分の登録済レコード（精算済は不可）
+      // 削除可否：精算済は不可
       const canDelete = canEdit;
       const deleteBtn = canDelete
         ? `<button class="btn btn-outline-danger btn-sm py-0 px-1 btn-del-list" data-id="${e.id}" title="削除"><i class="bi bi-trash"></i></button>` : '';
