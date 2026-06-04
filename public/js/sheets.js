@@ -33,6 +33,37 @@ const Sheets = (() => {
     return resp.json();
   }
 
+  /** B' プロキシ 書き込み共通ヘルパー（POST/PUT/DELETE）。
+   *  書き込みは二重実行防止のためフォールバックせず、失敗時は throw する。 */
+  async function _proxyWrite(resource, ssId, method, body, extraQuery = '') {
+    const idToken = await Auth.getIdToken();
+    const opts = { method, headers: { Authorization: `Bearer ${idToken}` } };
+    if (body !== undefined) {
+      opts.headers['Content-Type'] = 'application/json';
+      opts.body = JSON.stringify(body);
+    }
+    const resp = await fetch(`/api/data/${resource}?sheetId=${encodeURIComponent(ssId)}${extraQuery}`, opts);
+    if (!resp.ok) {
+      const e = await resp.json().catch(() => ({}));
+      throw new Error(e.error || `proxy ${resource} ${resp.status}`);
+    }
+    return resp.json().catch(() => ({ ok: true }));
+  }
+
+  // ── B' 高レベル書き込み（意図ベース・サーバー認可付き）。プロキシON時のみ使用 ──
+  /** 既存申請を編集（旧データは修正履歴へ）。サーバーが本人/admin・状態を認可。 */
+  function editExpense(id, row, ssId) {
+    return _proxyWrite('expenses', ssId || _ssId(), 'PUT', { id, row });
+  }
+  /** 申請を削除（削除一覧へ退避）。サーバーが認可・精算済み削除を拒否。 */
+  function deleteExpense(id, ssId) {
+    return _proxyWrite('expenses', ssId || _ssId(), 'DELETE', undefined, `&id=${encodeURIComponent(id)}`);
+  }
+  /** 申請を登録済にする（admin専用・サーバー認可）。 */
+  function approveExpense(id, ssId) {
+    return _proxyWrite('expenses/approve', ssId || _ssId(), 'POST', { ids: [id] });
+  }
+
   /** 一時的なサーバーエラー時に指数バックオフでリトライする fetch ラッパー。 */
   async function _fetchWithRetry(fn, maxRetries = 3) {
     let delay = 1000;
@@ -475,6 +506,12 @@ const Sheets = (() => {
     if (typeof Demo !== 'undefined' && Demo.isActive()) return {};
     if (!ids.length) return {};
     ssId = ssId || _ssId();
+
+    // B' プロキシ経由（オプトイン）。admin専用・サーバー認可。書き込みのためフォールバックなし。
+    if (_useProxy()) {
+      return _proxyWrite('expenses/settle', ssId, 'POST', { ids, date: dateStr });
+    }
+
     const qRows = await read('経費一覧!Q2:Q', ssId);
     const updates = [];
     ids.forEach(id => {
@@ -559,6 +596,9 @@ const Sheets = (() => {
     prependExpense,
     prependRow,
     batchSettle,
+    editExpense,
+    deleteExpense,
+    approveExpense,
     readSetting,
     readAllSettings,
     readMaster,

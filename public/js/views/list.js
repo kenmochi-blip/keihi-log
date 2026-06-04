@@ -613,9 +613,13 @@ const ListView = (() => {
     if (!ok) return;
     App.showLoading('承認中...');
     try {
-      const rowNum = await Sheets.findRowById(id);
-      if (rowNum < 0) throw new Error('行が見つかりません');
-      await Sheets.update(`経費一覧!J${rowNum}`, [[true]]);
+      if (Sheets.useProxy && Sheets.useProxy()) {
+        await Sheets.approveExpense(id);
+      } else {
+        const rowNum = await Sheets.findRowById(id);
+        if (rowNum < 0) throw new Error('行が見つかりません');
+        await Sheets.update(`経費一覧!J${rowNum}`, [[true]]);
+      }
       const e = _expenses.find(x => x.id === id);
       if (e) e.confirmed = true;
       _renderTable(el);
@@ -669,14 +673,18 @@ const ListView = (() => {
     try {
       const e = _expenses.find(x => x.id === id);
       if (!e) throw new Error('レコードが見つかりません');
-      const ssId = localStorage.getItem('keihi_sheet_id');
-      const timeResp = await fetch('/api/time');
-      const deletedAt = timeResp.ok
-        ? (await timeResp.json()).jst
-        : new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
-      await Sheets.prependRow('削除一覧', [deletedAt, Auth.getUserEmail(), ...Sheets.expenseToRow(e)], ssId);
-      const rowIndex = await Sheets.findRowById(id, ssId);
-      if (rowIndex > 0) await Sheets.deleteRow('経費一覧', rowIndex, ssId);
+      if (Sheets.useProxy && Sheets.useProxy()) {
+        await Sheets.deleteExpense(id);
+      } else {
+        const ssId = localStorage.getItem('keihi_sheet_id');
+        const timeResp = await fetch('/api/time');
+        const deletedAt = timeResp.ok
+          ? (await timeResp.json()).jst
+          : new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
+        await Sheets.prependRow('削除一覧', [deletedAt, Auth.getUserEmail(), ...Sheets.expenseToRow(e)], ssId);
+        const rowIndex = await Sheets.findRowById(id, ssId);
+        if (rowIndex > 0) await Sheets.deleteRow('経費一覧', rowIndex, ssId);
+      }
       _expenses = _expenses.filter(x => x.id !== id);
       _renderTable(el);
       App.showToast('削除しました', 'success');
@@ -853,9 +861,13 @@ const ListView = (() => {
   async function approveExpense(id) {
     const e = _expenses.find(x => x.id === id);
     if (!e) throw new Error('レコードが見つかりません');
-    const rowNum = await Sheets.findRowById(id);
-    if (rowNum < 0) throw new Error('行が見つかりません');
-    await Sheets.update(`経費一覧!J${rowNum}`, [[true]]);
+    if (Sheets.useProxy && Sheets.useProxy()) {
+      await Sheets.approveExpense(id);
+    } else {
+      const rowNum = await Sheets.findRowById(id);
+      if (rowNum < 0) throw new Error('行が見つかりません');
+      await Sheets.update(`経費一覧!J${rowNum}`, [[true]]);
+    }
     e.confirmed = true;
   }
 
@@ -863,14 +875,18 @@ const ListView = (() => {
   async function deleteExpense(id) {
     const e = _expenses.find(x => x.id === id);
     if (!e) throw new Error('レコードが見つかりません');
-    const ssId = localStorage.getItem('keihi_sheet_id');
-    const timeResp = await fetch('/api/time');
-    const deletedAt = timeResp.ok
-      ? (await timeResp.json()).jst
-      : new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
-    await Sheets.prependRow('削除一覧', [deletedAt, Auth.getUserEmail(), ...Sheets.expenseToRow(e)], ssId);
-    const rowIndex = await Sheets.findRowById(id, ssId);
-    if (rowIndex > 0) await Sheets.deleteRow('経費一覧', rowIndex, ssId);
+    if (Sheets.useProxy && Sheets.useProxy()) {
+      await Sheets.deleteExpense(id);
+    } else {
+      const ssId = localStorage.getItem('keihi_sheet_id');
+      const timeResp = await fetch('/api/time');
+      const deletedAt = timeResp.ok
+        ? (await timeResp.json()).jst
+        : new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
+      await Sheets.prependRow('削除一覧', [deletedAt, Auth.getUserEmail(), ...Sheets.expenseToRow(e)], ssId);
+      const rowIndex = await Sheets.findRowById(id, ssId);
+      if (rowIndex > 0) await Sheets.deleteRow('経費一覧', rowIndex, ssId);
+    }
     _expenses = _expenses.filter(x => x.id !== id);
   }
 

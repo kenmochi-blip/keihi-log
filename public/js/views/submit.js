@@ -1184,26 +1184,31 @@ function _bindTypeButtons(el) {
 
       // 7. 編集の場合は修正履歴に旧データを保存してから更新
       if (_editId) {
-        const rowNum = await Sheets.findRowById(_editId);
-        if (rowNum > 0) {
-          const oldRows = await Sheets.read(`経費一覧!A${rowNum}:U${rowNum}`);
-          const r = oldRows[0] || [];
-          const oldSummary = [
-            `日付: ${r[3] || ''}`,
-            `支払先: ${r[4] || ''}`,
-            `金額: ${r[5] || ''}`,
-            `科目: ${r[6] || ''}`,
-            `タイプ: ${r[2] || ''}`,
-            `備考: ${r[7] || ''}`,
-            `精算日: ${r[11] || ''}`,
-            `インボイス: ${r[12] || ''}`,
-            `税区分: ${r[18] || ''}`,
-          ].filter(s => !s.endsWith(': ')).join(' / ');
-          // 修正履歴への追記と経費一覧の更新を並列実行
-          await Promise.all([
-            Sheets.prependRow('修正履歴', [appliedAt, Auth.getUserEmail(), oldSummary]),
-            Sheets.update(`経費一覧!A${rowNum}:U${rowNum}`, [row]),
-          ]);
+        if (Sheets.useProxy && Sheets.useProxy()) {
+          // B'プロキシ：旧データ保存・認可・更新をサーバーが一括で行う
+          await Sheets.editExpense(_editId, row);
+        } else {
+          const rowNum = await Sheets.findRowById(_editId);
+          if (rowNum > 0) {
+            const oldRows = await Sheets.read(`経費一覧!A${rowNum}:U${rowNum}`);
+            const r = oldRows[0] || [];
+            const oldSummary = [
+              `日付: ${r[3] || ''}`,
+              `支払先: ${r[4] || ''}`,
+              `金額: ${r[5] || ''}`,
+              `科目: ${r[6] || ''}`,
+              `タイプ: ${r[2] || ''}`,
+              `備考: ${r[7] || ''}`,
+              `精算日: ${r[11] || ''}`,
+              `インボイス: ${r[12] || ''}`,
+              `税区分: ${r[18] || ''}`,
+            ].filter(s => !s.endsWith(': ')).join(' / ');
+            // 修正履歴への追記と経費一覧の更新を並列実行
+            await Promise.all([
+              Sheets.prependRow('修正履歴', [appliedAt, Auth.getUserEmail(), oldSummary]),
+              Sheets.update(`経費一覧!A${rowNum}:U${rowNum}`, [row]),
+            ]);
+          }
         }
       } else {
         await Sheets.prependExpense(row);
@@ -1517,22 +1522,27 @@ function _bindTypeButtons(el) {
     if (!ok) return;
     App.showLoading('削除中...');
     try {
-      const expenses = await Sheets.readExpenses();
-      const e = expenses.find(x => x.id === id);
-      if (!e) throw new Error('申請が見つかりません');
+      if (Sheets.useProxy && Sheets.useProxy()) {
+        // B'プロキシ：削除一覧への退避・認可・削除をサーバーが一括で行う
+        await Sheets.deleteExpense(id);
+      } else {
+        const expenses = await Sheets.readExpenses();
+        const e = expenses.find(x => x.id === id);
+        if (!e) throw new Error('申請が見つかりません');
 
-      const rowNum = await Sheets.findRowById(id);
-      if (rowNum < 0) throw new Error('行が見つかりません');
+        const rowNum = await Sheets.findRowById(id);
+        if (rowNum < 0) throw new Error('行が見つかりません');
 
-      // 削除一覧に移動
-      const timeResp = await fetch(`${window.APP_CONFIG?.apiBase || ''}/api/time`);
-      const deletedAt = timeResp.ok
-        ? (await timeResp.json()).jst
-        : new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
-      await Sheets.prependRow('削除一覧', [deletedAt, Auth.getUserEmail(), ...Sheets.expenseToRow(e)]);
+        // 削除一覧に移動
+        const timeResp = await fetch(`${window.APP_CONFIG?.apiBase || ''}/api/time`);
+        const deletedAt = timeResp.ok
+          ? (await timeResp.json()).jst
+          : new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
+        await Sheets.prependRow('削除一覧', [deletedAt, Auth.getUserEmail(), ...Sheets.expenseToRow(e)]);
 
-      // 元の行を削除
-      await Sheets.deleteRow('経費一覧', rowNum);
+        // 元の行を削除
+        await Sheets.deleteRow('経費一覧', rowNum);
+      }
 
       App.showToast('削除しました', 'success');
       _loadHistory(el);

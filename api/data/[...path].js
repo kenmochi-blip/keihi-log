@@ -143,8 +143,13 @@ async function health(req, res) {
  *     メンバーごとのフィルタはレスポンス時に行う（キャッシュ汚染を避ける）。
  */
 async function expenses(req, res) {
-  if (req.method === 'GET')  return expensesGet(req, res);
-  if (req.method === 'POST') return expensesCreate(req, res);
+  const sub = _pathSegs(req)[3] || '';
+  if (sub === 'approve') return expensesApprove(req, res);
+  if (sub === 'settle')  return expensesSettle(req, res);
+  if (req.method === 'GET')    return expensesGet(req, res);
+  if (req.method === 'POST')   return expensesCreate(req, res);
+  if (req.method === 'PUT')    return expensesEdit(req, res);
+  if (req.method === 'DELETE') return expensesDelete(req, res);
   return res.status(405).json({ error: 'method_not_allowed' });
 }
 
@@ -204,6 +209,122 @@ async function expensesCreate(req, res) {
   await kv.del(`data:exp:${sheetId}`).catch(() => {}); // 一覧キャッシュ無効化
 
   return res.status(200).json({ ok: true, id: r[16] });
+}
+
+/**
+ * PUT /api/data/expenses  body: { id, row }
+ *   既存申請を編集する。旧データを「修正履歴」に残してから経費一覧を更新（電帳法）。
+ *   認可: admin、または「申請済（未承認・未精算）かつ本人」のみ。
+ */
+async function expensesEdit(req, res) {
+  const authz = await _authorize(req, res);
+  if (!authz) return;
+  const { me, isAdmin, sheetId } = authz;
+
+  const body = await _body(req);
+  const id = body?.id;
+  const row = body?.row;
+  if (!id || !Array.isArray(row) || row.length < 17) {
+    return res.status(400).json({ error: 'invalid_request' });
+  }
+
+  const found = await _getExpenseByIdViaSA(sheetId, id);
+  if (!found) return res.status(404).json({ error: 'not_found' });
+  if (!_canModify(me, isAdmin, found.raw)) return res.status(403).json({ error: 'forbidden' });
+
+  const r = row.slice(0, 21);
+  while (r.length < 21) r.push('');
+  // 整合性: 所有者(P)は元のまま維持（編集者で上書きしない）、承認(J)は admin のみ true 可
+  r[15] = found.raw[15] || me.email;
+  r[9]  = isAdmin ? (r[9] === true || r[9] === 'TRUE') : false;
+  r[16] = id;
+
+  // 修正履歴に旧データの要約を残す
+  const o = found.raw;
+  const oldSummary = [
+    `日付: ${o[3] || ''}`, `支払先: ${o[4] || ''}`, `金額: ${o[5] || ''}`,
+    `科目: ${o[6] || ''}`, `タイプ: ${o[2] || ''}`, `備考: ${o[7] || ''}`,
+    `精算日: ${o[11] || ''}`, `インボイス: ${o[12] || ''}`, `税区分: ${o[18] || ''}`,
+  ].filter(s => !s.endsWith(': ')).join(' / ');
+
+  await prependRowViaSA(sheetId, '修正履歴', [_nowJst(), me.email, oldSummary]);
+  await updateRangeViaSA(sheetId, `経費一覧!A${found.rowNum}:U${found.rowNum}`, [r]);
+  await kv.del(`data:exp:${sheetId}`).catch(() => {});
+
+  return res.status(200).json({ ok: true, id });
+}
+
+/**
+ * DELETE /api/data/expenses?id=XXX  （または body { id }）
+ *   申請を削除する。削除前に「削除一覧」へ退避（電帳法）。
+ *   認可: admin、または「申請済かつ本人」。精算済（実精算）は誰でも削除不可。
+ */
+async function expensesDelete(req, res) {
+  const authz = await _authorize(req, res);
+  if (!authz) return;
+  const { me, isAdmin, sheetId } = authz;
+
+  const id = _query(req).get('id') || (await _body(req))?.id;
+  if (!id) return res.status(400).json({ error: 'invalid_request' });
+
+  const found = await _getExpenseByIdViaSA(sheetId, id);
+  if (!found) return res.status(404).json({ error: 'not_found' });
+
+  // 精算済（実精算＝会社払いマーカー以外の精算日）は削除禁止（電帳法）
+  if (_isRealSettled(found.raw)) return res.status(403).json({ error: 'settled_locked' });
+  if (!_canModify(me, isAdmin, found.raw)) return res.status(403).json({ error: 'forbidden' });
+
+  const raw21 = found.raw.slice(0, 21);
+  while (raw21.length < 21) raw21.push('');
+  await prependRowViaSA(sheetId, '削除一覧', [_nowJst(), me.email, ...raw21]);
+  await deleteRowViaSA(sheetId, '経費一覧', found.rowNum);
+  await kv.del(`data:exp:${sheetId}`).catch(() => {});
+
+  return res.status(200).json({ ok: true, id });
+}
+
+/**
+ * POST /api/data/expenses/approve  body: { ids: [...] }
+ *   申請を「登録済」にする（J列=true）。admin 専用。
+ */
+async function expensesApprove(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
+  const authz = await _authorize(req, res);
+  if (!authz) return;
+  if (!authz.isAdmin) return res.status(403).json({ error: 'admin_only' });
+
+  const ids = (await _body(req))?.ids;
+  if (!Array.isArray(ids) || !ids.length) return res.status(400).json({ error: 'invalid_request' });
+
+  const rowNums = await _rowNumsByIds(authz.sheetId, ids);
+  const data = rowNums.map(n => ({ range: `経費一覧!J${n}`, values: [[true]] }));
+  if (data.length) await batchUpdateValuesViaSA(authz.sheetId, data);
+  await kv.del(`data:exp:${authz.sheetId}`).catch(() => {});
+
+  return res.status(200).json({ ok: true, updated: data.length });
+}
+
+/**
+ * POST /api/data/expenses/settle  body: { ids: [...], date: 'YYYY-MM-DD' }
+ *   申請を精算済にする（L列=精算日）。admin 専用。
+ */
+async function expensesSettle(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
+  const authz = await _authorize(req, res);
+  if (!authz) return;
+  if (!authz.isAdmin) return res.status(403).json({ error: 'admin_only' });
+
+  const body = await _body(req);
+  const ids = body?.ids;
+  const date = body?.date;
+  if (!Array.isArray(ids) || !ids.length || !date) return res.status(400).json({ error: 'invalid_request' });
+
+  const rowNums = await _rowNumsByIds(authz.sheetId, ids);
+  const data = rowNums.map(n => ({ range: `経費一覧!L${n}`, values: [[String(date)]] }));
+  if (data.length) await batchUpdateValuesViaSA(authz.sheetId, data);
+  await kv.del(`data:exp:${authz.sheetId}`).catch(() => {});
+
+  return res.status(200).json({ ok: true, updated: data.length });
 }
 
 /**
@@ -338,6 +459,87 @@ async function _sheetGid(sheets, spreadsheetId, title) {
   return s ? s.properties.sheetId : null;
 }
 
+/** UUID(Q列)で経費行を検索。{ rowNum(1始まり), raw(値配列) } または null。 */
+async function _getExpenseByIdViaSA(sheetId, id) {
+  const sheets = sheetsClient();
+  const resp = await sheets.spreadsheets.values.get({
+    spreadsheetId: sheetId, range: '経費一覧!A2:U',
+  });
+  const rows = resp.data.values || [];
+  const idx = rows.findIndex(r => (r[16] || '') === id);
+  if (idx === -1) return null;
+  return { rowNum: idx + 2, raw: rows[idx] };
+}
+
+/** 複数 UUID → 行番号(1始まり)配列（見つかったものだけ）。 */
+async function _rowNumsByIds(sheetId, ids) {
+  const sheets = sheetsClient();
+  const resp = await sheets.spreadsheets.values.get({
+    spreadsheetId: sheetId, range: '経費一覧!Q2:Q',
+  });
+  const col = resp.data.values || [];
+  const idSet = new Set(ids);
+  const nums = [];
+  col.forEach((r, i) => { if (idSet.has(r[0])) nums.push(i + 2); });
+  return nums;
+}
+
+/** 指定シートのヘッダー直下(2行目)に1行挿入して書き込む（SA経由・書式非継承）。 */
+async function prependRowViaSA(sheetId, sheetName, values) {
+  const sheets = sheetsClient();
+  const gid = await _sheetGid(sheets, sheetId, sheetName);
+  if (gid === null) throw new Error(`${sheetName}シートが見つかりません`);
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId: sheetId,
+    requestBody: { requests: [{
+      insertDimension: {
+        range: { sheetId: gid, dimension: 'ROWS', startIndex: 1, endIndex: 2 },
+        inheritFromBefore: false,
+      },
+    }] },
+  });
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: sheetId,
+    range: `${sheetName}!A2`,
+    valueInputOption: 'USER_ENTERED',
+    requestBody: { values: [values] },
+  });
+}
+
+/** 範囲を上書き（SA経由）。 */
+async function updateRangeViaSA(sheetId, range, values) {
+  const sheets = sheetsClient();
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: sheetId, range,
+    valueInputOption: 'USER_ENTERED',
+    requestBody: { values },
+  });
+}
+
+/** 複数範囲を一括上書き（SA経由）。 */
+async function batchUpdateValuesViaSA(sheetId, data) {
+  const sheets = sheetsClient();
+  await sheets.spreadsheets.values.batchUpdate({
+    spreadsheetId: sheetId,
+    requestBody: { valueInputOption: 'USER_ENTERED', data },
+  });
+}
+
+/** 行(1始まり)を削除（SA経由）。 */
+async function deleteRowViaSA(sheetId, sheetName, rowNum) {
+  const sheets = sheetsClient();
+  const gid = await _sheetGid(sheets, sheetId, sheetName);
+  if (gid === null) throw new Error(`${sheetName}シートが見つかりません`);
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId: sheetId,
+    requestBody: { requests: [{
+      deleteDimension: {
+        range: { sheetId: gid, dimension: 'ROWS', startIndex: rowNum - 1, endIndex: rowNum },
+      },
+    }] },
+  });
+}
+
 /** 経費一覧 A2:U を SA で読み、経費オブジェクト配列に変換する（クライアントの readExpenses と整合）。
  *  spreadsheets.get + hyperlink フィールドで I列のハイパーリンクURLも取得する。 */
 async function readExpensesViaSA(sheetId) {
@@ -416,8 +618,39 @@ function _query(req) {
   return new URL(req.url, 'http://localhost').searchParams;
 }
 
+/** URL のパスセグメント配列（例: /api/data/expenses/approve → ['api','data','expenses','approve']）。 */
+function _pathSegs(req) {
+  const p = req.url ? req.url.split('?')[0] : '';
+  return p.split('/').filter(Boolean);
+}
+
 function _validSheetId(id) {
   return typeof id === 'string' && /^[a-zA-Z0-9_-]{20,}$/.test(id);
+}
+
+/** クライアント /api/time の jst と同形式のサーバー時刻文字列。 */
+function _nowJst() {
+  return new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
+}
+
+/* ── 経費の状態判定・編集可否（クライアント list.js と同一ルール） ── */
+function _statusOf(raw) {
+  const settlement = raw[11];                       // L列：精算日
+  if (settlement != null && String(settlement).trim() !== '') return '精算済';
+  if (raw[9] === true || raw[9] === 'TRUE') return '登録済';  // J列：承認
+  return '申請済';
+}
+
+/** 実精算（会社払いマーカーでない精算日）か。電帳法上の削除禁止判定に使う。 */
+function _isRealSettled(raw) {
+  const s = String(raw[11] ?? '').trim();
+  return s !== '' && !s.startsWith('会社払い');
+}
+
+/** 編集・削除を許可するか：admin、または「申請済かつ本人」。 */
+function _canModify(me, isAdmin, raw) {
+  if (isAdmin) return true;
+  return _statusOf(raw) === '申請済' && String(raw[15] || '').toLowerCase() === me.email;
 }
 
 /** リクエストボディを JSON として取得する。Vercel が既にパース済みなら req.body を使う。 */
