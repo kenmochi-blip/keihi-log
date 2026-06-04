@@ -991,7 +991,13 @@ const SettingsView = (() => {
     if (!ok) return;
     _master.members.splice(idx, 1);
     _revokeMemberAccess(member.email).catch(() => {});
-    await _saveMasterToSheet(el);
+    try {
+      await _saveMasterToSheet(el);
+    } catch (err) {
+      App.showToast(`削除エラー: ${err.message}`, 'danger');
+      _master.members.splice(idx, 0, member); // ロールバック
+      _renderMembers(el);
+    }
   }
 
   async function _grantMemberAccess(email) {
@@ -1051,7 +1057,7 @@ const SettingsView = (() => {
       // A:氏名 B:メール C:所属 D:権限 E:備考 F:会社払い支払元 G:勘定科目 H:カスタムフラグ
       rows.push([m.name || '', m.email || '', m.dept || '', m.role || '', '', p, c, f]);
     }
-    await Sheets.update(`マスタ表!A2:H${rows.length + 1}`, rows);
+    await Sheets.writeMaster(rows);
     App.showToast('保存しました', 'success');
 
     const syncCount = await _syncMemberNamesToExpenses(_master.members);

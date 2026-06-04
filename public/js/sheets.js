@@ -431,6 +431,26 @@ const Sheets = (() => {
     };
   }
 
+  /**
+   * マスタ表を SA プロキシ経由で一括上書きする（admin専用）。
+   * プロキシOFF時は従来の直接書き込みにフォールバック。
+   */
+  async function writeMaster(rows, ssId) {
+    if (typeof Demo !== 'undefined' && Demo.isActive()) return {};
+    ssId = ssId || _ssId();
+    if (_useProxy()) {
+      return _proxyWrite('masters', ssId, 'PUT', { rows });
+    }
+    // フォールバック: 直接書き込み（drive.file スコープが有効な場合のみ動作）
+    await Auth.authFetch(
+      `${BASE}/${ssId}/values/${encodeURIComponent('マスタ表!A2:H')}:clear`,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' } }
+    );
+    if (rows.length > 0) {
+      await update(`マスタ表!A2:H${rows.length + 1}`, rows, ssId);
+    }
+  }
+
   /** 複数範囲を一括上書きする（名前同期などに使用）*/
   async function batchUpdateValues(data, ssId) {
     if (typeof Demo !== 'undefined' && Demo.isActive()) return {};
@@ -646,6 +666,7 @@ const Sheets = (() => {
     readAllSettings,
     writeSetting,
     readMaster,
+    writeMaster,
     verifyProxyAccess,
     useProxy: _useProxy,
     _rowToExpense,

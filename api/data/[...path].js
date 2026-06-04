@@ -377,16 +377,35 @@ async function expensesUnsettle(req, res) {
 }
 
 /**
- * GET /api/data/masters?sheetId=XXX
- *   マスタ表（メンバー/勘定科目/支払元/カスタムフラグ/admin判定）を SA 経由で取得する。
- *   メンバーであれば全員が同じマスタを取得する（アプリ動作に必要なため）。
+ * GET  /api/data/masters?sheetId=XXX  マスタ取得（メンバー共通）
+ * PUT  /api/data/masters?sheetId=XXX  マスタ表を SA で一括上書き（admin専用）
+ *   body: { rows: [[...], ...] }  — A2:H の全行データ。余剰行クリア込みで渡すこと。
  */
 async function masters(req, res) {
+  if (req.method === 'PUT') return mastersWrite(req, res);
   if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
   const authz = await _authorize(req, res);
   if (!authz) return;
   // _authorize が読んだマスタをそのまま返す（追加のAPIコールを避ける）
   return res.status(200).json({ master: authz.master });
+}
+
+async function mastersWrite(req, res) {
+  const authz = await _authorize(req, res);
+  if (!authz) return;
+  if (!authz.isAdmin) return res.status(403).json({ error: 'admin_only' });
+
+  const { rows } = req.body || {};
+  if (!Array.isArray(rows)) return res.status(400).json({ error: 'rows_required' });
+
+  const sheetId = authz.sheetId;
+  // 既存データを全消去してから書き込む（削除時の残留行を防ぐ）
+  const sheets = sheetsClient();
+  await sheets.spreadsheets.values.clear({ spreadsheetId: sheetId, range: 'マスタ表!A2:H' });
+  if (rows.length > 0) {
+    await updateRangeViaSA(sheetId, `マスタ表!A2:H${rows.length + 1}`, rows);
+  }
+  return res.status(200).json({ ok: true });
 }
 
 /**
