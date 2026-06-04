@@ -98,6 +98,10 @@ const App = (() => {
       ).catch(() => null);
       if (probe?.ok) {
         _markSheetAccessVerified(ssId);
+      } else if (Sheets.useProxy && Sheets.useProxy() && await Sheets.verifyProxyAccess(ssId).catch(() => false)) {
+        // 直接アクセス不可でも、B'プロキシでメンバー確認できれば続行する。
+        // 以降のデータ読み書きはプロキシ経由で行われる。
+        _markSheetAccessVerified(ssId);
       } else {
         // drive.file では共有シートにアクセスできない（管理者以外）
         // → プロキシ経由のメンバーアクセス実装までは案内のみ表示

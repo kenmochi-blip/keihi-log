@@ -282,8 +282,33 @@ const Sheets = (() => {
       if (cell === 'B2') return 'デモ会社';
       return '';
     }
+    ssId = ssId || _ssId();
+
+    // B' プロキシ経由（オプトイン）。設定エンドポイントが返すセル（B2/B3/B4/B6/B7）のみ対応。
+    // B5（Gemini APIキー）はプロキシでは取得しない（秘匿）ため直接アクセスにフォールバック。
+    if (_useProxy() && cell !== 'B5') {
+      try {
+        const data = await _proxyGet('settings', ssId);
+        if (data.settings && cell in data.settings) return data.settings[cell] ?? '';
+      } catch (e) {
+        console.warn('[proxy] readSetting → 直接アクセスにフォールバック', e);
+      }
+    }
+
     const rows = await read(`設定!${cell}`, ssId);
     return rows?.[0]?.[0] ?? '';
+  }
+
+  /** B' プロキシでこのシートにアクセス可能（=マスタ表のメンバー）かを確認する。
+   *  settings エンドポイントが 200 を返せばメンバー。失敗なら false。 */
+  async function verifyProxyAccess(ssId) {
+    ssId = ssId || _ssId();
+    try {
+      await _proxyGet('settings', ssId);
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   /** 設定シートのB2:B7を1回のAPIコールで読んで返す */
@@ -521,6 +546,8 @@ const Sheets = (() => {
     readSetting,
     readAllSettings,
     readMaster,
+    verifyProxyAccess,
+    useProxy: _useProxy,
     _rowToExpense,
   };
 })();
