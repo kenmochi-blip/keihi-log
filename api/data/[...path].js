@@ -20,8 +20,12 @@ import { getSaAuth, isSaConfigured } from '../_sa.js';
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
 
-  const segs = [].concat(req.query?.path || []);
-  const resource = segs[0] || '';
+  // req.query.path (Vercel dynamic route injection) が空の場合もあるため
+  // req.url から直接パスを解析する（確実な方法）
+  const urlPath = req.url ? req.url.split('?')[0] : '';
+  const segs = urlPath.split('/').filter(Boolean);
+  // segs例: ['api', 'data', 'health'] → resource = 'health'
+  const resource = segs[2] || segs[segs.length - 1] || '';
 
   switch (resource) {
     case 'health':
