@@ -166,14 +166,15 @@ const Sheets = (() => {
    *  spreadsheets.get + hyperlink フィールドを使うことで Insert→Link 形式の
    *  ハイパーリンクセルも正しくURLを取得できる（values.get では表示テキストしか得られない）。
    */
-  async function readExpenses(ssId) {
+  async function readExpenses(ssId, refresh) {
     if (typeof Demo !== 'undefined' && Demo.isActive()) return [...Demo.EXPENSES];
     ssId = ssId || _ssId();
 
     // B' プロキシ経由（オプトイン）。失敗時は従来の直接アクセスにフォールバックする。
     if (_useProxy()) {
       try {
-        const data = await _proxyGet('expenses', ssId);
+        // refresh=1 でサーバーの60秒KVキャッシュをバイパス（明示的な「更新」操作用）
+        const data = await _proxyGet('expenses', ssId, refresh ? '&refresh=1' : '');
         return data.expenses || [];
       } catch (e) {
         console.warn('[proxy] readExpenses → 直接アクセスにフォールバック', e);

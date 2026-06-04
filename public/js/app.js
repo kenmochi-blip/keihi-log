@@ -535,14 +535,16 @@ const App = (() => {
     }
 
     // ③ キャッシュなし / 30分超 / force=true：重複リクエストがあれば相乗り
-    if (_expensesInflight) {
+    //    ただし force（明示更新）の場合は古い相乗り結果で済まさず必ず取り直す
+    if (_expensesInflight && !force) {
       await _expensesInflight;
       return _expensesCache;
     }
     let resolve, reject;
     _expensesInflight = new Promise((res, rej) => { resolve = res; reject = rej; });
     try {
-      const rows       = await Sheets.readExpenses();
+      // force 時はサーバーKVキャッシュもバイパス
+      const rows       = await Sheets.readExpenses(undefined, force);
       _expensesCache   = rows;
       _expensesCacheAt = Date.now();
       _saveExpensesLocal(rows);

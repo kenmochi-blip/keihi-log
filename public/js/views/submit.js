@@ -388,7 +388,7 @@ const SubmitView = (() => {
     _initCarRate(el);
     _bindCarCalc(el);
     _bindSubmit(el);
-    el.querySelector('#btnRefreshHistory')?.addEventListener('click', () => _loadHistory(el));
+    el.querySelector('#btnRefreshHistory')?.addEventListener('click', () => _loadHistory(el, true));
     el.querySelector('#btnCancelEdit')?.addEventListener('click', () => _cancelEdit(el));
     // 初期パネルが領収書の場合は申請ボタンを非表示
     if (_currentType === '領収書') el.querySelector('#btnSubmit')?.classList.add('d-none');
@@ -1352,14 +1352,14 @@ function _bindTypeButtons(el) {
     return alerts;
   }
 
-  async function _loadHistory(el) {
+  async function _loadHistory(el, force) {
     const list = el.querySelector('#historyList');
     if (!list) return;
     list.innerHTML = '<div class="text-muted small text-center py-2">読み込み中...</div>';
     // シートIDが確定するまで待機（別経費ログの履歴が一瞬表示されるのを防ぐ）
     await App.waitSheetReady();
     try {
-      const all = await App.getExpenses();
+      const all = await App.getExpenses(force);
       _historyExpenses = all;
       _historyAll = all
         .filter(e => e.email === Auth.getUserEmail())
