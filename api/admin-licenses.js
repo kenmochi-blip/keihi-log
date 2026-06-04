@@ -416,15 +416,17 @@ ${logText}
       const { plan: newPlan, expiresAt: customExpiry } = req.body;
       const expiresAt = customExpiry ? new Date(customExpiry) : new Date();
       if (!customExpiry) expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+      // プラン変更のみ（有料転換なし）の場合は planChangedAt を記録
+      const isPlanOnly = !!newPlan && newPlan !== data.plan && !!data.upgradedAt;
       const updated = {
         ...data,
-        upgradedAt: new Date().toISOString(),
+        ...(isPlanOnly ? { planChangedAt: new Date().toISOString(), prevPlan: data.plan } : { upgradedAt: new Date().toISOString() }),
         expiresAt:  expiresAt.toISOString().split('T')[0],
-        note:       (data.note ? data.note + ' ' : '') + '→有料転換（手動）',
+        note:       (data.note ? data.note + ' ' : '') + (isPlanOnly ? `→プラン変更（${newPlan}）` : '→有料転換（手動）'),
         ...(newPlan ? { plan: newPlan } : {}),
       };
       await kv.set(`license:${key}`, updated);
-      console.log(`License manually upgraded: ${key}`);
+      console.log(`License manually ${isPlanOnly ? 'plan-changed' : 'upgraded'}: ${key}`);
       return res.status(200).json({ ok: true, ...updated });
     }
 
