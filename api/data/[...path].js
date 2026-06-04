@@ -16,8 +16,10 @@
  *   サーバーは SA で対象シートの「マスタ表」を読み、その email がメンバーか確認する。
  *   メンバーのみデータを返す。admin は全件、一般メンバーは自分の行のみ（サーバー側フィルタ）。
  */
+import crypto from 'node:crypto';
+import { Readable } from 'node:stream';
 import { kv } from '@vercel/kv';
-import { sheetsClient, isSaConfigured } from '../_sa.js';
+import { sheetsClient, driveClient, isSaConfigured } from '../_sa.js';
 import { getSaAuth } from '../_sa.js';
 import { verifyIdToken } from '../_verifyToken.js';
 
@@ -41,6 +43,8 @@ export default async function handler(req, res) {
         return await masters(req, res);
       case 'settings':
         return await settings(req, res);
+      case 'receipt':
+        return await receipt(req, res);
       default:
         return res.status(404).json({ error: 'not_found', resource });
     }
@@ -172,8 +176,12 @@ async function expensesGet(req, res) {
   }
 
   const rows = isAdmin ? all : all.filter(e => (e.email || '').toLowerCase() === me.email);
+  // 証票リンク（Drive URL）を署名付きプロキシURLへ書き換える。
+  // 署名は「このメンバーが閲覧できる経費」にのみ発行されるため、他人の証票URLは取得できない。
+  // キャッシュ済みオブジェクトは変更せずシャローコピーで返す（署名はリクエスト毎に再発行）。
+  const signed = rows.map(e => e.imageLinks ? { ...e, imageLinks: _signImageLinks(e.imageLinks) } : e);
   return res.status(200).json({
-    expenses: rows,
+    expenses: signed,
     role: isAdmin ? 'admin' : 'member',
     cached,
   });
@@ -205,6 +213,7 @@ async function expensesCreate(req, res) {
   r[15] = me.email;                       // P: email（本人に強制）
   r[9]  = isAdmin ? (r[9] === true || r[9] === 'TRUE') : false; // J: 承認は admin のみ
   if (!r[16]) r[16] = _uuid();            // Q: id
+  r[8]  = _normalizeImageLinks(r[8]);     // I: 署名付きプロキシURL→永続Drive URLへ戻す
 
   await prependExpenseRowViaSA(sheetId, r);
   await kv.del(`data:exp:${sheetId}`).catch(() => {}); // 一覧キャッシュ無効化
@@ -239,6 +248,7 @@ async function expensesEdit(req, res) {
   r[15] = found.raw[15] || me.email;
   r[9]  = isAdmin ? (r[9] === true || r[9] === 'TRUE') : false;
   r[16] = id;
+  r[8]  = _normalizeImageLinks(r[8]);     // I: 署名付きプロキシURL→永続Drive URLへ戻す
 
   // 修正履歴に旧データの要約を残す
   const o = found.raw;
@@ -420,6 +430,125 @@ async function settingsWrite(req, res) {
 
   await updateRangeViaSA(authz.sheetId, `設定!${cell}`, [[value == null ? '' : value]]);
   return res.status(200).json({ ok: true });
+}
+
+/* ───────────────────────── 証票（領収書）プロキシ ───────────────────────── */
+
+/**
+ * 証票アップロード/閲覧プロキシ。
+ *   POST /api/data/receipt?sheetId=XXX  body: { base64, mimeType, filename }
+ *     → メンバー認可後、設定B4の証票フォルダへ SA でアップロードし webViewLink を返す。
+ *   GET  /api/data/receipt?fileId=YYY&exp=...&sig=...
+ *     → HMAC署名付きURLを検証し、SA で画像本体をストリーム配信（強キャッシュ）。
+ *        署名は expenses 読み取り時に「閲覧権のある経費」にのみ発行される。
+ */
+async function receipt(req, res) {
+  if (req.method === 'POST') return receiptUpload(req, res);
+  if (req.method === 'GET')  return receiptGet(req, res);
+  return res.status(405).json({ error: 'method_not_allowed' });
+}
+
+async function receiptUpload(req, res) {
+  const authz = await _authorize(req, res);
+  if (!authz) return;
+
+  const body = await _body(req);
+  const base64   = String(body?.base64 || '');
+  const mimeType = String(body?.mimeType || 'application/octet-stream');
+  const filename = String(body?.filename || 'receipt');
+  if (!base64) return res.status(400).json({ error: 'no_file' });
+
+  // 証票フォルダID（設定!B4）を SA で取得
+  const sheets = sheetsClient();
+  const cfg = await sheets.spreadsheets.values.get({
+    spreadsheetId: authz.sheetId, range: '設定!B4',
+  });
+  const folderId = cfg.data.values?.[0]?.[0] || '';
+
+  const clean = base64.replace(/^data:[^;]+;base64,/, '');
+  const buf = Buffer.from(clean, 'base64');
+  const drive = driveClient();
+  const created = await drive.files.create({
+    requestBody: { name: filename, mimeType, ...(folderId ? { parents: [folderId] } : {}) },
+    media: { mimeType, body: bufferToStream(buf) },
+    fields: 'id, webViewLink',
+  });
+
+  return res.status(200).json({ id: created.data.id, webViewLink: created.data.webViewLink });
+}
+
+async function receiptGet(req, res) {
+  const q = _query(req);
+  const fileId = q.get('fileId') || '';
+  const exp = Number(q.get('exp') || 0);
+  const sig = q.get('sig') || '';
+  if (!fileId || !exp || !sig) return res.status(400).json({ error: 'bad_request' });
+  if (Date.now() > exp) return res.status(403).json({ error: 'expired' });
+  if (!_verifyReceiptSig(fileId, exp, sig)) return res.status(403).json({ error: 'bad_signature' });
+
+  try {
+    const drive = driveClient();
+    const meta = await drive.files.get({ fileId, fields: 'mimeType' });
+    const mime = meta.data.mimeType || 'application/octet-stream';
+    const stream = await drive.files.get(
+      { fileId, alt: 'media' }, { responseType: 'stream' }
+    );
+    res.setHeader('Content-Type', mime);
+    res.setHeader('Content-Disposition', 'inline');
+    // 証票は不変なのでブラウザ内に長期キャッシュ（署名TTL内のみ有効）
+    res.setHeader('Cache-Control', 'private, max-age=86400, immutable');
+    await new Promise((resolve, reject) => {
+      stream.data.on('end', resolve).on('error', reject).pipe(res);
+    });
+  } catch (e) {
+    console.error('receiptGet error:', e?.message || e);
+    return res.status(404).json({ error: 'not_found' });
+  }
+}
+
+/** Buffer を Readable ストリームへ（googleapis の media.body 用）。 */
+function bufferToStream(buf) {
+  return Readable.from(buf);
+}
+
+/** 証票署名の秘密鍵（GOOGLE_SA_KEY から導出。新規環境変数を増やさない）。 */
+function _receiptSecret() {
+  return crypto.createHash('sha256').update(process.env.GOOGLE_SA_KEY || '').digest();
+}
+function _signReceipt(fileId, exp) {
+  return crypto.createHmac('sha256', _receiptSecret()).update(`${fileId}:${exp}`).digest('hex');
+}
+function _verifyReceiptSig(fileId, exp, sig) {
+  const expected = _signReceipt(fileId, exp);
+  const a = Buffer.from(sig, 'hex'), b = Buffer.from(expected, 'hex');
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+/** Drive URL から fileId を抽出。 */
+function _driveFileId(url) {
+  const s = String(url || '');
+  const m = s.match(/\/d\/([a-zA-Z0-9_-]+)/) || s.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  return m ? m[1] : '';
+}
+/** 書き込み時の逆変換：署名付きプロキシURLを永続的な Drive URL に戻す。
+ *  =HYPERLINK("...") ラップやカンマ結合を壊さないよう、URL部分のみを置換する。
+ *  （クライアントが読み取り時の署名URLをそのまま書き戻しても、シートには正準URLを保存する） */
+function _normalizeImageLinks(links) {
+  const s = String(links || '');
+  if (!s || !s.includes('/api/data/receipt')) return s;
+  return s.replace(/\/api\/data\/receipt\?[^"',\s]*/g, (m) => {
+    const id = m.match(/[?&]fileId=([a-zA-Z0-9_-]+)/)?.[1] || '';
+    return id ? `https://drive.google.com/file/d/${id}/view` : m;
+  });
+}
+
+/** カンマ区切りの証票URL群を署名付きプロキシURLへ書き換える。抽出不能URLは原文維持。 */
+function _signImageLinks(links) {
+  const exp = Date.now() + 24 * 3600 * 1000;
+  return String(links).split(',').map(s => s.trim()).filter(Boolean).map(url => {
+    const id = _driveFileId(url);
+    if (!id) return url;
+    return `/api/data/receipt?fileId=${encodeURIComponent(id)}&exp=${exp}&sig=${_signReceipt(id, exp)}`;
+  }).join(',');
 }
 
 /* ───────────────────────── SA データアクセス ───────────────────────── */

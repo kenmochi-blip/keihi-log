@@ -74,7 +74,12 @@
   - 精算済（実精算）は編集・削除不可（電帳法）。誤精算の訂正用に admin 限定の unsettle を用意
 - [x] 設定シート書き込み（B2-B7）をプロキシ化（`PUT /api/data/settings`・admin専用・セルホワイトリスト）
   - セットアップ直後（SA共有前）の書き込みは作成者トークンで直接 update のまま
-- [ ] 領収書アップロードを SA 経由化（証票フォルダにも SA をエディタ共有が必要）
+- [x] 領収書アップロードを SA 経由化（`POST /api/data/receipt`・設定B4のフォルダへSA保存）
+  - 閲覧は読み取り時にサーバーが Drive URL → HMAC署名付きプロキシURL（`GET /api/data/receipt`・24hTTL・
+    `immutable`キャッシュ）へ書き換え。署名は閲覧権のある経費にのみ発行。
+  - 書き込み時はサーバーが署名URL→永続Drive URLへ逆変換（`_normalizeImageLinks`）し正準URLを保存。
+  - ⚠️ 前提: 各チームの**証票フォルダにも SA をエディタ共有**が必要（共有前は upload/閲覧が失敗）。
+    署名URLの秘密鍵は `GOOGLE_SA_KEY` から導出（新規環境変数なし）。
 - [ ] Gemini をサーバープロキシ化（APIキーをブラウザに出さない）
 - [ ] メンバーのシートアクセスをプロキシ完全移行（`keihi_use_proxy` のデフォルトON化）
 - 運用中の本番シート（2チーム）には SA をエディタ共有済み

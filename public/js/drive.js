@@ -60,6 +60,21 @@ const Drive = (() => {
   async function uploadFile(base64, mimeType, filename) {
     if (typeof Demo !== 'undefined' && Demo.isActive())
       return { id: 'demo', webViewLink: '' };
+
+    // B' プロキシ経由（オプトイン）。SA が証票フォルダ（設定B4）へ代理アップロードする。
+    // 書き込みのためフォールバックしない（二重アップロード防止）。
+    if (typeof Sheets !== 'undefined' && Sheets.useProxy && Sheets.useProxy()) {
+      const ssId = localStorage.getItem('keihi_sheet_id') || '';
+      const idToken = await Auth.getIdToken();
+      const resp = await fetch(`/api/data/receipt?sheetId=${encodeURIComponent(ssId)}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${idToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ base64, mimeType, filename }),
+      });
+      if (!resp.ok) throw new Error(`Receipt upload error: ${resp.status}`);
+      return resp.json(); // { id, webViewLink }
+    }
+
     const folderId = _folderId();
 
     // Base64 → Blob
