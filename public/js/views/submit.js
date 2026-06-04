@@ -492,27 +492,11 @@ function _bindTypeButtons(el) {
         _compressPromise = Gemini.precompress(_selectedFiles);
         Gemini.warmup();
 
-        // 圧縮完了次第 AI 解析を自動開始（ボタン押下前に解析を済ませる）
+        // 圧縮完了次第 AI 解析をバックグラウンドで先行実行（ボタン押下時にすぐ結果を返すため）
         _compressPromise.then(compressed => {
           _compressedFiles = compressed;
           if (version !== _aiAutoVersion) return; // 別の写真に差し替えられた場合は破棄
-
-          const btn = el.querySelector('#btnAnalyze');
-          // AI解析をバックグラウンド実行（エラーは null で吸収してボタン押下時に再試行）
           _aiAutoPromise = Gemini.analyzeReceipt(compressed, _cats, false).catch(() => null);
-
-          // ボタンに「解析中」インジケーターを追加
-          if (btn && !btn.disabled) {
-            btn.innerHTML = '<i class="bi bi-stars me-2"></i>AIで読み取る'
-              + '<span class="spinner-border spinner-border-sm ms-2" style="width:.7rem;height:.7rem;border-width:.1em;opacity:.5;vertical-align:middle;"></span>';
-          }
-
-          _aiAutoPromise.then(result => {
-            if (version !== _aiAutoVersion || !btn || btn.disabled) return;
-            btn.innerHTML = result
-              ? '<i class="bi bi-check-circle-fill text-success me-2"></i>読み取り完了 — タップで確認'
-              : '<i class="bi bi-stars me-2"></i>AIで読み取る'; // 失敗時はデフォルトに戻す
-          });
         });
 
         // 申請時刻をプリフェッチ（申請ボタン押下時の待ちをゼロにする）
