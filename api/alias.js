@@ -11,6 +11,7 @@
  */
 
 import { kv } from '@vercel/kv';
+import { rateLimit } from './_rateLimit.js';
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
@@ -55,7 +56,11 @@ export default async function handler(req, res) {
 
   // POST: エイリアス登録（有効なライセンスキー必須）
   if (req.method === 'POST') {
-    const { code, sheetId, licenseKey, setupCode } = req.body || {};
+    // ライセンスキー総当たり・エイリアス量産を防ぐためレート制限
+    const rl = await rateLimit(req, { prefix: 'rl:alias', limit: 10, window: 60 });
+    if (!rl.ok) return res.status(429).json({ error: 'rate_limited' });
+
+    const { code, sheetId, licenseKey, setupCode, companyName } = req.body || {};
     if (!code || !sheetId || !licenseKey) {
       return res.status(400).json({ error: 'missing_fields' });
     }
@@ -69,35 +74,38 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: 'invalid_license' });
     }
 
-    // 同一ライセンスキーで既にセットアップ済みか確認
-    const existingAlias = await kv.get(`license_alias:${licenseKey}`).catch(() => null);
-    if (existingAlias && existingAlias !== code) {
-      return res.status(409).json({ error: 'already_setup', alias: existingAlias });
-    }
-
     // setupCode の照合（手動発行ライセンスは license_ref が存在しないためスキップ）
     const boundSetupCode = await kv.get(`license_ref:${licenseKey}`).catch(() => null);
     if (boundSetupCode && setupCode !== boundSetupCode) {
       return res.status(403).json({ error: 'setup_code_mismatch' });
     }
 
-    // 一度登録したエイリアスは変更不可
-    const existingCode = await kv.get(`alias_by_sheet:${sheetId}`).catch(() => null);
-    if (existingCode && existingCode !== code) {
-      return res.status(409).json({ error: 'alias_already_set', alias: existingCode });
+    // ── ライセンス→エイリアスの紐付けをアトミックに先勝ちで確定（NX）──
+    // 既に紐付け済みなら、その値が今回のcodeと一致する場合のみ冪等に続行（管理者の再セットアップ）。
+    // 異なるcodeでの上書き登録（乗っ取り）は拒否。TOCTOUレースもNXで排除。
+    const licClaim = await kv.set(`license_alias:${licenseKey}`, code, { nx: true }).catch(() => null);
+    if (licClaim === null) {
+      const existingAlias = await kv.get(`license_alias:${licenseKey}`).catch(() => null);
+      if (existingAlias && existingAlias !== code) {
+        return res.status(409).json({ error: 'already_setup', alias: existingAlias });
+      }
+      // existingAlias === code → 冪等な再登録として続行
     }
 
-    // 指定コードが別のシートで使われていないか確認
-    const existingSheet = await kv.get(`alias:${code}`).catch(() => null);
-    if (existingSheet && existingSheet !== sheetId) {
-      return res.status(409).json({ error: 'code_taken' });
+    // ── コード→シートIDをアトミックに先勝ちで確定（NX）──
+    const codeClaim = await kv.set(`alias:${code}`, sheetId, { nx: true }).catch(() => null);
+    if (codeClaim === null) {
+      const existingSheet = await kv.get(`alias:${code}`).catch(() => null);
+      if (existingSheet && existingSheet !== sheetId) {
+        // コードは別シートに使用済み。乗っ取り防止のためライセンス紐付けを巻き戻す
+        if (licClaim !== null) await kv.del(`license_alias:${licenseKey}`).catch(() => {});
+        return res.status(409).json({ error: 'code_taken' });
+      }
     }
 
-    await kv.set(`alias:${code}`, sheetId);
+    // 逆引き等の付随情報（先勝ち確定後なので上書きしても安全）
     await kv.set(`alias_by_sheet:${sheetId}`, code);
-    await kv.set(`license_alias:${licenseKey}`, code);
     await kv.set(`alias_lic:${code}`, licenseKey);
-    const { companyName } = req.body;
     if (companyName) await kv.set(`alias_company:${code}`, companyName);
     return res.status(200).json({ ok: true });
   }
