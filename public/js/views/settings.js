@@ -159,6 +159,7 @@ const SettingsView = (() => {
       class="btn btn-link btn-sm text-decoration-none text-secondary" style="font-size:0.78rem;">
       <i class="bi bi-table me-1"></i>スプレッドシートを直接開く
     </a>
+    <div class="text-muted" style="font-size:0.72rem;">⚠️ シートの内容を直接編集するとアプリが正常に動作しなくなる場合があります</div>
   </div>` : ''}
 </div>`;
   }
