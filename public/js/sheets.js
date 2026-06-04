@@ -15,10 +15,10 @@ const Sheets = (() => {
   const BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
   const _RETRYABLE = new Set([429, 500, 502, 503, 504]);
 
-  /** B' プロキシ経由を使うか（オプトイン）。localStorage keihi_use_proxy === '1' のときON。
-   *  デフォルトOFFのため本番ユーザーは従来通り直接 Google API を叩く。 */
+  /** B' プロキシ経由を使うか。デフォルトON（B'実装完了につきデフォルト移行）。
+   *  localStorage keihi_use_proxy === '0' で明示的にOFFにできる（緊急フォールバック用）。 */
   function _useProxy() {
-    try { return localStorage.getItem('keihi_use_proxy') === '1'; } catch (_) { return false; }
+    try { return localStorage.getItem('keihi_use_proxy') !== '0'; } catch (_) { return true; }
   }
 
   /** B' プロキシ GET 共通ヘルパー。成功時は JSON を返す。失敗時は throw（呼び出し側でフォールバック）。 */

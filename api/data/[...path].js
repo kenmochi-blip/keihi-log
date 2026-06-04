@@ -69,7 +69,14 @@ async function _authorize(req, res) {
     res.status(400).json({ error: 'invalid_sheet_id' }); return null;
   }
 
-  const master = await readMaster(sheetId);
+  let master;
+  try {
+    master = await readMaster(sheetId);
+  } catch (e) {
+    // SA がシートにアクセスできない場合（共有未設定など）は 503 を返す（500 ではなくプロキシ失敗と明示）
+    res.status(503).json({ error: 'sa_sheet_access_failed', message: e.message || 'SA cannot read sheet' });
+    return null;
+  }
   const isAdmin = master.admins.includes(me.email);
   const isMember = isAdmin || master.members.some(m => m.email === me.email);
   if (!isMember) { res.status(403).json({ error: 'not_a_member' }); return null; }
