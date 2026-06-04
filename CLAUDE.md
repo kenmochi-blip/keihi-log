@@ -53,15 +53,12 @@
 
 ## やることリスト
 
-### 🔴 未着手・要対応
+### 🟢 OAuth スコープ審査について
 
-- [ ] **Google OAuth スコープ審査の申請**
-  - 現在未着手。審査通過まで外部ユーザーへの公開は制限付き
-
-### 🟡 OAuth 審査完了後にやること
-
-- [ ] **OAuthサポートメールを変更**（GCPコンソール → OAuth同意画面 → サポートメール）
-  - 個人メール（kenmochi@smartandsmooth.com）をドメインメール等に変更
+- **審査不要**（確認済み）
+  - 現在のスコープ（`drive.file` / `userinfo.email` / `openid` / `email` / `profile`）はすべてGCPコンソールで「非機密」に分類されており、Googleの検証作業は不要
+- [ ] **OAuthサポートメールを変更**（任意・低優先度）
+  - GCPコンソール → OAuth同意画面 → サポートメールを個人メール（kenmochi@smartandsmooth.com）から変更
 
 ### 🟢 B'（SAプロキシ）実装の進捗
 
