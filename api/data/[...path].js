@@ -609,7 +609,7 @@ function rowToExpense(row) {
     imageLinks:     extractUrl(row[8] || ''),
     confirmed:      row[9]  === true || row[9] === 'TRUE',
     aiAudit:        row[10] || '',
-    settlementDate: row[11] != null && row[11] !== '' ? String(row[11]) : '',
+    settlementDate: parseSheetDate(row[11]),  // シリアル値なら YYYY-MM-DD、会社払い等の文字列はそのまま
     invoice:        row[12] || '',
     aiAmount:       Number(row[13]) || 0,
     imageHash:      row[14] || '',

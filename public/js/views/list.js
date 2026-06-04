@@ -510,7 +510,7 @@ const ListView = (() => {
         <td class="list-note-cell text-muted${e.note ? ' expandable' : ''}">${e.note ? `<span class="note-text">${_escape(e.note)}</span><i class="bi bi-chevron-down note-expand-chevron"></i>` : ''}</td>
         <td class="text-center"><div class="d-flex flex-wrap gap-1 justify-content-center">${receiptBtns}</div></td>
         <td>${statusBadge}</td>
-        <td class="text-center" style="font-size:0.75rem;white-space:nowrap;">${_escape(e.settlementDate || '')}</td>
+        <td class="text-center" style="font-size:0.75rem;white-space:nowrap;">${_escape(_fmtSettlement(e.settlementDate))}</td>
         <td class="no-print">${ops}</td>
       </tr>`);
 
@@ -609,6 +609,23 @@ const ListView = (() => {
     return `${Number(parts[1])}/${Number(parts[2])}`;
   }
 
+  // 精算日の表示用整形。Sheetsが日付セルをシリアル値（例: 46177）で返す場合があるため
+  // 数値なら YYYY-MM-DD に変換する。会社払いマーカーや既に日付文字列の場合はそのまま返す。
+  function _fmtSettlement(v) {
+    const s = String(v || '').trim();
+    if (!s) return '';
+    if (/^\d+(\.\d+)?$/.test(s)) {
+      // Google Sheets のシリアル日付（基準日 1899-12-30）
+      const serial = Math.floor(Number(s));
+      const d = new Date(Date.UTC(1899, 11, 30) + serial * 86400000);
+      const y = d.getUTCFullYear();
+      const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(d.getUTCDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+    return s;
+  }
+
   async function _approveExpense(id, el) {
     const expense = _expenses.find(x => x.id === id);
     const aiAudit = expense?.aiAudit?.trim();
@@ -642,7 +659,7 @@ const ListView = (() => {
   async function _unsettleExpense(id, el) {
     const e = _expenses.find(x => x.id === id);
     const detailHtml = `<div class="alert alert-warning py-2 mb-0 small">
-        精算日：${_escape(e?.settlementDate || '')}<br>
+        精算日：${_escape(_fmtSettlement(e?.settlementDate))}<br>
         精算ステータスを解除し「登録済」に戻します。誤って精算した場合の訂正用です。
       </div>`;
     const ok = await App.confirm('この申請の精算を解除して登録済に戻しますか？', detailHtml);
