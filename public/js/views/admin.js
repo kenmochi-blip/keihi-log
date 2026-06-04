@@ -110,7 +110,7 @@ const AdminView = (() => {
         return;
       }
       try {
-        await Sheets.update('設定!B5', [[key]]);
+        await Sheets.writeSetting('B5', key);
         Gemini.clearApiKey();
         msg.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>保存しました</span>';
         App.showToast('Gemini APIキーを保存しました', 'success');

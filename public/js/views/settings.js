@@ -381,7 +381,7 @@ const SettingsView = (() => {
         localStorage.setItem('keihi_license_key', key);
         // シートが接続済みならB3にも書き込み（メンバーが自動取得できるようにする）
         if (localStorage.getItem('keihi_sheet_id')) {
-          Sheets.update('設定!B3', [[key]]).catch(() => {});
+          Sheets.writeSetting('B3', key).catch(() => {});
         }
         msg.innerHTML = `<span class="text-success"><i class="bi bi-check-circle me-1"></i>有効（${result.company || ''}）${result.expiresAt ? ' 期限: ' + result.expiresAt.split('T')[0] : ''}</span>`;
         App.showToast('ライセンスを確認しました', 'success');
@@ -440,6 +440,7 @@ const SettingsView = (() => {
         localStorage.setItem('keihi_company_name', name);
         // シート作成後、localStorageにライセンスキーがあればB3に確実に書き込む
         // （_writeInitialDataでも書くが、タイミングによっては空になる場合の保険）
+        // セットアップ直後はSA共有前の可能性があるため作成者自身のトークンで直接書き込む
         const _lic = localStorage.getItem('keihi_license_key');
         if (_lic) Sheets.update('設定!B3', [[_lic]]).catch(() => {});
         // 作成されたフォルダURLをフォルダURL欄に反映
@@ -567,7 +568,7 @@ const SettingsView = (() => {
       const name = el.querySelector('#inputCompanyName').value.trim();
       const msg  = el.querySelector('#companyNameMsg');
       try {
-        await Sheets.update('設定!B2', [[name]]);
+        await Sheets.writeSetting('B2', name);
         localStorage.setItem('keihi_company_name', name);
         msg.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>保存しました</span>';
         App.showToast('会社名を保存しました', 'success');
@@ -586,7 +587,7 @@ const SettingsView = (() => {
         return;
       }
       try {
-        await Sheets.update('設定!B5', [[key]]);
+        await Sheets.writeSetting('B5', key);
         localStorage.setItem('keihi_gemini_key', key);
         Gemini.clearApiKey();
         msg.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>保存しました</span>';
@@ -604,7 +605,7 @@ const SettingsView = (() => {
         return;
       }
       try {
-        await Sheets.update('設定!B7', [[Number(rate)]]);
+        await Sheets.writeSetting('B7', Number(rate));
         localStorage.setItem('keihi_car_rate', rate);
         msg.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>保存しました</span>';
         App.showToast('自家用車レートを保存しました', 'success');
@@ -684,7 +685,7 @@ const SettingsView = (() => {
       try {
         const companyName = (await Sheets.readSetting('B2').catch(() => '')) || '';
         const newFolderId = await Drive.createFolder(`経費証票 - ${companyName}`.trim());
-        await Sheets.update('設定!B4', [[newFolderId]]);
+        await Sheets.writeSetting('B4', newFolderId);
         localStorage.setItem('keihi_folder_id', newFolderId);
         if (folderInput) folderInput.value = `https://drive.google.com/drive/folders/${newFolderId}`;
         _setFolderLink(newFolderId);
@@ -706,7 +707,7 @@ const SettingsView = (() => {
         return;
       }
       try {
-        await Sheets.update('設定!B4', [[folderId]]);
+        await Sheets.writeSetting('B4', folderId);
         localStorage.setItem('keihi_folder_id', folderId);
         msg.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>保存しました</span>';
         _setFolderLink(folderId);
@@ -1218,7 +1219,7 @@ const SettingsView = (() => {
     // スプレッドシートにもバックアップ（失敗時は警告 - シートとlocalStorageの不整合を防ぐ）
     const ssId = localStorage.getItem('keihi_sheet_id');
     if (ssId) {
-      Sheets.update('設定!B6', [[JSON.stringify(data)]]).catch(() => {
+      Sheets.writeSetting('B6', JSON.stringify(data)).catch(() => {
         App.showToast('規程のバックアップ保存に失敗しました。再度「確定」を押してください。', 'warning');
       });
     }

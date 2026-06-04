@@ -127,6 +127,21 @@ const Sheets = (() => {
     return resp.json();
   }
 
+  /**
+   * 設定シートの単一セル（B2〜B7）を書き込む。admin 専用。
+   * B' プロキシ経由（オプトイン）。書き込みは二重化を避けるためフォールバックしない。
+   * @param {string} cell  'B2'〜'B7'
+   * @param {*}      value 書き込む値
+   */
+  async function writeSetting(cell, value, ssId) {
+    if (typeof Demo !== 'undefined' && Demo.isActive()) return {};
+    ssId = ssId || _ssId();
+    if (_useProxy()) {
+      return _proxyWrite('settings', ssId, 'PUT', { cell, value });
+    }
+    return update(`設定!${cell}`, [[value]], ssId);
+  }
+
   /** 複数の更新をバッチで送る。 */
   async function batchUpdate(requests, ssId) {
     if (typeof Demo !== 'undefined' && Demo.isActive()) return {};
@@ -629,6 +644,7 @@ const Sheets = (() => {
     approveExpense,
     readSetting,
     readAllSettings,
+    writeSetting,
     readMaster,
     verifyProxyAccess,
     useProxy: _useProxy,

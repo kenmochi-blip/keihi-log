@@ -378,6 +378,7 @@ async function masters(req, res) {
  *   返却: B2会社名 / B3ライセンス / B4フォルダID / B6 / B7、および hasGeminiKey。
  */
 async function settings(req, res) {
+  if (req.method === 'PUT' || req.method === 'POST') return settingsWrite(req, res);
   if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
   const authz = await _authorize(req, res);
   if (!authz) return;
@@ -399,6 +400,26 @@ async function settings(req, res) {
     },
     hasGeminiKey: !!cell(3),  // B5 の有無のみ通知
   });
+}
+
+/**
+ * PUT /api/data/settings?sheetId=XXX  body: { cell: 'B2', value: '...' }
+ *   設定シートの単一セルを SA 経由で書き込む。admin 専用。
+ *   書き込み可能セルは B2〜B7 のみにホワイトリスト制限（任意セル書き換えを防ぐ）。
+ *   B5（Gemini APIキー）も書き込みは許可（鍵はサーバー側に留めたまま設定/更新できる）。
+ */
+async function settingsWrite(req, res) {
+  const authz = await _authorize(req, res);
+  if (!authz) return;
+  if (!authz.isAdmin) return res.status(403).json({ error: 'admin_only' });
+
+  const body = await _body(req);
+  const cell = String(body?.cell || '');
+  if (!/^B[2-7]$/.test(cell)) return res.status(400).json({ error: 'invalid_cell' });
+  const value = body?.value;
+
+  await updateRangeViaSA(authz.sheetId, `設定!${cell}`, [[value == null ? '' : value]]);
+  return res.status(200).json({ ok: true });
 }
 
 /* ───────────────────────── SA データアクセス ───────────────────────── */
