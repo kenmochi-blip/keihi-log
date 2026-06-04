@@ -276,7 +276,7 @@ const App = (() => {
       const licCache  = JSON.parse(localStorage.getItem('keihi_license_cache') || 'null');
       const masterRaw = JSON.parse(localStorage.getItem('keihi_master_cache') || 'null');
       // マスタキャッシュはチーム全員で共通（admins/membersリストは同一）。
-      // 別アカウントが取得したキャッシュでも現ユーザーのロール判定に使用可能。
+      // 別アカウントが取得したキャッシュでも現ユーザーのロール判定（admins/members照合）に使用可能。
       // init() の _cachedMaster では email タグで TTL チェックするため、
       // email 不一致時は必ずサーバーから再取得される（セキュリティはサーバー側で担保）。
       const master    = masterRaw || { members: [], categories: [], paySources: [], admins: [], viewers: [] };
@@ -284,10 +284,12 @@ const App = (() => {
       _masterCache  = master;
       const myEntry = master.members?.find(m => m.email?.toLowerCase() === email);
       const explicitNonAdmin = myEntry && ['member', 'viewer'].includes((myEntry.role || '').toLowerCase());
-      // admins.length===0 フォールバックはキャッシュがある場合のみ適用
-      // （キャッシュ未取得の初回アクセス時に全員adminと判定されるのを防ぐ）
       const hasMasterCache = masterRaw !== null;
-      if (isOwner || (hasMasterCache && !explicitNonAdmin && master.admins.length === 0) || master.admins.includes(email)) {
+      // admins.length===0 フォールバック（マスタ未設定の初回セットアップ向け）は
+      // 自分のキャッシュ（email一致）の場合のみ適用。
+      // 別アカウントのキャッシュで admins=[] だった場合に誤って昇格しないよう制限する。
+      const emailMatchesCache = !!(masterRaw && masterRaw._email === email);
+      if (isOwner || (emailMatchesCache && !explicitNonAdmin && master.admins.length === 0) || master.admins.includes(email)) {
         _userRole = 'admin';
       } else if (master.viewers?.includes(email)) {
         _userRole = 'viewer';
