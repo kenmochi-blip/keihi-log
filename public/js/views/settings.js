@@ -145,15 +145,6 @@ const SettingsView = (() => {
           </div>
           <div id="geminiKeyMsg" class="form-text"></div>
 
-          <!-- 自家用車レート（管理者のみ） -->
-          <div class="settings-step-title mt-3">自家用車レート（円/km） <a href="/faq#q307" class="text-muted ms-1" style="font-size:0.78rem;" title="FAQを見る"><i class="bi bi-question-circle"></i></a></div>
-          <div class="settings-step-hint">全メンバー共通のキロ単価です。メンバーは参照のみ可能です。</div>
-          <div class="input-group mb-1" style="max-width:200px;">
-            <input type="number" class="form-control form-control-sm" id="inputCarRate" min="1" step="1" placeholder="20">
-            <button class="btn btn-outline-primary btn-sm" id="btnSaveCarRate">保存</button>
-          </div>
-          <div id="carRateMsg" class="form-text"></div>
-
           ${_renderRegulationInitStep()}` : ''}
 
         </div>
@@ -277,6 +268,19 @@ const SettingsView = (() => {
       <div id="customFlagList" class="mt-2">
         <div class="text-muted small text-center py-2">読み込み中...</div>
       </div>
+    </div>
+  </div>
+
+  <!-- 自家用車レート（管理者のみ） -->
+  <div class="card mb-3">
+    <div class="card-body">
+      <div class="settings-section-title">自家用車レート（円/km） <a href="/faq#q307" class="text-muted ms-1" style="font-size:0.78rem;" title="FAQを見る"><i class="bi bi-question-circle"></i></a></div>
+      <p class="text-muted small mb-2">全メンバー共通のキロ単価です。メンバーは参照のみ可能です。</p>
+      <div class="input-group input-group-sm mb-1" style="max-width:200px;">
+        <input type="number" class="form-control form-control-sm" id="inputCarRate" min="1" step="1" placeholder="20">
+        <button class="btn btn-outline-primary btn-sm" id="btnSaveCarRate">保存</button>
+      </div>
+      <div id="carRateMsg" class="form-text"></div>
     </div>
   </div>
 
