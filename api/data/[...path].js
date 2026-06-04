@@ -262,15 +262,8 @@ async function expensesEdit(req, res) {
   r[16] = id;
   r[8]  = _normalizeImageLinks(r[8]);     // I: 署名付きプロキシURL→永続Drive URLへ戻す
 
-  // 修正履歴に旧データの要約を残す
-  const o = found.raw;
-  const oldSummary = [
-    `日付: ${o[3] || ''}`, `支払先: ${o[4] || ''}`, `金額: ${o[5] || ''}`,
-    `科目: ${o[6] || ''}`, `タイプ: ${o[2] || ''}`, `備考: ${o[7] || ''}`,
-    `精算日: ${o[11] || ''}`, `インボイス: ${o[12] || ''}`, `税区分: ${o[18] || ''}`,
-  ].filter(s => !s.endsWith(': ')).join(' / ');
-
-  await prependRowViaSA(sheetId, '修正履歴', [_nowJst(), me.email, oldSummary]);
+  // 修正履歴に変更前/変更後を2行で残す（変更セルを色付き）
+  await _writeEditHistory(sheetId, _nowJst(), me.email, found.raw, r);
   await updateRangeViaSA(sheetId, `経費一覧!A${found.rowNum}:U${found.rowNum}`, [r]);
   await kv.del(`data:exp:${sheetId}`).catch(() => {});
 
@@ -737,6 +730,65 @@ async function _rowNumsByIds(sheetId, ids) {
   const nums = [];
   col.forEach((r, i) => { if (idSet.has(r[0])) nums.push(i + 2); });
   return nums;
+}
+
+/**
+ * 修正履歴シートに変更前/変更後を2行セットで書き込む。
+ * 変更されたセルだけ色付き（変更前=ピンク、変更後=薄緑）。
+ */
+async function _writeEditHistory(sheetId, timestamp, editor, oldRow, newRow) {
+  const sheets = sheetsClient();
+  const gid = await _sheetGid(sheets, sheetId, '修正履歴');
+  if (gid === null) throw new Error('修正履歴シートが見つかりません');
+
+  const old21 = oldRow.slice(0, 21); while (old21.length < 21) old21.push('');
+  const new21 = newRow.slice(0, 21); while (new21.length < 21) new21.push('');
+
+  // 2行挿入
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId: sheetId,
+    requestBody: { requests: [{ insertDimension: {
+      range: { sheetId: gid, dimension: 'ROWS', startIndex: 1, endIndex: 3 },
+      inheritFromBefore: false,
+    } }] },
+  });
+
+  // データ書き込み（prefix3列 + 経費一覧21列 = 24列）
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: sheetId,
+    range: '修正履歴!A2:X3',
+    valueInputOption: 'USER_ENTERED',
+    requestBody: { values: [
+      [timestamp, editor, '変更前', ...old21],
+      [timestamp, editor, '変更後', ...new21],
+    ] },
+  });
+
+  // 変更されたセル列を特定（経費一覧インデックス → 修正履歴列インデックス = +3）
+  const changedCols = [];
+  for (let i = 0; i < 21; i++) {
+    if (String(old21[i] ?? '') !== String(new21[i] ?? '')) changedCols.push(i + 3);
+  }
+  if (changedCols.length === 0) return;
+
+  // 色付きリクエスト：変更前=ピンク(row 1)、変更後=薄緑(row 2)
+  const colorRequests = [];
+  changedCols.forEach(col => {
+    colorRequests.push({ repeatCell: {
+      range: { sheetId: gid, startRowIndex: 1, endRowIndex: 2, startColumnIndex: col, endColumnIndex: col + 1 },
+      cell: { userEnteredFormat: { backgroundColor: { red: 1.0, green: 0.84, blue: 0.84 } } },
+      fields: 'userEnteredFormat.backgroundColor',
+    } });
+    colorRequests.push({ repeatCell: {
+      range: { sheetId: gid, startRowIndex: 2, endRowIndex: 3, startColumnIndex: col, endColumnIndex: col + 1 },
+      cell: { userEnteredFormat: { backgroundColor: { red: 0.84, green: 1.0, blue: 0.84 } } },
+      fields: 'userEnteredFormat.backgroundColor',
+    } });
+  });
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId: sheetId,
+    requestBody: { requests: colorRequests },
+  });
 }
 
 /** 指定シートのヘッダー直下(2行目)に1行挿入して書き込む（SA経由・書式非継承）。 */
