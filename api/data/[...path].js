@@ -23,6 +23,9 @@ import { sheetsClient, driveClient, isSaConfigured } from '../_sa.js';
 import { getSaAuth } from '../_sa.js';
 import { verifyIdToken } from '../_verifyToken.js';
 
+// レシート画像は Base64 で送られるため、デフォルト4.5MBでは不足する可能性がある
+export const config = { api: { bodyParser: { sizeLimit: '12mb' } } };
+
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
 
@@ -486,23 +489,29 @@ async function receiptUpload(req, res) {
   const filename = String(body?.filename || 'receipt');
   if (!base64) return res.status(400).json({ error: 'no_file' });
 
-  // 証票フォルダID（設定!B4）を SA で取得
-  const sheets = sheetsClient();
-  const cfg = await sheets.spreadsheets.values.get({
-    spreadsheetId: authz.sheetId, range: '設定!B4',
-  });
-  const folderId = cfg.data.values?.[0]?.[0] || '';
+  try {
+    // 証票フォルダID（設定!B4）を SA で取得
+    const sheets = sheetsClient();
+    const cfg = await sheets.spreadsheets.values.get({
+      spreadsheetId: authz.sheetId, range: '設定!B4',
+    });
+    const folderId = cfg.data.values?.[0]?.[0] || '';
+    if (!folderId) return res.status(500).json({ error: 'no_folder_id', message: '設定シートB4にフォルダIDが設定されていません' });
 
-  const clean = base64.replace(/^data:[^;]+;base64,/, '');
-  const buf = Buffer.from(clean, 'base64');
-  const drive = driveClient();
-  const created = await drive.files.create({
-    requestBody: { name: filename, mimeType, ...(folderId ? { parents: [folderId] } : {}) },
-    media: { mimeType, body: bufferToStream(buf) },
-    fields: 'id, webViewLink',
-  });
+    const clean = base64.replace(/^data:[^;]+;base64,/, '');
+    const buf = Buffer.from(clean, 'base64');
+    const drive = driveClient();
+    const created = await drive.files.create({
+      requestBody: { name: filename, mimeType, parents: [folderId] },
+      media: { mimeType, body: bufferToStream(buf) },
+      fields: 'id, webViewLink',
+    });
 
-  return res.status(200).json({ id: created.data.id, webViewLink: created.data.webViewLink });
+    return res.status(200).json({ id: created.data.id, webViewLink: created.data.webViewLink });
+  } catch (e) {
+    console.error('receiptUpload error:', e?.message || e, e?.response?.data || '');
+    return res.status(500).json({ error: 'upload_failed', message: e?.message || 'unknown' });
+  }
 }
 
 async function receiptGet(req, res) {
