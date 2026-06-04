@@ -69,8 +69,11 @@
 - [x] `/api/data/health` 疎通確認（SA認証OK・共有シート読み取りOK）
 - [x] `GET /api/data/expenses`（SA読み取り + マスタ表によるメンバー認可 + 60秒KVキャッシュ）
 - [x] クライアント `readExpenses` をプロキシ経由に配線（オプトイン・フォールバック付き）
-- [ ] 残りの読み取り（masters / settings）をプロキシ化
-- [ ] 書き込み（append / update / delete / settle）をプロキシ化
+- [x] 残りの読み取り（masters / settings）をプロキシ化
+- [x] 経費の書き込み（append / edit / delete / approve / settle / unsettle）をプロキシ化
+  - 精算済（実精算）は編集・削除不可（電帳法）。誤精算の訂正用に admin 限定の unsettle を用意
+- [x] 設定シート書き込み（B2-B7）をプロキシ化（`PUT /api/data/settings`・admin専用・セルホワイトリスト）
+  - セットアップ直後（SA共有前）の書き込みは作成者トークンで直接 update のまま
 - [ ] 領収書アップロードを SA 経由化（証票フォルダにも SA をエディタ共有が必要）
 - [ ] Gemini をサーバープロキシ化（APIキーをブラウザに出さない）
 - [ ] メンバーのシートアクセスをプロキシ完全移行（`keihi_use_proxy` のデフォルトON化）
