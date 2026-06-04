@@ -353,7 +353,7 @@
                 <th style="width:200px;">顧客</th>
                 <th style="width:56px;">種別</th>
                 <th style="width:60px;">プラン</th>
-                <th style="width:86px;">有効期限</th>
+                <th style="width:130px;">有効期限</th>
                 <th style="width:48px;text-align:right;">今月</th>
                 <th style="width:48px;text-align:right;">先月</th>
                 <th style="width:80px;text-align:center;">状態</th>
@@ -1245,12 +1245,18 @@
         const usageThis = l.usageThis ?? 0, usageLast = l.usageLast ?? 0;
         const isStripe = !!l.stripeSessionId;
         const dateShort = l.createdAt ? l.createdAt.split('T')[0].replace(/^\d{4}-/, '').replace('-', '/') : '—';
+        const expFmt = l.expiresAt ? l.expiresAt.replace(/-/g, '/') : '—';
+        const intervalBadge = l.interval === 'year'
+          ? '<span style="font-size:0.6rem;background:#dbeafe;color:#1d4ed8;padding:1px 5px;border-radius:3px;margin-left:3px;white-space:nowrap;">年額</span>'
+          : l.interval === 'month'
+          ? '<span style="font-size:0.6rem;background:#f1f5f9;color:#475569;border:1px solid var(--border);padding:1px 5px;border-radius:3px;margin-left:3px;white-space:nowrap;">月額</span>'
+          : '';
         return `<tr data-key="${esc(l.key)}">
           <td class="ps-first" style="font-size:0.78rem;color:var(--text-sub);white-space:nowrap;">${dateShort}</td>
           <td>${_customerCell(l)}</td>
           <td>${isStripe ? '<span class="tag tag-stripe">Stripe</span>' : '<span class="tag tag-manual">手動</span>'}</td>
           <td><span class="tag tag-${plan}">${planLabel[plan]}</span></td>
-          <td style="font-size:0.78rem;color:var(--text-sub);white-space:nowrap;">${l.expiresAt ? l.expiresAt.replace(/^\d{4}-/, '').replace('-', '/') : '—'}</td>
+          <td style="font-size:0.78rem;color:var(--text-sub);white-space:nowrap;">${expFmt}${intervalBadge}</td>
           <td class="usage-num ${usageThis > 0 ? 'active' : 'zero'}">${usageThis || '—'}</td>
           <td class="usage-num zero">${usageLast || '—'}</td>
           <td style="text-align:center;"><span class="status-dot ${st}">${statusLabel[st]}</span></td>
