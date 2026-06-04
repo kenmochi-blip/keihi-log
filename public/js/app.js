@@ -93,14 +93,16 @@ const App = (() => {
     // → メンバーアクセスはプロキシ経由（クリーンAPI / B'案）で別途実装予定。
     //   未実装の現時点では、直接アクセスできないユーザーには案内のみ表示する。
     if (ssId && !_isSheetAccessVerified(ssId)) {
-      const probe = await Auth.authFetch(
+      const _proxyOn = Sheets.useProxy && Sheets.useProxy();
+      // プロキシ有効時は最初からプロキシでアクセス確認（無駄な直接プローブ＝404を出さない）。
+      // 無効時のみ従来の drive.file 直接プローブを行う。
+      const probe = _proxyOn ? null : await Auth.authFetch(
         `https://sheets.googleapis.com/v4/spreadsheets/${ssId}?fields=spreadsheetId`
       ).catch(() => null);
       if (probe?.ok) {
         _markSheetAccessVerified(ssId);
-      } else if (Sheets.useProxy && Sheets.useProxy() && await Sheets.verifyProxyAccess(ssId).catch(() => false)) {
-        // 直接アクセス不可でも、B'プロキシでメンバー確認できれば続行する。
-        // 以降のデータ読み書きはプロキシ経由で行われる。
+      } else if (_proxyOn && await Sheets.verifyProxyAccess(ssId).catch(() => false)) {
+        // B'プロキシでメンバー確認できれば続行。以降のデータ読み書きはプロキシ経由。
         _markSheetAccessVerified(ssId);
       } else {
         // drive.file では共有シートにアクセスできない（管理者以外）
