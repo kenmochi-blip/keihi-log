@@ -511,6 +511,22 @@ const Sheets = (() => {
       return { updates: { updatedRange: '経費一覧!A2:U2' } };
     }
     ssId = ssId || _ssId();
+
+    // B' プロキシ経由（オプトイン）。書き込みは二重書き込み防止のためフォールバックしない。
+    if (_useProxy()) {
+      const idToken = await Auth.getIdToken();
+      const resp = await fetch(`/api/data/expenses?sheetId=${encodeURIComponent(ssId)}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${idToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ row }),
+      });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.error || `proxy create ${resp.status}`);
+      }
+      return { updates: { updatedRange: '経費一覧!A2:U2' } };
+    }
+
     const sheetId = await _getSheetId('経費一覧', ssId);
     if (sheetId === null) throw new Error('経費一覧シートが見つかりません');
 
