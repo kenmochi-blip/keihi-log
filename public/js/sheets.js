@@ -21,6 +21,18 @@ const Sheets = (() => {
     try { return localStorage.getItem('keihi_use_proxy') === '1'; } catch (_) { return false; }
   }
 
+  /** B' プロキシ GET 共通ヘルパー。成功時は JSON を返す。失敗時は throw（呼び出し側でフォールバック）。 */
+  async function _proxyGet(resource, ssId, extraQuery = '') {
+    const idToken = await Auth.getIdToken();
+    const resp = await _fetchWithRetry(() =>
+      fetch(`/api/data/${resource}?sheetId=${encodeURIComponent(ssId)}${extraQuery}`, {
+        headers: { Authorization: `Bearer ${idToken}` },
+      })
+    );
+    if (!resp.ok) throw new Error(`proxy ${resource} ${resp.status}`);
+    return resp.json();
+  }
+
   /** 一時的なサーバーエラー時に指数バックオフでリトライする fetch ラッパー。 */
   async function _fetchWithRetry(fn, maxRetries = 3) {
     let delay = 1000;
@@ -130,19 +142,10 @@ const Sheets = (() => {
     // B' プロキシ経由（オプトイン）。失敗時は従来の直接アクセスにフォールバックする。
     if (_useProxy()) {
       try {
-        const idToken = await Auth.getIdToken();
-        const resp = await _fetchWithRetry(() =>
-          fetch(`/api/data/expenses?sheetId=${encodeURIComponent(ssId)}`, {
-            headers: { Authorization: `Bearer ${idToken}` },
-          })
-        );
-        if (resp.ok) {
-          const data = await resp.json();
-          return data.expenses || [];
-        }
-        console.warn(`[proxy] readExpenses ${resp.status} → 直接アクセスにフォールバック`);
+        const data = await _proxyGet('expenses', ssId);
+        return data.expenses || [];
       } catch (e) {
-        console.warn('[proxy] readExpenses エラー → 直接アクセスにフォールバック', e);
+        console.warn('[proxy] readExpenses → 直接アクセスにフォールバック', e);
       }
     }
 
@@ -288,6 +291,19 @@ const Sheets = (() => {
     if (typeof Demo !== 'undefined' && Demo.isActive()) {
       return { B2: 'デモ会社', B3: '', B4: '', B5: '', B6: '', B7: '20' };
     }
+    ssId = ssId || _ssId();
+
+    // B' プロキシ経由（オプトイン）。失敗時は従来の直接アクセスにフォールバック。
+    // 注: プロキシは B5（Gemini APIキー）を返さない（秘匿）。B5 は別途扱う。
+    if (_useProxy()) {
+      try {
+        const data = await _proxyGet('settings', ssId);
+        if (data.settings) return data.settings;
+      } catch (e) {
+        console.warn('[proxy] readAllSettings → 直接アクセスにフォールバック', e);
+      }
+    }
+
     const rows = await read('設定!B2:B7', ssId);
     return {
       B2: rows?.[0]?.[0] ?? '',
@@ -302,6 +318,18 @@ const Sheets = (() => {
   /** マスタ表を読んでメンバー・カテゴリ・支払元・カスタムフラグを返す */
   async function readMaster(ssId) {
     if (typeof Demo !== 'undefined' && Demo.isActive()) return Demo.MASTER;
+    ssId = ssId || _ssId();
+
+    // B' プロキシ経由（オプトイン）。失敗時は従来の直接アクセスにフォールバック。
+    if (_useProxy()) {
+      try {
+        const data = await _proxyGet('masters', ssId);
+        if (data.master) return data.master;
+      } catch (e) {
+        console.warn('[proxy] readMaster → 直接アクセスにフォールバック', e);
+      }
+    }
+
     const rows = await read('マスタ表!A2:H', ssId);
     const members     = [];
     const categories  = [];

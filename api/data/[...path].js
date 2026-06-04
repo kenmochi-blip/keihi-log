@@ -37,6 +37,10 @@ export default async function handler(req, res) {
         return await health(req, res);
       case 'expenses':
         return await expenses(req, res);
+      case 'masters':
+        return await masters(req, res);
+      case 'settings':
+        return await settings(req, res);
       default:
         return res.status(404).json({ error: 'not_found', resource });
     }
@@ -44,6 +48,27 @@ export default async function handler(req, res) {
     console.error('data router error:', e);
     return res.status(500).json({ error: 'server_error' });
   }
+}
+
+/**
+ * 共通認可: ID トークンで本人(email)を確認し、対象シートのメンバーか判定する。
+ * 成功時は { me, isAdmin, master } を返す。失敗時は res にエラーを書いて null を返す。
+ */
+async function _authorize(req, res) {
+  const me = await verifyIdToken(req);
+  if (!me) { res.status(401).json({ error: 'unauthorized' }); return null; }
+
+  const sheetId = _query(req).get('sheetId');
+  if (!sheetId || !_validSheetId(sheetId)) {
+    res.status(400).json({ error: 'invalid_sheet_id' }); return null;
+  }
+
+  const master = await readMaster(sheetId);
+  const isAdmin = master.admins.includes(me.email);
+  const isMember = isAdmin || master.members.some(m => m.email === me.email);
+  if (!isMember) { res.status(403).json({ error: 'not_a_member' }); return null; }
+
+  return { me, isAdmin, master, sheetId };
 }
 
 /* ───────────────────────── エンドポイント ───────────────────────── */
@@ -120,21 +145,10 @@ async function health(req, res) {
 async function expenses(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
 
-  const me = await verifyIdToken(req);
-  if (!me) return res.status(401).json({ error: 'unauthorized' });
-
-  const q = _query(req);
-  const sheetId = q.get('sheetId');
-  if (!sheetId || !_validSheetId(sheetId)) {
-    return res.status(400).json({ error: 'invalid_sheet_id' });
-  }
-  const refresh = q.get('refresh') === '1';
-
-  // 認可：対象シートのメンバーか確認
-  const master = await readMaster(sheetId);
-  const isAdmin = master.admins.includes(me.email);
-  const isMember = isAdmin || master.members.some(m => m.email === me.email);
-  if (!isMember) return res.status(403).json({ error: 'not_a_member' });
+  const authz = await _authorize(req, res);
+  if (!authz) return;
+  const { me, isAdmin, sheetId } = authz;
+  const refresh = _query(req).get('refresh') === '1';
 
   // キャッシュ（全件）→ レスポンス時にロール別フィルタ
   const cacheKey = `data:exp:${sheetId}`;
@@ -155,25 +169,79 @@ async function expenses(req, res) {
   });
 }
 
+/**
+ * GET /api/data/masters?sheetId=XXX
+ *   マスタ表（メンバー/勘定科目/支払元/カスタムフラグ/admin判定）を SA 経由で取得する。
+ *   メンバーであれば全員が同じマスタを取得する（アプリ動作に必要なため）。
+ */
+async function masters(req, res) {
+  if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
+  const authz = await _authorize(req, res);
+  if (!authz) return;
+  // _authorize が読んだマスタをそのまま返す（追加のAPIコールを避ける）
+  return res.status(200).json({ master: authz.master });
+}
+
+/**
+ * GET /api/data/settings?sheetId=XXX
+ *   設定シートを SA 経由で取得する。
+ *   ★ B5（Gemini APIキー）はブラウザに返さない（B'の趣旨：鍵はサーバー側に留める）。
+ *     管理者の鍵設定/更新や Gemini 実行は別エンドポイントで扱う（後続実装）。
+ *   返却: B2会社名 / B3ライセンス / B4フォルダID / B6 / B7、および hasGeminiKey。
+ */
+async function settings(req, res) {
+  if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
+  const authz = await _authorize(req, res);
+  if (!authz) return;
+
+  const sheets = sheetsClient();
+  const resp = await sheets.spreadsheets.values.get({
+    spreadsheetId: authz.sheetId, range: '設定!B2:B7',
+  });
+  const rows = resp.data.values || [];
+  const cell = i => rows?.[i]?.[0] ?? '';
+  return res.status(200).json({
+    settings: {
+      B2: cell(0),            // 会社名
+      B3: cell(1),            // ライセンスキー
+      B4: cell(2),            // フォルダID
+      B5: '',                 // Gemini APIキーは返さない（秘匿）
+      B6: cell(4),
+      B7: cell(5),
+    },
+    hasGeminiKey: !!cell(3),  // B5 の有無のみ通知
+  });
+}
+
 /* ───────────────────────── SA データアクセス ───────────────────────── */
 
-/** マスタ表 A2:H を SA で読み、メンバー/管理者/閲覧者を返す（クライアントの readMaster と整合）。 */
+/** マスタ表 A2:H を SA で読み、クライアントの readMaster と同一形のオブジェクトを返す。
+ *  A:氏名 B:メール C:所属 D:権限 E:備考 F:会社払い支払元 G:勘定科目 H:カスタムフラグ */
 async function readMaster(sheetId) {
   const sheets = sheetsClient();
   const resp = await sheets.spreadsheets.values.get({
     spreadsheetId: sheetId, range: 'マスタ表!A2:H',
   });
   const rows = resp.data.values || [];
-  const members = [], admins = [], viewers = [];
+  const members = [], categories = [], paySources = [], customFlags = [], admins = [], viewers = [];
   rows.forEach(r => {
-    // A:氏名 B:メール C:所属 D:権限
     const email = (r[1] || '').toLowerCase();
     if (r[0] || r[1]) members.push({ name: r[0] || '', email, dept: r[2] || '', role: r[3] || '' });
+    if (r[5]) paySources.push(r[5]);
+    if (r[6]) categories.push(r[6]);
+    if (r[7]) customFlags.push(r[7]);
     const role = (r[3] || '').toLowerCase();
-    if (role === 'admin' && email) admins.push(email);
+    if (role === 'admin'  && email) admins.push(email);
     if (role === 'viewer' && email) viewers.push(email);
   });
-  return { members, admins, viewers };
+  return {
+    members,
+    categories:  [...new Set(categories)],
+    paySources:  [...new Set(paySources)],
+    customFlags: [...new Set(customFlags)],
+    admins,
+    viewers,
+  };
 }
 
 /** 経費一覧 A2:U を SA で読み、経費オブジェクト配列に変換する（クライアントの readExpenses と整合）。
