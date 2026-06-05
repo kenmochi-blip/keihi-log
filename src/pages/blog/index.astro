@@ -1,5 +1,6 @@
 ---
 import { getCollection } from 'astro:content';
+import { getAuthor } from '../../authors';
 
 const posts = (await getCollection('blog'))
   .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
@@ -117,9 +118,9 @@ const allTags = [...new Set(posts.flatMap(p => p.data.tags))].sort();
       color: #fff;
     }
 
-    /* 記事カード */
+    /* 記事カード（書き手の色で淡く色分け） */
     .post-card {
-      background: #fff;
+      background: color-mix(in srgb, var(--tint, #fff) 45%, #fff);
       border-radius: 14px;
       overflow: hidden;
       box-shadow: 0 2px 8px rgba(0,0,0,0.06);
@@ -132,14 +133,27 @@ const allTags = [...new Set(posts.flatMap(p => p.data.tags))].sort();
     }
     .post-card:hover {
       transform: translateY(-3px);
-      box-shadow: 0 8px 24px rgba(13,110,253,0.14);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
     }
-    .post-card-accent { height: 4px; background: linear-gradient(90deg, #29B6F6, #3F51B5); }
+    .post-card-accent { height: 4px; background: var(--accent, var(--brand)); }
     .post-card-body { padding: 1.4rem 1.5rem; flex: 1; display: flex; flex-direction: column; }
-    .post-tag { background: #eef4ff; color: var(--brand); font-size: 0.7rem; font-weight: 500; padding: 0.2em 0.65em; border-radius: 20px; }
-    .post-title { font-size: 1rem; font-weight: 700; line-height: 1.5; margin: 0.5rem 0 0.6rem; color: var(--text); }
-    .post-desc { font-size: 0.82rem; color: var(--muted); line-height: 1.7; flex: 1; }
-    .post-meta { font-size: 0.75rem; color: var(--muted); margin-top: 1rem; display: flex; gap: 0.75rem; }
+    .post-tag { background: #fff; border: 1px solid var(--border); color: var(--muted); font-size: 0.7rem; font-weight: 500; padding: 0.2em 0.65em; border-radius: 20px; }
+    .post-title { font-size: 1.02rem; font-weight: 700; line-height: 1.55; margin: 0.55rem 0 0.6rem; color: var(--text); }
+    .post-desc { font-size: 0.82rem; color: var(--muted); line-height: 1.75; flex: 1; }
+    .post-foot {
+      font-size: 0.74rem; color: var(--muted);
+      margin-top: 1.1rem; padding-top: 0.8rem;
+      border-top: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+    }
+    .author-chip { display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 600; color: #495057; }
+    .author-dot {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--accent); color: #fff;
+      font-size: 0.72rem; font-weight: 700;
+      display: inline-flex; align-items: center; justify-content: center;
+    }
+    .post-meta-item { white-space: nowrap; }
 
     /* 空状態 */
     .empty-state { text-align: center; padding: 4rem 1rem; color: var(--muted); }
@@ -214,9 +228,11 @@ const allTags = [...new Set(posts.flatMap(p => p.data.tags))].sort();
       </div>
     ) : (
       <div class="row g-4" id="postGrid">
-        {posts.map(post => (
+        {posts.map(post => {
+          const writer = getAuthor(post.data.author);
+          return (
           <div class="col-12 col-md-6" data-tags={post.data.tags.join(',')}>
-            <a href={`/blog/${post.id}/`} class="post-card">
+            <a href={`/blog/${post.id}/`} class="post-card" style={`--accent:${writer.accent};--tint:${writer.tint};`}>
               <div class="post-card-accent"></div>
               <div class="post-card-body">
                 <div class="d-flex flex-wrap gap-1">
@@ -226,18 +242,22 @@ const allTags = [...new Set(posts.flatMap(p => p.data.tags))].sort();
                 </div>
                 <div class="post-title">{post.data.title}</div>
                 <p class="post-desc">{post.data.description}</p>
-                <div class="post-meta">
-                  <span><i class="bi bi-calendar3 me-1"></i>
+                <div class="post-foot">
+                  <span class="author-chip">
+                    <span class="author-dot">{writer.initial}</span>
+                    {writer.name}
+                  </span>
+                  <span class="post-meta-item"><i class="bi bi-calendar3 me-1"></i>
                     <time datetime={post.data.pubDate.toISOString()}>
                       {fmtDate(post.data.pubDate)}
                     </time>
                   </span>
-                  <span><i class="bi bi-clock me-1"></i>約{readingTime(post.body)}分</span>
                 </div>
               </div>
             </a>
           </div>
-        ))}
+          );
+        })}
       </div>
     )}
   </main>

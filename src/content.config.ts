@@ -10,6 +10,7 @@ const blog = defineCollection({
     updatedDate: z.coerce.date().optional(),
     tags: z.array(z.string()).default([]),
     heroImage: z.string().optional(),
+    author: z.enum(['owner', 'staff']).default('owner'),
   }),
 });
 

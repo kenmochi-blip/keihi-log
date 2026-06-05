@@ -5,6 +5,8 @@ interface Heading {
   text: string;
 }
 
+import { getAuthor } from '../authors';
+
 interface Props {
   title: string;
   description: string;
@@ -13,12 +15,15 @@ interface Props {
   tags?: string[];
   headings?: Heading[];
   readingTime?: number;
+  author?: string;
 }
 
 const {
   title, description, pubDate, updatedDate,
-  tags = [], headings = [], readingTime = 3,
+  tags = [], headings = [], readingTime = 3, author,
 } = Astro.props;
+
+const writer = getAuthor(author);
 
 const fmtDate = (d: Date) =>
   d.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
@@ -32,7 +37,7 @@ const hasToc = tocHeadings.length >= 3;
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{title}｜経費ログ ブログ</title>
+  <title>{`${title}｜経費ログ ブログ`}</title>
   <meta name="description" content={description} />
   <meta property="og:type" content="article" />
   <meta property="og:site_name" content="経費ログ" />
@@ -81,7 +86,7 @@ const hasToc = tocHeadings.length >= 3;
       left: 0;
       width: 0%;
       height: 3px;
-      background: linear-gradient(90deg, #29B6F6, #3F51B5);
+      background: var(--accent);
       z-index: 9999;
       transition: width 0.1s linear;
     }
@@ -114,10 +119,11 @@ const hasToc = tocHeadings.length >= 3;
       }
     }
 
-    /* 記事エリア */
+    /* 記事エリア（書き手の色で淡く色分け） */
     .article-main {
-      background: var(--card-bg);
+      background: color-mix(in srgb, var(--tint) 45%, #fff);
       border-radius: 16px;
+      border-top: 4px solid var(--accent);
       padding: 2rem 1.5rem;
       box-shadow: 0 2px 12px rgba(0,0,0,0.06);
       min-width: 0;
@@ -166,82 +172,123 @@ const hasToc = tocHeadings.length >= 3;
       align-items: center;
     }
 
-    /* 記事本文 */
-    .article-body { line-height: 1.9; }
-    .article-body h2 {
-      font-size: 1.05rem;
-      font-weight: 800;
-      margin-top: 2.5rem;
-      margin-bottom: 0.9rem;
-      padding: 0.5rem 0.85rem;
-      background: linear-gradient(135deg, #eef2ff 0%, #f0f9ff 100%);
-      border-left: 3px solid var(--brand);
-      border-radius: 0 6px 6px 0;
+    /* 記事本文（markdown はスロット由来のため :global で指定） */
+    .article-body {
+      font-size: 1.02rem;
+      line-height: 2;
+      color: #2f343b;
+      letter-spacing: 0.01em;
+      font-feature-settings: "palt";
+      word-break: break-word;
     }
-    .article-body h3 {
-      font-size: 0.95rem;
+    .article-body :global(h2) {
+      font-size: 1.18rem;
       font-weight: 700;
-      margin-top: 1.75rem;
-      margin-bottom: 0.65rem;
-      padding-bottom: 0.3rem;
-      border-bottom: 2px dotted #c7d7fb;
+      line-height: 1.6;
+      color: var(--text);
+      margin: 3rem 0 1.1rem;
+      padding-left: 0.85rem;
+      border-left: 4px solid var(--accent);
     }
-    .article-body p { margin-bottom: 1.4rem; }
-    .article-body ul, .article-body ol {
-      margin-bottom: 1.4rem;
-      padding-left: 1.6rem;
+    .article-body :global(h2:first-child) { margin-top: 0.5rem; }
+    .article-body :global(h3) {
+      font-size: 1.04rem;
+      font-weight: 700;
+      line-height: 1.6;
+      color: #3a4048;
+      margin: 2.2rem 0 0.7rem;
     }
-    .article-body li { margin-bottom: 0.4rem; }
-    .article-body a { color: var(--brand); text-underline-offset: 3px; }
-    .article-body a:hover { color: var(--brand-dark); }
-    .article-body strong { font-weight: 700; }
-    .article-body table {
+    .article-body :global(p) { margin: 0 0 1.6rem; }
+    .article-body :global(ul), .article-body :global(ol) {
+      margin: 0 0 1.6rem;
+      padding-left: 1.5rem;
+    }
+    .article-body :global(li) { margin-bottom: 0.5rem; }
+    .article-body :global(li::marker) { color: var(--accent); }
+    .article-body :global(a) {
+      color: var(--brand);
+      text-decoration: underline;
+      text-decoration-thickness: 1px;
+      text-underline-offset: 3px;
+    }
+    .article-body :global(a:hover) { color: var(--brand-dark); }
+    .article-body :global(strong) {
+      font-weight: 700;
+      background: linear-gradient(transparent 62%, color-mix(in srgb, var(--accent) 22%, transparent) 0);
+    }
+    .article-body :global(table) {
       width: 100%;
-      font-size: 0.875rem;
+      font-size: 0.9rem;
       border-collapse: collapse;
-      margin-bottom: 1.5rem;
-      border-radius: 8px;
+      margin: 0 0 1.8rem;
+      border: 1px solid var(--border);
+      border-radius: 10px;
       overflow: hidden;
     }
-    .article-body table th {
-      background: #3a5f82;
-      color: #fff;
-      padding: 0.55rem 0.9rem;
-      font-weight: 600;
+    .article-body :global(thead th) {
+      background: #f3f5f9;
+      color: #3a4048;
+      padding: 0.6rem 0.95rem;
+      font-weight: 700;
       text-align: left;
-    }
-    .article-body table td {
-      padding: 0.5rem 0.9rem;
       border-bottom: 1px solid var(--border);
     }
-    .article-body table tr:last-child td { border-bottom: none; }
-    .article-body table tr:hover td { background: #f5f8ff; }
-    .article-body blockquote {
-      border-left: 4px solid var(--brand);
-      background: #f0f5ff;
-      padding: 0.8rem 1.2rem;
-      border-radius: 0 8px 8px 0;
-      margin-bottom: 1.4rem;
-      font-style: italic;
-      color: #3d5a80;
+    .article-body :global(td) {
+      padding: 0.55rem 0.95rem;
+      border-bottom: 1px solid var(--border);
     }
-    .article-body code {
+    .article-body :global(tbody tr:last-child td) { border-bottom: none; }
+    .article-body :global(blockquote) {
+      border-left: 3px solid var(--accent);
+      background: var(--tint);
+      padding: 0.9rem 1.3rem;
+      border-radius: 0 10px 10px 0;
+      margin: 0 0 1.6rem;
+      color: #4a5158;
+    }
+    .article-body :global(blockquote p) { margin: 0; }
+    .article-body :global(code) {
       background: #f1f3f5;
       padding: 0.15em 0.4em;
       border-radius: 4px;
       font-size: 0.875em;
       font-family: 'Menlo', 'Monaco', monospace;
     }
-    .article-body pre {
+    .article-body :global(pre) {
       background: #1e293b;
       color: #e2e8f0;
       padding: 1.2rem 1.5rem;
       border-radius: 10px;
       overflow-x: auto;
-      margin-bottom: 1.4rem;
+      margin: 0 0 1.6rem;
     }
-    .article-body pre code { background: none; padding: 0; color: inherit; font-size: 0.875em; }
-    .article-body hr { border: none; border-top: 2px dashed var(--border); margin: 2.5rem 0; }
+    .article-body :global(pre code) { background: none; padding: 0; color: inherit; font-size: 0.875em; }
+    .article-body :global(hr) { border: none; border-top: 1px solid var(--border); margin: 2.75rem 0; }
+    .article-body :global(img) { max-width: 100%; height: auto; border-radius: 10px; margin: 0.5rem 0 1.6rem; }
+
+    /* 書き手バイライン */
+    .byline {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      padding: 0.65rem 0.9rem;
+      background: var(--tint);
+      border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
+      border-radius: 12px;
+    }
+    .byline .avatar {
+      width: 38px; height: 38px;
+      flex: 0 0 38px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 700;
+      font-size: 1.05rem;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .byline .who { line-height: 1.35; }
+    .byline .who .name { font-weight: 700; font-size: 0.92rem; color: var(--text); }
+    .byline .who .role { font-size: 0.72rem; color: var(--muted); }
 
     /* CTA */
     .article-cta {
@@ -304,7 +351,7 @@ const hasToc = tocHeadings.length >= 3;
     .blog-footer a:hover { color: #6ea8fe; }
   </style>
 </head>
-<body>
+<body style={`--accent:${writer.accent};--tint:${writer.tint};`}>
   <div id="read-progress"></div>
 
   <!-- ブランドロゴ定義 -->
@@ -392,6 +439,15 @@ const hasToc = tocHeadings.length >= 3;
           </span>
         )}
         <span><i class="bi bi-clock me-1"></i>約{readingTime}分</span>
+      </div>
+
+      <!-- 書き手 -->
+      <div class="byline mb-4">
+        <div class="avatar">{writer.initial}</div>
+        <div class="who">
+          <div class="name">{writer.name}</div>
+          <div class="role">{writer.role}</div>
+        </div>
       </div>
 
       <hr class="mb-4" />
