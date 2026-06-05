@@ -67,6 +67,11 @@
     .mini-stat { background: var(--surface-sub); border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem 0.75rem; text-align: center; }
     .mini-stat .v { font-size: 1.3rem; font-weight: 700; line-height: 1; }
     .mini-stat .l { font-size: 0.68rem; color: var(--text-mute); margin-top: 3px; }
+    .ga-link { display: flex; align-items: center; gap: 0.6rem; padding: 0.7rem 0.85rem; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-sub); text-decoration: none; transition: border 0.15s, background 0.15s; }
+    .ga-link:hover { border-color: var(--accent); background: var(--surface); }
+    .ga-link i { font-size: 1.2rem; flex-shrink: 0; }
+    .ga-link .t { font-size: 0.82rem; font-weight: 600; color: var(--text); }
+    .ga-link .d { font-size: 0.68rem; color: var(--text-mute); margin-top: 1px; }
     .filter-bar { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
     .filter-input { border: 1px solid var(--border); border-radius: 6px; padding: 0.35rem 0.75rem; font-size: 0.8rem; outline: none; background: var(--surface-sub); transition: border 0.15s, background 0.15s; width: 200px; }
     .filter-input:focus { border-color: var(--accent); background: #fff; }
@@ -166,37 +171,32 @@
         <div class="kpi c-red"><div class="value" id="statSuspended">—</div><div class="label">停止中</div></div>
       </div>
 
-      <!-- Google アナリティクス（GA4） -->
+      <!-- Google アナリティクス（GA4）へのリンク -->
       <div class="panel" style="margin-bottom:1rem;">
         <div class="panel-header" style="justify-content:space-between;">
           <div style="display:flex;align-items:center;gap:0.5rem;">
             <i class="bi bi-graph-up-arrow" style="color:#e8710a;"></i>
-            <span class="title">アクセス解析（過去28日）</span>
+            <span class="title">アクセス解析（Google アナリティクス）</span>
           </div>
-          <div style="display:flex;align-items:center;gap:0.75rem;">
-            <span id="gaRealtime" style="font-size:0.78rem;color:var(--text-mute);"></span>
-            <a href="https://analytics.google.com/" target="_blank" rel="noopener" style="font-size:0.75rem;color:var(--accent);text-decoration:none;">GA4で開く <i class="bi bi-box-arrow-up-right"></i></a>
-          </div>
+          <a href="https://analytics.google.com/" target="_blank" rel="noopener" style="font-size:0.75rem;color:var(--accent);text-decoration:none;">GA4ホーム <i class="bi bi-box-arrow-up-right"></i></a>
         </div>
         <div class="panel-body">
-          <div id="gaUnconfigured" class="d-none" style="font-size:0.82rem;color:var(--text-mute);padding:0.5rem 0;"></div>
-          <div id="gaContent">
-            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.5rem;margin-bottom:1rem;">
-              <div class="mini-stat"><div class="v" id="gaUsers" style="color:#e8710a;">—</div><div class="l">アクティブユーザー</div></div>
-              <div class="mini-stat"><div class="v" id="gaSessions" style="color:var(--accent);">—</div><div class="l">セッション</div></div>
-              <div class="mini-stat"><div class="v" id="gaPageViews" style="color:#1d4ed8;">—</div><div class="l">ページビュー</div></div>
-              <div class="mini-stat"><div class="v" id="gaAvgDur" style="color:#7c3aed;">—</div><div class="l">平均滞在(秒)</div></div>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
-              <div>
-                <div style="font-size:0.7rem;font-weight:600;color:var(--text-mute);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.4rem;">流入チャネル</div>
-                <table style="width:100%;font-size:0.8rem;"><tbody id="gaChannels"></tbody></table>
-              </div>
-              <div>
-                <div style="font-size:0.7rem;font-weight:600;color:var(--text-mute);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.4rem;">人気ページ</div>
-                <table style="width:100%;font-size:0.8rem;"><tbody id="gaPages"></tbody></table>
-              </div>
-            </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:0.5rem;">
+            <a href="https://analytics.google.com/analytics/web/#/p0/realtime/overview" target="_blank" rel="noopener" class="ga-link">
+              <i class="bi bi-broadcast" style="color:#22c55e;"></i><div><div class="t">リアルタイム</div><div class="d">今アクセス中の人数</div></div>
+            </a>
+            <a href="https://analytics.google.com/analytics/web/#/p0/reports/explorer?params=_u..nav%3Dmaui" target="_blank" rel="noopener" class="ga-link">
+              <i class="bi bi-people" style="color:#e8710a;"></i><div><div class="t">集客サマリー</div><div class="d">流入元・ユーザー数</div></div>
+            </a>
+            <a href="https://analytics.google.com/analytics/web/#/p0/reports/explorer" target="_blank" rel="noopener" class="ga-link">
+              <i class="bi bi-file-earmark-text" style="color:#1d4ed8;"></i><div><div class="t">ページとスクリーン</div><div class="d">人気ページ別PV</div></div>
+            </a>
+            <a href="https://analytics.google.com/analytics/web/#/p0/reports/explorer" target="_blank" rel="noopener" class="ga-link">
+              <i class="bi bi-bullseye" style="color:#7c3aed;"></i><div><div class="t">コンバージョン</div><div class="d">申込ボタンの計測</div></div>
+            </a>
+          </div>
+          <div style="font-size:0.72rem;color:var(--text-mute);margin-top:0.75rem;">
+            <i class="bi bi-info-circle me-1"></i>測定ID <code>G-XCNC24BTGP</code>。リンクで開いた後、左上のプロパティ選択で「経費ログ」を選んでください。
           </div>
         </div>
       </div>
@@ -993,47 +993,10 @@
       updateMonthly();
       render();
       renderReferrerTable();
-      loadAnalytics();
       loadAppLogs();
       loadNotifyList();
       if (_hasCfKey) loadCloudflare();
       if (_sentryToken) loadSentry();
-    }
-
-    async function loadAnalytics() {
-      const unconf  = document.getElementById('gaUnconfigured');
-      const content = document.getElementById('gaContent');
-      const rt      = document.getElementById('gaRealtime');
-      try {
-        const resp = await fetch(`/api/admin-licenses?secret=${encodeURIComponent(_secret)}&analytics=1`);
-        const ga = await resp.json();
-        if (!ga.configured) {
-          content.classList.add('d-none');
-          unconf.classList.remove('d-none');
-          unconf.innerHTML = `<i class="bi bi-info-circle me-1"></i>未設定です（${esc(ga.reason || '')}）。GA4プロパティIDの環境変数設定とサービスアカウントの閲覧者追加が必要です。`;
-          return;
-        }
-        unconf.classList.add('d-none');
-        content.classList.remove('d-none');
-        const s = ga.summary28d || {};
-        document.getElementById('gaUsers').textContent     = (s.activeUsers ?? 0).toLocaleString();
-        document.getElementById('gaSessions').textContent  = (s.sessions ?? 0).toLocaleString();
-        document.getElementById('gaPageViews').textContent = (s.pageViews ?? 0).toLocaleString();
-        document.getElementById('gaAvgDur').textContent    = (s.avgSessionSec ?? 0).toLocaleString();
-        rt.innerHTML = `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#22c55e;margin-right:4px;"></span>現在 ${ga.realtimeUsers ?? 0} 人がアクセス中`;
-
-        document.getElementById('gaChannels').innerHTML = (ga.channels || []).map(c =>
-          `<tr><td style="padding:2px 0;color:var(--text-sub);">${esc(c.channel)}</td><td style="text-align:right;font-weight:600;">${c.sessions.toLocaleString()}</td></tr>`
-        ).join('') || '<tr><td style="color:var(--text-mute);">データなし</td></tr>';
-
-        document.getElementById('gaPages').innerHTML = (ga.pages || []).map(p =>
-          `<tr><td style="padding:2px 0;color:var(--text-sub);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(p.path)}">${esc(p.path)}</td><td style="text-align:right;font-weight:600;">${p.views.toLocaleString()}</td></tr>`
-        ).join('') || '<tr><td style="color:var(--text-mute);">データなし</td></tr>';
-      } catch (err) {
-        content.classList.add('d-none');
-        unconf.classList.remove('d-none');
-        unconf.innerHTML = `<i class="bi bi-exclamation-triangle me-1"></i>読み込みに失敗しました（${esc(err.message)}）`;
-      }
     }
 
     async function loadNotifyList() {
