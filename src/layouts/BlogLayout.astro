@@ -108,7 +108,7 @@ const hasToc = tocHeadings.length >= 3;
     }
     @media (min-width: 992px) {
       .blog-container {
-        grid-template-columns: 1fr 260px;
+        grid-template-columns: 240px 1fr;
         align-items: start;
         padding: 3rem 1.5rem 5rem;
       }
@@ -122,8 +122,14 @@ const hasToc = tocHeadings.length >= 3;
       box-shadow: 0 2px 12px rgba(0,0,0,0.06);
       min-width: 0;
     }
-    @media (min-width: 768px) {
-      .article-main { padding: 3rem 3.5rem; }
+    @media (min-width: 992px) {
+      .article-main { padding: 2.5rem 3rem; }
+    }
+    @media (min-width: 992px) {
+      .blog-container:not(:has(.sidebar)) .article-main,
+      .article-main:first-child {
+        grid-column: 1 / -1;
+      }
     }
 
     /* タグ */
@@ -141,14 +147,14 @@ const hasToc = tocHeadings.length >= 3;
 
     /* 記事タイトル */
     .article-title {
-      font-size: 1.6rem;
+      font-size: 1.35rem;
       font-weight: 900;
-      line-height: 1.5;
+      line-height: 1.55;
       letter-spacing: -0.01em;
       color: var(--text);
       margin-top: 0.25rem;
     }
-    @media (min-width: 768px) { .article-title { font-size: 2.1rem; line-height: 1.45; } }
+    @media (min-width: 768px) { .article-title { font-size: 1.6rem; line-height: 1.5; } }
 
     /* メタ情報 */
     .article-meta {
@@ -163,20 +169,20 @@ const hasToc = tocHeadings.length >= 3;
     /* 記事本文 */
     .article-body { line-height: 1.9; }
     .article-body h2 {
-      font-size: 1.3rem;
+      font-size: 1.05rem;
       font-weight: 800;
-      margin-top: 3rem;
-      margin-bottom: 1rem;
-      padding: 0.55rem 0.9rem;
+      margin-top: 2.5rem;
+      margin-bottom: 0.9rem;
+      padding: 0.5rem 0.85rem;
       background: linear-gradient(135deg, #eef2ff 0%, #f0f9ff 100%);
-      border-left: 4px solid var(--brand);
-      border-radius: 0 8px 8px 0;
+      border-left: 3px solid var(--brand);
+      border-radius: 0 6px 6px 0;
     }
     .article-body h3 {
-      font-size: 1.1rem;
+      font-size: 0.95rem;
       font-weight: 700;
-      margin-top: 2rem;
-      margin-bottom: 0.75rem;
+      margin-top: 1.75rem;
+      margin-bottom: 0.65rem;
       padding-bottom: 0.3rem;
       border-bottom: 2px dotted #c7d7fb;
     }
@@ -336,6 +342,22 @@ const hasToc = tocHeadings.length >= 3;
   <!-- メインコンテンツ -->
   <div class="blog-container">
 
+    <!-- サイドバー（PC・左） -->
+    {hasToc && (
+      <aside class="sidebar d-none d-lg-block">
+        <div class="toc-card">
+          <div class="toc-title"><i class="bi bi-list-ul me-1"></i>目次</div>
+          <ul class="toc-list" id="toc">
+            {tocHeadings.map(h => (
+              <li class={h.depth === 3 ? 'toc-h3' : ''}>
+                <a href={`#${h.slug}`} data-toc={h.slug}>{h.text}</a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </aside>
+    )}
+
     <!-- 記事本文カラム -->
     <article class="article-main">
       <!-- パンくず -->
@@ -369,7 +391,7 @@ const hasToc = tocHeadings.length >= 3;
             更新: <time datetime={updatedDate.toISOString()}>{fmtDate(updatedDate)}</time>
           </span>
         )}
-        <span><i class="bi bi-clock me-1"></i>約{readingTime}分で読めます</span>
+        <span><i class="bi bi-clock me-1"></i>約{readingTime}分</span>
       </div>
 
       <hr class="mb-4" />
@@ -405,22 +427,6 @@ const hasToc = tocHeadings.length >= 3;
         <a href="/" class="btn btn-primary px-4" style="font-weight:700;">無料で試してみる →</a>
       </div>
     </article>
-
-    <!-- サイドバー（PC） -->
-    {hasToc && (
-      <aside class="sidebar d-none d-lg-block">
-        <div class="toc-card">
-          <div class="toc-title"><i class="bi bi-list-ul me-1"></i>目次</div>
-          <ul class="toc-list" id="toc">
-            {tocHeadings.map(h => (
-              <li class={h.depth === 3 ? 'toc-h3' : ''}>
-                <a href={`#${h.slug}`} data-toc={h.slug}>{h.text}</a>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </aside>
-    )}
 
   </div>
 

@@ -95,9 +95,9 @@ const allTags = [...new Set(posts.flatMap(p => p.data.tags))].sort();
       margin-bottom: 0.9rem;
       position: relative;
     }
-    .blog-hero h1 { font-size: 2.2rem; font-weight: 900; letter-spacing: 0.01em; margin-bottom: 0.8rem; position: relative; }
-    .blog-hero p { opacity: 0.9; font-size: 0.92rem; margin: 0 auto; max-width: 560px; line-height: 1.8; position: relative; }
-    @media (max-width: 575px) { .blog-hero h1 { font-size: 1.7rem; } }
+    .blog-hero h1 { font-size: 1.9rem; font-weight: 900; letter-spacing: 0.01em; margin-bottom: 0.8rem; position: relative; max-width: 600px; margin-left: auto; margin-right: auto; }
+    .blog-hero p { opacity: 0.9; font-size: 0.92rem; margin: 0 auto; max-width: 520px; line-height: 1.8; position: relative; }
+    @media (max-width: 575px) { .blog-hero h1 { font-size: 1.45rem; } }
 
     /* タグフィルター */
     .tag-filter-btn {
@@ -183,7 +183,6 @@ const allTags = [...new Set(posts.flatMap(p => p.data.tags))].sort();
     </a>
     <div class="d-flex gap-3 align-items-center">
       <a href="/faq" class="nav-link-sm d-none d-sm-inline">FAQ</a>
-      <a href="/guide" class="nav-link-sm d-none d-sm-inline">使い方</a>
       <a href="/" class="btn btn-primary btn-sm rounded-pill px-3" style="font-size:0.82rem;">無料で試す</a>
     </div>
   </nav>
@@ -191,8 +190,8 @@ const allTags = [...new Set(posts.flatMap(p => p.data.tags))].sort();
   <!-- ヒーロー -->
   <div class="blog-hero">
     <span class="eyebrow">KEIHI-LOG BLOG</span>
-    <h1>経費まわりの「困った」を解決する</h1>
-    <p>経費精算・電子帳簿保存法・フリーランスの経費管理について、<br class="d-none d-md-inline">実務で役立つ情報をやさしく解説します。</p>
+    <h1>経費ログを使いながら、気づいたことを記録しています</h1>
+    <p>個人事業主の30代が、経費ログを使い始めてから<br class="d-none d-md-inline">感じたこと・便利だった機能・日々の気づきをつづるブログ。</p>
   </div>
 
   <main class="container py-5" style="max-width:920px;">
