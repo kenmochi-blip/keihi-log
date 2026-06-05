@@ -23,9 +23,9 @@
       position: sticky;
       left: 0;
       z-index: 2;
-      min-width: 170px;
-      max-width: 200px;
-      width: 170px;
+      min-width: 260px;
+      max-width: 260px;
+      width: 260px;
       background: #fff;
       box-shadow: 2px 0 6px rgba(0,0,0,.06);
     }
@@ -173,10 +173,39 @@
           </ul>
           <div class="tab-content">
             <div class="tab-pane fade show active p-3" id="tabExpenses">
-              <div class="d-flex justify-content-end mb-2">
-                <button id="csvExportBtn" class="btn btn-outline-secondary btn-sm">
-                  <i class="bi bi-download me-1"></i>CSV出力
-                </button>
+              <!-- フィルター行 -->
+              <div class="row g-2 mb-2 align-items-center">
+                <div class="col-auto">
+                  <select id="filterName" class="form-select form-select-sm" style="min-width:110px;">
+                    <option value="">申請者：全員</option>
+                  </select>
+                </div>
+                <div class="col-auto">
+                  <select id="filterCat" class="form-select form-select-sm" style="min-width:130px;">
+                    <option value="">勘定科目：全て</option>
+                  </select>
+                </div>
+                <div class="col-auto">
+                  <select id="filterStatus" class="form-select form-select-sm">
+                    <option value="">状態：全て</option>
+                    <option value="settled">精算済</option>
+                    <option value="confirmed">登録済</option>
+                    <option value="pending">申請済</option>
+                  </select>
+                </div>
+                <div class="col-auto">
+                  <select id="filterSort" class="form-select form-select-sm">
+                    <option value="date_desc">日付：新しい順</option>
+                    <option value="date_asc">日付：古い順</option>
+                    <option value="amount_desc">金額：高い順</option>
+                    <option value="amount_asc">金額：低い順</option>
+                  </select>
+                </div>
+                <div class="col-auto ms-auto">
+                  <button id="csvExportBtn" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-download me-1"></i>CSV出力
+                  </button>
+                </div>
               </div>
               <div class="table-responsive">
                 <table class="table table-sm table-hover align-middle" style="font-size:.85rem;">

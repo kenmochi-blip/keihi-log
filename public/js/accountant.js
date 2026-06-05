@@ -6,11 +6,13 @@
  * - 科目金額セルのホバーで経費明細ツールチップ
  */
 const Accountant = (() => {
-  let _summaries   = [];
-  let _months      = [];
-  let _monthsCount = 6;
-  let _active      = null;
-  let _catTip      = null; // ホバーツールチップ要素
+  let _summaries    = [];
+  let _months       = [];
+  let _monthsCount  = 6;
+  let _active       = null;
+  let _catTip       = null; // ホバーツールチップ要素
+  let _baseExpenses = []; // モーダル表示中の全経費（フィルター前）
+  let _filterState  = { name: '', cat: '', status: '', sort: 'date_desc' };
 
   // ── デモデータ（12ヶ月分） ────────────────────────────────────────────────
   const DEMO_MONTHS = (() => {
@@ -278,7 +280,7 @@ const Accountant = (() => {
       const catRows = cats.map(cat => {
         const cells = months.map(m => {
           const amt = (((s.byMonth || {})[m] || {}).byCategory || {})[cat] || 0;
-          const hasTip = amt > 0 && ((s.byMonth[m]?.expenses || []).some(e => e.category === cat));
+          const hasTip = amt > 0;
           return `<td class="text-end px-3 py-1 cat-amount-cell${hasTip ? ' has-tip' : ''}"
             data-sheet="${_esc(s.sheetId)}" data-month="${_esc(m)}" data-cat="${_esc(cat)}">
             ${amt > 0 ? '¥' + amt.toLocaleString() : '<span class="text-muted">—</span>'}
@@ -309,6 +311,12 @@ const Accountant = (() => {
       </div>
     </div>`;
 
+    // デフォルトで右端（最新月）にスクロール
+    requestAnimationFrame(() => {
+      const scrollEl = container.querySelector('.table-responsive');
+      if (scrollEl) scrollEl.scrollLeft = scrollEl.scrollWidth;
+    });
+
     container.querySelectorAll('.pivot-cell').forEach(cell =>
       cell.addEventListener('click', () => _showDetail(cell.dataset.sheet, cell.dataset.month))
     );
@@ -334,25 +342,32 @@ const Accountant = (() => {
 
   // ── ホバーツールチップ（科目別金額セル） ─────────────────────────────────
   function _attachCatTips(container) {
-    container.querySelectorAll('.cat-amount-cell.has-tip').forEach(cell => {
+    container.querySelectorAll('.cat-amount-cell[data-cat]').forEach(cell => {
       cell.addEventListener('mouseenter', () => {
         const { sheet, month, cat } = cell.dataset;
-        const summary = _summaries.find(s => s.sheetId === sheet);
+        const summary  = _summaries.find(s => s.sheetId === sheet);
+        const amt      = (((summary?.byMonth || {})[month] || {}).byCategory || {})[cat] || 0;
+        if (!amt) return;
+
         const expenses = ((summary?.byMonth[month] || {}).expenses || []).filter(e => e.category === cat);
-        if (!expenses.length) return;
 
         if (_catTip) { _catTip.remove(); }
         _catTip = document.createElement('div');
         _catTip.className = 'cat-detail-tip';
-        _catTip.innerHTML = expenses.map(e =>
-          `<div class="d-flex gap-2 justify-content-between">
-             <span style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${_esc(e.place || '')}</span>
-             <span style="white-space:nowrap;font-weight:600;">¥${(e.amount || 0).toLocaleString()}</span>
-           </div>${e.note ? `<div style="opacity:.7;font-size:.72rem;padding-left:.1rem;">${_esc(e.note)}</div>` : ''}`
-        ).join('');
+
+        if (expenses.length) {
+          _catTip.innerHTML = expenses.map(e =>
+            `<div class="d-flex gap-2 justify-content-between">
+               <span style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${_esc(e.place || '')}</span>
+               <span style="white-space:nowrap;font-weight:600;">¥${(e.amount || 0).toLocaleString()}</span>
+             </div>${e.note ? `<div style="opacity:.7;font-size:.72rem;padding-left:.1rem;">${_esc(e.note)}</div>` : ''}`
+          ).join('');
+        } else {
+          _catTip.innerHTML = `<div style="opacity:.75;">（明細データなし）</div><div style="font-weight:600;">¥${amt.toLocaleString()}</div>`;
+        }
         document.body.appendChild(_catTip);
 
-        const r = cell.getBoundingClientRect();
+        const r    = cell.getBoundingClientRect();
         const tipH = _catTip.offsetHeight;
         _catTip.style.left = `${Math.min(r.left, window.innerWidth - _catTip.offsetWidth - 8)}px`;
         _catTip.style.top  = `${Math.max(8, r.top - tipH - 6)}px`;
@@ -370,23 +385,20 @@ const Accountant = (() => {
     if (!summary) return;
 
     const months = _activeMths();
-    const allExpenses = months
-      .flatMap(m => (summary.byMonth[m]?.expenses || []))
-      .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-
-    const total = allExpenses.reduce((s, e) => s + (e.amount || 0), 0);
+    const allExpenses = months.flatMap(m => (summary.byMonth[m]?.expenses || []));
     const byCategory = {};
     allExpenses.forEach(e => { if (e.category) byCategory[e.category] = (byCategory[e.category] || 0) + (e.amount || 0); });
+    const total = allExpenses.reduce((s, e) => s + (e.amount || 0), 0);
 
     const fmt = m => m.replace(/^(\d{4})-(\d{2})$/, (_, y, mo) => `${y}年${parseInt(mo)}月`);
     const range = months.length ? `${fmt(months[0])}〜${fmt(months[months.length - 1])}` : '全期間';
 
     _active = { expenses: allExpenses, total, byCategory, name: summary.name, month: range };
+    _baseExpenses = allExpenses;
     document.getElementById('detailTitle').textContent = summary.name;
     document.getElementById('detailMonth').textContent = range;
-    _renderDetailTable(_active);
+    _openDetailModal();
     _renderCategoryBreakdown(_active);
-    bootstrap.Modal.getOrCreateInstance(document.getElementById('detailModal')).show();
   }
 
   // ── 月別経費明細ポップアップ（セルクリック） ────────────────────────────
@@ -398,14 +410,78 @@ const Accountant = (() => {
 
     const fmt = m => m.replace(/^(\d{4})-(\d{2})$/, (_, y, mo) => `${y}年${parseInt(mo)}月`);
     _active = { ...data, sheetId, name: summary.name, month: fmt(month) };
+    _baseExpenses = data.expenses || [];
     document.getElementById('detailTitle').textContent = summary.name;
     document.getElementById('detailMonth').textContent = fmt(month);
-    _renderDetailTable(_active);
+    _openDetailModal();
     _renderCategoryBreakdown(_active);
+  }
+
+  function _openDetailModal() {
+    _filterState = { name: '', cat: '', status: '', sort: 'date_desc' };
+    _populateFilters();
+    _setupDetailFilters();
+    _applyFilters();
     bootstrap.Modal.getOrCreateInstance(document.getElementById('detailModal')).show();
   }
 
-  function _renderDetailTable(d) {
+  function _populateFilters() {
+    const names = [...new Set(_baseExpenses.map(e => e.name).filter(Boolean))].sort();
+    const cats  = [...new Set(_baseExpenses.map(e => e.category).filter(Boolean))].sort();
+
+    const nameEl = document.getElementById('filterName');
+    nameEl.innerHTML = '<option value="">申請者：全員</option>' +
+      names.map(n => `<option value="${_esc(n)}">${_esc(n)}</option>`).join('');
+    nameEl.value = _filterState.name;
+
+    const catEl = document.getElementById('filterCat');
+    catEl.innerHTML = '<option value="">勘定科目：全て</option>' +
+      cats.map(c => `<option value="${_esc(c)}">${_esc(c)}</option>`).join('');
+    catEl.value = _filterState.cat;
+
+    document.getElementById('filterStatus').value = _filterState.status;
+    document.getElementById('filterSort').value   = _filterState.sort;
+  }
+
+  function _setupDetailFilters() {
+    ['filterName', 'filterCat', 'filterStatus', 'filterSort'].forEach(id => {
+      const el = document.getElementById(id);
+      el.onchange = () => {
+        _filterState.name   = document.getElementById('filterName').value;
+        _filterState.cat    = document.getElementById('filterCat').value;
+        _filterState.status = document.getElementById('filterStatus').value;
+        _filterState.sort   = document.getElementById('filterSort').value;
+        _applyFilters();
+      };
+    });
+  }
+
+  function _applyFilters() {
+    let list = _baseExpenses.slice();
+
+    if (_filterState.name)   list = list.filter(e => e.name === _filterState.name);
+    if (_filterState.cat)    list = list.filter(e => e.category === _filterState.cat);
+    if (_filterState.status) {
+      list = list.filter(e => {
+        if (_filterState.status === 'settled')   return !!e.settlementDate;
+        if (_filterState.status === 'confirmed') return !e.settlementDate && !!e.confirmed;
+        if (_filterState.status === 'pending')   return !e.settlementDate && !e.confirmed;
+        return true;
+      });
+    }
+
+    const [sortKey, sortDir] = _filterState.sort.split('_');
+    list.sort((a, b) => {
+      const va = sortKey === 'date' ? (a.date || '') : (a.amount || 0);
+      const vb = sortKey === 'date' ? (b.date || '') : (b.amount || 0);
+      return sortDir === 'asc' ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
+    });
+
+    const filtered = { ...(_active || {}), expenses: list, total: list.reduce((s, e) => s + (e.amount || 0), 0) };
+    _renderDetailTableRows(filtered);
+  }
+
+  function _renderDetailTableRows(d) {
     const expenses = d.expenses || [];
     document.getElementById('detailSummaryText').textContent =
       `${expenses.length}件 ／ 合計 ¥${(d.total || 0).toLocaleString()}`;
@@ -459,7 +535,7 @@ const Accountant = (() => {
   function _exportCsv() {
     if (!_active) return;
     const header = ['日付','申請者','支払先','金額','勘定科目','タイプ','備考','状態','ID'];
-    const rows = (_active.expenses || []).map(e => [
+    const rows = (_baseExpenses || []).map(e => [
       e.date, e.name, e.place, e.amount, e.category, e.type, e.note,
       e.settlementDate ? '精算済' : e.confirmed ? '登録済' : '申請済', e.id,
     ]);
