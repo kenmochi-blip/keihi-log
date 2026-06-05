@@ -651,11 +651,48 @@ async function accountantRouter(req, res) {
   return res.status(405).json({ error: 'method_not_allowed' });
 }
 
+/**
+ * 紹介コードに紐付く顧問先を KV チェーンで自動解決する。
+ * license:* → license_alias:${key} → alias:${code} → sheetId
+ */
+async function _getClientsForReferrer(referrerCode) {
+  const keys = [];
+  let cursor = 0;
+  do {
+    const [next, batch] = await kv.scan(cursor, { match: 'license:*', count: 100 });
+    keys.push(...batch);
+    cursor = Number(next);
+  } while (cursor !== 0);
+
+  const licenses = await Promise.all(keys.map(k => kv.get(k)));
+  const clients = [];
+  await Promise.all(keys.map(async (k, i) => {
+    const lic = licenses[i];
+    if (!lic || lic.referrer !== referrerCode || lic.suspended) return;
+    const licKey = k.replace('license:', '');
+    const alias   = await kv.get(`license_alias:${licKey}`).catch(() => null);
+    if (!alias) return;
+    const sheetId = await kv.get(`alias:${alias}`).catch(() => null);
+    if (!sheetId || !_validSheetId(sheetId)) return;
+    clients.push({ sheetId, name: lic.company || '（社名未設定）', plan: lic.plan || 'standard', auto: true });
+  }));
+  return clients;
+}
+
 async function accountantProfile(req, res) {
   const authz = await _authorizeAccountant(req, res);
   if (!authz) return;
-  const profile = await kv.get(`acct:${authz.me.email}`).catch(() => null) || { sheets: [] };
-  return res.status(200).json({ referrer: authz.referrer, clients: profile.sheets || [] });
+
+  // 紹介コード経由で自動解決した顧問先リスト
+  const autoClients = await _getClientsForReferrer(authz.referrer.code);
+
+  // 手動追加分（紹介コード経由でない顧問先の補完用）
+  const manual = await kv.get(`acct:${authz.me.email}`).catch(() => null) || { sheets: [] };
+  const autoIds = new Set(autoClients.map(c => c.sheetId));
+  const manualOnly = (manual.sheets || []).filter(s => !autoIds.has(s.sheetId));
+
+  const clients = [...autoClients, ...manualOnly];
+  return res.status(200).json({ referrer: authz.referrer, clients });
 }
 
 async function accountantAddClient(req, res) {
@@ -669,11 +706,13 @@ async function accountantAddClient(req, res) {
 
   const key     = `acct:${authz.me.email}`;
   const profile = await kv.get(key).catch(() => null) || { sheets: [] };
-  if (profile.sheets.some(s => s.sheetId === sheetId)) {
+
+  // 自動解決済みの顧問先は手動追加不要
+  const autoClients = await _getClientsForReferrer(authz.referrer.code);
+  if (autoClients.some(c => c.sheetId === sheetId) || profile.sheets.some(s => s.sheetId === sheetId)) {
     return res.status(409).json({ error: 'already_registered' });
   }
 
-  // SA でシートへアクセス可能か確認
   try {
     const sheets = sheetsClient();
     await sheets.spreadsheets.get({ spreadsheetId: sheetId, fields: 'properties.title' });
@@ -681,9 +720,12 @@ async function accountantAddClient(req, res) {
     return res.status(503).json({ error: 'sa_sheet_access_failed' });
   }
 
-  profile.sheets.push({ sheetId, name, addedAt: new Date().toISOString() });
+  profile.sheets.push({ sheetId, name, addedAt: new Date().toISOString(), auto: false });
   await kv.set(key, profile);
-  return res.status(200).json({ ok: true, clients: profile.sheets });
+
+  const autoIds = new Set(autoClients.map(c => c.sheetId));
+  const clients = [...autoClients, ...profile.sheets.filter(s => !autoIds.has(s.sheetId))];
+  return res.status(200).json({ ok: true, clients });
 }
 
 async function accountantRemoveClient(req, res) {
@@ -693,11 +735,20 @@ async function accountantRemoveClient(req, res) {
   const sheetId = _query(req).get('sheetId') || '';
   if (!sheetId) return res.status(400).json({ error: 'invalid_request' });
 
+  // 自動解決の顧問先は削除不可（紹介コードで管理側が管理する）
+  const autoClients = await _getClientsForReferrer(authz.referrer.code);
+  if (autoClients.some(c => c.sheetId === sheetId)) {
+    return res.status(403).json({ error: 'auto_client_cannot_be_removed' });
+  }
+
   const key     = `acct:${authz.me.email}`;
   const profile = await kv.get(key).catch(() => null) || { sheets: [] };
   profile.sheets = profile.sheets.filter(s => s.sheetId !== sheetId);
   await kv.set(key, profile);
-  return res.status(200).json({ ok: true, clients: profile.sheets });
+
+  const autoIds = new Set(autoClients.map(c => c.sheetId));
+  const clients = [...autoClients, ...profile.sheets.filter(s => !autoIds.has(s.sheetId))];
+  return res.status(200).json({ ok: true, clients });
 }
 
 async function accountantSummary(req, res) {

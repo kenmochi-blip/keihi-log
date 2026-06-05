@@ -120,6 +120,13 @@ const Accountant = (() => {
     const pendingBadge = s.pending > 0
       ? `<span class="badge bg-warning text-dark mb-1" style="font-size:.7rem;"><i class="bi bi-clock me-1"></i>未承認 ${s.pending}件</span>`
       : '';
+    const autoBadge = s.auto
+      ? `<span class="badge bg-light text-muted border" style="font-size:.65rem;">自動連携</span>`
+      : `<span class="badge bg-light text-muted border" style="font-size:.65rem;">手動追加</span>`;
+    const removeBtn = s.auto
+      ? '' // 自動連携顧問先は削除不可（管理側で管理）
+      : `<button class="btn btn-link btn-sm text-secondary p-0 ms-2 flex-shrink-0"
+           data-remove="${_esc(s.sheetId)}" title="削除"><i class="bi bi-x-lg"></i></button>`;
     const topCats = Object.entries(s.byCategory || {}).sort((a, b) => b[1] - a[1]).slice(0, 3);
     const catRows = topCats.map(([cat, amt]) =>
       `<div class="d-flex justify-content-between" style="font-size:.8rem;">
@@ -131,9 +138,11 @@ const Accountant = (() => {
     return `<div class="card h-100 border-0 shadow-sm client-card">
       <div class="card-body">
         <div class="d-flex align-items-start justify-content-between mb-1">
-          <h6 class="mb-0 fw-semibold">${_esc(s.name)}</h6>
-          <button class="btn btn-link btn-sm text-secondary p-0 ms-2 flex-shrink-0"
-            data-remove="${_esc(s.sheetId)}" title="削除"><i class="bi bi-x-lg"></i></button>
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <h6 class="mb-0 fw-semibold">${_esc(s.name)}</h6>
+            ${autoBadge}
+          </div>
+          ${removeBtn}
         </div>
         ${pendingBadge}
         <div class="mt-2 mb-1">
@@ -221,8 +230,12 @@ const Accountant = (() => {
       } else {
         await _loadSummary();
       }
-    } catch {
-      alert('削除に失敗しました');
+    } catch (e) {
+      if (e.status === 403) {
+        alert('自動連携の顧問先は削除できません。管理側で紹介コードの紐付けを解除してください。');
+      } else {
+        alert('削除に失敗しました');
+      }
     }
   }
 
