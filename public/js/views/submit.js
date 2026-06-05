@@ -962,8 +962,8 @@ function _bindTypeButtons(el) {
           const txDate = el.querySelector('#inputDate')?.value || result.date || null;
           const baseRate = await _fetchExchangeRate(result.fx_currency, 'JPY', txDate);
           if (baseRate) {
-            // 設定B9の外貨手数料率を上乗せ（デフォルト2.2%）
-            const markupPct = parseFloat(localStorage.getItem('keihi_fx_markup') ?? '2.2') || 0;
+            // TTM（仲値）に3%上乗せ：クレジットカード会社の適用レートに近似
+            const markupPct = 3;
             const rate = baseRate * (1 + markupPct / 100);
             const jpy = Math.floor(Number(result.fx_amount) * rate);
             const amtInput = el.querySelector('#inputAmount');

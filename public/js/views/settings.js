@@ -285,20 +285,6 @@ const SettingsView = (() => {
     </div>
   </div>
 
-  <!-- 外貨手数料率（管理者のみ） -->
-  <div class="card mb-3">
-    <div class="card-body">
-      <div class="settings-section-title">外貨手数料率（%）</div>
-      <p class="text-muted small mb-2">外貨取引の換算レートに上乗せするクレジットカード手数料の目安を設定します（例：Visa/MC は約 2.2%）。AI解析による自動換算に反映されます。</p>
-      <div class="input-group input-group-sm mb-1" style="max-width:200px;">
-        <input type="number" class="form-control form-control-sm" id="inputFxMarkup" min="0" max="10" step="0.1" placeholder="2.2">
-        <span class="input-group-text">%</span>
-        <button class="btn btn-outline-primary btn-sm" id="btnSaveFxMarkup">保存</button>
-      </div>
-      <div id="fxMarkupMsg" class="form-text"></div>
-    </div>
-  </div>
-
   <!-- ヘッダー色（管理者のみ） -->
   <div class="card mb-3">
     <div class="card-body">
@@ -557,12 +543,6 @@ const SettingsView = (() => {
           carRateInput.value = cfg.B7;
           localStorage.setItem('keihi_car_rate', cfg.B7);
         }
-        // 外貨手数料率 (B9)
-        const fxMarkupInput = el.querySelector('#inputFxMarkup');
-        if (fxMarkupInput && cfg.B9 !== '') {
-          fxMarkupInput.value = cfg.B9;
-          localStorage.setItem('keihi_fx_markup', cfg.B9);
-        }
       } catch (err) {
         // 読み込み失敗時はキャッシュから復元
         const cached = localStorage.getItem('keihi_gemini_key');
@@ -587,9 +567,6 @@ const SettingsView = (() => {
       const carRateInput = el.querySelector('#inputCarRate');
       const cachedRate = localStorage.getItem('keihi_car_rate');
       if (carRateInput && cachedRate) carRateInput.value = cachedRate;
-      const fxMarkupInput = el.querySelector('#inputFxMarkup');
-      const cachedFxMarkup = localStorage.getItem('keihi_fx_markup');
-      if (fxMarkupInput && cachedFxMarkup) fxMarkupInput.value = cachedFxMarkup;
     }
 
     el.querySelector('#btnSaveCompanyName')?.addEventListener('click', async () => {
@@ -642,24 +619,6 @@ const SettingsView = (() => {
       }
     });
 
-    el.querySelector('#btnSaveFxMarkup')?.addEventListener('click', async () => {
-      const val = el.querySelector('#inputFxMarkup').value.trim();
-      const msg = el.querySelector('#fxMarkupMsg');
-      const num = Number(val);
-      if (val === '' || isNaN(num) || num < 0 || num > 10) {
-        msg.innerHTML = '<span class="text-danger"><i class="bi bi-exclamation-circle me-1"></i>0〜10の数値を入力してください</span>';
-        return;
-      }
-      try {
-        await Sheets.writeSetting('B9', num);
-        localStorage.setItem('keihi_fx_markup', String(num));
-        msg.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>保存しました</span>';
-        App.showToast('外貨手数料率を保存しました', 'success');
-        setTimeout(() => { msg.innerHTML = ''; }, 3000);
-      } catch (err) {
-        msg.innerHTML = `<span class="text-danger">${_escape(err.message)}</span>`;
-      }
-    });
 
     // マスタデータ読み込み
     // fromCache=true のとき：スワイプ由来でキャッシュ済みHTMLが表示されているため
