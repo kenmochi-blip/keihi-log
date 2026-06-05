@@ -2,6 +2,7 @@
   "name": "keihi-log",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "AI領収書解析・経費申請Webアプリ",
   "scripts": {
     "dev": "astro dev",
