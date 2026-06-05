@@ -57,27 +57,13 @@ const Drive = (() => {
    * @param {string} filename ファイル名
    * @returns {{ id, webViewLink }} ファイルID とウェブリンク
    */
+  // SA はストレージクォータを持たないため、アップロードは常にユーザーの OAuth トークンで行う。
+  // アップロード後に SA をリーダーとして共有し、プロキシ経由での証票閲覧を可能にする。
+  const _SA_EMAIL = 'keihi-log-proxy@keihi-log.iam.gserviceaccount.com';
+
   async function uploadFile(base64, mimeType, filename) {
     if (typeof Demo !== 'undefined' && Demo.isActive())
       return { id: 'demo', webViewLink: '' };
-
-    // B' プロキシ経由（オプトイン）。SA が証票フォルダ（設定B4）へ代理アップロードする。
-    // 書き込みのためフォールバックしない（二重アップロード防止）。
-    if (typeof Sheets !== 'undefined' && Sheets.useProxy && Sheets.useProxy()) {
-      const ssId = localStorage.getItem('keihi_sheet_id') || '';
-      const idToken = await Auth.getIdToken();
-      const resp = await fetch(`/api/data/receipt?sheetId=${encodeURIComponent(ssId)}`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${idToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ base64, mimeType, filename }),
-      });
-      if (!resp.ok) {
-        const errData = await resp.json().catch(() => ({}));
-        const detail = errData.message || errData.error || '';
-        throw new Error(`Receipt upload error: ${resp.status}${detail ? ' — ' + detail : ''}`);
-      }
-      return resp.json(); // { id, webViewLink }
-    }
 
     const folderId = _folderId();
 
@@ -102,7 +88,21 @@ const Drive = (() => {
       { method: 'POST', body: form }
     );
     if (!resp.ok) throw new Error(`Drive upload error: ${resp.status}`);
-    return resp.json(); // { id, webViewLink }
+    const data = await resp.json(); // { id, webViewLink }
+
+    // SA に読み取り権限を付与（プロキシ経由での証票閲覧を可能にする）
+    if (data.id && data.id !== 'demo') {
+      Auth.authFetch(
+        `${BASE}drive/v3/files/${data.id}/permissions`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role: 'reader', type: 'user', emailAddress: _SA_EMAIL }),
+        }
+      ).catch(() => {}); // 失敗してもアップロード自体は成功とする
+    }
+
+    return data;
   }
 
   /**
