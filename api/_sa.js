@@ -50,3 +50,20 @@ export function driveClient() {
 export function isSaConfigured() {
   return !!process.env.GOOGLE_SA_KEY;
 }
+
+let _gaAuth = null;
+
+/** GA4 Data API 読み取り用 GoogleAuth（analytics.readonly スコープ・別インスタンス）。 */
+export function getAnalyticsAuth() {
+  if (_gaAuth) return _gaAuth;
+  _gaAuth = new google.auth.GoogleAuth({
+    credentials: _credentials(),
+    scopes: ['https://www.googleapis.com/auth/analytics.readonly'],
+  });
+  return _gaAuth;
+}
+
+/** GA4 Analytics Data API v1beta クライアント */
+export function analyticsDataClient() {
+  return google.analyticsdata({ version: 'v1beta', auth: getAnalyticsAuth() });
+}

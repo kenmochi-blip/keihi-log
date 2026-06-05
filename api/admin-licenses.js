@@ -14,6 +14,7 @@
 import { kv } from '@vercel/kv';
 import crypto from 'crypto';
 import { rateLimit } from './_rateLimit.js';
+import { analyticsDataClient } from './_sa.js';
 
 export default async function handler(req, res) {
   const { ok } = await rateLimit(req, { prefix: 'rl:admin', limit: 120, window: 60 });
@@ -35,6 +36,11 @@ export default async function handler(req, res) {
     const entries = await Promise.all(keys.map(k => kv.get(k)));
     entries.sort((a, b) => (a?.registeredAt || '').localeCompare(b?.registeredAt || ''));
     return res.status(200).json({ total: entries.length, entries });
+  }
+
+  // Google アナリティクス（GA4）主要指標
+  if (req.query.analytics != null) {
+    return res.status(200).json(await _gaSummary());
   }
 
   // 紹介者マスタ管理
@@ -581,4 +587,113 @@ async function _sendEmail(from, to, subject, html) {
     body: JSON.stringify({ from, to, subject, html }),
   });
   if (!resp.ok) console.error('Resend error:', await resp.text());
+}
+
+/**
+ * GA4 Data API で主要指標を取得（10分KVキャッシュ）。
+ * 前提: 環境変数 GA4_PROPERTY_ID（数値ID）を設定し、GA4プロパティに
+ *       SA(keihi-log-proxy@...) を「閲覧者」として追加、Analytics Data API を有効化すること。
+ */
+async function _gaSummary() {
+  const propId = process.env.GA4_PROPERTY_ID;
+  if (!propId) {
+    return { configured: false, reason: 'GA4_PROPERTY_ID 未設定' };
+  }
+
+  const cacheKey = 'ga4_summary';
+  const cached = await kv.get(cacheKey).catch(() => null);
+  if (cached) return cached;
+
+  try {
+    const ga = analyticsDataClient();
+    const property = `properties/${propId}`;
+
+    // 過去28日のサマリー + 日次推移 + 流入元 + 人気ページ + リアルタイム を並列取得
+    const [report, realtime] = await Promise.all([
+      ga.properties.batchRunReports({
+        property,
+        requestBody: {
+          requests: [
+            // 0: 28日サマリー
+            {
+              dateRanges: [{ startDate: '28daysAgo', endDate: 'today' }],
+              metrics: [
+                { name: 'activeUsers' },
+                { name: 'sessions' },
+                { name: 'screenPageViews' },
+                { name: 'averageSessionDuration' },
+              ],
+            },
+            // 1: 日次アクティブユーザー推移
+            {
+              dateRanges: [{ startDate: '28daysAgo', endDate: 'today' }],
+              dimensions: [{ name: 'date' }],
+              metrics: [{ name: 'activeUsers' }],
+              orderBys: [{ dimension: { dimensionName: 'date' } }],
+            },
+            // 2: 流入チャネル別
+            {
+              dateRanges: [{ startDate: '28daysAgo', endDate: 'today' }],
+              dimensions: [{ name: 'sessionDefaultChannelGroup' }],
+              metrics: [{ name: 'sessions' }],
+              orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
+              limit: 6,
+            },
+            // 3: 人気ページ
+            {
+              dateRanges: [{ startDate: '28daysAgo', endDate: 'today' }],
+              dimensions: [{ name: 'pagePath' }],
+              metrics: [{ name: 'screenPageViews' }],
+              orderBys: [{ metric: { metricName: 'screenPageViews' }, desc: true }],
+              limit: 8,
+            },
+          ],
+        },
+      }),
+      ga.properties.runRealtimeReport({
+        property,
+        requestBody: { metrics: [{ name: 'activeUsers' }] },
+      }).catch(() => null),
+    ]);
+
+    const reps = report.data.reports || [];
+    const sumRow = reps[0]?.rows?.[0]?.metricValues || [];
+    const num = (i) => Math.round(Number(sumRow[i]?.value || 0));
+
+    const daily = (reps[1]?.rows || []).map(r => ({
+      date: r.dimensionValues?.[0]?.value || '',
+      users: Math.round(Number(r.metricValues?.[0]?.value || 0)),
+    }));
+    const channels = (reps[2]?.rows || []).map(r => ({
+      channel: r.dimensionValues?.[0]?.value || '(other)',
+      sessions: Math.round(Number(r.metricValues?.[0]?.value || 0)),
+    }));
+    const pages = (reps[3]?.rows || []).map(r => ({
+      path: r.dimensionValues?.[0]?.value || '',
+      views: Math.round(Number(r.metricValues?.[0]?.value || 0)),
+    }));
+    const realtimeUsers = Math.round(
+      Number(realtime?.data?.rows?.[0]?.metricValues?.[0]?.value || 0)
+    );
+
+    const result = {
+      configured: true,
+      updatedAt: new Date().toISOString(),
+      realtimeUsers,
+      summary28d: {
+        activeUsers: num(0),
+        sessions: num(1),
+        pageViews: num(2),
+        avgSessionSec: num(3),
+      },
+      daily,
+      channels,
+      pages,
+    };
+    await kv.set(cacheKey, result, { ex: 600 }); // 10分キャッシュ
+    return result;
+  } catch (err) {
+    await _logToKV('ga_summary', 'error', err.message);
+    return { configured: false, reason: err.message };
+  }
 }

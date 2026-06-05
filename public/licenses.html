@@ -166,6 +166,41 @@
         <div class="kpi c-red"><div class="value" id="statSuspended">—</div><div class="label">停止中</div></div>
       </div>
 
+      <!-- Google アナリティクス（GA4） -->
+      <div class="panel" style="margin-bottom:1rem;">
+        <div class="panel-header" style="justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:0.5rem;">
+            <i class="bi bi-graph-up-arrow" style="color:#e8710a;"></i>
+            <span class="title">アクセス解析（過去28日）</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:0.75rem;">
+            <span id="gaRealtime" style="font-size:0.78rem;color:var(--text-mute);"></span>
+            <a href="https://analytics.google.com/" target="_blank" rel="noopener" style="font-size:0.75rem;color:var(--accent);text-decoration:none;">GA4で開く <i class="bi bi-box-arrow-up-right"></i></a>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div id="gaUnconfigured" class="d-none" style="font-size:0.82rem;color:var(--text-mute);padding:0.5rem 0;"></div>
+          <div id="gaContent">
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.5rem;margin-bottom:1rem;">
+              <div class="mini-stat"><div class="v" id="gaUsers" style="color:#e8710a;">—</div><div class="l">アクティブユーザー</div></div>
+              <div class="mini-stat"><div class="v" id="gaSessions" style="color:var(--accent);">—</div><div class="l">セッション</div></div>
+              <div class="mini-stat"><div class="v" id="gaPageViews" style="color:#1d4ed8;">—</div><div class="l">ページビュー</div></div>
+              <div class="mini-stat"><div class="v" id="gaAvgDur" style="color:#7c3aed;">—</div><div class="l">平均滞在(秒)</div></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+              <div>
+                <div style="font-size:0.7rem;font-weight:600;color:var(--text-mute);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.4rem;">流入チャネル</div>
+                <table style="width:100%;font-size:0.8rem;"><tbody id="gaChannels"></tbody></table>
+              </div>
+              <div>
+                <div style="font-size:0.7rem;font-weight:600;color:var(--text-mute);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.4rem;">人気ページ</div>
+                <table style="width:100%;font-size:0.8rem;"><tbody id="gaPages"></tbody></table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- アプリログ -->
       <div id="appLogSection" style="margin-bottom:1rem;">
         <div class="panel">
@@ -958,10 +993,47 @@
       updateMonthly();
       render();
       renderReferrerTable();
+      loadAnalytics();
       loadAppLogs();
       loadNotifyList();
       if (_hasCfKey) loadCloudflare();
       if (_sentryToken) loadSentry();
+    }
+
+    async function loadAnalytics() {
+      const unconf  = document.getElementById('gaUnconfigured');
+      const content = document.getElementById('gaContent');
+      const rt      = document.getElementById('gaRealtime');
+      try {
+        const resp = await fetch(`/api/admin-licenses?secret=${encodeURIComponent(_secret)}&analytics=1`);
+        const ga = await resp.json();
+        if (!ga.configured) {
+          content.classList.add('d-none');
+          unconf.classList.remove('d-none');
+          unconf.innerHTML = `<i class="bi bi-info-circle me-1"></i>未設定です（${esc(ga.reason || '')}）。GA4プロパティIDの環境変数設定とサービスアカウントの閲覧者追加が必要です。`;
+          return;
+        }
+        unconf.classList.add('d-none');
+        content.classList.remove('d-none');
+        const s = ga.summary28d || {};
+        document.getElementById('gaUsers').textContent     = (s.activeUsers ?? 0).toLocaleString();
+        document.getElementById('gaSessions').textContent  = (s.sessions ?? 0).toLocaleString();
+        document.getElementById('gaPageViews').textContent = (s.pageViews ?? 0).toLocaleString();
+        document.getElementById('gaAvgDur').textContent    = (s.avgSessionSec ?? 0).toLocaleString();
+        rt.innerHTML = `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#22c55e;margin-right:4px;"></span>現在 ${ga.realtimeUsers ?? 0} 人がアクセス中`;
+
+        document.getElementById('gaChannels').innerHTML = (ga.channels || []).map(c =>
+          `<tr><td style="padding:2px 0;color:var(--text-sub);">${esc(c.channel)}</td><td style="text-align:right;font-weight:600;">${c.sessions.toLocaleString()}</td></tr>`
+        ).join('') || '<tr><td style="color:var(--text-mute);">データなし</td></tr>';
+
+        document.getElementById('gaPages').innerHTML = (ga.pages || []).map(p =>
+          `<tr><td style="padding:2px 0;color:var(--text-sub);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(p.path)}">${esc(p.path)}</td><td style="text-align:right;font-weight:600;">${p.views.toLocaleString()}</td></tr>`
+        ).join('') || '<tr><td style="color:var(--text-mute);">データなし</td></tr>';
+      } catch (err) {
+        content.classList.add('d-none');
+        unconf.classList.remove('d-none');
+        unconf.innerHTML = `<i class="bi bi-exclamation-triangle me-1"></i>読み込みに失敗しました（${esc(err.message)}）`;
+      }
     }
 
     async function loadNotifyList() {
