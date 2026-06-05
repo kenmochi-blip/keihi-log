@@ -756,42 +756,55 @@ async function accountantSummary(req, res) {
   const authz = await _authorizeAccountant(req, res);
   if (!authz) return;
 
-  const month   = _query(req).get('month') || new Date().toISOString().slice(0, 7);
-  const refresh = _query(req).get('refresh') === '1';
-  if (!/^\d{4}-\d{2}$/.test(month)) return res.status(400).json({ error: 'invalid_month' });
+  const q = _query(req);
+  const monthsCount = Math.min(12, Math.max(1, parseInt(q.get('months') || '6', 10) || 6));
+  const refresh = q.get('refresh') === '1';
 
-  const profile = await kv.get(`acct:${authz.me.email}`).catch(() => null) || { sheets: [] };
-  const clients = profile.sheets || [];
+  // 今月を含む過去 N ヶ月のリストを生成
+  const now = new Date();
+  const monthList = [];
+  for (let i = monthsCount - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    monthList.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+  }
 
-  const results = await Promise.allSettled(clients.map(async client => {
-    const cacheKey = `acct:sum:${client.sheetId}:${month}`;
-    let expenses = !refresh ? await kv.get(cacheKey).catch(() => null) : null;
-    if (!expenses) {
-      const all = await readExpensesViaSA(client.sheetId);
-      expenses = all.filter(e => e.date && String(e.date).startsWith(month));
-      await kv.set(cacheKey, expenses, { ex: 300 }).catch(() => {});
+  // 全顧問先（自動連携 + 手動追加）
+  const autoClients = await _getClientsForReferrer(authz.referrer.code);
+  const manual = await kv.get(`acct:${authz.me.email}`).catch(() => null) || { sheets: [] };
+  const autoIds = new Set(autoClients.map(c => c.sheetId));
+  const allClients = [...autoClients, ...(manual.sheets || []).filter(s => !autoIds.has(s.sheetId))];
+
+  const results = await Promise.allSettled(allClients.map(async client => {
+    // 全経費を1回取得してキャッシュし、月別にフィルタリングする
+    const allCacheKey = `acct:all:${client.sheetId}`;
+    let all = !refresh ? await kv.get(allCacheKey).catch(() => null) : null;
+    if (!all) {
+      all = await readExpensesViaSA(client.sheetId);
+      await kv.set(allCacheKey, all, { ex: 300 }).catch(() => {});
     }
 
-    const total   = expenses.reduce((s, e) => s + (e.amount || 0), 0);
-    const pending = expenses.filter(e => !e.confirmed && !e.settlementDate).length;
-    const byCategory = {};
-    expenses.forEach(e => { if (e.category) byCategory[e.category] = (byCategory[e.category] || 0) + (e.amount || 0); });
+    const byMonth = {};
+    for (const month of monthList) {
+      const expenses = all.filter(e => e.date && String(e.date).startsWith(month));
+      const total = expenses.reduce((s, e) => s + (e.amount || 0), 0);
+      const byCategory = {};
+      expenses.forEach(e => { if (e.category) byCategory[e.category] = (byCategory[e.category] || 0) + (e.amount || 0); });
+      const signedExpenses = expenses.map(e =>
+        e.imageLinks ? { ...e, imageLinks: _signImageLinks(e.imageLinks) } : e
+      );
+      byMonth[month] = { total, count: expenses.length, byCategory, expenses: signedExpenses };
+    }
 
-    // 証票URLを署名付きプロキシURLへ変換（会計事務所も証票を閲覧できる）
-    const signedExpenses = expenses.map(e =>
-      e.imageLinks ? { ...e, imageLinks: _signImageLinks(e.imageLinks) } : e
-    );
-
-    return { sheetId: client.sheetId, name: client.name, total, count: expenses.length, pending, byCategory, expenses: signedExpenses };
+    return { sheetId: client.sheetId, name: client.name, byMonth };
   }));
 
   const summaries = results.map((r, i) =>
     r.status === 'fulfilled'
       ? r.value
-      : { sheetId: clients[i].sheetId, name: clients[i].name, error: true, message: r.reason?.message || 'データ取得失敗' }
+      : { sheetId: allClients[i].sheetId, name: allClients[i].name, error: true, message: r.reason?.message || 'データ取得失敗' }
   );
 
-  return res.status(200).json({ month, summaries });
+  return res.status(200).json({ months: monthList, summaries });
 }
 
 /* ───────────────────────── SA データアクセス ───────────────────────── */

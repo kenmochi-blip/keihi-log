@@ -18,12 +18,11 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png">
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
   <style>
-    .client-card { transition: box-shadow .15s; }
-    .client-card:hover { box-shadow: 0 .4rem .8rem rgba(0,0,0,.1) !important; }
-    .error-border { border-left: 3px solid #dc3545; }
+    .pivot-cell { cursor: pointer; transition: background .1s; }
+    .pivot-cell:hover { background: #e9f0ff !important; }
+    .pivot-cell .amount { font-weight: 600; }
+    .pivot-cell .cnt { font-size: .72rem; color: #999; }
     .receipt-link { font-size: .8rem; }
-    #monthPicker { max-width: 150px; }
-    .stat-card .value { font-size: 1.5rem; font-weight: 700; line-height: 1.2; }
     .cat-bar { height: 8px; border-radius: 4px; }
   </style>
 </head>
@@ -72,7 +71,7 @@
       </div>
     </nav>
 
-    <div class="container-fluid py-3 px-3 px-md-4" style="max-width:1200px;">
+    <div class="container-fluid py-3 px-3 px-md-4" style="max-width:1400px;">
 
       <!-- Header -->
       <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
@@ -80,50 +79,10 @@
           <h2 class="h5 fw-bold mb-0">ダッシュボード</h2>
           <small class="text-muted" id="referrerLabel"></small>
         </div>
-        <div class="d-flex align-items-center gap-2 flex-wrap">
-          <input type="month" id="monthPicker" class="form-control form-control-sm">
+        <div class="d-flex align-items-center gap-2">
           <button id="refreshBtn" class="btn btn-outline-secondary btn-sm" title="再読み込み">
             <i class="bi bi-arrow-clockwise"></i>
           </button>
-          <button id="addClientBtn" class="btn btn-primary btn-sm">
-            <i class="bi bi-plus-lg me-1"></i>顧問先を追加
-          </button>
-        </div>
-      </div>
-
-      <!-- Stats -->
-      <div class="row g-2 mb-3">
-        <div class="col-6 col-md-3">
-          <div class="card border-0 bg-white shadow-sm stat-card h-100">
-            <div class="card-body py-2 px-3">
-              <div class="text-muted" style="font-size:.78rem;">顧問先数</div>
-              <div class="value" id="statClients">—</div>
-            </div>
-          </div>
-        </div>
-        <div class="col-6 col-md-3">
-          <div class="card border-0 bg-white shadow-sm stat-card h-100">
-            <div class="card-body py-2 px-3">
-              <div class="text-muted" style="font-size:.78rem;">今月の件数</div>
-              <div class="value" id="statCount">—</div>
-            </div>
-          </div>
-        </div>
-        <div class="col-6 col-md-3">
-          <div class="card border-0 bg-white shadow-sm stat-card h-100">
-            <div class="card-body py-2 px-3">
-              <div class="text-muted" style="font-size:.78rem;">今月の合計</div>
-              <div class="value" id="statTotal">—</div>
-            </div>
-          </div>
-        </div>
-        <div class="col-6 col-md-3">
-          <div class="card border-0 bg-white shadow-sm stat-card h-100">
-            <div class="card-body py-2 px-3">
-              <div class="text-muted" style="font-size:.78rem;">未承認件数</div>
-              <div class="value text-warning" id="statPending">—</div>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -133,48 +92,12 @@
         <p class="text-muted small mt-2">顧問先データを取得中...</p>
       </div>
 
-      <!-- Empty state -->
-      <div id="emptyState" class="text-center py-5 text-muted d-none">
-        <i class="bi bi-building fs-1 d-block mb-2 opacity-25"></i>
-        <p class="mb-2">顧問先がまだ登録されていません</p>
-        <button class="btn btn-primary btn-sm" id="addClientBtnEmpty">
-          <i class="bi bi-plus-lg me-1"></i>顧問先を追加
-        </button>
-      </div>
+      <!-- Error/empty state -->
+      <div id="errorState" class="d-none"></div>
 
-      <!-- Client grid -->
-      <div id="clientGrid" class="row g-3"></div>
+      <!-- Pivot table -->
+      <div id="pivotContainer"></div>
 
-    </div>
-  </div>
-
-  <!-- Add Client Modal -->
-  <div class="modal fade" id="addClientModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">顧問先を追加</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <div class="mb-3">
-            <label class="form-label small fw-semibold">会社名・屋号 <span class="text-danger">*</span></label>
-            <input type="text" id="clientName" class="form-control" placeholder="株式会社○○">
-          </div>
-          <div class="mb-3">
-            <label class="form-label small fw-semibold">スプレッドシートURL <span class="text-danger">*</span></label>
-            <input type="url" id="clientSheetUrl" class="form-control" placeholder="https://docs.google.com/spreadsheets/d/...">
-            <div class="form-text">
-              顧問先の管理者にスプレッドシートのURLを共有してもらってください。
-            </div>
-          </div>
-          <div id="addClientError" class="alert alert-danger small d-none"></div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">キャンセル</button>
-          <button type="button" id="addClientConfirm" class="btn btn-primary btn-sm">追加する</button>
-        </div>
-      </div>
     </div>
   </div>
 
@@ -214,6 +137,7 @@
                       <th>支払先</th>
                       <th class="text-end">金額</th>
                       <th>勘定科目</th>
+                      <th>備考</th>
                       <th>状態</th>
                       <th>証票</th>
                     </tr>

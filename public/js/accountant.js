@@ -1,45 +1,87 @@
 /**
  * 会計事務所ダッシュボード
  * Google OAuth (PKCE) でログイン後、/api/data/accountant で紹介者確認。
- * 顧問先のスプレッドシートをSA経由で集計し、証票まで閲覧できる。
+ * 顧問先 × 月のピボットテーブルを表示し、セルクリックで経費明細・証票を確認できる。
  */
 const Accountant = (() => {
-  let _clients   = [];
   let _summaries = [];
-  let _month     = '';
-  let _active    = null; // 詳細表示中の summary オブジェクト
+  let _months    = [];
+  let _active    = null; // { expenses, total, byCategory, name, month } 詳細表示中
 
-  // ── 初期化 ──────────────────────────────────────────────────────────────
   // ── デモデータ ───────────────────────────────────────────────────────────
-  const DEMO_SUMMARIES = [
-    {
-      sheetId: 'demo1', name: '株式会社サンプル商事', auto: true,
-      total: 187450, count: 12, pending: 3,
-      byCategory: { '旅費交通費': 82000, '接待交際費': 54000, '消耗品費': 28450, '通信費': 23000 },
-      expenses: [
-        { date: '2026-06-18', name: '田中 花子', place: 'JR東日本', amount: 3240, category: '旅費交通費', type: '電車バス', confirmed: true,  settlementDate: '', note: '東京→大阪 出張', id: 'd1', imageLinks: '' },
-        { date: '2026-06-15', name: '鈴木 一郎', place: '銀座 ○○レストラン', amount: 32000, category: '接待交際費', type: '領収書', confirmed: true,  settlementDate: '', note: '顧客接待', id: 'd2', imageLinks: '/api/data/receipt?fileId=demo&exp=0&sig=0' },
-        { date: '2026-06-12', name: '田中 花子', place: 'Amazon', amount: 12800, category: '消耗品費', type: '領収書', confirmed: false, settlementDate: '', note: 'プリンター用紙・インク', id: 'd3', imageLinks: '' },
-        { date: '2026-06-10', name: '佐藤 二郎', place: 'ソフトバンク', amount: 8800, category: '通信費', type: '領収書', confirmed: false, settlementDate: '', note: '携帯電話代6月分', id: 'd4', imageLinks: '' },
-        { date: '2026-06-08', name: '鈴木 一郎', place: 'タクシー', amount: 4200, category: '旅費交通費', type: '領収書', confirmed: false, settlementDate: '', note: '深夜帰宅', id: 'd5', imageLinks: '' },
-      ],
-    },
-    {
-      sheetId: 'demo2', name: '山田デザイン事務所', auto: true,
-      total: 63200, count: 5, pending: 1,
-      byCategory: { '外注費': 40000, '消耗品費': 15200, '通信費': 8000 },
-      expenses: [
-        { date: '2026-06-20', name: '山田 美咲', place: 'Adobe', amount: 8000, category: '通信費', type: '領収書', confirmed: true, settlementDate: '', note: 'Creative Cloud月額', id: 'd6', imageLinks: '' },
-        { date: '2026-06-14', name: '山田 美咲', place: 'フリーランサーA', amount: 40000, category: '外注費', type: '領収書', confirmed: false, settlementDate: '', note: 'ロゴデザイン制作', id: 'd7', imageLinks: '' },
-      ],
-    },
-    {
-      sheetId: 'demo3', name: '佐々木コンサルティング', auto: false,
-      total: 0, count: 0, pending: 0,
-      byCategory: {},
-      expenses: [],
-    },
-  ];
+  const DEMO_MONTHS = (() => {
+    const now = new Date();
+    const months = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+    }
+    return months;
+  })();
+
+  const DEMO_SUMMARIES = (() => {
+    const M = DEMO_MONTHS;
+    function mkMonth(expenses) {
+      const total = expenses.reduce((s, e) => s + e.amount, 0);
+      const byCategory = {};
+      expenses.forEach(e => { byCategory[e.category] = (byCategory[e.category] || 0) + e.amount; });
+      return { total, count: expenses.length, byCategory, expenses };
+    }
+    function empty() { return { total: 0, count: 0, byCategory: {}, expenses: [] }; }
+
+    const byMonth1 = {
+      [M[0]]: mkMonth([
+        { date: `${M[0]}-15`, name: '田中 花子', place: 'JR東日本', amount: 5200, category: '旅費交通費', type: '電車バス', confirmed: true, settlementDate: '', note: '出張交通費', id: 'c1a', imageLinks: '' },
+        { date: `${M[0]}-20`, name: '鈴木 一郎', place: 'ランチ代', amount: 15000, category: '接待交際費', type: '領収書', confirmed: true, settlementDate: '', note: '顧客打ち合わせ', id: 'c1b', imageLinks: '' },
+      ]),
+      [M[1]]: mkMonth([
+        { date: `${M[1]}-10`, name: '田中 花子', place: 'Amazon', amount: 9800, category: '消耗品費', type: '領収書', confirmed: true, settlementDate: '', note: '事務用品', id: 'c2a', imageLinks: '' },
+        { date: `${M[1]}-18`, name: '佐藤 二郎', place: 'ソフトバンク', amount: 8800, category: '通信費', type: '領収書', confirmed: true, settlementDate: '', note: '携帯電話代', id: 'c2b', imageLinks: '' },
+      ]),
+      [M[2]]: mkMonth([
+        { date: `${M[2]}-05`, name: '鈴木 一郎', place: '銀座レストラン', amount: 32000, category: '接待交際費', type: '領収書', confirmed: true, settlementDate: '', note: '新規顧客接待', id: 'c3a', imageLinks: '/api/data/receipt?fileId=demo&exp=0&sig=0' },
+        { date: `${M[2]}-22`, name: '田中 花子', place: 'タクシー', amount: 3200, category: '旅費交通費', type: '領収書', confirmed: true, settlementDate: '', note: '深夜帰宅', id: 'c3b', imageLinks: '' },
+      ]),
+      [M[3]]: mkMonth([
+        { date: `${M[3]}-08`, name: '佐藤 二郎', place: 'ANA', amount: 45000, category: '旅費交通費', type: '領収書', confirmed: true, settlementDate: '', note: '大阪出張 往復', id: 'c4a', imageLinks: '' },
+        { date: `${M[3]}-15`, name: '田中 花子', place: 'ヤマト運輸', amount: 1200, category: '通信費', type: '領収書', confirmed: true, settlementDate: '', note: '書類送付', id: 'c4b', imageLinks: '' },
+      ]),
+      [M[4]]: mkMonth([
+        { date: `${M[4]}-12`, name: '鈴木 一郎', place: '会議室レンタル', amount: 22000, category: '会議費', type: '領収書', confirmed: true, settlementDate: '', note: '外部会議室 半日', id: 'c5a', imageLinks: '' },
+        { date: `${M[4]}-25`, name: '田中 花子', place: 'セミナー主催', amount: 18000, category: '研修費', type: '領収書', confirmed: true, settlementDate: '', note: 'マーケティングセミナー参加', id: 'c5b', imageLinks: '' },
+      ]),
+      [M[5]]: mkMonth([
+        { date: `${M[5]}-03`, name: '田中 花子', place: 'JR東日本', amount: 3240, category: '旅費交通費', type: '電車バス', confirmed: true, settlementDate: '', note: '東京→大阪 出張', id: 'c6a', imageLinks: '' },
+        { date: `${M[5]}-01`, name: '鈴木 一郎', place: '銀座 ○○レストラン', amount: 32000, category: '接待交際費', type: '領収書', confirmed: true, settlementDate: '', note: '既存顧客接待', id: 'c6b', imageLinks: '/api/data/receipt?fileId=demo&exp=0&sig=0' },
+        { date: `${M[5]}-02`, name: '田中 花子', place: 'Amazon', amount: 12800, category: '消耗品費', type: '領収書', confirmed: false, settlementDate: '', note: 'プリンター用紙・インク', id: 'c6c', imageLinks: '' },
+        { date: `${M[5]}-01`, name: '佐藤 二郎', place: 'ソフトバンク', amount: 8800, category: '通信費', type: '領収書', confirmed: false, settlementDate: '', note: '携帯電話代6月分', id: 'c6d', imageLinks: '' },
+      ]),
+    };
+
+    const byMonth2 = {
+      [M[1]]: mkMonth([
+        { date: `${M[1]}-10`, name: '山田 美咲', place: 'Adobe', amount: 8000, category: '通信費', type: '領収書', confirmed: true, settlementDate: '', note: 'Creative Cloud月額', id: 'd1a', imageLinks: '' },
+      ]),
+      [M[3]]: mkMonth([
+        { date: `${M[3]}-14`, name: '山田 美咲', place: 'フリーランサーA', amount: 40000, category: '外注費', type: '領収書', confirmed: true, settlementDate: '', note: 'ロゴデザイン制作', id: 'd3a', imageLinks: '' },
+        { date: `${M[3]}-20`, name: '山田 美咲', place: '画材屋', amount: 15200, category: '消耗品費', type: '領収書', confirmed: true, settlementDate: '', note: 'デザイン用画材', id: 'd3b', imageLinks: '' },
+      ]),
+      [M[5]]: mkMonth([
+        { date: `${M[5]}-01`, name: '山田 美咲', place: 'Adobe', amount: 8000, category: '通信費', type: '領収書', confirmed: true, settlementDate: '', note: 'Creative Cloud月額', id: 'd5a', imageLinks: '' },
+        { date: `${M[5]}-04`, name: '山田 美咲', place: 'フリーランサーA', amount: 55200, category: '外注費', type: '領収書', confirmed: false, settlementDate: '', note: 'Webサイト制作', id: 'd5b', imageLinks: '' },
+      ]),
+    };
+
+    const allByMonth1 = Object.fromEntries(M.map(m => [m, byMonth1[m] || empty()]));
+    const allByMonth2 = Object.fromEntries(M.map(m => [m, byMonth2[m] || empty()]));
+    const allByMonth3 = Object.fromEntries(M.map(m => [m, empty()]));
+
+    return [
+      { sheetId: 'demo1', name: '株式会社サンプル商事', byMonth: allByMonth1 },
+      { sheetId: 'demo2', name: '山田デザイン事務所',   byMonth: allByMonth2 },
+      { sheetId: 'demo3', name: '佐々木コンサルティング', byMonth: allByMonth3 },
+    ];
+  })();
 
   function _isDemoMode() {
     return new URLSearchParams(location.search).has('demo');
@@ -50,34 +92,27 @@ const Accountant = (() => {
     document.getElementById('mainContent').classList.remove('d-none');
     document.getElementById('userEmailDisplay').textContent = 'デモ表示';
     document.getElementById('logoutBtn').onclick = () => location.href = '/accountant';
-    document.getElementById('addClientBtn').onclick  = _showAddModal;
-    document.getElementById('addClientBtnEmpty')?.addEventListener('click', _showAddModal);
-    document.getElementById('addClientConfirm').onclick = () => {
-      bootstrap.Modal.getInstance(document.getElementById('addClientModal'))?.hide();
-    };
     document.getElementById('csvExportBtn').onclick = _exportCsv;
     document.getElementById('refreshBtn').onclick = () => {};
-    document.getElementById('monthPicker').onchange = e => { _month = e.target.value; };
 
-    // デモ表示バナー
     const banner = document.createElement('div');
     banner.className = 'alert alert-info text-center py-2 mb-0 rounded-0';
     banner.style.fontSize = '.85rem';
     banner.innerHTML = '<i class="bi bi-eye me-1"></i>これはデモ表示です。実際のデータは表示されていません。';
-    document.getElementById('mainContent').insertBefore(banner, document.getElementById('mainContent').firstChild.nextSibling);
+    document.getElementById('mainContent').insertBefore(
+      banner,
+      document.getElementById('mainContent').firstChild.nextSibling
+    );
 
     document.getElementById('referrerLabel').textContent = 'サンプル会計事務所（紹介コード: sample）';
-    _clients = DEMO_SUMMARIES;
+    _months    = DEMO_MONTHS;
     _summaries = DEMO_SUMMARIES;
-    document.getElementById('statClients').textContent = _clients.length;
     document.getElementById('loadingClients').classList.add('d-none');
-    _renderGrid();
+    _renderPivotTable();
   }
 
+  // ── 初期化 ──────────────────────────────────────────────────────────────
   async function init() {
-    const now = new Date();
-    _month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    document.getElementById('monthPicker').value = _month;
     document.getElementById('signInBtn').onclick = () => Auth.initiateLogin('/accountant');
 
     if (_isDemoMode()) {
@@ -105,11 +140,7 @@ const Accountant = (() => {
     const info = Auth.getUserInfo();
     document.getElementById('userEmailDisplay').textContent = info?.email || '';
     document.getElementById('logoutBtn').onclick = () => Auth.signOut();
-    document.getElementById('addClientBtn').onclick  = _showAddModal;
-    document.getElementById('addClientBtnEmpty')?.addEventListener('click', _showAddModal);
-    document.getElementById('addClientConfirm').onclick = _addClient;
     document.getElementById('csvExportBtn').onclick = _exportCsv;
-    document.getElementById('monthPicker').onchange = e => { _month = e.target.value; _loadSummary(); };
     document.getElementById('refreshBtn').onclick = () => _loadSummary(true);
 
     document.getElementById('loadingClients').classList.remove('d-none');
@@ -122,214 +153,129 @@ const Accountant = (() => {
       const msg = e.status === 403
         ? 'このアカウントは会計事務所として登録されていません。経費ログ運営にお問い合わせください。'
         : 'プロファイルの取得に失敗しました';
-      _showGridError(msg);
+      _showError(msg);
       return;
     }
 
-    _clients = profile.clients || [];
     const ref = profile.referrer;
     document.getElementById('referrerLabel').textContent =
       ref?.name ? `${ref.name}（紹介コード: ${ref.code}）` : '';
-    document.getElementById('statClients').textContent = _clients.length;
 
-    if (!_clients.length) {
+    if (!(profile.clients || []).length) {
       document.getElementById('loadingClients').classList.add('d-none');
-      document.getElementById('emptyState').classList.remove('d-none');
+      _showError('顧問先がまだ登録されていません。', false);
       return;
     }
 
     await _loadSummary();
   }
 
-  // ── 月次集計 ─────────────────────────────────────────────────────────────
+  // ── 集計データ取得 ────────────────────────────────────────────────────────
   async function _loadSummary(refresh = false) {
     document.getElementById('loadingClients').classList.remove('d-none');
-    document.getElementById('clientGrid').innerHTML = '';
-    document.getElementById('emptyState').classList.add('d-none');
+    document.getElementById('pivotContainer').innerHTML = '';
+    document.getElementById('errorState').classList.add('d-none');
 
     try {
-      const url = `/api/data/accountant/summary?month=${_month}${refresh ? '&refresh=1' : ''}`;
+      const url = `/api/data/accountant/summary?months=6${refresh ? '&refresh=1' : ''}`;
       const data = await _get(url);
+      _months    = data.months    || [];
       _summaries = data.summaries || [];
     } catch {
-      _showGridError('集計データの取得に失敗しました');
+      _showError('集計データの取得に失敗しました');
       return;
     } finally {
       document.getElementById('loadingClients').classList.add('d-none');
     }
 
-    _renderGrid();
+    _renderPivotTable();
   }
 
-  function _renderGrid() {
-    const valid = _summaries.filter(s => !s.error);
-    document.getElementById('statCount').textContent   = valid.reduce((s, c) => s + c.count,   0).toLocaleString() + '件';
-    document.getElementById('statTotal').textContent   = '¥' + valid.reduce((s, c) => s + c.total,   0).toLocaleString();
-    document.getElementById('statPending').textContent = valid.reduce((s, c) => s + c.pending, 0).toLocaleString() + '件';
+  // ── ピボットテーブル ─────────────────────────────────────────────────────
+  function _renderPivotTable() {
+    const container = document.getElementById('pivotContainer');
+    container.innerHTML = '';
 
-    const grid = document.getElementById('clientGrid');
-    grid.innerHTML = '';
+    if (!_summaries.length) {
+      _showError('顧問先がまだ登録されていません。', false);
+      return;
+    }
 
-    _summaries.forEach(s => {
-      const col = document.createElement('div');
-      col.className = 'col-12 col-md-6 col-lg-4';
-      col.innerHTML = s.error ? _errorCard(s) : _clientCard(s);
-      grid.appendChild(col);
+    const monthHeaders = _months.map(m => {
+      const [y, mo] = m.split('-');
+      return `<th class="text-end text-nowrap px-3">${parseInt(y)}年${parseInt(mo)}月</th>`;
+    }).join('');
+
+    const rows = _summaries.map(s => {
+      if (s.error) {
+        const cells = _months.map(() =>
+          `<td class="text-center text-danger px-3" style="font-size:.8rem;">取得失敗</td>`
+        ).join('');
+        return `<tr><td class="fw-semibold px-3">${_esc(s.name)}<br><small class="text-danger fw-normal" style="font-size:.75rem;">${_esc(s.message || '')}</small></td>${cells}</tr>`;
+      }
+
+      const cells = _months.map(m => {
+        const d = (s.byMonth || {})[m];
+        if (!d || d.count === 0) {
+          return `<td class="text-end px-3 text-muted">—</td>`;
+        }
+        return `<td class="text-end px-3 pivot-cell"
+          data-sheet="${_esc(s.sheetId)}" data-month="${_esc(m)}">
+          <div class="amount">¥${d.total.toLocaleString()}</div>
+          <div class="cnt">${d.count}件</div>
+        </td>`;
+      }).join('');
+
+      return `<tr><td class="fw-semibold px-3">${_esc(s.name)}</td>${cells}</tr>`;
+    }).join('');
+
+    container.innerHTML = `<div class="card border-0 shadow-sm">
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover table-sm align-middle mb-0" style="min-width:600px;">
+            <thead class="table-light">
+              <tr>
+                <th class="px-3">顧問先名</th>
+                ${monthHeaders}
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>`;
+
+    container.querySelectorAll('.pivot-cell').forEach(cell => {
+      cell.addEventListener('click', () => _showDetail(cell.dataset.sheet, cell.dataset.month));
     });
-
-    grid.querySelectorAll('[data-remove]').forEach(btn =>
-      btn.addEventListener('click', e => { e.stopPropagation(); _removeClient(btn.dataset.remove); })
-    );
-    grid.querySelectorAll('[data-detail]').forEach(btn =>
-      btn.addEventListener('click', () => _showDetail(btn.dataset.detail))
-    );
   }
 
-  function _clientCard(s) {
-    const pendingBadge = s.pending > 0
-      ? `<span class="badge bg-warning text-dark mb-1" style="font-size:.7rem;"><i class="bi bi-clock me-1"></i>未承認 ${s.pending}件</span>`
-      : '';
-    const autoBadge = s.auto
-      ? `<span class="badge bg-light text-muted border" style="font-size:.65rem;">自動連携</span>`
-      : `<span class="badge bg-light text-muted border" style="font-size:.65rem;">手動追加</span>`;
-    const removeBtn = s.auto
-      ? '' // 自動連携顧問先は削除不可（管理側で管理）
-      : `<button class="btn btn-link btn-sm text-secondary p-0 ms-2 flex-shrink-0"
-           data-remove="${_esc(s.sheetId)}" title="削除"><i class="bi bi-x-lg"></i></button>`;
-    const topCats = Object.entries(s.byCategory || {}).sort((a, b) => b[1] - a[1]).slice(0, 3);
-    const catRows = topCats.map(([cat, amt]) =>
-      `<div class="d-flex justify-content-between" style="font-size:.8rem;">
-        <span class="text-muted text-truncate me-2">${_esc(cat)}</span>
-        <span>¥${amt.toLocaleString()}</span>
-      </div>`
-    ).join('');
+  // ── 経費明細ポップアップ ───────────────────────────────────────────────────
+  function _showDetail(sheetId, month) {
+    const summary = _summaries.find(s => s.sheetId === sheetId);
+    if (!summary) return;
+    const data = (summary.byMonth || {})[month];
+    if (!data) return;
 
-    return `<div class="card h-100 border-0 shadow-sm client-card">
-      <div class="card-body">
-        <div class="d-flex align-items-start justify-content-between mb-1">
-          <div class="d-flex align-items-center gap-2 flex-wrap">
-            <h6 class="mb-0 fw-semibold">${_esc(s.name)}</h6>
-            ${autoBadge}
-          </div>
-          ${removeBtn}
-        </div>
-        ${pendingBadge}
-        <div class="mt-2 mb-1">
-          <div class="text-muted" style="font-size:.78rem;">今月の合計</div>
-          <div class="fw-bold" style="font-size:1.3rem;">¥${(s.total || 0).toLocaleString()}</div>
-          <div class="text-muted" style="font-size:.8rem;">${s.count || 0}件</div>
-        </div>
-        ${catRows ? `<hr class="my-2">${catRows}` : ''}
-        <div class="mt-3">
-          <button class="btn btn-primary btn-sm w-100" data-detail="${_esc(s.sheetId)}">
-            <i class="bi bi-list-ul me-1"></i>経費明細・証票を見る
-          </button>
-        </div>
-      </div>
-    </div>`;
-  }
+    _active = { ...data, sheetId, name: summary.name, month };
 
-  function _errorCard(s) {
-    return `<div class="card h-100 border-0 shadow-sm client-card error-border">
-      <div class="card-body">
-        <div class="d-flex align-items-start justify-content-between mb-2">
-          <h6 class="mb-0 fw-semibold">${_esc(s.name)}</h6>
-          <button class="btn btn-link btn-sm text-danger p-0 ms-2 flex-shrink-0"
-            data-remove="${_esc(s.sheetId)}" title="削除"><i class="bi bi-trash3"></i></button>
-        </div>
-        <p class="text-danger small mb-1"><i class="bi bi-exclamation-circle me-1"></i>データ取得失敗</p>
-        <p class="text-muted small mb-0">${_esc(s.message || 'シートにアクセスできませんでした')}</p>
-      </div>
-    </div>`;
-  }
-
-  // ── 顧問先追加 ───────────────────────────────────────────────────────────
-  function _showAddModal() {
-    document.getElementById('clientName').value = '';
-    document.getElementById('clientSheetUrl').value = '';
-    document.getElementById('addClientError').classList.add('d-none');
-    bootstrap.Modal.getOrCreateInstance(document.getElementById('addClientModal')).show();
-  }
-
-  async function _addClient() {
-    const name = document.getElementById('clientName').value.trim();
-    const url  = document.getElementById('clientSheetUrl').value.trim();
-    const errEl = document.getElementById('addClientError');
-    errEl.classList.add('d-none');
-
-    if (!name) { errEl.textContent = '会社名を入力してください'; errEl.classList.remove('d-none'); return; }
-    if (!url)  { errEl.textContent = 'スプレッドシートURLを入力してください'; errEl.classList.remove('d-none'); return; }
-
-    const m = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]{20,})/);
-    if (!m) { errEl.textContent = 'URLからスプレッドシートIDを取得できませんでした'; errEl.classList.remove('d-none'); return; }
-
-    const btn = document.getElementById('addClientConfirm');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>確認中...';
-
-    try {
-      const result = await _post('/api/data/accountant', { sheetId: m[1], name });
-      _clients = result.clients || [];
-      document.getElementById('statClients').textContent = _clients.length;
-      bootstrap.Modal.getInstance(document.getElementById('addClientModal')).hide();
-      document.getElementById('emptyState').classList.add('d-none');
-      await _loadSummary();
-    } catch (e) {
-      const msgs = {
-        409: 'この顧問先はすでに登録されています',
-        503: 'シートにアクセスできませんでした。URLが正しいか、または顧問先が経費ログの最新バージョンを使用しているか確認してください。',
-      };
-      errEl.textContent = msgs[e.status] || e.message || '追加に失敗しました';
-      errEl.classList.remove('d-none');
-    } finally {
-      btn.disabled = false;
-      btn.textContent = '追加する';
-    }
-  }
-
-  async function _removeClient(sheetId) {
-    if (!confirm('この顧問先を削除しますか？')) return;
-    try {
-      await _del(`/api/data/accountant?sheetId=${encodeURIComponent(sheetId)}`);
-      _clients = _clients.filter(c => c.sheetId !== sheetId);
-      document.getElementById('statClients').textContent = _clients.length;
-      if (!_clients.length) {
-        document.getElementById('clientGrid').innerHTML = '';
-        document.getElementById('emptyState').classList.remove('d-none');
-      } else {
-        await _loadSummary();
-      }
-    } catch (e) {
-      if (e.status === 403) {
-        alert('自動連携の顧問先は削除できません。管理側で紹介コードの紐付けを解除してください。');
-      } else {
-        alert('削除に失敗しました');
-      }
-    }
-  }
-
-  // ── 経費明細 ─────────────────────────────────────────────────────────────
-  function _showDetail(sheetId) {
-    _active = _summaries.find(s => s.sheetId === sheetId);
-    if (!_active) return;
-
-    document.getElementById('detailTitle').textContent = _active.name;
+    document.getElementById('detailTitle').textContent = summary.name;
     document.getElementById('detailMonth').textContent =
-      _month.replace(/^(\d{4})-(\d{2})$/, '$1年$2月');
+      month.replace(/^(\d{4})-(\d{2})$/, '$1年$2月');
 
     _renderDetailTable(_active);
     _renderCategoryBreakdown(_active);
     bootstrap.Modal.getOrCreateInstance(document.getElementById('detailModal')).show();
   }
 
-  function _renderDetailTable(s) {
-    const expenses = s.expenses || [];
+  function _renderDetailTable(d) {
+    const expenses = d.expenses || [];
     document.getElementById('detailSummaryText').textContent =
-      `${expenses.length}件 ／ 合計 ¥${(s.total || 0).toLocaleString()}`;
+      `${expenses.length}件 ／ 合計 ¥${(d.total || 0).toLocaleString()}`;
 
     const tbody = document.getElementById('detailTableBody');
     if (!expenses.length) {
-      tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">この月の経費はありません</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">この月の経費はありません</td></tr>';
       return;
     }
 
@@ -352,14 +298,15 @@ const Accountant = (() => {
         <td>${_esc(e.place || '')}</td>
         <td class="text-end text-nowrap">¥${(e.amount || 0).toLocaleString()}</td>
         <td style="font-size:.8rem;">${_esc(e.category || '')}</td>
+        <td style="font-size:.8rem;max-width:180px;" class="text-truncate">${_esc(e.note || '')}</td>
         <td>${statusBadge}</td>
         <td>${receiptHtml}</td>
       </tr>`;
     }).join('');
   }
 
-  function _renderCategoryBreakdown(s) {
-    const cats  = Object.entries(s.byCategory || {}).sort((a, b) => b[1] - a[1]);
+  function _renderCategoryBreakdown(d) {
+    const cats  = Object.entries(d.byCategory || {}).sort((a, b) => b[1] - a[1]);
     const total = cats.reduce((sum, [, v]) => sum + v, 0);
     const container = document.getElementById('categoryBreakdown');
     if (!cats.length) {
@@ -382,11 +329,11 @@ const Accountant = (() => {
   // ── CSV出力 ──────────────────────────────────────────────────────────────
   function _exportCsv() {
     if (!_active) return;
-    const header = ['日付','申請者','支払先','金額','勘定科目','タイプ','状態','備考','ID'];
+    const header = ['日付','申請者','支払先','金額','勘定科目','タイプ','備考','状態','ID'];
     const rows = (_active.expenses || []).map(e => [
-      e.date, e.name, e.place, e.amount, e.category, e.type,
+      e.date, e.name, e.place, e.amount, e.category, e.type, e.note,
       e.settlementDate ? '精算済' : e.confirmed ? '登録済' : '申請済',
-      e.note, e.id,
+      e.id,
     ]);
     const csv = [header, ...rows]
       .map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','))
@@ -394,7 +341,7 @@ const Accountant = (() => {
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
     const a = Object.assign(document.createElement('a'), {
       href: URL.createObjectURL(blob),
-      download: `${_active.name}_${_month}.csv`,
+      download: `${_active.name}_${_active.month || ''}.csv`,
     });
     a.click();
     URL.revokeObjectURL(a.href);
@@ -409,20 +356,20 @@ const Accountant = (() => {
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      const err = Object.assign(new Error(body.error || res.statusText), { status: res.status });
-      throw err;
+      throw Object.assign(new Error(body.error || res.statusText), { status: res.status });
     }
     return res.json();
   }
 
-  const _get  = url              => _fetch(url, { method: 'GET' });
-  const _post = (url, body)      => _fetch(url, { method: 'POST',   body: JSON.stringify(body) });
-  const _del  = url              => _fetch(url, { method: 'DELETE' });
+  const _get = url => _fetch(url, { method: 'GET' });
 
   // ── ユーティリティ ───────────────────────────────────────────────────────
-  function _showGridError(msg) {
-    document.getElementById('clientGrid').innerHTML =
-      `<div class="col-12"><div class="alert alert-danger">${_esc(msg)}</div></div>`;
+  function _showError(msg, isDanger = true) {
+    const el = document.getElementById('errorState');
+    el.innerHTML = isDanger
+      ? `<div class="alert alert-danger">${_esc(msg)}</div>`
+      : `<div class="text-center py-5 text-muted"><i class="bi bi-building fs-1 d-block mb-2 opacity-25"></i><p>${_esc(msg)}</p></div>`;
+    el.classList.remove('d-none');
   }
 
   function _esc(s) {
