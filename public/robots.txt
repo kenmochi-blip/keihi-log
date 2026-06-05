@@ -1,0 +1,16 @@
+User-agent: *
+Allow: /
+Disallow: /app
+Disallow: /login
+Disallow: /setup
+Disallow: /licenses
+Disallow: /success
+Disallow: /demo
+Disallow: /app.html
+Disallow: /login.html
+Disallow: /setup.html
+Disallow: /licenses.html
+Disallow: /success.html
+Disallow: /demo.html
+
+Sitemap: https://keihi-log.com/sitemap.xml

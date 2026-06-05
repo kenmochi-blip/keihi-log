@@ -30,7 +30,7 @@
     { "source": "/setup", "destination": "/setup.html" },
     { "source": "/app", "destination": "/app.html" },
     { "source": "/", "destination": "/index.html" },
-    { "source": "/((?!blog/|js/|css/|img/|icons/|api/|app\\.html|login\\.html|setup\\.html|tokusho\\.html|privacy\\.html|terms\\.html|success\\.html|licenses\\.html|faq\\.html|demo\\.html|index\\.html|manifest\\.json|sw\\.js|favicon).+)", "destination": "/app.html" }
+    { "source": "/((?!blog/|js/|css/|img/|icons/|api/|app\\.html|login\\.html|setup\\.html|tokusho\\.html|privacy\\.html|terms\\.html|success\\.html|licenses\\.html|faq\\.html|demo\\.html|index\\.html|manifest\\.json|sw\\.js|robots\\.txt|sitemap\\.xml|favicon).+)", "destination": "/app.html" }
   ],
   "headers": [
     {
