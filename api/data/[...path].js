@@ -50,6 +50,8 @@ export default async function handler(req, res) {
         return await receipt(req, res);
       case 'gemini':
         return await gemini(req, res);
+      case 'accountant':
+        return await accountantRouter(req, res);
       default:
         return res.status(404).json({ error: 'not_found', resource });
     }
@@ -85,6 +87,19 @@ async function _authorize(req, res) {
   if (!isMember) { res.status(403).json({ error: 'not_a_member' }); return null; }
 
   return { me, isAdmin, master, sheetId };
+}
+
+/**
+ * 会計事務所認可: ID トークンを検証し、referrer_master に登録されたメールアドレスか確認する。
+ * 成功時は { me, referrer } を返す。失敗時は res にエラーを書いて null を返す。
+ */
+async function _authorizeAccountant(req, res) {
+  const me = await verifyIdToken(req);
+  if (!me) { res.status(401).json({ error: 'unauthorized' }); return null; }
+  const referrers = await kv.get('referrer_master').catch(() => null) || [];
+  const referrer = referrers.find(r => (r.email || '').toLowerCase() === me.email);
+  if (!referrer) { res.status(403).json({ error: 'not_an_accountant' }); return null; }
+  return { me, referrer };
 }
 
 /* ───────────────────────── エンドポイント ───────────────────────── */
@@ -617,6 +632,115 @@ function _signImageLinks(links) {
     if (!id) return url;
     return `/api/data/receipt?fileId=${encodeURIComponent(id)}&exp=${exp}&sig=${_signReceipt(id, exp)}`;
   }).join(',');
+}
+
+/* ───────────────────────── 会計事務所ダッシュボード ─────────────────────── */
+
+/**
+ * GET    /api/data/accountant                  プロファイル（顧問先リスト）取得
+ * POST   /api/data/accountant                  顧問先追加 { sheetId, name }
+ * DELETE /api/data/accountant?sheetId=XXX      顧問先削除
+ * GET    /api/data/accountant/summary?month=YYYY-MM  月次集計（証票URL署名付き）
+ */
+async function accountantRouter(req, res) {
+  const sub = _pathSegs(req)[3] || '';
+  if (sub === 'summary') return accountantSummary(req, res);
+  if (req.method === 'GET')    return accountantProfile(req, res);
+  if (req.method === 'POST')   return accountantAddClient(req, res);
+  if (req.method === 'DELETE') return accountantRemoveClient(req, res);
+  return res.status(405).json({ error: 'method_not_allowed' });
+}
+
+async function accountantProfile(req, res) {
+  const authz = await _authorizeAccountant(req, res);
+  if (!authz) return;
+  const profile = await kv.get(`acct:${authz.me.email}`).catch(() => null) || { sheets: [] };
+  return res.status(200).json({ referrer: authz.referrer, clients: profile.sheets || [] });
+}
+
+async function accountantAddClient(req, res) {
+  const authz = await _authorizeAccountant(req, res);
+  if (!authz) return;
+
+  const body    = await _body(req);
+  const sheetId = String(body?.sheetId || '');
+  const name    = String(body?.name    || '').trim();
+  if (!_validSheetId(sheetId) || !name) return res.status(400).json({ error: 'invalid_request' });
+
+  const key     = `acct:${authz.me.email}`;
+  const profile = await kv.get(key).catch(() => null) || { sheets: [] };
+  if (profile.sheets.some(s => s.sheetId === sheetId)) {
+    return res.status(409).json({ error: 'already_registered' });
+  }
+
+  // SA でシートへアクセス可能か確認
+  try {
+    const sheets = sheetsClient();
+    await sheets.spreadsheets.get({ spreadsheetId: sheetId, fields: 'properties.title' });
+  } catch {
+    return res.status(503).json({ error: 'sa_sheet_access_failed' });
+  }
+
+  profile.sheets.push({ sheetId, name, addedAt: new Date().toISOString() });
+  await kv.set(key, profile);
+  return res.status(200).json({ ok: true, clients: profile.sheets });
+}
+
+async function accountantRemoveClient(req, res) {
+  const authz = await _authorizeAccountant(req, res);
+  if (!authz) return;
+
+  const sheetId = _query(req).get('sheetId') || '';
+  if (!sheetId) return res.status(400).json({ error: 'invalid_request' });
+
+  const key     = `acct:${authz.me.email}`;
+  const profile = await kv.get(key).catch(() => null) || { sheets: [] };
+  profile.sheets = profile.sheets.filter(s => s.sheetId !== sheetId);
+  await kv.set(key, profile);
+  return res.status(200).json({ ok: true, clients: profile.sheets });
+}
+
+async function accountantSummary(req, res) {
+  if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
+  const authz = await _authorizeAccountant(req, res);
+  if (!authz) return;
+
+  const month   = _query(req).get('month') || new Date().toISOString().slice(0, 7);
+  const refresh = _query(req).get('refresh') === '1';
+  if (!/^\d{4}-\d{2}$/.test(month)) return res.status(400).json({ error: 'invalid_month' });
+
+  const profile = await kv.get(`acct:${authz.me.email}`).catch(() => null) || { sheets: [] };
+  const clients = profile.sheets || [];
+
+  const results = await Promise.allSettled(clients.map(async client => {
+    const cacheKey = `acct:sum:${client.sheetId}:${month}`;
+    let expenses = !refresh ? await kv.get(cacheKey).catch(() => null) : null;
+    if (!expenses) {
+      const all = await readExpensesViaSA(client.sheetId);
+      expenses = all.filter(e => e.date && String(e.date).startsWith(month));
+      await kv.set(cacheKey, expenses, { ex: 300 }).catch(() => {});
+    }
+
+    const total   = expenses.reduce((s, e) => s + (e.amount || 0), 0);
+    const pending = expenses.filter(e => !e.confirmed && !e.settlementDate).length;
+    const byCategory = {};
+    expenses.forEach(e => { if (e.category) byCategory[e.category] = (byCategory[e.category] || 0) + (e.amount || 0); });
+
+    // 証票URLを署名付きプロキシURLへ変換（会計事務所も証票を閲覧できる）
+    const signedExpenses = expenses.map(e =>
+      e.imageLinks ? { ...e, imageLinks: _signImageLinks(e.imageLinks) } : e
+    );
+
+    return { sheetId: client.sheetId, name: client.name, total, count: expenses.length, pending, byCategory, expenses: signedExpenses };
+  }));
+
+  const summaries = results.map((r, i) =>
+    r.status === 'fulfilled'
+      ? r.value
+      : { sheetId: clients[i].sheetId, name: clients[i].name, error: true, message: r.reason?.message || 'データ取得失敗' }
+  );
+
+  return res.status(200).json({ month, summaries });
 }
 
 /* ───────────────────────── SA データアクセス ───────────────────────── */
