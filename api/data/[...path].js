@@ -410,19 +410,51 @@ async function mastersWrite(req, res) {
   if (!Array.isArray(rows)) return res.status(400).json({ error: 'rows_required' });
 
   const sheetId = authz.sheetId;
+
+  // 逆引きインデックス更新のため変更前のメール一覧を取得（KVキャッシュから、なければ空）
+  const oldMaster = await kv.get(`acct:master:${sheetId}`).catch(() => null);
+  const oldEmails = (oldMaster?.members || []).map(m => m.email).filter(Boolean);
+  const newEmails = rows.map(r => (r[1] || '').toLowerCase().trim()).filter(Boolean);
+
   // 既存データを全消去してから書き込む（削除時の残留行を防ぐ）
   const sheets = sheetsClient();
   await sheets.spreadsheets.values.clear({ spreadsheetId: sheetId, range: 'マスタ表!A2:H' });
   if (rows.length > 0) {
     await updateRangeViaSA(sheetId, `マスタ表!A2:H${rows.length + 1}`, rows);
   }
-  // マスタ表変更時は会計事務所ダッシュボード用キャッシュを即時無効化
-  // （メンバー削除後にダッシュボードへのアクセスが残らないようにするため）
+
+  // キャッシュ即時無効化 + 逆引きインデックス更新を並列実行
   await Promise.all([
     kv.del(`acct:master:${sheetId}`).catch(() => {}),
     kv.del(`acct:all:${sheetId}`).catch(() => {}),
+    _updateClientIndex(sheetId, oldEmails, newEmails),
   ]);
   return res.status(200).json({ ok: true });
+}
+
+/**
+ * acct:clients:{email} = [sheetId, ...] という逆引きインデックスを差分更新する。
+ * mastersWrite のたびに呼ばれ、メンバー削除は即時反映される。
+ */
+async function _updateClientIndex(sheetId, oldEmails, newEmails) {
+  const oldSet = new Set(oldEmails);
+  const newSet = new Set(newEmails);
+  const added   = [...newSet].filter(e => !oldSet.has(e));
+  const removed = [...oldSet].filter(e => !newSet.has(e));
+  await Promise.all([
+    ...added.map(async email => {
+      const key = `acct:clients:${email}`;
+      const cur = await kv.get(key).catch(() => null) || [];
+      if (!cur.includes(sheetId)) await kv.set(key, [...cur, sheetId]).catch(() => {});
+    }),
+    ...removed.map(async email => {
+      const key = `acct:clients:${email}`;
+      const cur = await kv.get(key).catch(() => null) || [];
+      const upd = cur.filter(id => id !== sheetId);
+      if (upd.length > 0) await kv.set(key, upd).catch(() => {});
+      else await kv.del(key).catch(() => {});
+    }),
+  ]);
 }
 
 /**
@@ -657,49 +689,80 @@ async function accountantRouter(req, res) {
   return res.status(405).json({ error: 'method_not_allowed' });
 }
 
-/**
- * alias:* をスキャンして会計事務所メールアドレスがマスタ表に登録されている顧問先を返す。
- * 紹介コードの一致は不要 — クライアントがマスタ表に登録したことがオプトインの証拠。
- * license_alias:* の逆引きで会社名を補完する。
- */
-async function _getAllClientsForAccountant(accountantEmail, refresh = false) {
-  // alias:* と license_alias:* を並列スキャン
-  async function scanAll(pattern) {
-    const keys = [];
-    let cur = 0;
-    do {
-      const [next, batch] = await kv.scan(cur, { match: pattern, count: 100 });
-      keys.push(...batch);
-      cur = Number(next);
-    } while (cur !== 0);
-    return keys;
-  }
-  const [aliasKeys, laKeys] = await Promise.all([scanAll('alias:*'), scanAll('license_alias:*')]);
-  if (!aliasKeys.length) return [];
+/** KV の特定パターンに一致する全キーをスキャンして返す */
+async function _kvScanAll(pattern) {
+  const keys = [];
+  let cur = 0;
+  do {
+    const [next, batch] = await kv.scan(cur, { match: pattern, count: 100 });
+    keys.push(...batch);
+    cur = Number(next);
+  } while (cur !== 0);
+  return keys;
+}
 
-  // code → licKey の逆引きマップを構築
-  const laValues = await Promise.all(laKeys.map(k => kv.get(k)));
+/** alias:* + license_alias:* から sheetId → 会社名 の解決マップを構築する（Sheets API不要） */
+async function _buildNameMap() {
+  const [aliasKeys, laKeys] = await Promise.all([_kvScanAll('alias:*'), _kvScanAll('license_alias:*')]);
+  const [aliasValues, laValues] = await Promise.all([
+    Promise.all(aliasKeys.map(k => kv.get(k))),
+    Promise.all(laKeys.map(k => kv.get(k))),
+  ]);
   const codeToLicKey = new Map();
   laKeys.forEach((k, i) => { if (laValues[i]) codeToLicKey.set(laValues[i], k.replace('license_alias:', '')); });
 
-  const aliasValues = await Promise.all(aliasKeys.map(k => kv.get(k)));
-  const lcEmail = (accountantEmail || '').toLowerCase();
-  const clients = [];
+  const idToCode = new Map();
+  aliasKeys.forEach((k, i) => { if (aliasValues[i]) idToCode.set(aliasValues[i], k.replace('alias:', '')); });
 
-  await Promise.all(aliasKeys.map(async (aliasKey, i) => {
-    const sheetId = aliasValues[i];
-    if (!sheetId || !_validSheetId(sheetId)) return;
+  return { idToCode, codeToLicKey };
+}
+
+/**
+ * 会計事務所メールアドレスに紐づく顧問先一覧を返す。
+ *
+ * 高速パス: acct:clients:{email} の逆引きインデックスが存在すればそれを使用。
+ *   Sheets API 呼び出しゼロ。顧問先数が増えても O(1)。
+ * フォールバック: インデックス未構築（旧シートなど）の場合は alias:* フルスキャン
+ *   + 各マスタ表チェックを行い、同時にインデックスを構築する。
+ */
+async function _getAllClientsForAccountant(accountantEmail, refresh = false) {
+  const lcEmail = (accountantEmail || '').toLowerCase();
+  const indexKey = `acct:clients:${lcEmail}`;
+
+  // ── 高速パス ──────────────────────────────────────────────────────────
+  const indexedIds = !refresh ? await kv.get(indexKey).catch(() => null) : null;
+  if (indexedIds !== null) {
+    if (!indexedIds.length) return [];
+    const { idToCode, codeToLicKey } = await _buildNameMap();
+    const clients = await Promise.all(indexedIds.filter(_validSheetId).map(async sheetId => {
+      const code   = idToCode.get(sheetId);
+      const licKey = code ? codeToLicKey.get(code) : null;
+      const lic    = licKey ? await kv.get(`license:${licKey}`).catch(() => null) : null;
+      return { sheetId, name: lic?.company || '（社名未設定）' };
+    }));
+    return clients;
+  }
+
+  // ── フォールバック: フルスキャン（インデックス未構築時） ──────────────
+  const { idToCode, codeToLicKey } = await _buildNameMap();
+  if (!idToCode.size) return [];
+
+  const clients = [];
+  await Promise.all([...idToCode.entries()].map(async ([sheetId, code]) => {
+    if (!_validSheetId(sheetId)) return;
 
     const masterCacheKey = `acct:master:${sheetId}`;
-    let master = !refresh ? await kv.get(masterCacheKey).catch(() => null) : null;
+    let master = await kv.get(masterCacheKey).catch(() => null);
     if (!master) {
       master = await readMaster(sheetId).catch(() => null);
       if (master) await kv.set(masterCacheKey, master, { ex: 300 }).catch(() => {});
     }
     if (!master || !master.members.some(m => m.email === lcEmail)) return;
 
-    // ライセンスデータから会社名を取得
-    const code   = aliasKey.replace('alias:', '');
+    // このシートのインデックスをついでに構築（次回以降は高速パスを通る）
+    const cur = await kv.get(indexKey).catch(() => null) || [];
+    if (!cur.includes(sheetId)) await kv.set(indexKey, [...cur, sheetId]).catch(() => {});
+
     const licKey = codeToLicKey.get(code);
     const lic    = licKey ? await kv.get(`license:${licKey}`).catch(() => null) : null;
     clients.push({ sheetId, name: lic?.company || '（社名未設定）' });
