@@ -1706,6 +1706,14 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+  // アコーディオンを1つだけ開く（他は閉じる）
+  document.addEventListener('show.bs.collapse', function(e) {
+    if (!e.target.classList.contains('accordion-collapse')) return;
+    document.querySelectorAll('.accordion-collapse.show').forEach(function(el) {
+      if (el !== e.target) bootstrap.Collapse.getOrCreateInstance(el).hide();
+    });
+  });
+
   // ハッシュで指定されたアコーディオン項目を自動で開く
   function openFromHash() {
     var hash = location.hash.replace('#', '');
