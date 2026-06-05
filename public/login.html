@@ -66,5 +66,6 @@
   <script src="js/auth.js"></script>
   <script>document.addEventListener('DOMContentLoaded', initLogin);</script>
   <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});</script>
+  <!-- sw.js は自己解除スタブ。既存クライアントのSW・キャッシュを掃除するためだけに登録している -->
 </body>
 </html>

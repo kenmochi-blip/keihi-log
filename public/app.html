@@ -163,14 +163,5 @@
   <script src="js/router.js"></script>
   <script src="js/swipe.js"></script>
   <script src="js/app.js"></script>
-  <script>
-    // 既存のService Workerを登録解除してキャッシュをクリア
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(regs => {
-        regs.forEach(r => r.unregister());
-      });
-      caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
-    }
-  </script>
 </body>
 </html>
