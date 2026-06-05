@@ -65,20 +65,39 @@ const allTags = [...new Set(posts.flatMap(p => p.data.tags))].sort();
       backdrop-filter: blur(10px);
       box-shadow: 0 2px 12px rgba(0,0,0,0.05);
     }
-    .blog-nav .brand { font-weight: 900; color: var(--brand); font-size: 1.2rem; text-decoration: none; display: flex; align-items: center; gap: 0.5rem; }
-    .blog-nav .logo-svg { width: 28px; height: 28px; }
+    .blog-nav .brand { font-weight: 900; color: var(--brand); font-size: 1.35rem; text-decoration: none; display: inline-flex; align-items: center; }
+    .blog-nav .logo-svg { width: 32px; height: 32px; margin-right: 6px; }
     .blog-nav .nav-link-sm { color: #495057; font-weight: 500; font-size: 0.88rem; text-decoration: none; }
     .blog-nav .nav-link-sm:hover { color: var(--brand); }
 
-    /* ヒーロー（LPのブルー基調） */
+    /* ヒーロー（LPのブルー基調・紫は使わない） */
     .blog-hero {
-      background: linear-gradient(135deg, #29B6F6 0%, #3F51B5 100%);
+      background: linear-gradient(135deg, var(--brand) 0%, hsl(var(--brand-h), var(--brand-s), 42%) 100%);
       color: #fff;
-      padding: 3.5rem 1rem 3rem;
+      padding: 4.5rem 1rem 4rem;
       text-align: center;
+      position: relative;
+      overflow: hidden;
     }
-    .blog-hero h1 { font-size: 1.9rem; font-weight: 900; letter-spacing: -0.02em; margin-bottom: 0.5rem; }
-    .blog-hero p { opacity: 0.9; font-size: 0.9rem; margin: 0; }
+    .blog-hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 80% -20%, rgba(255,255,255,0.18), transparent 55%);
+      pointer-events: none;
+    }
+    .blog-hero .eyebrow {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      opacity: 0.85;
+      margin-bottom: 0.9rem;
+      position: relative;
+    }
+    .blog-hero h1 { font-size: 2.2rem; font-weight: 900; letter-spacing: 0.01em; margin-bottom: 0.8rem; position: relative; }
+    .blog-hero p { opacity: 0.9; font-size: 0.92rem; margin: 0 auto; max-width: 560px; line-height: 1.8; position: relative; }
+    @media (max-width: 575px) { .blog-hero h1 { font-size: 1.7rem; } }
 
     /* タグフィルター */
     .tag-filter-btn {
@@ -171,11 +190,12 @@ const allTags = [...new Set(posts.flatMap(p => p.data.tags))].sort();
 
   <!-- ヒーロー -->
   <div class="blog-hero">
-    <h1>経費ログ ブログ</h1>
-    <p>経費精算・電帳法・フリーランスの経費管理に関するお役立ち情報</p>
+    <span class="eyebrow">KEIHI-LOG BLOG</span>
+    <h1>経費まわりの「困った」を解決する</h1>
+    <p>経費精算・電子帳簿保存法・フリーランスの経費管理について、<br class="d-none d-md-inline">実務で役立つ情報をやさしく解説します。</p>
   </div>
 
-  <main class="container py-4 py-md-5" style="max-width:900px;">
+  <main class="container py-5" style="max-width:920px;">
 
     <!-- タグフィルター -->
     {allTags.length > 0 && (
@@ -194,7 +214,7 @@ const allTags = [...new Set(posts.flatMap(p => p.data.tags))].sort();
         <p class="mt-3">記事はまだありません。</p>
       </div>
     ) : (
-      <div class="row g-3" id="postGrid">
+      <div class="row g-4" id="postGrid">
         {posts.map(post => (
           <div class="col-12 col-md-6" data-tags={post.data.tags.join(',')}>
             <a href={`/blog/${post.id}/`} class="post-card">

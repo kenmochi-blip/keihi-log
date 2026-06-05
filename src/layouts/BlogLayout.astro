@@ -92,8 +92,8 @@ const hasToc = tocHeadings.length >= 3;
       backdrop-filter: blur(10px);
       box-shadow: 0 2px 12px rgba(0,0,0,0.05);
     }
-    .blog-nav .brand { text-decoration: none; color: var(--brand); font-weight: 900; font-size: 1.2rem; display: flex; align-items: center; gap: 0.5rem; }
-    .blog-nav .logo-svg { width: 28px; height: 28px; }
+    .blog-nav .brand { text-decoration: none; color: var(--brand); font-weight: 900; font-size: 1.35rem; display: inline-flex; align-items: center; }
+    .blog-nav .logo-svg { width: 32px; height: 32px; margin-right: 6px; }
     .blog-nav .nav-link-sm { color: #495057; font-weight: 500; font-size: 0.88rem; text-decoration: none; }
     .blog-nav .nav-link-sm:hover { color: var(--brand); }
 
@@ -141,13 +141,14 @@ const hasToc = tocHeadings.length >= 3;
 
     /* 記事タイトル */
     .article-title {
-      font-size: 1.55rem;
+      font-size: 1.6rem;
       font-weight: 900;
-      line-height: 1.45;
-      letter-spacing: -0.02em;
+      line-height: 1.5;
+      letter-spacing: -0.01em;
       color: var(--text);
+      margin-top: 0.25rem;
     }
-    @media (min-width: 768px) { .article-title { font-size: 2rem; } }
+    @media (min-width: 768px) { .article-title { font-size: 2.1rem; line-height: 1.45; } }
 
     /* メタ情報 */
     .article-meta {
