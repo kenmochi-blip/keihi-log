@@ -765,9 +765,21 @@ async function _writeEditHistory(sheetId, timestamp, editor, oldRow, newRow) {
   });
 
   // 変更されたセル列を特定（経費一覧インデックス → 修正履歴列インデックス = +3）
+  // Sheets API は TRUE/FALSE を文字列で返すが、クライアントは boolean で送るため正規化して比較
+  const _norm = v => {
+    if (v === null || v === undefined) return '';
+    if (typeof v === 'boolean') return String(v);
+    const s = String(v).trim();
+    if (s.toUpperCase() === 'TRUE') return 'true';
+    if (s.toUpperCase() === 'FALSE') return 'false';
+    // カンマ区切り数値を正規化（例: "30,576" → "30576"）
+    const num = Number(s.replace(/,/g, ''));
+    if (s !== '' && !isNaN(num)) return String(num);
+    return s;
+  };
   const changedCols = [];
   for (let i = 0; i < 21; i++) {
-    if (String(old21[i] ?? '') !== String(new21[i] ?? '')) changedCols.push(i + 3);
+    if (_norm(old21[i]) !== _norm(new21[i])) changedCols.push(i + 3);
   }
   if (changedCols.length === 0) return;
 
