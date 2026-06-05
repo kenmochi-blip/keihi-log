@@ -199,7 +199,7 @@ const Accountant = (() => {
     } catch (e) {
       const msgs = {
         409: 'この顧問先はすでに登録されています',
-        503: 'シートにアクセスできませんでした。サービスアカウント（keihi-log-proxy@keihi-log.iam.gserviceaccount.com）に閲覧権限を付与してください。',
+        503: 'シートにアクセスできませんでした。URLが正しいか、または顧問先が経費ログの最新バージョンを使用しているか確認してください。',
       };
       errEl.textContent = msgs[e.status] || e.message || '追加に失敗しました';
       errEl.classList.remove('d-none');
