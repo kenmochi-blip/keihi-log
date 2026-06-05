@@ -2,15 +2,13 @@
 import { getCollection } from 'astro:content';
 import { getAuthor } from '../../authors';
 import { BLOG_PUBLISHED } from '../../siteConfig';
+import LogoSprite from '../../components/LogoSprite.astro';
 
 const posts = (await getCollection('blog'))
   .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
 
 const fmtDate = (d: Date) =>
   d.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
-
-const readingTime = (body: string | undefined) =>
-  Math.max(1, Math.ceil((body?.length ?? 0) / 400));
 
 // タグ一覧を集計
 const allTags = [...new Set(posts.flatMap(p => p.data.tags))].sort();
@@ -122,6 +120,7 @@ const allTags = [...new Set(posts.flatMap(p => p.data.tags))].sort();
 
     /* 記事カード（書き手の色で淡く色分け） */
     .post-card {
+      background: var(--tint, #fff); /* color-mix 非対応向け */
       background: color-mix(in srgb, var(--tint, #fff) 45%, #fff);
       border-radius: 14px;
       overflow: hidden;
@@ -153,8 +152,10 @@ const allTags = [...new Set(posts.flatMap(p => p.data.tags))].sort();
       font-size: 0.72rem; font-weight: 600;
       padding: 0.2em 0.65em 0.2em 0.5em;
       background: var(--tint);
+      border: 1px solid var(--accent); /* color-mix 非対応向け */
       border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
       border-radius: 20px;
+      color: var(--accent); /* color-mix 非対応向け */
       color: color-mix(in srgb, var(--accent) 75%, #000);
     }
     .author-chip i { font-size: 0.82rem; }
@@ -176,24 +177,7 @@ const allTags = [...new Set(posts.flatMap(p => p.data.tags))].sort();
 <body>
 
   <!-- ブランドロゴ定義 -->
-  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
-    <defs>
-      <symbol id="logo-keihilog" viewBox="0 0 100 100">
-        <defs>
-          <linearGradient id="logoGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stop-color="#29B6F6"/>
-            <stop offset="100%" stop-color="#3F51B5"/>
-          </linearGradient>
-        </defs>
-        <path d="M18,4 L74,4 Q80,4 80,10 L80,65 L72,73 L63,65 L55,73 L47,65 L38,73 L30,65 L22,73 L14,65 L14,10 Q14,4 18,4 Z" fill="url(#logoGrad)"/>
-        <rect x="22" y="18" width="42" height="6" rx="3" fill="white"/>
-        <rect x="22" y="30" width="37" height="6" rx="3" fill="white" opacity="0.9"/>
-        <rect x="22" y="42" width="31" height="6" rx="3" fill="white" opacity="0.85"/>
-        <circle cx="72" cy="76" r="22" fill="#388E3C"/>
-        <polyline points="61,76 69,84 83,64" fill="none" stroke="white" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
-      </symbol>
-    </defs>
-  </svg>
+  <LogoSprite />
 
   <nav class="blog-nav py-2 px-3 px-md-4 d-flex align-items-center justify-content-between sticky-top">
     <a href="/" class="brand">
