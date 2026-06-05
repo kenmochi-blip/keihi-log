@@ -146,13 +146,16 @@ const allTags = [...new Set(posts.flatMap(p => p.data.tags))].sort();
       border-top: 1px solid var(--border);
       display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
     }
-    .author-chip { display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 600; color: #495057; }
-    .author-dot {
-      width: 22px; height: 22px; border-radius: 50%;
-      background: var(--accent); color: #fff;
-      font-size: 0.72rem; font-weight: 700;
-      display: inline-flex; align-items: center; justify-content: center;
+    .author-chip {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      font-size: 0.72rem; font-weight: 600;
+      padding: 0.2em 0.65em 0.2em 0.5em;
+      background: var(--tint);
+      border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+      border-radius: 20px;
+      color: color-mix(in srgb, var(--accent) 75%, #000);
     }
+    .author-chip i { font-size: 0.82rem; }
     .post-meta-item { white-space: nowrap; }
 
     /* 空状態 */
@@ -244,8 +247,7 @@ const allTags = [...new Set(posts.flatMap(p => p.data.tags))].sort();
                 <p class="post-desc">{post.data.description}</p>
                 <div class="post-foot">
                   <span class="author-chip">
-                    <span class="author-dot">{writer.initial}</span>
-                    {writer.name}
+                    <i class={`bi ${writer.icon}`}></i>{writer.label}
                   </span>
                   <span class="post-meta-item"><i class="bi bi-calendar3 me-1"></i>
                     <time datetime={post.data.pubDate.toISOString()}>

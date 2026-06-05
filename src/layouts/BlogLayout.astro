@@ -268,27 +268,18 @@ const hasToc = tocHeadings.length >= 3;
 
     /* 書き手バイライン */
     .byline {
-      display: flex;
+      display: inline-flex;
       align-items: center;
-      gap: 0.7rem;
-      padding: 0.65rem 0.9rem;
+      gap: 0.45rem;
+      padding: 0.3em 0.8em 0.3em 0.6em;
       background: var(--tint);
-      border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
-      border-radius: 12px;
+      border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border));
+      border-radius: 20px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: color-mix(in srgb, var(--accent) 70%, #000);
     }
-    .byline .avatar {
-      width: 38px; height: 38px;
-      flex: 0 0 38px;
-      border-radius: 50%;
-      background: var(--accent);
-      color: #fff;
-      font-weight: 700;
-      font-size: 1.05rem;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .byline .who { line-height: 1.35; }
-    .byline .who .name { font-weight: 700; font-size: 0.92rem; color: var(--text); }
-    .byline .who .role { font-size: 0.72rem; color: var(--muted); }
+    .byline i { font-size: 0.9rem; }
 
     /* CTA */
     .article-cta {
@@ -441,14 +432,10 @@ const hasToc = tocHeadings.length >= 3;
         <span><i class="bi bi-clock me-1"></i>約{readingTime}分</span>
       </div>
 
-      <!-- 書き手 -->
-      <div class="byline mb-4">
-        <div class="avatar">{writer.initial}</div>
-        <div class="who">
-          <div class="name">{writer.name}</div>
-          <div class="role">{writer.role}</div>
-        </div>
-      </div>
+      <!-- 書き手ラベル -->
+      <span class="byline mb-4">
+        <i class={`bi ${writer.icon}`}></i>{writer.label}
+      </span>
 
       <hr class="mb-4" />
 
