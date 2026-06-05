@@ -141,6 +141,7 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 .history-card .history-note-body { font-size: 0.8rem; color: #555; background: #f8f9fa; border-radius: 6px; padding: 6px 10px; }
 .badge-pending   { background: #e67e22; color: #fff; font-weight: 600; }  /* 申請済：オレンジ */
 .badge-confirmed { background: #2980b9; color: #fff; font-weight: 600; }  /* 登録済：ブルー */
+.badge-settled   { background: #6c757d; color: #fff; font-weight: 600; }  /* 精算済：グレー */
 .badge-duplicate { background: #e74c3c; color: #fff; font-weight: 600; }
 
 /* カード */

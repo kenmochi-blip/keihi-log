@@ -44,7 +44,10 @@
     .step-title { font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
     .step-body { font-size: 0.88rem; color: #444; line-height: 1.7; }
     .step-card { border-left: 3px solid #0d6efd; padding: 12px 14px; background: #f8f9ff; border-radius: 0 8px 8px 0; }
-    .badge-type { font-size: 0.75rem; padding: 3px 8px; border-radius: 4px; font-weight: 600; }
+    .badge-type    { font-size: 0.75rem; padding: 3px 8px; border-radius: 4px; font-weight: 600; }
+    .badge-pending   { background: #e67e22; color: #fff; font-weight: 600; }
+    .badge-confirmed { background: #2980b9; color: #fff; font-weight: 600; }
+    .badge-settled   { background: #6c757d; color: #fff; font-weight: 600; }
     .section-label { font-size: 0.78rem; font-weight: 700; color: #0d6efd; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
     .tip-box { background: #fff8e1; border-left: 3px solid #ffc107; border-radius: 0 6px 6px 0; padding: 8px 12px; font-size: 0.84rem; color: #555; }
     .divider { border: none; border-top: 1px dashed #dee2e6; margin: 20px 0; }
@@ -128,9 +131,9 @@
         <div class="step-body">
           画面下の <strong>「一覧」</strong> タブで自分の申請履歴と状況を確認できます。
           <div class="mt-2 d-flex flex-column gap-1">
-            <div><span class="badge bg-secondary badge-type">申請済</span>　申請完了・管理者の承認待ち</div>
-            <div><span class="badge bg-success badge-type">承認済</span>　管理者が承認した状態</div>
-            <div><span class="badge bg-primary badge-type">精算済</span>　立替の支払いが完了した状態</div>
+            <div><span class="badge badge-pending badge-type">申請済</span>　申請完了・管理者の承認待ち</div>
+            <div><span class="badge badge-confirmed badge-type">登録済</span>　管理者が承認した状態</div>
+            <div><span class="badge badge-settled badge-type">精算済</span>　立替の支払いが完了した状態</div>
           </div>
         </div>
       </div>

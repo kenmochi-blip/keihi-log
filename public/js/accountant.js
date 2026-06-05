@@ -493,10 +493,10 @@ const Accountant = (() => {
     }
     tbody.innerHTML = expenses.map(e => {
       const badge = e.settlementDate
-        ? '<span class="badge bg-secondary" style="font-size:.7rem;">精算済</span>'
+        ? '<span class="badge badge-settled" style="font-size:.7rem;">精算済</span>'
         : e.confirmed
-          ? '<span class="badge bg-success" style="font-size:.7rem;">登録済</span>'
-          : '<span class="badge bg-warning text-dark" style="font-size:.7rem;">申請済</span>';
+          ? '<span class="badge badge-confirmed" style="font-size:.7rem;">登録済</span>'
+          : '<span class="badge badge-pending" style="font-size:.7rem;">申請済</span>';
       const receipt = (e.imageLinks || '').split(',').filter(u => u.trim()).map((u, i) =>
         `<a href="${_esc(u.trim())}" target="_blank" rel="noopener" class="receipt-link me-1"><i class="bi bi-image"></i>${i > 0 ? i + 1 : ''}</a>`
       ).join('') || '<span class="text-muted">—</span>';

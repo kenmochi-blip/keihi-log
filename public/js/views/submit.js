@@ -1395,7 +1395,7 @@ function _bindTypeButtons(el) {
   }
 
   function _renderHistoryCard(e) {
-    const statusClass = e.settlementDate ? ''
+    const statusClass = e.settlementDate ? 'badge-settled'
       : e.confirmed ? 'badge-confirmed'
       : e.aiAudit?.startsWith('⛔') ? 'badge-duplicate' : 'badge-pending';
     const statusText = e.settlementDate ? '精算済'
@@ -1441,8 +1441,7 @@ function _bindTypeButtons(el) {
           <span class="h-meta">${e.date} / ${_escape(e.category)} (${e.type})</span>
           ${noteToggle}
         </div>
-        <span class="badge ${statusClass} rounded-pill px-2"
-          ${e.settlementDate ? 'style="background:#6c757d;color:#fff;"' : ''}>${statusText}</span>
+        <span class="badge ${statusClass} rounded-pill px-2">${statusText}</span>
       </div>
       ${noteBody}
       <div class="d-flex gap-2 mt-2 align-items-center">

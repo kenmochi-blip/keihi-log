@@ -684,7 +684,7 @@ const ListView = (() => {
   }
 
   function _statusBadge(status) {
-    if (status === '精算済') return `<span class="badge" style="background:#6c757d;font-size:0.65rem;">精算済</span>`;
+    if (status === '精算済') return `<span class="badge badge-settled" style="font-size:0.65rem;">精算済</span>`;
     if (status === '登録済') return `<span class="badge badge-confirmed" style="font-size:0.65rem;">登録済</span>`;
     return `<span class="badge badge-pending" style="font-size:0.65rem;">申請済</span>`;
   }
