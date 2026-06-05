@@ -6,6 +6,7 @@ interface Heading {
 }
 
 import { getAuthor } from '../authors';
+import { BLOG_PUBLISHED } from '../siteConfig';
 
 interface Props {
   title: string;
@@ -30,6 +31,26 @@ const fmtDate = (d: Date) =>
 
 const tocHeadings = headings.filter(h => h.depth === 2 || h.depth === 3);
 const hasToc = tocHeadings.length >= 3;
+
+const canonical = new URL(Astro.url.pathname, Astro.site).href;
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BlogPosting',
+  headline: title,
+  description,
+  datePublished: pubDate.toISOString(),
+  dateModified: (updatedDate ?? pubDate).toISOString(),
+  url: canonical,
+  mainEntityOfPage: canonical,
+  image: 'https://keihi-log.com/icons/icon-512.png',
+  author: { '@type': 'Organization', name: '経費ログ' },
+  publisher: {
+    '@type': 'Organization',
+    name: '合同会社Smart&Smooth',
+    logo: { '@type': 'ImageObject', url: 'https://keihi-log.com/icons/icon-512.png' },
+  },
+};
 ---
 
 <!doctype html>
@@ -39,6 +60,9 @@ const hasToc = tocHeadings.length >= 3;
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{`${title}｜経費ログ ブログ`}</title>
   <meta name="description" content={description} />
+  {!BLOG_PUBLISHED && <meta name="robots" content="noindex,nofollow" />}
+  <link rel="canonical" href={canonical} />
+  <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
   <meta property="og:type" content="article" />
   <meta property="og:site_name" content="経費ログ" />
   <meta property="og:title" content={title} />

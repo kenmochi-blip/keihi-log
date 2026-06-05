@@ -1,6 +1,7 @@
 ---
 import { getCollection } from 'astro:content';
 import { getAuthor } from '../../authors';
+import { BLOG_PUBLISHED } from '../../siteConfig';
 
 const posts = (await getCollection('blog'))
   .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
@@ -23,6 +24,7 @@ const allTags = [...new Set(posts.flatMap(p => p.data.tags))].sort();
   <title>ブログ｜経費ログ</title>
   <meta name="description" content="経費精算・電子帳簿保存法・フリーランスの経費管理に関するお役立ち情報を発信しています。" />
   <link rel="canonical" href="https://keihi-log.com/blog" />
+  {!BLOG_PUBLISHED && <meta name="robots" content="noindex,nofollow" />}
   <!-- OGP / Twitter Card -->
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="経費ログ" />

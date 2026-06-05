@@ -16,21 +16,6 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://keihi-log.com/blog</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://keihi-log.com/blog/20260601</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://keihi-log.com/blog/20260520</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
     <loc>https://keihi-log.com/privacy</loc>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
