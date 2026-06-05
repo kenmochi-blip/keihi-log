@@ -960,17 +960,21 @@ function _bindTypeButtons(el) {
         if (result.fx_currency && result.fx_amount) {
           // 外貨：取引日のレートを取得して換算（取引日 → AI認識日付 → 当日 の順でフォールバック）
           const txDate = el.querySelector('#inputDate')?.value || result.date || null;
-          const rate = await _fetchExchangeRate(result.fx_currency, 'JPY', txDate);
-          if (rate) {
+          const baseRate = await _fetchExchangeRate(result.fx_currency, 'JPY', txDate);
+          if (baseRate) {
+            // 設定B9の外貨手数料率を上乗せ（デフォルト2.2%）
+            const markupPct = parseFloat(localStorage.getItem('keihi_fx_markup') ?? '2.2') || 0;
+            const rate = baseRate * (1 + markupPct / 100);
             const jpy = Math.floor(Number(result.fx_amount) * rate);
             const amtInput = el.querySelector('#inputAmount');
             if (amtInput) amtInput.value = jpy.toLocaleString('ja-JP');
             // 備考欄に換算内訳を自動入力（取引日レートである旨を明記）
             const noteInput = el.querySelector('#inputNote');
+            const markupNote = markupPct > 0 ? `＋手数料${markupPct}%` : '';
             if (noteInput) noteInput.value =
-              `${result.fx_currency} ${Number(result.fx_amount).toLocaleString()} × ${rate.toFixed(2)} = ¥${jpy.toLocaleString()}${txDate ? `（${txDate}レート）` : ''}`;
+              `${result.fx_currency} ${Number(result.fx_amount).toLocaleString()} × ${rate.toFixed(2)}${markupNote} = ¥${jpy.toLocaleString()}${txDate ? `（${txDate}レート）` : ''}`;
             App.showToast(
-              `外貨換算: ${result.fx_currency} ${Number(result.fx_amount).toLocaleString()} × ${rate.toFixed(2)} = ¥${jpy.toLocaleString()}${txDate ? `（${txDate}レート）` : ''}（確認してください）`,
+              `外貨換算: ${result.fx_currency} ${Number(result.fx_amount).toLocaleString()} × ${rate.toFixed(2)}${markupNote} = ¥${jpy.toLocaleString()}${txDate ? `（${txDate}レート）` : ''}（確認してください）`,
               'warning'
             );
             filled++;

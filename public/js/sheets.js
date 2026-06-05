@@ -358,10 +358,10 @@ const Sheets = (() => {
     }
   }
 
-  /** 設定シートのB2:B7を1回のAPIコールで読んで返す */
+  /** 設定シートのB2:B9を1回のAPIコールで読んで返す */
   async function readAllSettings(ssId) {
     if (typeof Demo !== 'undefined' && Demo.isActive()) {
-      return { B2: 'デモ会社', B3: '', B4: '', B5: '', B6: '', B7: '20' };
+      return { B2: 'デモ会社', B3: '', B4: '', B5: '', B6: '', B7: '20', B8: '', B9: '2.2' };
     }
     ssId = ssId || _ssId();
 
@@ -376,7 +376,7 @@ const Sheets = (() => {
       }
     }
 
-    const rows = await read('設定!B2:B7', ssId);
+    const rows = await read('設定!B2:B9', ssId);
     return {
       B2: rows?.[0]?.[0] ?? '',
       B3: rows?.[1]?.[0] ?? '',
@@ -384,6 +384,8 @@ const Sheets = (() => {
       B5: rows?.[3]?.[0] ?? '',
       B6: rows?.[4]?.[0] ?? '',
       B7: rows?.[5]?.[0] ?? '',
+      B8: rows?.[6]?.[0] ?? '',
+      B9: rows?.[7]?.[0] ?? '',
     };
   }
 

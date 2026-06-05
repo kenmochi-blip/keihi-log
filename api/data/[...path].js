@@ -419,7 +419,7 @@ async function settings(req, res) {
 
   const sheets = sheetsClient();
   const resp = await sheets.spreadsheets.values.get({
-    spreadsheetId: authz.sheetId, range: '設定!B2:B7',
+    spreadsheetId: authz.sheetId, range: '設定!B2:B9',
   });
   const rows = resp.data.values || [];
   const cell = i => rows?.[i]?.[0] ?? '';
@@ -431,6 +431,8 @@ async function settings(req, res) {
       B5: '',                 // Gemini APIキーは返さない（秘匿）
       B6: cell(4),
       B7: cell(5),
+      B8: cell(6),            // ヘッダー色
+      B9: cell(7),            // 外貨手数料率(%)
     },
     hasGeminiKey: !!cell(3),  // B5 の有無のみ通知
   });
@@ -449,7 +451,7 @@ async function settingsWrite(req, res) {
 
   const body = await _body(req);
   const cell = String(body?.cell || '');
-  if (!/^B[2-7]$/.test(cell)) return res.status(400).json({ error: 'invalid_cell' });
+  if (!/^B[2-9]$/.test(cell)) return res.status(400).json({ error: 'invalid_cell' });
   const value = body?.value;
 
   await updateRangeViaSA(authz.sheetId, `設定!${cell}`, [[value == null ? '' : value]]);
