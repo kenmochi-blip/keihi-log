@@ -416,6 +416,12 @@ async function mastersWrite(req, res) {
   if (rows.length > 0) {
     await updateRangeViaSA(sheetId, `マスタ表!A2:H${rows.length + 1}`, rows);
   }
+  // マスタ表変更時は会計事務所ダッシュボード用キャッシュを即時無効化
+  // （メンバー削除後にダッシュボードへのアクセスが残らないようにするため）
+  await Promise.all([
+    kv.del(`acct:master:${sheetId}`).catch(() => {}),
+    kv.del(`acct:all:${sheetId}`).catch(() => {}),
+  ]);
   return res.status(200).json({ ok: true });
 }
 
