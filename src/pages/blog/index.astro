@@ -2,7 +2,6 @@
 import { getCollection } from 'astro:content';
 import { getAuthor } from '../../authors';
 import { BLOG_PUBLISHED } from '../../siteConfig';
-import LogoSprite from '../../components/LogoSprite.astro';
 
 const posts = (await getCollection('blog'))
   .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
@@ -176,12 +175,9 @@ const allTags = [...new Set(posts.flatMap(p => p.data.tags))].sort();
 </head>
 <body>
 
-  <!-- ブランドロゴ定義 -->
-  <LogoSprite />
-
   <nav class="blog-nav py-2 px-3 px-md-4 d-flex align-items-center justify-content-between sticky-top">
     <a href="/" class="brand">
-      <svg class="logo-svg"><use href="#logo-keihilog"/></svg>
+      <img class="logo-svg" src="/icons/icon-192.png" alt="" width="32" height="32" />
       経費ログ
     </a>
     <div class="d-flex gap-3 align-items-center">

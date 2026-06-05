@@ -809,44 +809,18 @@
 </head>
 <body>
 
-<!-- ============================================ -->
-<!-- SVG Symbol Definitions (reusable icons)     -->
-<!-- ============================================ -->
-<svg width="0" height="0" style="position:absolute" aria-hidden="true">
-  <defs>
-    <!-- Brand Logo: 経費ログ -->
-    <symbol id="logo-keihilog" viewBox="0 0 100 100">
-      <defs>
-        <linearGradient id="logoGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stop-color="#29B6F6"/>
-          <stop offset="100%" stop-color="#3F51B5"/>
-        </linearGradient>
-      </defs>
-      <!-- Receipt body with 3-tooth zigzag bottom -->
-      <path d="M18,4 L74,4 Q80,4 80,10 L80,65 L72,73 L63,65 L55,73 L47,65 L38,73 L30,65 L22,73 L14,65 L14,10 Q14,4 18,4 Z" fill="url(#logoGrad)"/>
-      <!-- Lines on receipt -->
-      <rect x="22" y="18" width="42" height="6" rx="3" fill="white"/>
-      <rect x="22" y="30" width="37" height="6" rx="3" fill="white" opacity="0.9"/>
-      <rect x="22" y="42" width="31" height="6" rx="3" fill="white" opacity="0.85"/>
-      <!-- Check mark circle -->
-      <circle cx="72" cy="76" r="22" fill="#388E3C"/>
-      <polyline points="61,76 69,84 83,64" fill="none" stroke="white" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
-    </symbol>
-  </defs>
-</svg>
-
 <!-- Navbar -->
 <nav class="navbar navbar-expand-lg navbar-custom fixed-top">
   <div class="container">
     <a class="navbar-brand d-flex align-items-center" href="#">
-      <svg class="logo-svg"><use href="#logo-keihilog"/></svg>
+      <img class="logo-svg" src="/icons/icon-192.png" alt="" width="32" height="32">
       経費ログ
     </a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
       <span class="navbar-toggler-icon"></span>
     </button>
     <div class="collapse navbar-collapse" id="navMenu">
-      <ul class="navbar-nav ms-auto align-items-lg-center">
+      <ul class="navbar-nav ms-auto align-items-end align-items-lg-center text-end text-lg-start">
         <li class="nav-item"><a class="nav-link" href="#features">機能</a></li>
         <li class="nav-item"><a class="nav-link" href="#byok">低価格の理由</a></li>
         <li class="nav-item"><a class="nav-link" href="#pricing">料金</a></li>
@@ -1976,9 +1950,7 @@
 <!-- ============================================ -->
 <section class="final-cta">
   <div class="container">
-    <svg width="80" height="80" viewBox="0 0 64 64" class="mb-3">
-      <use href="#logo-keihilog"/>
-    </svg>
+    <img src="/icons/icon-192.png" width="80" height="80" class="mb-3" alt="">
     <h2 class="fw-bold mb-3">今すぐ、経費精算をラクにしませんか？</h2>
     <p class="text-muted mb-4 lead">まずはデモ画面で実際の操作を確認してみてください。</p>
     <a href="https://keihi-log.com/app?demo" class="btn btn-primary btn-lg rounded-pill px-5 mb-3">
@@ -1999,7 +1971,7 @@
     <div class="row g-4">
       <div class="col-md-4">
         <h5>
-          <svg class="logo-footer"><use href="#logo-keihilog"/></svg>
+          <img class="logo-footer" src="/icons/icon-192.png" alt="" width="40" height="40">
           経費ログ
         </h5>
         <p class="small">
