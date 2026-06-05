@@ -696,6 +696,26 @@
   .navbar-custom .nav-link:hover {
     color: var(--brand);
   }
+  /* モバイル展開時のドロップダウンに背景を付ける */
+  @media (max-width: 991.98px) {
+    #navMenu.show, #navMenu.collapsing {
+      background: #fff;
+      border-radius: 0 0 .75rem .75rem;
+      box-shadow: 0 8px 20px rgba(0,0,0,.12);
+      padding: .25rem .5rem .75rem;
+      margin: .25rem -.75rem 0;
+    }
+    #navMenu .nav-link {
+      padding: .6rem .75rem;
+      border-radius: .4rem;
+    }
+    #navMenu .nav-link:hover {
+      background: #f0f4ff;
+    }
+    #navMenu .nav-item.ms-lg-2 {
+      padding: .25rem .75rem 0;
+    }
+  }
 
   /* ===== Hero Carousel ===== */
   .hero-carousel {
