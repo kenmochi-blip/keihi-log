@@ -15,7 +15,8 @@
     { "source": "/demo.html",    "destination": "/demo",     "permanent": true },
     { "source": "/login.html",   "destination": "/login",    "permanent": true },
     { "source": "/setup.html",   "destination": "/setup",    "permanent": true },
-    { "source": "/app.html",     "destination": "/app",      "permanent": true }
+    { "source": "/app.html",          "destination": "/app",        "permanent": true },
+    { "source": "/accountant.html",   "destination": "/accountant", "permanent": true }
   ],
   "rewrites": [
     { "source": "/privacy", "destination": "/privacy.html" },
@@ -30,7 +31,8 @@
     { "source": "/setup", "destination": "/setup.html" },
     { "source": "/app", "destination": "/app.html" },
     { "source": "/", "destination": "/index.html" },
-    { "source": "/((?!blog/|js/|css/|img/|icons/|api/|app\\.html|login\\.html|setup\\.html|tokusho\\.html|privacy\\.html|terms\\.html|success\\.html|licenses\\.html|faq\\.html|demo\\.html|index\\.html|manifest\\.json|sw\\.js|robots\\.txt|sitemap\\.xml|favicon).+)", "destination": "/app.html" }
+    { "source": "/accountant", "destination": "/accountant.html" },
+    { "source": "/((?!blog/|js/|css/|img/|icons/|api/|app\\.html|login\\.html|setup\\.html|tokusho\\.html|privacy\\.html|terms\\.html|success\\.html|licenses\\.html|faq\\.html|demo\\.html|index\\.html|manifest\\.json|sw\\.js|robots\\.txt|sitemap\\.xml|favicon|accountant\\.html).+)", "destination": "/app.html" }
   ],
   "headers": [
     {
