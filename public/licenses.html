@@ -25,14 +25,16 @@
     .panel-header { padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 0.5rem; }
     .panel-header .title { font-weight: 600; font-size: 0.82rem; color: var(--text-sub); letter-spacing: 0.02em; }
     .panel-body { padding: 1.25rem; }
-    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.75rem; }
     .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.25rem; box-shadow: var(--shadow); }
     .kpi .value { font-size: 1.9rem; font-weight: 700; line-height: 1; }
     .kpi .label { font-size: 0.72rem; color: var(--text-mute); margin-top: 0.25rem; }
-    .kpi.c-blue  .value { color: var(--accent); }
-    .kpi.c-green .value { color: #16a34a; }
-    .kpi.c-amber .value { color: #d97706; }
-    .kpi.c-red   .value { color: #dc2626; }
+    .kpi.c-blue   .value { color: var(--accent); }
+    .kpi.c-green  .value { color: #16a34a; }
+    .kpi.c-amber  .value { color: #d97706; }
+    .kpi.c-red    .value { color: #dc2626; }
+    .kpi.c-purple .value { color: #7c3aed; }
+    .kpi.c-purple { border-color: #ddd6fe; background: linear-gradient(180deg,#faf5ff,#fff); }
     .data-table { width: 100%; border-collapse: collapse; }
     .data-table thead th { padding: 0.55rem 0.75rem; font-size: 0.72rem; font-weight: 600; color: var(--text-mute); text-transform: uppercase; letter-spacing: 0.06em; background: var(--surface-sub); border-bottom: 1px solid var(--border); white-space: nowrap; }
     .data-table tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
@@ -126,7 +128,7 @@
     .btn-ai { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.35rem 0.75rem; border: 1px solid #eab308; border-radius: 6px; background: #fefce8; font-size: 0.78rem; color: #92400e; cursor: pointer; font-weight: 500; transition: all 0.15s; white-space: nowrap; }
     .btn-ai:hover:not(:disabled) { background: #fef08a; border-color: #ca8a04; }
     .btn-ai:disabled { opacity: 0.6; cursor: not-allowed; }
-    @media (max-width: 768px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } .sentry-kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 768px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } .kpi.c-purple { grid-column: 1 / -1; } .sentry-kpi-grid { grid-template-columns: repeat(2, 1fr); } }
     .cf-bar-wrap { display:flex; align-items:center; gap:6px; }
     .cf-bar { height:6px; border-radius:3px; background:#e2e8f0; flex:1; overflow:hidden; }
     .cf-bar-fill { height:100%; border-radius:3px; background:var(--accent); transition:width 0.4s; }
@@ -165,6 +167,7 @@
     <div id="summary" class="d-none">
 
       <div class="kpi-grid mb-4">
+        <div class="kpi c-purple"><div class="value" id="statPaidCumulative">—</div><div class="label">累計課金（解約含む）</div></div>
         <div class="kpi c-blue"><div class="value" id="statTotal">—</div><div class="label">総発行数</div></div>
         <div class="kpi c-green"><div class="value" id="statActive">—</div><div class="label">有効</div></div>
         <div class="kpi c-amber"><div class="value" id="statExpired">—</div><div class="label">期限切れ</div></div>
@@ -1307,6 +1310,10 @@
     }
 
     function updateStats() {
+      // 累計課金（解約含む）= Stripe決済者 または 手動で有料転換した人。
+      // 一度でも課金した人の総数で、解約・期限切れでも減らない積み上げ指標。
+      const paidCumulative = _all.filter(l => l.stripeSessionId || l.upgradedAt).length;
+      document.getElementById('statPaidCumulative').textContent = paidCumulative;
       document.getElementById('statTotal').textContent     = _all.length;
       document.getElementById('statActive').textContent    = _all.filter(l => getStatus(l) === 'active').length;
       document.getElementById('statExpired').textContent   = _all.filter(l => getStatus(l) === 'expired').length;
