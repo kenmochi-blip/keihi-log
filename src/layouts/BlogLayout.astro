@@ -7,6 +7,7 @@ interface Heading {
 
 import { getAuthor } from '../authors';
 import { BLOG_PUBLISHED } from '../siteConfig';
+import Analytics from '../components/Analytics.astro';
 
 interface Props {
   title: string;
@@ -58,6 +59,7 @@ const jsonLd = {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <Analytics />
   <title>{`${title}｜経費ログ ブログ`}</title>
   <meta name="description" content={description} />
   {!BLOG_PUBLISHED && <meta name="robots" content="noindex,nofollow" />}

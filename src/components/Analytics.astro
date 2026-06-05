@@ -1,0 +1,12 @@
+---
+// Google アナリティクス（GA4）— サイト全体と同一の測定ID。
+// ブログのページビュー（累計PV等）を計測するために各ブログページの <head> に含める。
+const GA_ID = 'G-XCNC24BTGP';
+---
+<script async src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}></script>
+<script is:inline define:vars={{ GA_ID }}>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){ dataLayer.push(arguments); }
+  gtag('js', new Date());
+  gtag('config', GA_ID);
+</script>
