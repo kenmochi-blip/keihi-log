@@ -32,11 +32,19 @@ const hasToc = tocHeadings.length >= 3;
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{title} | 経費ログ ブログ</title>
+  <title>{title}｜経費ログ ブログ</title>
   <meta name="description" content={description} />
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="経費ログ" />
   <meta property="og:title" content={title} />
   <meta property="og:description" content={description} />
-  <meta property="og:type" content="article" />
+  <meta property="og:image" content="https://keihi-log.com/icons/icon-512.png" />
+  <meta property="og:locale" content="ja_JP" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content={title} />
+  <meta name="twitter:description" content={description} />
+  <meta name="twitter:image" content="https://keihi-log.com/icons/icon-512.png" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -45,9 +53,12 @@ const hasToc = tocHeadings.length >= 3;
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
   <style>
     :root {
-      --brand: #0d6efd;
+      --brand-h: 217; --brand-s: 97%; --brand-l: 52%;
+      --brand: hsl(var(--brand-h), var(--brand-s), var(--brand-l));
+      --bs-primary: var(--brand);
+      --bs-primary-rgb: 13, 110, 253;
       --brand-dark: #0a58ca;
-      --text: #1a202c;
+      --text: #212529;
       --muted: #6c757d;
       --border: #e9ecef;
       --bg: #f7f8fc;
@@ -70,20 +81,21 @@ const hasToc = tocHeadings.length >= 3;
       left: 0;
       width: 0%;
       height: 3px;
-      background: linear-gradient(90deg, var(--brand), #6610f2);
+      background: linear-gradient(90deg, #29B6F6, #3F51B5);
       z-index: 9999;
       transition: width 0.1s linear;
     }
 
-    /* ナビバー */
+    /* ナビバー（LP統一） */
     .blog-nav {
-      background: rgba(255,255,255,0.92);
-      backdrop-filter: blur(8px);
-      border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.05);
     }
-    .blog-nav a { text-decoration: none; color: var(--text); font-weight: 700; }
-    .blog-nav a:hover { color: var(--brand); }
-    .blog-nav .site-name { font-size: 0.95rem; font-weight: 700; }
+    .blog-nav .brand { text-decoration: none; color: var(--brand); font-weight: 900; font-size: 1.2rem; display: flex; align-items: center; gap: 0.5rem; }
+    .blog-nav .logo-svg { width: 28px; height: 28px; }
+    .blog-nav .nav-link-sm { color: #495057; font-weight: 500; font-size: 0.88rem; text-decoration: none; }
+    .blog-nav .nav-link-sm:hover { color: var(--brand); }
 
     /* レイアウト */
     .blog-container {
@@ -275,25 +287,48 @@ const hasToc = tocHeadings.length >= 3;
     .breadcrumb { font-size: 0.78rem; }
     .breadcrumb-item + .breadcrumb-item::before { color: var(--muted); }
 
-    /* フッター */
+    /* フッター（LP統一・濃紺） */
     .blog-footer {
-      border-top: 1px solid var(--border);
-      background: var(--card-bg);
+      background: linear-gradient(160deg, #0d2d5a 0%, #163866 100%);
+      color: #adb5bd;
+      border-top: 3px solid rgba(110, 168, 254, 0.5);
     }
+    .blog-footer a { color: #adb5bd; text-decoration: none; transition: color 0.2s; }
+    .blog-footer a:hover { color: #6ea8fe; }
   </style>
 </head>
 <body>
   <div id="read-progress"></div>
 
+  <!-- ブランドロゴ定義 -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="logo-keihilog" viewBox="0 0 100 100">
+        <defs>
+          <linearGradient id="logoGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#29B6F6"/>
+            <stop offset="100%" stop-color="#3F51B5"/>
+          </linearGradient>
+        </defs>
+        <path d="M18,4 L74,4 Q80,4 80,10 L80,65 L72,73 L63,65 L55,73 L47,65 L38,73 L30,65 L22,73 L14,65 L14,10 Q14,4 18,4 Z" fill="url(#logoGrad)"/>
+        <rect x="22" y="18" width="42" height="6" rx="3" fill="white"/>
+        <rect x="22" y="30" width="37" height="6" rx="3" fill="white" opacity="0.9"/>
+        <rect x="22" y="42" width="31" height="6" rx="3" fill="white" opacity="0.85"/>
+        <circle cx="72" cy="76" r="22" fill="#388E3C"/>
+        <polyline points="61,76 69,84 83,64" fill="none" stroke="white" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+    </defs>
+  </svg>
+
   <!-- ナビバー -->
   <nav class="blog-nav py-2 px-3 px-md-4 d-flex align-items-center justify-content-between sticky-top">
-    <a href="/" class="d-flex align-items-center gap-2">
-      <img src="/favicon.svg" width="22" height="22" alt="" />
-      <span class="site-name">経費ログ</span>
+    <a href="/" class="brand">
+      <svg class="logo-svg"><use href="#logo-keihilog"/></svg>
+      経費ログ
     </a>
     <div class="d-flex gap-3 align-items-center">
-      <a href="/blog/" class="text-muted small">ブログ</a>
-      <a href="/" class="btn btn-primary btn-sm px-3" style="font-size:0.82rem;">無料で試す</a>
+      <a href="/blog/" class="nav-link-sm">ブログ</a>
+      <a href="/" class="btn btn-primary btn-sm rounded-pill px-3" style="font-size:0.82rem;">無料で試す</a>
     </div>
   </nav>
 
@@ -390,14 +425,14 @@ const hasToc = tocHeadings.length >= 3;
 
   <!-- フッター -->
   <footer class="blog-footer py-4">
-    <div class="container text-center" style="font-size:0.8rem;color:var(--muted);">
+    <div class="container text-center" style="font-size:0.8rem;">
       <div class="d-flex justify-content-center flex-wrap gap-3 mb-2">
-        <a href="/privacy" class="text-muted text-decoration-none">プライバシーポリシー</a>
-        <a href="/terms" class="text-muted text-decoration-none">利用規約</a>
-        <a href="/faq" class="text-muted text-decoration-none">よくある質問</a>
-        <a href="/blog/" class="text-muted text-decoration-none">ブログ一覧</a>
+        <a href="/privacy">プライバシーポリシー</a>
+        <a href="/terms">利用規約</a>
+        <a href="/faq">よくある質問</a>
+        <a href="/blog/">ブログ一覧</a>
       </div>
-      <div>© 2025 合同会社Smart&amp;Smooth</div>
+      <div style="opacity:0.7;">© 2025 合同会社Smart&amp;Smooth</div>
     </div>
   </footer>
 
