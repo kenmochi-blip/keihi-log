@@ -478,6 +478,22 @@
         "@type": "Answer",
         "text": "年契約の場合、変更の種類によって動作が異なります。 操作 反映タイミング 料金の扱い アップグレード（ソロ→チーム） 即時 残り日数の差額を日割り計算し、次回請求に充当 ダウングレード（チーム→ソロ） 現在の契約期間終了時（最大1年後） 返金なし。期間終了まで現在のプランを継続利用 解約 現在の契約期間終了時（最大1年後） 返金なし。期間終了まで継続利用可 ダウングレードや解約の手続きをしても すぐにサービスが止まることはありません が、年契約の残り期間は返金されない点にご注意ください。"
       }
+    },
+    {
+      "@type": "Question",
+      "name": "顧問の会計事務所に経費データの閲覧権限を渡したい。問題ありませんか？どうすればいいですか？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "問題ありません。管理者アカウントでログインし、設定画面の「メンバー管理」から事務所のGoogleアカウントのメールアドレスを追加するだけです。追加した時点から、その事務所は会計事務所向けダッシュボードで貴社の経費データを確認できるようになります。経費データは管理者が明示的にメンバー登録を行ったアカウントにのみ共有されます。事務所側が一方的にアクセスすることはできません。顧問契約が終了した際はメンバー管理から該当メールアドレスを削除してください。削除後は即時アクセスが遮断されます。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "（会計事務所向け）複数の顧問先の経費ログを一括して確認することはできますか？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "できます。会計事務所向けに会計事務所ダッシュボードをご用意しています。顧問先×月別のピボットテーブルで複数社の経費状況を一画面で確認できます。利用開始の手順：1. 経費ログ運営（support@keihi-log.com）に会計事務所アカウントとしての登録を依頼する（事務所名と使用するGoogleアカウントのメールアドレスをお知らせください）。2. 登録完了後、/accountant にアクセスしてGoogleログインする。3. 各顧問先の管理者に「メンバー管理」で事務所のメールアドレスを追加してもらう。4. 追加された顧問先がダッシュボードに自動表示される。各社の経費一覧・証票画像の確認・CSVエクスポートが可能です。"
+      }
     }
   ]
 }
@@ -1631,6 +1647,50 @@
             <tr><td>解約</td><td>現在の契約期間終了時（最大1年後）</td><td>返金なし。期間終了まで継続利用可</td></tr>
           </table>
           <p class="mt-2 mb-0">ダウングレードや解約の手続きをしても<strong>すぐにサービスが止まることはありません</strong>が、年契約の残り期間は返金されない点にご注意ください。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 11. 会計事務所との連携 -->
+  <div class="faq-section-label" style="background:#0f5132;">
+    <i class="bi bi-building-fill"></i>11. 会計事務所との連携
+  </div>
+  <div class="accordion mb-2" id="faq11">
+
+    <div class="accordion-item faq-item" id="q1101">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c1101">
+          <span class="faq-q-badge">Q</span>顧問の会計事務所に経費データの閲覧権限を渡したい。問題ありませんか？どうすればいいですか？
+        </button>
+      </h2>
+      <div id="c1101" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>問題ありません。会計事務所に閲覧権限を渡すには、<strong>管理者アカウントでログインし、設定画面の「メンバー管理」から事務所のGoogleアカウントのメールアドレスを追加する</strong>だけです。</p>
+          <p>追加した時点から、その事務所は会計事務所向けダッシュボードで貴社の経費データを確認できるようになります。</p>
+          <p><strong>プライバシーについて：</strong>経費データは、管理者が明示的にメンバー登録を行ったアカウントにのみ共有されます。事務所側が一方的にアクセスすることはできません。顧問契約が終了した際は、メンバー管理から該当メールアドレスを削除してください。削除後は即時アクセスが遮断されます。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion-item faq-item" id="q1102">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c1102">
+          <span class="faq-q-badge">Q</span>（会計事務所向け）複数の顧問先の経費ログを一括して確認することはできますか？
+        </button>
+      </h2>
+      <div id="c1102" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>できます。会計事務所向けに<strong>会計事務所ダッシュボード</strong>をご用意しています。顧問先 × 月別のピボットテーブルで、複数社の経費状況を一画面で確認できます。</p>
+          <p><strong>利用開始の手順：</strong></p>
+          <ol>
+            <li>経費ログ運営（<a href="mailto:support@keihi-log.com">support@keihi-log.com</a>）に会計事務所アカウントとしての登録を依頼する（事務所名と使用するGoogleアカウントのメールアドレスをお知らせください）</li>
+            <li>登録完了後、<code>/accountant</code> にアクセスしてGoogleログインする</li>
+            <li>各顧問先の管理者に「メンバー管理」で事務所のメールアドレスを追加してもらう</li>
+            <li>追加された顧問先がダッシュボードに自動表示される</li>
+          </ol>
+          <p>各社の経費一覧・証票画像の確認・CSVエクスポートが可能です。</p>
         </div>
       </div>
     </div>
