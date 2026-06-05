@@ -1714,6 +1714,13 @@
     });
   });
 
+  // 新しく開いたQAを画面上端に寄せる
+  document.addEventListener('shown.bs.collapse', function(e) {
+    if (!e.target.classList.contains('accordion-collapse')) return;
+    var item = e.target.closest('.accordion-item');
+    if (item) item.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
   // ハッシュで指定されたアコーディオン項目を自動で開く
   function openFromHash() {
     var hash = location.hash.replace('#', '');
