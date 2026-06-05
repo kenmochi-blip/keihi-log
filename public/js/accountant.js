@@ -10,11 +10,80 @@ const Accountant = (() => {
   let _active    = null; // 詳細表示中の summary オブジェクト
 
   // ── 初期化 ──────────────────────────────────────────────────────────────
+  // ── デモデータ ───────────────────────────────────────────────────────────
+  const DEMO_SUMMARIES = [
+    {
+      sheetId: 'demo1', name: '株式会社サンプル商事', auto: true,
+      total: 187450, count: 12, pending: 3,
+      byCategory: { '旅費交通費': 82000, '接待交際費': 54000, '消耗品費': 28450, '通信費': 23000 },
+      expenses: [
+        { date: '2026-06-18', name: '田中 花子', place: 'JR東日本', amount: 3240, category: '旅費交通費', type: '電車バス', confirmed: true,  settlementDate: '', note: '東京→大阪 出張', id: 'd1', imageLinks: '' },
+        { date: '2026-06-15', name: '鈴木 一郎', place: '銀座 ○○レストラン', amount: 32000, category: '接待交際費', type: '領収書', confirmed: true,  settlementDate: '', note: '顧客接待', id: 'd2', imageLinks: '/api/data/receipt?fileId=demo&exp=0&sig=0' },
+        { date: '2026-06-12', name: '田中 花子', place: 'Amazon', amount: 12800, category: '消耗品費', type: '領収書', confirmed: false, settlementDate: '', note: 'プリンター用紙・インク', id: 'd3', imageLinks: '' },
+        { date: '2026-06-10', name: '佐藤 二郎', place: 'ソフトバンク', amount: 8800, category: '通信費', type: '領収書', confirmed: false, settlementDate: '', note: '携帯電話代6月分', id: 'd4', imageLinks: '' },
+        { date: '2026-06-08', name: '鈴木 一郎', place: 'タクシー', amount: 4200, category: '旅費交通費', type: '領収書', confirmed: false, settlementDate: '', note: '深夜帰宅', id: 'd5', imageLinks: '' },
+      ],
+    },
+    {
+      sheetId: 'demo2', name: '山田デザイン事務所', auto: true,
+      total: 63200, count: 5, pending: 1,
+      byCategory: { '外注費': 40000, '消耗品費': 15200, '通信費': 8000 },
+      expenses: [
+        { date: '2026-06-20', name: '山田 美咲', place: 'Adobe', amount: 8000, category: '通信費', type: '領収書', confirmed: true, settlementDate: '', note: 'Creative Cloud月額', id: 'd6', imageLinks: '' },
+        { date: '2026-06-14', name: '山田 美咲', place: 'フリーランサーA', amount: 40000, category: '外注費', type: '領収書', confirmed: false, settlementDate: '', note: 'ロゴデザイン制作', id: 'd7', imageLinks: '' },
+      ],
+    },
+    {
+      sheetId: 'demo3', name: '佐々木コンサルティング', auto: false,
+      total: 0, count: 0, pending: 0,
+      byCategory: {},
+      expenses: [],
+    },
+  ];
+
+  function _isDemoMode() {
+    return new URLSearchParams(location.search).has('demo');
+  }
+
+  async function _showDemoMode() {
+    document.getElementById('authGate').classList.add('d-none');
+    document.getElementById('mainContent').classList.remove('d-none');
+    document.getElementById('userEmailDisplay').textContent = 'デモ表示';
+    document.getElementById('logoutBtn').onclick = () => location.href = '/accountant';
+    document.getElementById('addClientBtn').onclick  = _showAddModal;
+    document.getElementById('addClientBtnEmpty')?.addEventListener('click', _showAddModal);
+    document.getElementById('addClientConfirm').onclick = () => {
+      bootstrap.Modal.getInstance(document.getElementById('addClientModal'))?.hide();
+    };
+    document.getElementById('csvExportBtn').onclick = _exportCsv;
+    document.getElementById('refreshBtn').onclick = () => {};
+    document.getElementById('monthPicker').onchange = e => { _month = e.target.value; };
+
+    // デモ表示バナー
+    const banner = document.createElement('div');
+    banner.className = 'alert alert-info text-center py-2 mb-0 rounded-0';
+    banner.style.fontSize = '.85rem';
+    banner.innerHTML = '<i class="bi bi-eye me-1"></i>これはデモ表示です。実際のデータは表示されていません。';
+    document.getElementById('mainContent').insertBefore(banner, document.getElementById('mainContent').firstChild.nextSibling);
+
+    document.getElementById('referrerLabel').textContent = 'サンプル会計事務所（紹介コード: sample）';
+    _clients = DEMO_SUMMARIES;
+    _summaries = DEMO_SUMMARIES;
+    document.getElementById('statClients').textContent = _clients.length;
+    document.getElementById('loadingClients').classList.add('d-none');
+    _renderGrid();
+  }
+
   async function init() {
     const now = new Date();
     _month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     document.getElementById('monthPicker').value = _month;
     document.getElementById('signInBtn').onclick = () => Auth.initiateLogin('/accountant');
+
+    if (_isDemoMode()) {
+      await _showDemoMode();
+      return;
+    }
 
     document.getElementById('loadingAuth').classList.remove('d-none');
     document.getElementById('loginArea').classList.add('d-none');
