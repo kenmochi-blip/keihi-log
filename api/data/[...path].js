@@ -652,47 +652,51 @@ async function accountantRouter(req, res) {
 }
 
 /**
- * 紹介コードに紐付く顧問先を KV チェーンで自動解決する。
- * license:* → license_alias:${key} → alias:${code} → sheetId
+ * alias:* をスキャンして会計事務所メールアドレスがマスタ表に登録されている顧問先を返す。
+ * 紹介コードの一致は不要 — クライアントがマスタ表に登録したことがオプトインの証拠。
+ * license_alias:* の逆引きで会社名を補完する。
  */
-/**
- * 紹介コード + 会計事務所メールアドレスで顧問先を解決する。
- * 紹介コード経由でライセンスを発見した後、クライアント側がマスタ表に
- * 会計事務所のメールを登録しているかを確認することでプライバシーを保護する。
- * （紹介コードを使っただけでは閲覧権限が生じない）
- */
-async function _getClientsForReferrer(referrerCode, accountantEmail, refresh = false) {
-  const keys = [];
-  let cursor = 0;
-  do {
-    const [next, batch] = await kv.scan(cursor, { match: 'license:*', count: 100 });
-    keys.push(...batch);
-    cursor = Number(next);
-  } while (cursor !== 0);
+async function _getAllClientsForAccountant(accountantEmail, refresh = false) {
+  // alias:* と license_alias:* を並列スキャン
+  async function scanAll(pattern) {
+    const keys = [];
+    let cur = 0;
+    do {
+      const [next, batch] = await kv.scan(cur, { match: pattern, count: 100 });
+      keys.push(...batch);
+      cur = Number(next);
+    } while (cur !== 0);
+    return keys;
+  }
+  const [aliasKeys, laKeys] = await Promise.all([scanAll('alias:*'), scanAll('license_alias:*')]);
+  if (!aliasKeys.length) return [];
 
-  const licenses = await Promise.all(keys.map(k => kv.get(k)));
-  const clients = [];
+  // code → licKey の逆引きマップを構築
+  const laValues = await Promise.all(laKeys.map(k => kv.get(k)));
+  const codeToLicKey = new Map();
+  laKeys.forEach((k, i) => { if (laValues[i]) codeToLicKey.set(laValues[i], k.replace('license_alias:', '')); });
+
+  const aliasValues = await Promise.all(aliasKeys.map(k => kv.get(k)));
   const lcEmail = (accountantEmail || '').toLowerCase();
-  await Promise.all(keys.map(async (k, i) => {
-    const lic = licenses[i];
-    if (!lic || lic.referrer !== referrerCode || lic.suspended) return;
-    const licKey = k.replace('license:', '');
-    const alias   = await kv.get(`license_alias:${licKey}`).catch(() => null);
-    if (!alias) return;
-    const sheetId = await kv.get(`alias:${alias}`).catch(() => null);
+  const clients = [];
+
+  await Promise.all(aliasKeys.map(async (aliasKey, i) => {
+    const sheetId = aliasValues[i];
     if (!sheetId || !_validSheetId(sheetId)) return;
 
-    // クライアントが会計事務所をマスタ表に登録しているかを確認（プライバシー保護）
     const masterCacheKey = `acct:master:${sheetId}`;
     let master = !refresh ? await kv.get(masterCacheKey).catch(() => null) : null;
     if (!master) {
       master = await readMaster(sheetId).catch(() => null);
       if (master) await kv.set(masterCacheKey, master, { ex: 300 }).catch(() => {});
     }
-    if (!master) return; // マスタ取得不可 → 安全側で除外
-    if (!master.members.some(m => m.email === lcEmail)) return; // 未登録
+    if (!master || !master.members.some(m => m.email === lcEmail)) return;
 
-    clients.push({ sheetId, name: lic.company || '（社名未設定）', plan: lic.plan || 'standard', auto: true });
+    // ライセンスデータから会社名を取得
+    const code   = aliasKey.replace('alias:', '');
+    const licKey = codeToLicKey.get(code);
+    const lic    = licKey ? await kv.get(`license:${licKey}`).catch(() => null) : null;
+    clients.push({ sheetId, name: lic?.company || '（社名未設定）' });
   }));
   return clients;
 }
@@ -701,10 +705,10 @@ async function accountantProfile(req, res) {
   const authz = await _authorizeAccountant(req, res);
   if (!authz) return;
 
-  // 紹介コード経由で自動解決した顧問先リスト
-  const autoClients = await _getClientsForReferrer(authz.referrer.code, authz.me.email);
+  // マスタ表への登録でオプトインした顧問先を自動解決
+  const autoClients = await _getAllClientsForAccountant(authz.me.email);
 
-  // 手動追加分（紹介コード経由でない顧問先の補完用）
+  // 手動追加分（後方互換として残す）
   const manual = await kv.get(`acct:${authz.me.email}`).catch(() => null) || { sheets: [] };
   const autoIds = new Set(autoClients.map(c => c.sheetId));
   const manualOnly = (manual.sheets || []).filter(s => !autoIds.has(s.sheetId));
@@ -725,8 +729,7 @@ async function accountantAddClient(req, res) {
   const key     = `acct:${authz.me.email}`;
   const profile = await kv.get(key).catch(() => null) || { sheets: [] };
 
-  // 自動解決済みの顧問先は手動追加不要
-  const autoClients = await _getClientsForReferrer(authz.referrer.code, authz.me.email);
+  const autoClients = await _getAllClientsForAccountant(authz.me.email);
   if (autoClients.some(c => c.sheetId === sheetId) || profile.sheets.some(s => s.sheetId === sheetId)) {
     return res.status(409).json({ error: 'already_registered' });
   }
@@ -753,8 +756,7 @@ async function accountantRemoveClient(req, res) {
   const sheetId = _query(req).get('sheetId') || '';
   if (!sheetId) return res.status(400).json({ error: 'invalid_request' });
 
-  // 自動解決の顧問先は削除不可（紹介コードで管理側が管理する）
-  const autoClients = await _getClientsForReferrer(authz.referrer.code, authz.me.email);
+  const autoClients = await _getAllClientsForAccountant(authz.me.email);
   if (autoClients.some(c => c.sheetId === sheetId)) {
     return res.status(403).json({ error: 'auto_client_cannot_be_removed' });
   }
@@ -787,7 +789,7 @@ async function accountantSummary(req, res) {
   }
 
   // 全顧問先（自動連携 + 手動追加）
-  const autoClients = await _getClientsForReferrer(authz.referrer.code, authz.me.email, refresh);
+  const autoClients = await _getAllClientsForAccountant(authz.me.email, refresh);
   const manual = await kv.get(`acct:${authz.me.email}`).catch(() => null) || { sheets: [] };
   const autoIds = new Set(autoClients.map(c => c.sheetId));
   const allClients = [...autoClients, ...(manual.sheets || []).filter(s => !autoIds.has(s.sheetId))];
