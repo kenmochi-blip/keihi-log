@@ -71,7 +71,11 @@ const Drive = (() => {
         headers: { Authorization: `Bearer ${idToken}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ base64, mimeType, filename }),
       });
-      if (!resp.ok) throw new Error(`Receipt upload error: ${resp.status}`);
+      if (!resp.ok) {
+        const errData = await resp.json().catch(() => ({}));
+        const detail = errData.message || errData.error || '';
+        throw new Error(`Receipt upload error: ${resp.status}${detail ? ' — ' + detail : ''}`);
+      }
       return resp.json(); // { id, webViewLink }
     }
 
