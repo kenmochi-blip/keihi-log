@@ -2141,8 +2141,10 @@
   document.querySelectorAll('#navMenu .nav-link').forEach(function(link) {
     link.addEventListener('click', closeNavMenu);
   });
-  document.addEventListener('click', function(e) {
-    if (!e.target.closest('nav')) closeNavMenu();
+  ['click', 'touchstart'].forEach(function(type) {
+    document.addEventListener(type, function(e) {
+      if (!e.target.closest('nav')) closeNavMenu();
+    }, { passive: true });
   });
 
   // ── bfcacheに入る前後にフォーカスを解除 ──────────────
