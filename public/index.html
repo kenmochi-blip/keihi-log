@@ -2131,14 +2131,18 @@
     });
   });
 
-  // ── スマホ：ナビリンクをタップしたらメニューを閉じる ──
+  // ── スマホ：ナビリンクタップ or メニュー外タップでメニューを閉じる ──
+  function closeNavMenu() {
+    var navMenu = document.getElementById('navMenu');
+    if (navMenu.classList.contains('show')) {
+      bootstrap.Collapse.getOrCreateInstance(navMenu).hide();
+    }
+  }
   document.querySelectorAll('#navMenu .nav-link').forEach(function(link) {
-    link.addEventListener('click', function() {
-      var navMenu = document.getElementById('navMenu');
-      if (navMenu.classList.contains('show')) {
-        bootstrap.Collapse.getOrCreateInstance(navMenu).hide();
-      }
-    });
+    link.addEventListener('click', closeNavMenu);
+  });
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('nav')) closeNavMenu();
   });
 
   // ── bfcacheに入る前後にフォーカスを解除 ──────────────
