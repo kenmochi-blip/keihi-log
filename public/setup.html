@@ -227,6 +227,9 @@
             </div>
           </div>
           <div id="setupErrMsg" class="alert alert-danger py-2 mb-3" style="display:none;font-size:0.85rem;"></div>
+          <button id="btnReauth" class="btn btn-outline-primary w-100 mb-2" style="display:none;">
+            <i class="bi bi-arrow-repeat me-1"></i>Googleアカウントを再認証してやり直す
+          </button>
 
           <button class="btn btn-primary w-100" id="btnStartSetup">
             <i class="bi bi-rocket-takeoff me-1"></i>セットアップ開始
@@ -564,11 +567,19 @@ ${o}
         setProgState('prog1', 'error');
         setProgState('prog2', 'error');
         setProgState('prog3', 'error');
-        $('setupErrMsg').textContent = 'エラーが発生しました: ' + (err.message || err);
+        const is403 = /403/.test(err.message || '');
+        $('setupErrMsg').textContent = is403
+          ? 'Googleドライブへのアクセス権限がありません（403）。下のボタンで再認証してください。'
+          : 'エラーが発生しました: ' + (err.message || err);
         $('setupErrMsg').style.display = 'block';
+        $('btnReauth').style.display = is403 ? '' : 'none';
         $('btnStartSetup').disabled = false;
         $('btnBack4').style.display = '';
       }
+    });
+
+    $('btnReauth').addEventListener('click', () => {
+      Auth.initiateLogin(location.href, true); // forceConsent=true で権限を再取得
     });
 
     $('btnBack4').addEventListener('click', () => {
