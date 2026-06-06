@@ -23,7 +23,11 @@ const Drive = (() => {
       'https://www.googleapis.com/drive/v3/files',
       { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(meta) }
     );
-    if (!resp.ok) throw new Error(`Drive createSpreadsheet error: ${resp.status}`);
+    if (!resp.ok) {
+      let detail = '';
+      try { detail = (await resp.json()).error?.message || ''; } catch (_) {}
+      throw new Error(`Drive createSpreadsheet error: ${resp.status}${detail ? ' – ' + detail : ''}`);
+    }
     const data = await resp.json();
     return data.id;
   }
@@ -45,7 +49,11 @@ const Drive = (() => {
         body: JSON.stringify(meta)
       }
     );
-    if (!resp.ok) throw new Error(`Drive createFolder error: ${resp.status}`);
+    if (!resp.ok) {
+      let detail = '';
+      try { detail = (await resp.json()).error?.message || ''; } catch (_) {}
+      throw new Error(`Drive createFolder error: ${resp.status}${detail ? ' – ' + detail : ''}`);
+    }
     const data = await resp.json();
     return data.id;
   }
