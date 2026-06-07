@@ -314,6 +314,10 @@ const SettingsView = (() => {
       </div>
     </div>
   </div>
+
+  <!-- 有料プラン：プラン変更・解約（app.jsが制御） -->
+  <div id="portalSection"></div>
+
 `;
   }
 
@@ -1153,38 +1157,32 @@ const SettingsView = (() => {
     } else if (result.valid) {
       div.innerHTML = `<span class="badge ${result.trial ? 'bg-warning text-dark' : 'bg-success'}"><i class="bi bi-check-circle me-1"></i>${result.trial ? 'トライアル中' : 'ライセンス有効'}</span>
         ${result.expiresAt ? `<span class="text-muted small ms-2">${result.trial ? 'トライアル期限' : '期限'}: ${result.expiresAt.split('T')[0]}</span>` : ''}
-        ${(!result.trial && result.hasPortal) ? `<button class="btn btn-link btn-sm p-0 ms-2" style="font-size:0.78rem;" id="btnCustomerPortal">支払い・解約の管理</button>` : ''}`;
+`;
     } else {
       div.innerHTML = '<span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>ライセンス無効</span>';
     }
     _updateTrialUpgradeBox(el, result);
-    const portalBtn = el.querySelector('#btnCustomerPortal');
-    if (portalBtn) {
-      portalBtn.addEventListener('click', async () => {
-        portalBtn.disabled = true;
-        portalBtn.textContent = '読み込み中...';
-        try {
-          const key = localStorage.getItem('keihi_license_key') || '';
-          const base = (window.APP_CONFIG?.apiBase || '');
-          const resp = await fetch(`${base}/api/portal`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ key }),
-          });
-          const data = await resp.json();
-          if (data.url) {
-            window.open(data.url, '_blank');
-          } else {
-            alert('ポータルURLの取得に失敗しました。しばらく後にお試しください。');
-          }
-        } catch (_) {
-          alert('通信エラーが発生しました。しばらく後にお試しください。');
-        } finally {
-          portalBtn.disabled = false;
-          portalBtn.textContent = '支払い・解約の管理';
-        }
-      });
+    _updatePortalSection(el, result);
+  }
+
+  // 有料プランのポータルボタンを設定ページ末尾に表示
+  function _updatePortalSection(el, result) {
+    const section = el.querySelector('#portalSection');
+    if (!section) return;
+    if (!result?.valid || result.trial || !result.hasPortal) {
+      section.innerHTML = '';
+      return;
     }
+    section.innerHTML = `
+      <div class="card mb-3">
+        <div class="card-body">
+          <button class="btn btn-outline-secondary w-100" id="btnCustomerPortal">
+            <i class="bi bi-arrow-repeat me-1"></i>プランを変更・解約する
+          </button>
+          <div class="text-muted mt-1" style="font-size:0.75rem;text-align:center;">Stripeのカスタマーポータルで支払い・プラン変更・解約を管理できます。</div>
+        </div>
+      </div>`;
+    section.querySelector('#btnCustomerPortal')?.addEventListener('click', _openStripePortal);
   }
 
   // トライアル中（または期限切れ）の管理者に「有料プランに登録する」ボタンを表示
@@ -1210,7 +1208,7 @@ const SettingsView = (() => {
   }
 
   function _getCachedLicenseResult() {
-    try { return JSON.parse(localStorage.getItem('keihi_license_cache') || 'null')?.result || null; }
+    try { return JSON.parse(localStorage.getItem('keihi_license_cache_v2') || 'null')?.result || null; }
     catch (_) { return null; }
   }
 

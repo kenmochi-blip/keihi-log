@@ -389,15 +389,25 @@ const App = (() => {
     const textEl = document.getElementById('trialBannerText');
     if (!banner || !textEl) return;
     const isDemo = typeof Demo !== 'undefined' && Demo.isActive();
-    if (isDemo || !lic?.valid || !lic.trial || !lic.expiresAt) {
+    if (isDemo || !lic?.valid || !lic.trial) {
       banner.style.display = 'none';
       return;
     }
-    const msLeft = new Date(lic.expiresAt) - new Date();
-    const daysLeft = Math.max(0, Math.ceil(msLeft / 86400000));
-    textEl.textContent = daysLeft > 0
-      ? `トライアル期間中（残り${daysLeft}日）― 有料プランへの切り替えは設定タブから`
-      : 'トライアル期間終了間近です。設定タブから有料プランへ切り替えてください。';
+    const msLeft = lic.expiresAt ? new Date(lic.expiresAt) - new Date() : Infinity;
+    const daysLeft = msLeft === Infinity ? null : Math.max(0, Math.ceil(msLeft / 86400000));
+    textEl.textContent = daysLeft !== null
+      ? `無料トライアル中（残り${daysLeft}日）`
+      : '無料トライアル中';
+    // チームプランへの切り替えURLをバナーボタンに設定
+    const upgradeBtn = document.getElementById('trialBannerUpgradeBtn');
+    if (upgradeBtn) {
+      const key   = localStorage.getItem('keihi_license_key') || '';
+      const email = (typeof Auth !== 'undefined' && Auth.getUserEmail && Auth.getUserEmail()) || '';
+      const url   = buildUpgradeUrl('team', key, email);
+      upgradeBtn.href = url || '#';
+      upgradeBtn.target = url ? '_blank' : '';
+      upgradeBtn.rel = url ? 'noopener' : '';
+    }
     banner.style.display = '';
   }
 
