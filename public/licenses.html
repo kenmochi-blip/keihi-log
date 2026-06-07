@@ -139,9 +139,6 @@
     .log-analysis-card .la-text { font-size:0.82rem;color:var(--text);white-space:pre-wrap;line-height:1.6; }
     .referrer-select { border:1px solid var(--border);border-radius:4px;padding:2px 4px;font-size:0.72rem;background:var(--surface-sub);outline:none;max-width:115px;cursor:pointer;color:var(--text-sub); }
     .referrer-select:focus { border-color:var(--accent); }
-    .payout-total { background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:0.75rem 1rem;display:flex;align-items:center;gap:1.5rem;margin-bottom:0.75rem; }
-    .payout-total .pt-label { font-size:0.78rem;color:#166534; }
-    .payout-total .pt-val { font-size:1.4rem;font-weight:700;color:#16a34a;line-height:1; }
   </style>
   <link rel="canonical" href="https://keihi-log.com/licenses" />
 </head>
@@ -505,22 +502,6 @@
         </div>
       </div>
 
-      <!-- 紹介者別支払いサマリー -->
-      <div class="panel" style="margin-top:1rem;">
-        <div class="panel-header" style="justify-content:space-between;">
-          <div style="display:flex;align-items:center;gap:0.5rem;">
-            <i class="bi bi-cash-coin" style="color:#16a34a;"></i>
-            <span class="title">紹介者別支払いサマリー（200円×件数）</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:0.5rem;">
-            <input type="month" id="payoutMonth" class="filter-input" style="width:auto;">
-            <button class="btn-accent" id="btnPayoutLoad" style="background:#16a34a;white-space:nowrap;"><i class="bi bi-calculator"></i>計算</button>
-          </div>
-        </div>
-        <div class="panel-body" id="payoutBody">
-          <div style="color:var(--text-mute);font-size:0.85rem;text-align:center;padding:0.5rem 0;">月を選択して「計算」を押してください</div>
-        </div>
-      </div>
 
     </div>
   </div>
@@ -550,8 +531,6 @@
     document.getElementById('btnIssue').addEventListener('click', issueLicense);
     document.getElementById('btnAddReferrer').addEventListener('click', addReferrer);
     document.getElementById('btnReferrerRefresh').addEventListener('click', loadReferrers);
-    document.getElementById('btnPayoutLoad').addEventListener('click', loadPayout);
-    document.getElementById('payoutMonth').value = new Date().toISOString().slice(0, 7);
     document.getElementById('filterText').addEventListener('input', render);
     document.getElementById('filterStatus').addEventListener('change', render);
     document.getElementById('btnCsvExport').addEventListener('click', exportCsv);
@@ -1529,50 +1508,6 @@
       }
     }
 
-    async function loadPayout() {
-      const month = document.getElementById('payoutMonth').value;
-      if (!month) { alert('月を選択してください'); return; }
-      const body = document.getElementById('payoutBody');
-      body.innerHTML = '<div style="color:var(--text-mute);font-size:0.85rem;">計算中...</div>';
-      try {
-        const resp = await fetch(`/api/admin-licenses?secret=${encodeURIComponent(_secret)}&payout=${encodeURIComponent(month)}`);
-        const data = await resp.json();
-        if (!resp.ok) throw new Error(data.error || 'エラー');
-        const { payout, totalAmount, totalActive } = data;
-        if (!payout || payout.length === 0) {
-          body.innerHTML = '<div style="color:var(--text-mute);font-size:0.85rem;text-align:center;padding:0.5rem 0;">紹介者が登録されていません</div>';
-          return;
-        }
-        const fmtAmt = n => `¥${n.toLocaleString('ja-JP')}`;
-        const rows = payout.map(r => `<tr>
-          <td class="ps-first"><code style="font-size:0.78rem;background:var(--surface-sub);padding:1px 5px;border-radius:3px;">${esc(r.code)}</code></td>
-          <td style="font-size:0.82rem;font-weight:500;">${esc(r.name)}</td>
-          <td style="font-size:0.78rem;color:var(--text-sub);">${r.email ? esc(r.email) : '—'}</td>
-          <td style="text-align:right;font-variant-numeric:tabular-nums;">${r.activeCount}</td>
-          <td class="pe-last" style="text-align:right;font-variant-numeric:tabular-nums;font-weight:600;color:${r.amount > 0 ? '#16a34a' : 'var(--text-mute)'};">${r.amount > 0 ? fmtAmt(r.amount) : '—'}</td>
-        </tr>`).join('');
-        body.innerHTML = `
-          <div class="payout-total">
-            <div><div class="pt-label">${data.month} 支払い合計</div><div class="pt-val">${fmtAmt(totalAmount)}</div></div>
-            <div style="color:var(--text-mute);font-size:0.8rem;">${totalActive}件 × 200円</div>
-          </div>
-          <div style="overflow-x:auto;">
-            <table class="data-table">
-              <thead><tr>
-                <th class="ps-first" style="width:130px;">コード</th>
-                <th>氏名・事務所名</th>
-                <th style="width:180px;">振込先メール</th>
-                <th style="width:80px;text-align:right;">有効件数</th>
-                <th class="pe-last" style="width:100px;text-align:right;">支払額</th>
-              </tr></thead>
-              <tbody>${rows}</tbody>
-            </table>
-          </div>
-          <div style="margin-top:0.75rem;font-size:0.72rem;color:var(--text-mute);">※ 有効件数: 対象月に有効だったライセンス数（停止・期限切れを除く）</div>`;
-      } catch (err) {
-        body.innerHTML = `<div style="color:#dc2626;font-size:0.85rem;">${esc(err.message)}</div>`;
-      }
-    }
 
     function esc(s) {
       return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
