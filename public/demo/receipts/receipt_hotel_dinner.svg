@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="380" height="480" viewBox="0 0 380 480">
+  <rect width="380" height="480" fill="#fffdf8" stroke="#c8a97e" stroke-width="1"/>
+  <!-- ヘッダー -->
+  <rect width="380" height="65" fill="#1a3a5c"/>
+  <text x="190" y="32" font-family="sans-serif" font-size="15" font-weight="bold" fill="white" text-anchor="middle">大阪ビジネスホテル ダイニング</text>
+  <text x="190" y="52" font-family="sans-serif" font-size="11" fill="#aad4f5" text-anchor="middle">OSAKA BUSINESS HOTEL DINING</text>
+  <!-- 領収書 -->
+  <text x="190" y="100" font-family="sans-serif" font-size="20" font-weight="bold" fill="#1a3a5c" text-anchor="middle">領　収　書</text>
+  <line x1="30" y1="110" x2="350" y2="110" stroke="#1a3a5c" stroke-width="1.5"/>
+  <!-- 宛先 -->
+  <text x="40" y="135" font-family="sans-serif" font-size="13" fill="#333">御名前：デモ ユーザー　様</text>
+  <line x1="30" y1="145" x2="350" y2="145" stroke="#ddd" stroke-width="0.8"/>
+  <!-- 金額 -->
+  <rect x="30" y="158" width="320" height="58" fill="#f0f5fb" rx="4"/>
+  <text x="190" y="178" font-family="sans-serif" font-size="13" fill="#555" text-anchor="middle">合　計</text>
+  <text x="190" y="206" font-family="sans-serif" font-size="28" font-weight="bold" fill="#1a3a5c" text-anchor="middle">￥8,400</text>
+  <!-- 明細 -->
+  <line x1="30" y1="228" x2="350" y2="228" stroke="#ddd" stroke-width="0.8"/>
+  <text x="40" y="250" font-family="sans-serif" font-size="12" fill="#555">品目</text>
+  <text x="340" y="250" font-family="sans-serif" font-size="12" fill="#555" text-anchor="end">金額</text>
+  <line x1="30" y1="258" x2="350" y2="258" stroke="#eee" stroke-width="0.5"/>
+  <text x="40" y="278" font-family="sans-serif" font-size="12" fill="#333">ディナーコース（1名）</text>
+  <text x="340" y="278" font-family="sans-serif" font-size="12" fill="#333" text-anchor="end">¥6,454</text>
+  <text x="40" y="300" font-family="sans-serif" font-size="12" fill="#333">ドリンク</text>
+  <text x="340" y="300" font-family="sans-serif" font-size="12" fill="#333" text-anchor="end">¥1,182</text>
+  <text x="40" y="322" font-family="sans-serif" font-size="12" fill="#333">消費税（10%）</text>
+  <text x="340" y="322" font-family="sans-serif" font-size="12" fill="#333" text-anchor="end">¥764</text>
+  <line x1="30" y1="333" x2="350" y2="333" stroke="#c8a97e" stroke-width="0.8"/>
+  <!-- 日付 -->
+  <text x="40" y="358" font-family="sans-serif" font-size="12" fill="#555">日付：2026年5月9日</text>
+  <text x="40" y="378" font-family="sans-serif" font-size="12" fill="#555">お支払：客室付け</text>
+  <!-- スタンプ -->
+  <circle cx="300" cy="370" r="36" fill="none" stroke="#c0392b" stroke-width="2.5" opacity="0.65"/>
+  <text x="300" y="364" font-family="sans-serif" font-size="12" font-weight="bold" fill="#c0392b" text-anchor="middle" opacity="0.65">領　収</text>
+  <text x="300" y="382" font-family="sans-serif" font-size="11" fill="#c0392b" text-anchor="middle" opacity="0.65">済　み</text>
+  <!-- フッター -->
+  <line x1="30" y1="405" x2="350" y2="405" stroke="#ddd" stroke-width="0.8"/>
+  <text x="190" y="427" font-family="sans-serif" font-size="10" fill="#999" text-anchor="middle">〒530-0001 大阪府大阪市北区梅田1-1-1</text>
+  <text x="190" y="444" font-family="sans-serif" font-size="10" fill="#999" text-anchor="middle">TEL: 06-1234-5678</text>
+  <rect y="458" width="380" height="22" fill="#1a3a5c"/>
+  <text x="190" y="474" font-family="sans-serif" font-size="10" fill="#aad4f5" text-anchor="middle">ありがとうございました</text>
+</svg>
