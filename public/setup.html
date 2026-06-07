@@ -95,6 +95,15 @@
               placeholder="例: yamada-trading（英数字・ハイフン）" maxlength="40">
           </div>
           <div id="aliasMsg" class="form-text"></div>
+          <div id="aliasBlankWarn" class="alert alert-warning py-2 mb-2" style="display:none;font-size:0.82rem;">
+            <i class="bi bi-exclamation-triangle me-1"></i>
+            URLを入力しない場合、<strong id="aliasBlankExample"></strong> のようなランダムなURLになります。<br>
+            <span class="text-muted" style="font-size:0.78rem;">後から変更できません。</span><br>
+            <div class="d-flex gap-2 mt-2">
+              <button class="btn btn-sm btn-outline-secondary" id="btnAliasBack">← URLを入力する</button>
+              <button class="btn btn-sm btn-warning" id="btnAliasContinue">このまま続ける</button>
+            </div>
+          </div>
           <div class="form-text mb-3" style="color:#6c757d;">未入力の場合はランダムな文字列のURLが自動生成されます。</div>
 
           <button class="btn btn-primary w-100" id="btnGoStep3">
@@ -403,7 +412,7 @@
       }, 600);
     });
 
-    $('btnGoStep3').addEventListener('click', async () => {
+    async function _validateAndProceed() {
       const name = $('inputCompany').value.trim();
       if (!name) { $('inputCompany').classList.add('is-invalid'); return; }
       $('inputCompany').classList.remove('is-invalid');
@@ -418,9 +427,35 @@
           $('aliasMsg').innerHTML = '<span class="text-danger">このURLはすでに使われています</span>'; return;
         }
       }
+      if (!_isDemo && !aliasVal) {
+        // ランダムURLになることを確認させる
+        const sample = location.origin + '/' + 'abc12xyz'.split('').sort(() => Math.random() - .5).join('') + '34';
+        $('aliasBlankExample').textContent = sample;
+        $('aliasBlankWarn').style.display = '';
+        $('btnGoStep3').style.display = 'none';
+        return;
+      }
       _companyName = name;
       _alias = aliasVal;
       goStep(3);
+    }
+    $('btnGoStep3').addEventListener('click', _validateAndProceed);
+
+    $('btnAliasBack').addEventListener('click', () => {
+      $('aliasBlankWarn').style.display = 'none';
+      $('btnGoStep3').style.display = '';
+      $('inputAlias').focus();
+    });
+    $('btnAliasContinue').addEventListener('click', () => {
+      $('aliasBlankWarn').style.display = 'none';
+      $('btnGoStep3').style.display = '';
+      _companyName = $('inputCompany').value.trim();
+      _alias = '';
+      goStep(3);
+    });
+    $('inputAlias').addEventListener('input', () => {
+      $('aliasBlankWarn').style.display = 'none';
+      $('btnGoStep3').style.display = '';
     });
 
     $('btnBack1').addEventListener('click', () => goStep(1));
