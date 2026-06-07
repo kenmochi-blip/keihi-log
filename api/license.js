@@ -33,6 +33,7 @@ export default async function handler(req, res) {
         company:   data.company,
         expiresAt: data.expiresAt,
         email:     data.email,
+        trial:     data.trial === true,
         setupCode: setupCode || null,
       });
     } catch (err) {

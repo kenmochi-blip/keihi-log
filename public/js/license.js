@@ -13,7 +13,7 @@ const License = (() => {
     // localStorage キャッシュ確認（ownerEmailがない古いキャッシュは無効化）
     try {
       const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
-      if (cached && cached.key === key && Date.now() < cached.expiry && cached.result?.ownerEmail) {
+      if (cached && cached.key === key && Date.now() < cached.expiry && cached.result?.ownerEmail && 'trial' in (cached.result || {})) {
         return cached.result;
       }
     } catch (_) {}
