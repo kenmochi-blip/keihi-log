@@ -80,30 +80,29 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: 'setup_code_mismatch' });
     }
 
-    // ── ライセンス→エイリアスの紐付けをアトミックに先勝ちで確定（NX）──
-    // 既に紐付け済みなら、その値が今回のcodeと一致する場合のみ冪等に続行（管理者の再セットアップ）。
-    // 異なるcodeでの上書き登録（乗っ取り）は拒否。TOCTOUレースもNXで排除。
-    const licClaim = await kv.set(`license_alias:${licenseKey}`, code, { nx: true }).catch(() => null);
-    if (licClaim === null) {
-      const existingAlias = await kv.get(`license_alias:${licenseKey}`).catch(() => null);
-      if (existingAlias && existingAlias !== code) {
-        return res.status(409).json({ error: 'already_setup', alias: existingAlias });
-      }
-      // existingAlias === code → 冪等な再登録として続行
-    }
+    // 既存エイリアスを取得（独自URL登録時に旧ランダムURLを削除するため）
+    const oldAlias = await kv.get(`license_alias:${licenseKey}`).catch(() => null);
 
-    // ── コード→シートIDをアトミックに先勝ちで確定（NX）──
-    const codeClaim = await kv.set(`alias:${code}`, sheetId, { nx: true }).catch(() => null);
-    if (codeClaim === null) {
+    // コード→シートIDの衝突チェック（別ライセンスが同じコードを使っていないか）
+    if (oldAlias !== code) {
       const existingSheet = await kv.get(`alias:${code}`).catch(() => null);
       if (existingSheet && existingSheet !== sheetId) {
-        // コードは別シートに使用済み。乗っ取り防止のためライセンス紐付けを巻き戻す
-        if (licClaim !== null) await kv.del(`license_alias:${licenseKey}`).catch(() => {});
         return res.status(409).json({ error: 'code_taken' });
       }
     }
 
-    // 逆引き等の付随情報（先勝ち確定後なので上書きしても安全）
+    // 旧エイリアスを削除（独自URLへの切替時にランダムURLを無効化）
+    if (oldAlias && oldAlias !== code) {
+      await Promise.all([
+        kv.del(`alias:${oldAlias}`),
+        kv.del(`alias_lic:${oldAlias}`),
+        kv.del(`alias_company:${oldAlias}`),
+      ]).catch(() => {});
+    }
+
+    // 新エイリアスを登録・license_aliasを上書き更新
+    await kv.set(`alias:${code}`, sheetId);
+    await kv.set(`license_alias:${licenseKey}`, code);
     await kv.set(`alias_by_sheet:${sheetId}`, code);
     await kv.set(`alias_lic:${code}`, licenseKey);
     if (companyName) await kv.set(`alias_company:${code}`, companyName);
