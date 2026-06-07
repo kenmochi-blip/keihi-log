@@ -1337,5 +1337,14 @@ ${reg.orgName}
 代表者：${reg.repName}`;
   }
 
-  return { render, bindEvents, buildRegulationText, _loadRegulation, _formatConfirmedAt };
+  // バックグラウンドinitがライセンス検証を完了した後に呼ばれる
+  // キャッシュなしの最新結果でライセンス表示・メンバー制限を再適用する
+  function refreshLicenseUI(licResult) {
+    const el = document.getElementById('appMain');
+    if (!el || !el.querySelector('#licenseStatus')) return;
+    _updateLicenseStatus(el, licResult);
+    _applyMemberPlanRestriction(el);
+  }
+
+  return { render, bindEvents, buildRegulationText, _loadRegulation, _formatConfirmedAt, refreshLicenseUI };
 })();

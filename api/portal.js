@@ -23,6 +23,8 @@ export default async function handler(req, res) {
   const data = await kv.get(`license:${key}`);
   if (!data) return res.status(404).json({ error: 'not_found' });
 
+  if (data.trial) return res.status(400).json({ error: 'trial_user' });
+
   const sessionId = data.stripeSessionId;
   if (!sessionId) return res.status(400).json({ error: 'no_session' });
 

@@ -251,6 +251,8 @@ const App = (() => {
     }
     _applyAdminVisibility(); // 最新ロールで再適用（キャッシュと異なる場合を考慮）
     _updateTrialBanner(lic);
+    // 設定タブが既に描画済みの場合、ライセンス表示・メンバー制限を最新結果で上書き
+    if (typeof SettingsView !== 'undefined') SettingsView.refreshLicenseUI(lic);
 
     // quickStart 中に別スプレッドシートが検出された場合、
     // 正しいシートIDで現在のビューを再描画（旧シートのデータが表示されるのを防ぐ）
