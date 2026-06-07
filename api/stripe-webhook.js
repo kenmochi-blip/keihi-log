@@ -99,6 +99,8 @@ async function _issueNewLicense(session) {
   // サブスクリプションの請求間隔・トライアル期限を取得
   let interval = 'month';
   let trialEnd  = null; // Unix秒タイムスタンプ（トライアル中の場合のみ）
+  // カード無しトライアルは payment_status が no_payment_required になる
+  const isCardlessTrial = session.payment_status === 'no_payment_required';
   if (session.subscription) {
     try {
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY?.trim());
@@ -106,6 +108,8 @@ async function _issueNewLicense(session) {
       interval  = sub.items.data[0]?.price?.recurring?.interval || 'month';
       if (sub.status === 'trialing' && sub.trial_end) trialEnd = sub.trial_end;
     } catch (_) {}
+    // サブスク取得が失敗してもカード無しなら trial と確定できる
+    if (!trialEnd && isCardlessTrial) trialEnd = 1;
   }
 
   // ── カード無しトライアル → 有料転換 ──────────────────────────────

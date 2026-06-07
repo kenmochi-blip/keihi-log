@@ -330,9 +330,9 @@ const SettingsView = (() => {
             const sheetData = JSON.parse(raw);
             if (!sheetData?.confirmedAt) return;
             // シートの規程データを常に優先（ワークスペース切り替え後の混在を防ぐ）
-            const prev = localStorage.getItem('keihi_regulation');
+            const prev = localStorage.getItem(_regulationKey());
             const next = JSON.stringify(sheetData);
-            localStorage.setItem('keihi_regulation', next);
+            localStorage.setItem(_regulationKey(), next);
             // データが変わった場合のみ再描画（無限ループ防止）
             if (prev !== next) {
               // regulationSectionを直接差し替え（Router.navigateは現ビューでは動作しないため）
@@ -1115,7 +1115,10 @@ const SettingsView = (() => {
       if (!url) throw new Error(error || 'portal_error');
       window.location.href = url;
     } catch (err) {
-      App.showToast('ポータルを開けませんでした: ' + err.message, 'danger');
+      const msg = err.message === 'stripe_error'
+        ? 'カスタマーポータルを開けませんでした。support@keihi-log.com までお問い合わせください。'
+        : 'ポータルを開けませんでした: ' + err.message;
+      App.showToast(msg, 'danger');
     } finally {
       App.hideLoading();
     }
@@ -1272,9 +1275,14 @@ const SettingsView = (() => {
           </div>`;
   }
 
+  function _regulationKey() {
+    const ssId = localStorage.getItem('keihi_sheet_id') || '';
+    return ssId ? `keihi_regulation_${ssId}` : 'keihi_regulation';
+  }
+
   function _loadRegulation() {
     if (typeof Demo !== 'undefined' && Demo.isActive()) return Demo.REGULATION;
-    try { return JSON.parse(localStorage.getItem('keihi_regulation') || 'null'); }
+    try { return JSON.parse(localStorage.getItem(_regulationKey()) || 'null'); }
     catch (_) { return null; }
   }
 
@@ -1288,7 +1296,7 @@ const SettingsView = (() => {
 
   function _saveRegulation(data) {
     if (typeof Demo !== 'undefined' && Demo.isActive()) return;
-    localStorage.setItem('keihi_regulation', JSON.stringify(data));
+    localStorage.setItem(_regulationKey(), JSON.stringify(data));
     // スプレッドシートにもバックアップ（失敗時は警告 - シートとlocalStorageの不整合を防ぐ）
     const ssId = localStorage.getItem('keihi_sheet_id');
     if (ssId) {
