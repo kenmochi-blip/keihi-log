@@ -349,12 +349,11 @@
           </div>
           <div class="panel-body">
             <div style="font-size:0.7rem;font-weight:600;color:var(--text-mute);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.4rem;">月末アクティブ数</div>
-            <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0.5rem;margin-bottom:1rem;">
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.5rem;margin-bottom:1rem;">
               <div class="mini-stat"><div class="v" id="mEomTotal" style="color:var(--text);">—</div><div class="l">合計</div></div>
               <div class="mini-stat"><div class="v" id="mEomSoloM" style="color:var(--accent);">—</div><div class="l">ソロ 月額</div></div>
-              <div class="mini-stat"><div class="v" id="mEomSoloY" style="color:#1d4ed8;">—</div><div class="l">ソロ 年額</div></div>
               <div class="mini-stat"><div class="v" id="mEomTeamM" style="color:#7c3aed;">—</div><div class="l">チーム 月額</div></div>
-              <div class="mini-stat"><div class="v" id="mEomTeamY" style="color:#5b21b6;">—</div><div class="l">チーム 年額</div></div>
+              <div class="mini-stat"><div class="v" id="mEomTrial" style="color:#d97706;">—</div><div class="l">トライアル中</div></div>
             </div>
             <div style="font-size:0.7rem;font-weight:600;color:var(--text-mute);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.4rem;">当月変動</div>
             <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.5rem;">
@@ -1252,7 +1251,7 @@
         const i = l.interval === 'year' ? 'year' : l.interval === 'month' ? 'month' : 'manual';
         return `${p}_${i}`;
       };
-      const _pkLabel = { solo_month:'ソロ月額', solo_year:'ソロ年額', team_month:'チーム月額', team_year:'チーム年額', solo_manual:'ソロ手動', team_manual:'チーム手動' };
+      const _pkLabel = { solo_month:'ソロ月額', team_month:'チーム月額', solo_manual:'ソロ手動', team_manual:'チーム手動' };
 
       // 月末アクティブ判定
       const isActiveAt = (l, dateStr) => {
@@ -1268,9 +1267,8 @@
       eomActive.forEach(l => { const k = _pk(l); eomCounts[k] = (eomCounts[k] || 0) + 1; });
       document.getElementById('mEomTotal').textContent  = eomActive.length;
       document.getElementById('mEomSoloM').textContent  = eomCounts.solo_month  || 0;
-      document.getElementById('mEomSoloY').textContent  = eomCounts.solo_year   || 0;
       document.getElementById('mEomTeamM').textContent  = eomCounts.team_month  || 0;
-      document.getElementById('mEomTeamY').textContent  = eomCounts.team_year   || 0;
+      document.getElementById('mEomTrial').textContent  = eomActive.filter(l => l.trial).length;
 
       // 当月新規登録
       const newRegs = _all.filter(l => (l.createdAt || '').startsWith(ym));
@@ -1350,7 +1348,7 @@
           <td>${_customerCell(l)}</td>
           <td style="font-size:0.75rem;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${l.alias ? `<a href="https://keihi-log.com/${esc(l.alias)}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;" title="keihi-log.com/${esc(l.alias)}">${esc(l.alias)}<i class="bi bi-box-arrow-up-right ms-1" style="font-size:0.65rem;"></i></a>` : '<span style="color:var(--text-mute);">未設定</span>'}</td>
           <td>${isStripe ? '<span class="tag tag-stripe">Stripe</span>' : '<span class="tag tag-manual">手動</span>'}</td>
-          <td><span class="tag tag-${plan}">${planLabel[plan]}</span></td>
+          <td><span class="tag tag-${plan}">${planLabel[plan]}</span>${l.trial ? '<span style="font-size:0.6rem;background:#fef3c7;color:#92400e;border:1px solid #fbbf24;padding:1px 5px;border-radius:3px;margin-left:3px;">トライアル</span>' : ''}</td>
           <td style="font-size:0.78rem;color:var(--text-sub);white-space:nowrap;">${expFmt}${intervalBadge}</td>
           <td class="usage-num ${usageThis > 0 ? 'active' : 'zero'}">${usageThis || '—'}</td>
           <td class="usage-num zero">${usageLast || '—'}</td>
