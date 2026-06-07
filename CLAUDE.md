@@ -47,6 +47,8 @@
 - 本番URL（keihi-log.com）は `main` ブランチからデプロイされる
 - **開発は `claude/rebuild-receipt-app-Ft3lE` で行い、デプロイ可能になったら `main` を
   そのコミットへ早送り（fast-forward）して揃える**。
+  - **原則：フィーチャーブランチへのコミット・プッシュと同時に常に main も更新する。**
+    「まだ本番にしないで」と明示された場合のみ main 更新を保留する。
   - 手順：①フィーチャーブランチにコミット＆プッシュ
          → ②`git branch -f main claude/rebuild-receipt-app-Ft3lE && git push origin main`
   - ❌ cherry-pick での個別同期は**禁止**。過去にこれで平行二重履歴と
