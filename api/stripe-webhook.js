@@ -206,7 +206,7 @@ async function _issueNewLicense(session) {
 
   // RESEND_API_KEY が設定されていればメール送信
   if (process.env.RESEND_API_KEY) {
-    await _sendLicenseEmail(customerEmail, customerName || businessName || company, licenseKey, licenseData.expiresAt, plan, setupCode);
+    await _sendLicenseEmail(customerEmail, customerName || businessName || company, licenseKey, licenseData.expiresAt, plan, setupCode, !!trialEnd);
     // 管理者通知
     if (process.env.ADMIN_NOTIFY_EMAIL) {
       await _sendAdminNotifyEmail(customerEmail, customerName, licenseKey, licenseData.expiresAt, businessName, plan);
@@ -422,15 +422,22 @@ async function _sendAdminUpgradeEmail(email, name, licenseKey, expiresAt) {
   if (!resp.ok) console.error('Admin upgrade notify error:', await resp.text());
 }
 
-async function _sendLicenseEmail(to, name, licenseKey, expiresAt, plan = 'solo', setupCode = '') {
+async function _sendLicenseEmail(to, name, licenseKey, expiresAt, plan = 'solo', setupCode = '', trial = false) {
   const planLabel = plan === 'team' ? 'チームプラン' : 'ソロプラン';
   const setupUrl = setupCode
     ? `https://keihi-log.com/${setupCode}`
     : 'https://keihi-log.com/app';
+  const trialNotice = trial ? `
+<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:12px 16px;margin:1.5rem 0;font-size:0.95em;">
+  <strong>📅 2週間の無料トライアル期間について</strong><br>
+  トライアル期間中はソロ・チーム問わず全機能をお使いいただけます。<br>
+  <strong>トライアル終了後は自動課金されません。</strong>引き続きご利用の場合は、
+  <strong>2週間以内にアプリの設定タブから有料プランへの切り替え</strong>をお願いします。
+</div>` : '';
   const body = {
     from: process.env.RESEND_FROM_EMAIL || 'noreply@' + (process.env.VERCEL_PROJECT_PRODUCTION_URL || 'example.com'),
     to,
-    subject: `【経費ログ】ご利用開始のご案内`,
+    subject: trial ? `【経費ログ】無料トライアル開始のご案内` : `【経費ログ】ご利用開始のご案内`,
     html: `
 <p>${name} 様</p>
 
@@ -444,6 +451,8 @@ async function _sendLicenseEmail(to, name, licenseKey, expiresAt, plan = 'solo',
 <p style="color:#555;font-size:0.9em;">ボタンが開かない場合は以下のURLをコピーしてブラウザに貼り付けてください：<br>
 <a href="${setupUrl}">${setupUrl}</a></p>
 
+${trialNotice}
+
 <hr style="border:none;border-top:1px solid #eee;margin:1.5rem 0;">
 
 <p><strong>ライセンスキー（手動入力用）</strong></p>
@@ -451,8 +460,8 @@ async function _sendLicenseEmail(to, name, licenseKey, expiresAt, plan = 'solo',
   <strong>${licenseKey}</strong>
 </p>
 <ul style="color:#555;font-size:0.9em;">
-  <li>プラン：${planLabel}</li>
-  <li>有効期限：${expiresAt}</li>
+  <li>プラン：${trial ? 'トライアル（全機能利用可）' : planLabel}</li>
+  <li>${trial ? 'トライアル期限' : '有効期限'}：${expiresAt}</li>
 </ul>
 
 <hr style="border:none;border-top:1px solid #eee;margin:1.5rem 0;">
