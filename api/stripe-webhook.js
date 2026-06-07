@@ -469,8 +469,8 @@ ${trialNotice}
 <p><strong>はじめかた（かんたん3ステップ）</strong></p>
 <ol style="line-height:2;">
   <li>上のリンクからアプリを開き、Googleアカウントでログイン</li>
-  <li>設定画面で「スプレッドシートを新規作成」→ Driveに経費管理シートが自動作成されます</li>
-  <li>チームでご利用の場合は、作成されたシートのURLをメンバーに共有してください</li>
+  <li>画面の案内に従って会社名・Gemini APIキーなどを設定すると、Driveに経費管理シートが自動作成されます</li>
+  <li>チームでご利用の場合は、セットアップ完了後に表示される<strong>チームURL</strong>をメンバーに共有してください（メンバーはそのURLを開いてGoogleログインするだけで使い始められます）</li>
 </ol>
 
 <p style="color:#555;font-size:0.9em;">ご不明な点は <a href="mailto:support@keihi-log.com">support@keihi-log.com</a> までお気軽にお問い合わせください。</p>
