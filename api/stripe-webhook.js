@@ -303,7 +303,7 @@ async function _convertLicense(key, oldData, session, email, name, businessName,
   console.log(`License converted to paid: ${key} for ${email} until ${expiresAtStr}`);
 
   if (process.env.RESEND_API_KEY) {
-    await _sendUpgradeEmail(email, name || oldData.customerName || company, key, expiresAtStr);
+    await _sendUpgradeEmail(email, name || oldData.customerName || company, key, expiresAtStr, plan);
     if (process.env.ADMIN_NOTIFY_EMAIL) {
       await _sendAdminUpgradeEmail(email, name, key, expiresAtStr);
     }
@@ -333,27 +333,29 @@ async function _upgradeLicense(key, oldData, session, email, name, plan, interva
   console.log(`License upgraded: ${key} for ${email}`);
 
   if (process.env.RESEND_API_KEY) {
-    await _sendUpgradeEmail(email, name, key, expiresAtStr);
+    await _sendUpgradeEmail(email, name, key, expiresAtStr, plan);
     if (process.env.ADMIN_NOTIFY_EMAIL) {
       await _sendAdminUpgradeEmail(email, name, key, expiresAtStr);
     }
   }
 }
 
-async function _sendUpgradeEmail(to, name, licenseKey, expiresAt) {
+async function _sendUpgradeEmail(to, name, licenseKey, expiresAt, plan = 'solo') {
   const appUrl = process.env.APP_URL || 'https://keihi-log.com/app';
+  const planLabel = plan === 'team' ? 'チームプラン' : 'ソロプラン';
   const body = {
     from: process.env.RESEND_FROM_EMAIL || 'noreply@' + (process.env.VERCEL_PROJECT_PRODUCTION_URL || 'example.com'),
     to,
-    subject: `【経費ログ】有料プランへのアップグレードが完了しました`,
+    subject: `【経費ログ】有料プランへのお申し込みありがとうございます`,
     html: `
 <p>${name} 様</p>
-<p>この度は経費ログ有料プランへのアップグレードありがとうございます。</p>
+<p>この度は経費ログ（${planLabel}）へのお申し込みありがとうございます。</p>
 <p>引き続き同じライセンスキーをお使いください。有効期限が更新されました。</p>
 <p style="font-size:1.2em;font-family:monospace;background:#f5f5f5;padding:12px 16px;border-radius:6px;letter-spacing:1px;">
   <strong>${licenseKey}</strong>
 </p>
 <ul>
+  <li>プラン：${planLabel}</li>
   <li>新しい有効期限：${expiresAt}</li>
   <li>アプリURL：<a href="${appUrl}">${appUrl}</a></li>
 </ul>
