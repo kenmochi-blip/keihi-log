@@ -110,16 +110,17 @@ const App = (() => {
         const _mainEl = document.getElementById('appMain');
         if (_mainEl) _mainEl.innerHTML = `
           <div class="text-center py-5 px-3">
-            <i class="bi bi-people text-primary" style="font-size:3rem;"></i>
-            <h5 class="mt-3 fw-bold">チーム機能を準備中です</h5>
+            <i class="bi bi-exclamation-circle text-warning" style="font-size:3rem;"></i>
+            <h5 class="mt-3 fw-bold">シートにアクセスできません</h5>
             <p class="text-muted mb-3" style="font-size:0.88rem; line-height:1.8;">
-              メンバーとしてのアクセス機能は現在アップデート中です。<br>
-              ご不便をおかけして申し訳ありません。<br>
-              <small class="text-muted">管理者の方は、ご自身で作成したチームURLからアクセスしてください。</small>
+              スプレッドシートへの接続に失敗しました。<br>
+              セットアップ時に共有設定が完了していない可能性があります。
+            </p>
+            <p style="font-size:0.83rem;">
+              <strong>管理者の方：</strong>下の「設定」タブを開き、<br>
+              「サービスアカウントを再共有する」を実行してください。
             </p>
           </div>`;
-        const _navEl = document.querySelector('nav.fixed-bottom');
-        if (_navEl) _navEl.classList.add('d-none');
         return;
       }
     }
