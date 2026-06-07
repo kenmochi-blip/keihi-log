@@ -27,8 +27,8 @@ window.APP_CONFIG = {
     //   ★Stripeダッシュボードで「無料トライアルなし」のリンクをソロ/チーム分作成して設定すること。
     //   未設定だと signupLinks（トライアル付き）にフォールバックし課金が始まらない点に注意。
     upgradeLinks: {
-      solo: '',
-      team: '',
+      solo: 'https://buy.stripe.com/dRm8wP1Ps7ut2kv8yE9oc06',
+      team: 'https://buy.stripe.com/5kQ9AT51E8yxgbldSY9oc07',
     },
   },
 };
