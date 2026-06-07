@@ -61,6 +61,10 @@ export default async function handler(req, res) {
     await _suspendLicense(event.data.object);
   }
 
+  if (event.type === 'customer.subscription.updated') {
+    await _handleSubscriptionUpdated(event.data.object, event.data.previous_attributes);
+  }
+
   res.status(200).json({ received: true });
 }
 
@@ -582,6 +586,71 @@ async function _renewLicense(invoice) {
   }
   await kv.set(`license:${key}`, { ...data, expiresAt: newExpiry.toISOString().split('T')[0], trial: false });
   console.log(`License renewed: ${key} until ${newExpiry.toISOString().split('T')[0]}`);
+}
+
+async function _handleSubscriptionUpdated(subscription, previousAttributes) {
+  // プラン変更のみ処理（それ以外のsub更新は無視）
+  const prevItems = previousAttributes?.items;
+  if (!prevItems) return;
+
+  const key = await kv.get(`stripe_sub:${subscription.id}`).catch(() => null);
+  if (!key) return;
+  const data = await kv.get(`license:${key}`);
+  if (!data) return;
+
+  // 現在のプライスIDからプランを判定（metadataが最優先、なければ商品名で判定）
+  const currentItem = subscription.items?.data?.[0];
+  const productId = currentItem?.price?.product;
+  const priceId   = currentItem?.price?.id;
+  if (!priceId) return;
+
+  // Stripeから商品情報を取得してメタデータのplanを確認
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY?.trim());
+  let newPlan = data.plan; // デフォルトは変更なし
+  try {
+    const price = await stripe.prices.retrieve(priceId, { expand: ['product'] });
+    const planMeta = price.metadata?.plan || price.product?.metadata?.plan;
+    if (planMeta) {
+      newPlan = planMeta;
+    } else {
+      // メタデータがない場合は商品名で判定
+      const productName = (price.product?.name || '').toLowerCase();
+      if (productName.includes('team') || productName.includes('チーム')) newPlan = 'team';
+      else if (productName.includes('solo') || productName.includes('ソロ')) newPlan = 'solo';
+    }
+  } catch (_) {}
+
+  if (newPlan === data.plan) return; // プラン変更なし
+
+  const updated = { ...data, plan: newPlan, planChangedAt: new Date().toISOString() };
+  await kv.set(`license:${key}`, updated);
+  console.log(`Plan changed via portal: ${key} ${data.plan} → ${newPlan}`);
+
+  if (process.env.RESEND_API_KEY) {
+    await _sendPlanChangeEmail(data.email, data.customerName || data.company, newPlan, data.plan);
+  }
+}
+
+async function _sendPlanChangeEmail(to, name, newPlan, oldPlan) {
+  const newLabel = newPlan === 'team' ? 'チームプラン' : 'ソロプラン';
+  const oldLabel = oldPlan === 'team' ? 'チームプラン' : 'ソロプラン';
+  const body = {
+    from: process.env.RESEND_FROM_EMAIL || 'noreply@' + (process.env.VERCEL_PROJECT_PRODUCTION_URL || 'example.com'),
+    to,
+    subject: `【経費ログ】プランを${newLabel}に変更しました`,
+    html: `
+<p>${name} 様</p>
+<p>プランを<strong>${oldLabel}から${newLabel}</strong>へ変更しました。</p>
+<p>プランは即時変更され、日割りで精算されます。ライセンスキーはそのまま変わりません。</p>
+<p>ご不明な点は <a href="mailto:support@keihi-log.com">support@keihi-log.com</a> までお気軽にお問い合わせください。</p>
+    `.trim(),
+  };
+  const resp = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!resp.ok) console.error('Resend plan change error:', await resp.text());
 }
 
 async function _suspendLicense(subscription) {
