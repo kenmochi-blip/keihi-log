@@ -34,7 +34,36 @@ const Demo = (() => {
     viewers: [],
   };
 
+  // ── 日付スライド ───────────────────────────────────────────────
+  // デモデータは「執筆時点 = 2026年6月」を基準に作成。実際の現在月との差分（月単位）
+  // だけ全日付をずらすことで、時間が経っても常に直近のデータに見えるようにする。
+  const _ANCHOR_Y = 2026, _ANCHOR_M0 = 5; // 0-based: 2026年6月
+  const _now = new Date();
+  const _shiftMonths = (_now.getFullYear() * 12 + _now.getMonth()) - (_ANCHOR_Y * 12 + _ANCHOR_M0);
+
+  // 'YYYY-MM-DD' を _shiftMonths ヶ月ずらす（月末日はクランプ）
+  function _shiftYMD(ymd) {
+    if (!_shiftMonths) return ymd;
+    const [y, m, d] = ymd.split('-').map(Number);
+    const t = new Date(y, m - 1 + _shiftMonths, 1);
+    const ty = t.getFullYear(), tm = t.getMonth();
+    const lastDay = new Date(ty, tm + 1, 0).getDate();
+    const td = Math.min(d, lastDay);
+    return `${ty}-${String(tm + 1).padStart(2, '0')}-${String(td).padStart(2, '0')}`;
+  }
+
+  // ISO日時の日付部分だけスライド（時刻は維持）
+  function _shiftISO(iso) {
+    if (!_shiftMonths) return iso;
+    const m = iso.match(/^(\d{4}-\d{2}-\d{2})(T.*)$/);
+    return m ? _shiftYMD(m[1]) + m[2] : iso;
+  }
+
   function _e(id, appliedAt, name, email, type, date, place, amount, category, note, confirmed, invoice, imageLinks = '', settlementDate = '') {
+    appliedAt = _shiftISO(appliedAt);
+    date = _shiftYMD(date);
+    // settlementDate が日付形式のときのみスライド（「会社払い（…）」等の文字列はそのまま）
+    if (/^\d{4}-\d{2}-\d{2}$/.test(settlementDate)) settlementDate = _shiftYMD(settlementDate);
     return { id, appliedAt, name, email, type, date, place, amount, category, note, confirmed, invoice,
              imageLinks, aiAudit: '', settlementDate, aiAmount: amount, imageHash: '', device: 'demo' };
   }
