@@ -274,18 +274,17 @@ const Setup = (() => {
       }
     });
 
-    // マスタ表：非表示に設定
-    if (sheetIds['マスタ表'] !== undefined) {
-      requests.push({
-        updateSheetProperties: {
-          properties: {
-            sheetId: sheetIds['マスタ表'],
-            hidden: true,
-          },
-          fields: 'hidden'
-        }
-      });
-    }
+    // マスタ表・設定：非表示に設定（経費一覧・修正履歴・削除一覧のみ表示）
+    ['マスタ表', '設定'].forEach(name => {
+      if (sheetIds[name] !== undefined) {
+        requests.push({
+          updateSheetProperties: {
+            properties: { sheetId: sheetIds[name], hidden: true },
+            fields: 'hidden'
+          }
+        });
+      }
+    });
 
     await Sheets.batchUpdate(requests, ssId);
   }
