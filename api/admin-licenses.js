@@ -412,6 +412,13 @@ ${logText}
       return res.status(200).json({ ok: true, ...updated });
     }
 
+    if (action === 'mark_trial') {
+      const { trial } = req.body;
+      const updated = { ...data, trial: trial !== false };
+      await kv.set(`license:${key}`, updated);
+      return res.status(200).json({ ok: true, ...updated });
+    }
+
     if (action === 'upgrade') {
       const { plan: newPlan, expiresAt: customExpiry } = req.body;
       const expiresAt = customExpiry ? new Date(customExpiry) : new Date();
