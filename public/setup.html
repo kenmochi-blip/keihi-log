@@ -573,6 +573,7 @@ ${o}
           : 'エラーが発生しました: ' + (err.message || err);
         $('setupErrMsg').style.display = 'block';
         $('btnReauth').style.display = is403 ? '' : 'none';
+        $('btnStartSetup').style.display = is403 ? 'none' : '';
         $('btnStartSetup').disabled = false;
         $('btnBack4').style.display = '';
       }
