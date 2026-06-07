@@ -1148,7 +1148,7 @@ const SettingsView = (() => {
     } else if (result.valid) {
       div.innerHTML = `<span class="badge ${result.trial ? 'bg-warning text-dark' : 'bg-success'}"><i class="bi bi-check-circle me-1"></i>${result.trial ? 'トライアル中' : 'ライセンス有効'}</span>
         ${result.expiresAt ? `<span class="text-muted small ms-2">${result.trial ? 'トライアル期限' : '期限'}: ${result.expiresAt.split('T')[0]}</span>` : ''}
-        ${!result.trial ? `<button class="btn btn-link btn-sm p-0 ms-2" style="font-size:0.78rem;" id="btnCustomerPortal">支払い・解約の管理</button>` : ''}`;
+        ${(!result.trial && result.hasPortal) ? `<button class="btn btn-link btn-sm p-0 ms-2" style="font-size:0.78rem;" id="btnCustomerPortal">支払い・解約の管理</button>` : ''}`;
     } else {
       div.innerHTML = '<span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>ライセンス無効</span>';
     }

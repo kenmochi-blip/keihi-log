@@ -79,10 +79,12 @@ export default async function handler(req, res) {
     }
 
     // trial フィールドがない旧ライセンスの後方互換：
-    // createdAt から 15 日以内の expiresAt なら trial と推定する
+    // Stripe経由（stripeSessionId あり）かつ createdAt から 35 日以内の expiresAt なら trial と推定する
+    // ※ 旧 Stripe トライアルは 30 日設定だったため 35 日を閾値にする
+    // ※ stripeSessionId なし（手動発行等）は判定対象外
     const isTrial = data.trial === true ||
-      (!('trial' in data) && data.createdAt && data.expiresAt &&
-        (new Date(data.expiresAt) - new Date(data.createdAt)) / 86400000 <= 15);
+      (!('trial' in data) && data.stripeSessionId && data.createdAt && data.expiresAt &&
+        (new Date(data.expiresAt) - new Date(data.createdAt)) / 86400000 <= 35);
 
     return res.status(200).json({
       valid: true,
@@ -92,6 +94,7 @@ export default async function handler(req, res) {
       expiresAt:    data.expiresAt    || null,
       ownerEmail:   (data.email       || '').toLowerCase(),
       trial:        isTrial,
+      hasPortal:    !!data.stripeSessionId,
     });
 
   } catch (err) {
