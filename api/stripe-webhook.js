@@ -354,7 +354,7 @@ async function _sendUpgradeEmail(to, name, licenseKey, expiresAt, plan = 'solo')
   <li>プラン：${planLabel}</li>
   <li>有効期限：${expiresAt}</li>
 </ul>
-<p>有効期限を過ぎると経費ログへのアクセスができなくなります。引き続きご利用の場合は、期限前にアプリの設定タブから更新をお願いします。なお、Googleスプレッドシート上の経費データは有効期限に関わらず保持されます。</p>
+<p>サブスクリプションは自動で継続されます。解約される場合はStripeの請求メールに記載のリンクからお手続きください。解約後も経費データはGoogleスプレッドシート上に保持されます。</p>
 <p>ご不明な点は <a href="mailto:support@keihi-log.com">support@keihi-log.com</a> までお気軽にお問い合わせください。</p>
     `.trim(),
   };
