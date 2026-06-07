@@ -903,6 +903,14 @@ const App = (() => {
             localStorage.setItem('keihi_company_name', data.companyName);
           }
         } else if (data.licenseKey && data.licenseKey.startsWith('KL-')) {
+          const prevLicKey = localStorage.getItem('keihi_license_key');
+          // 別ライセンスのセットアップURLを開いた場合、既存シートデータをクリアしてセットアップへ誘導
+          if (prevLicKey && prevLicKey !== data.licenseKey) {
+            ['keihi_sheet_id', 'keihi_alias', 'keihi_company_name', 'keihi_master_cache',
+             'keihi_folder_id', 'keihi_setup_code', 'keihi_nav_color', 'keihi_gemini_key',
+             'keihi_user_email', 'keihi_regulation', 'keihi_expenses_cache'].forEach(k => localStorage.removeItem(k));
+            sessionStorage.removeItem('keihi_sheet_id');
+          }
           localStorage.setItem('keihi_license_key', data.licenseKey);
           localStorage.setItem('keihi_setup_code', token); // setupCodeとしてパスのトークンを保存
         } else {

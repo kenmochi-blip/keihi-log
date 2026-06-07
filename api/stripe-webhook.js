@@ -160,9 +160,9 @@ async function _issueNewLicense(session) {
   // ライセンスキー生成
   const licenseKey = `KL-${crypto.randomBytes(12).toString('hex').toUpperCase()}`;
 
-  // 有効期限：トライアル中はtrial_end、月額は1ヶ月後、年額は1年後
+  // 有効期限：トライアルは14日固定、月額は1ヶ月後、年額は1年後
   const expiresAt = trialEnd
-    ? new Date(trialEnd * 1000)
+    ? (() => { const d = new Date(); d.setDate(d.getDate() + 14); return d; })()
     : (() => {
         const d = new Date();
         if (interval === 'year') d.setFullYear(d.getFullYear() + 1);
