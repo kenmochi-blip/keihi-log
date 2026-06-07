@@ -15,11 +15,11 @@ window.APP_CONFIG = {
   //   方針：トライアルは1本（全機能=チーム機能まで解放）。課金に進む時にソロ/チームを選ぶ。
   //         ライセンスキーは終始不変で、プランは同じキーに付け替わる（webhookが更新）。
   stripe: {
-    // 新規申込用（2週間トライアル付き）。理想は trialLink 1本（metadata.plan=team・全機能）。
-    //   ※当面は solo/team 別リンクのままでも動作する（トライアル中は plan に関わらず全機能解放）。
+    // 新規申込用（2週間トライアル付き）。トライアル中は plan に関わらず全機能解放。
+    //   両リンクともチームプラン相当の全機能トライアル。有料切替時にソロ/チームを選ぶ。
     signupLinks: {
-      solo: 'https://buy.stripe.com/test_00w5kDfxH53DaY3fgPc7u04',
-      team: 'https://buy.stripe.com/test_28E7sL99j53Dgin7Onc7u05',
+      solo: 'https://buy.stripe.com/dRmeVddyaeWVcZ92ag9oc00',
+      team: 'https://buy.stripe.com/dRmeVddyaeWVcZ92ag9oc00',
     },
     // トライアル → 有料へ切り替える用（★トライアル無し・即時課金の Payment Link）。
     //   有料登録画面でソロ/チームの2ボタンとして表示される。client_reference_id に

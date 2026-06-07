@@ -1168,8 +1168,8 @@ const SettingsView = (() => {
     box.innerHTML = `
       <div class="alert alert-warning py-2 px-3 mb-0" style="font-size:0.83rem;">
         <div class="mb-2"><i class="bi bi-stars me-1"></i>${result.reason === 'expired'
-          ? 'トライアルが終了しました。引き続きご利用いただくには、プランを選んで登録してください。'
-          : 'トライアル中です（全機能をお試しいただけます）。期限が切れる前にプランを選んで登録しておくと、中断なくご利用いただけます。'}</div>
+          ? 'トライアル期間が終了しました。引き続きご利用いただくには、下のボタンからプランを選んで登録してください。'
+          : `トライアル中です（ソロ・チーム問わず全機能をお試しいただけます）。<strong>2週間以内に下のボタンからソロまたはチームプランへ切り替えをお願いします。</strong>トライアル期間終了後は自動課金されません。`}</div>
         ${planButtons}
         <div class="text-muted mt-1" style="font-size:0.75rem;">どちらを選んでもライセンスキー・データ・設定はそのまま引き継がれます。</div>
       </div>`;
