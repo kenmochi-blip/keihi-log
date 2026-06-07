@@ -59,13 +59,14 @@ const Demo = (() => {
     return m ? _shiftYMD(m[1]) + m[2] : iso;
   }
 
-  function _e(id, appliedAt, name, email, type, date, place, amount, category, note, confirmed, invoice, imageLinks = '', settlementDate = '') {
+  function _e(id, appliedAt, name, email, type, date, place, amount, category, note, confirmed, invoice, imageLinks = '', settlementDate = '', taxRate = '') {
     appliedAt = _shiftISO(appliedAt);
     date = _shiftYMD(date);
     // settlementDate が日付形式のときのみスライド（「会社払い（…）」等の文字列はそのまま）
     if (/^\d{4}-\d{2}-\d{2}$/.test(settlementDate)) settlementDate = _shiftYMD(settlementDate);
     return { id, appliedAt, name, email, type, date, place, amount, category, note, confirmed, invoice,
-             imageLinks, aiAudit: '', settlementDate, aiAmount: amount, imageHash: '', device: 'demo' };
+             imageLinks, aiAudit: '', settlementDate, aiAmount: amount, imageHash: '', device: 'demo',
+             taxRate: taxRate || '課税10%' };
   }
 
   const _img = f => `demo/receipts/${f}`;
@@ -86,13 +87,15 @@ const Demo = (() => {
     _e('demo-005', '2026-05-02T12:30:00Z', '田中 太郎', 'tanaka@example.com',
        '領収書', '2026-05-02', '銀座グリル', 8400, '接待交際費', '〇〇商事様との会食', false, 'T1111111111111',
        _img('receipt_restaurant.svg')),
-    // ── 明細分割サンプル（同じレシートを複数勘定科目に分割した例）──
+    // ── 明細分割サンプル（1枚のレシートを科目・税率違いで分割した例）──
+    //   コンビニで「文具（消耗品費・課税10%）」と「会議用のお茶菓子（会議費・軽減税率8%）」を
+    //   同時購入 → 同一証票を2明細に分割。科目も税率も異なるケース。
     _e('demo-sp1', '2026-05-01T11:00:00Z', '田中 太郎', 'tanaka@example.com',
-       '領収書', '2026-05-01', 'セブン-イレブン 渋谷店', 880, '消耗品費', '【明細分割①/②】ボールペン・付箋', false, '',
-       _img('receipt_office.svg')),
+       '領収書', '2026-05-01', 'セブン-イレブン 渋谷店', 880, '消耗品費', '【明細分割①/②】ボールペン・付箋（標準税率10%）', false, '',
+       _img('receipt_office.svg'), '', '課税10%'),
     _e('demo-sp2', '2026-05-01T11:00:00Z', '田中 太郎', 'tanaka@example.com',
-       '領収書', '2026-05-01', 'セブン-イレブン 渋谷店', 1200, '接待交際費', '【明細分割②/②】来客用菓子（接待）', false, '',
-       _img('receipt_office.svg')),
+       '領収書', '2026-05-01', 'セブン-イレブン 渋谷店', 1080, '会議費', '【明細分割②/②】会議用のお茶・菓子（軽減税率8%）', false, '',
+       _img('receipt_office.svg'), '', '課税8%'),
     // ── 2026-04 ──
     _e('demo-006', '2026-04-28T09:00:00Z', 'デモ ユーザー', 'demo@example.com',
        '自家用車', '2026-04-28', '本社→埼玉工場', 1200, '旅費交通費', '60km × 20円/km', true, '', '', '2026-05-10'),
