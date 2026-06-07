@@ -482,7 +482,7 @@ ${trialNotice}
   <li>ライセンスキーを確認（すでに自動入力されています）→「確認して次へ」</li>
   <li>会社名・チームURLを入力（チームURLは後から変更できません。任意）</li>
   <li>Gemini APIキーを設定（AI領収書解析用。無料で取得できます）。電帳法対応の社内規程作成は任意でスキップ可能</li>
-  <li>「セットアップ開始」をタップ → Google DriveにスプレッドシートとフォルダーPが自動作成されます。完了後に表示される<strong>チームURL</strong>をメンバーに共有するだけで、メンバーはそのURLを開いてGoogleログインするだけで使い始められます</li>
+  <li>「セットアップ開始」をタップ → Google Driveにスプレッドシートとフォルダーが自動作成されます。完了後に表示される<strong>チームURL</strong>をメンバーに共有するだけで、メンバーはそのURLを開いてGoogleログインするだけで使い始められます</li>
 </ol>
 
 <p style="color:#555;font-size:0.9em;">ご不明な点は <a href="mailto:support@keihi-log.com">support@keihi-log.com</a> までお気軽にお問い合わせください。</p>
