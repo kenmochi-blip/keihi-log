@@ -152,6 +152,19 @@ const SettingsView = (() => {
     </div>
   </div>
 
+  <!-- SAプロキシ共有の再設定（管理者・ssId設定済み・デモ以外のみ） -->
+  ${isAdmin && ssId && !isDemo ? `
+  <div class="card mb-3">
+    <div class="card-body">
+      <div class="settings-section-title">プロキシ共有の再設定</div>
+      <p style="font-size:0.82rem;color:#666;">セットアップ時に共有設定が失敗した場合はここで再実行できます。</p>
+      <button class="btn btn-outline-secondary btn-sm" id="btnReShareSA">
+        <i class="bi bi-arrow-repeat me-1"></i>サービスアカウントを再共有する
+      </button>
+      <div id="reShareMsg" class="mt-2" style="font-size:0.82rem;display:none;"></div>
+    </div>
+  </div>` : ''}
+
   <!-- スプレッドシートを直接開く（管理者・ssId設定済み・デモ以外のみ・最下部） -->
   ${isAdmin && ssId && !isDemo ? `
   <div class="text-center mt-3 mb-2">
@@ -731,6 +744,28 @@ const SettingsView = (() => {
       // リアルタイムプレビュー
       colorInput.addEventListener('input', () => _applyNavColor(colorInput.value));
     }
+
+    el.querySelector('#btnReShareSA')?.addEventListener('click', async () => {
+      const btn = el.querySelector('#btnReShareSA');
+      const msg = el.querySelector('#reShareMsg');
+      const ssId     = localStorage.getItem('keihi_sheet_id') || '';
+      const folderId = localStorage.getItem('keihi_folder_id') || '';
+      const SA_EMAIL = 'keihi-log-proxy@keihi-log.iam.gserviceaccount.com';
+      btn.disabled = true;
+      msg.style.display = 'none';
+      try {
+        await Promise.all([
+          ssId     ? Drive.grantEditorAccess(SA_EMAIL, ssId)     : Promise.resolve(),
+          folderId ? Drive.grantEditorAccess(SA_EMAIL, folderId) : Promise.resolve(),
+        ]);
+        msg.style.display = '';
+        msg.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>共有設定が完了しました</span>';
+      } catch (e) {
+        msg.style.display = '';
+        msg.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle me-1"></i>失敗しました: ${e.message}</span>`;
+        btn.disabled = false;
+      }
+    });
 
     el.querySelector('#btnApplyHeaderColor')?.addEventListener('click', () => {
       const color = el.querySelector('#inputHeaderColor').value;

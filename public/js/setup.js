@@ -74,10 +74,16 @@ const Setup = (() => {
     // 8. SA（サービスアカウント）をシートとフォルダにエディタ共有
     //    → B'プロキシが代理読み書きするために必須。drive.file スコープで作成直後なので共有可能。
     const SA_EMAIL = 'keihi-log-proxy@keihi-log.iam.gserviceaccount.com';
+    const saErrs = [];
     await Promise.all([
-      Drive.grantEditorAccess(SA_EMAIL, ssId).catch(() => {}),
-      Drive.grantEditorAccess(SA_EMAIL, folderId).catch(() => {}),
+      Drive.grantEditorAccess(SA_EMAIL, ssId).catch(e => saErrs.push(e)),
+      Drive.grantEditorAccess(SA_EMAIL, folderId).catch(e => saErrs.push(e)),
     ]);
+    if (saErrs.length > 0) {
+      const warn = new Error('SA_SHARE_FAILED');
+      warn.ssId = ssId;
+      throw warn;
+    }
 
     // 7. エイリアス生成・登録（スプレッドシートIDをURLに露出させない）
     const alias = customAlias || _generateAlias();

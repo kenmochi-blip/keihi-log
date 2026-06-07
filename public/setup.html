@@ -133,15 +133,13 @@
             ③ それでも出る場合は「APIキーを作成」をもう一度タップ
           </div>
 
-          <label class="form-label fw-semibold">Gemini APIキー</label>
+          <label class="form-label fw-semibold">Gemini APIキー <span class="text-danger">*</span></label>
           <input type="text" class="form-control mb-1" id="inputGeminiKey" placeholder="AIzaSy..." autocomplete="off" autocorrect="off" spellcheck="false">
-          <div class="form-text mb-3">入力は任意です。後から設定画面でも変更できますが、入力しないとAIによる領収書画像の解析・自動入力が出来ません。</div>
+          <div id="geminiKeyErr" class="text-danger mb-1" style="display:none;font-size:0.82rem;">APIキーを入力してください。</div>
+          <div class="form-text mb-3">AIによる領収書の自動読み取りに必要です。無料で取得できます。</div>
 
           <button class="btn btn-primary w-100" id="btnGoStep4">
             次へ <i class="bi bi-arrow-right ms-1"></i>
-          </button>
-          <button class="btn btn-link btn-sm w-100 text-muted mt-1" id="btnSkipGemini">
-            スキップして後で設定する
           </button>
           <button class="btn btn-link w-100 text-muted mt-1" id="btnBack2">
             <i class="bi bi-arrow-left me-1"></i>戻る
@@ -261,6 +259,12 @@
           <div class="text-center mb-3">
             <img id="qrImg" src="" alt="QRコード" width="150" height="150" class="rounded border">
             <div class="text-muted mt-1" style="font-size:0.72rem;">スクリーンショットしてSlack等で共有できます</div>
+          </div>
+
+          <div id="saShareWarn" class="alert alert-warning py-2 mt-3" style="display:none;font-size:0.82rem;">
+            <i class="bi bi-exclamation-triangle me-1"></i>
+            <strong>共有設定に失敗しました。</strong><br>
+            アプリを開いて設定画面の「プロキシ共有を再設定」ボタンを押してください。
           </div>
 
           <button class="btn btn-primary w-100 btn-lg" id="btnOpenApp">
@@ -422,12 +426,19 @@
     $('btnBack1').addEventListener('click', () => goStep(1));
 
     // ── Step 3: Gemini APIキー ────────────────────────────
-    function proceedToStep4() {
+    $('btnGoStep4').addEventListener('click', () => {
       _geminiKey = $('inputGeminiKey').value.trim();
+      if (!_geminiKey) {
+        $('geminiKeyErr').style.display = '';
+        $('inputGeminiKey').focus();
+        return;
+      }
+      $('geminiKeyErr').style.display = 'none';
       goStep(4);
-    }
-    $('btnGoStep4').addEventListener('click', proceedToStep4);
-    $('btnSkipGemini').addEventListener('click', proceedToStep4);
+    });
+    $('inputGeminiKey').addEventListener('input', () => {
+      if ($('inputGeminiKey').value.trim()) $('geminiKeyErr').style.display = 'none';
+    });
     $('btnBack2').addEventListener('click', () => goStep(2));
 
     // ── Step 4: 電帳法対応 ────────────────────────────────
@@ -526,14 +537,24 @@ ${o}
         setProgState('prog1', 'running');
         setProgState('prog2', 'running');
 
-        let ssId, finalAlias;
+        let ssId, finalAlias, saShareFailed = false;
         if (_isDemo) {
           // デモ：0.8秒待って完了したように見せる
           await new Promise(r => setTimeout(r, 800));
           ssId       = 'demo-sheet-id';
           finalAlias = _alias || 'demo-team';
         } else {
-          ssId = await Setup.createSpreadsheet(_companyName, null, _alias, _geminiKey, _ownerName);
+          try {
+            ssId = await Setup.createSpreadsheet(_companyName, null, _alias, _geminiKey, _ownerName);
+          } catch (e) {
+            if (e.message === 'SA_SHARE_FAILED' && e.ssId) {
+              // シート・フォルダ作成は成功、SA共有だけ失敗
+              ssId = e.ssId;
+              saShareFailed = true;
+            } else {
+              throw e; // その他のエラーは通常のcatchへ
+            }
+          }
         }
 
         setProgState('prog1', 'done');
@@ -559,6 +580,7 @@ ${o}
         $('shareUrlInput').value = shareUrl;
         $('qrImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(shareUrl)}`;
         $('btnOpenApp').onclick = () => { window.location.href = _isDemo ? '/app?demo' : shareUrl; };
+        if (saShareFailed) $('saShareWarn').style.display = '';
         if (!_isDemo) window.removeEventListener('beforeunload', _beforeUnload);
         goStep(6);
 
