@@ -470,7 +470,8 @@ ${trialNotice}
 <ol style="line-height:2;">
   <li>上のリンクからアプリを開き、Googleアカウントでログイン</li>
   <li>画面の案内に従って会社名・Gemini APIキーなどを設定すると、Driveに経費管理シートが自動作成されます</li>
-  <li>チームでご利用の場合は、セットアップ完了後に表示される<strong>チームURL</strong>をメンバーに共有してください（メンバーはそのURLを開いてGoogleログインするだけで使い始められます）</li>
+  <li>チームでご利用の場合は、セットアップ完了後に表示される<strong>チームURL</strong>をメンバーに共有してください。メンバーはそのURLを開いてGoogleログインするだけで使い始められます。<br>
+  <span style="color:#888;font-size:0.9em;">※ LINEやSlackのアプリ内ブラウザではGoogleログインが動作しない場合があります。その際はURLをコピーしてSafariやChromeなどのブラウザに貼り付けて開いてください。</span></li>
 </ol>
 
 <p style="color:#555;font-size:0.9em;">ご不明な点は <a href="mailto:support@keihi-log.com">support@keihi-log.com</a> までお気軽にお問い合わせください。</p>
