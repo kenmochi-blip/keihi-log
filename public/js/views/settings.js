@@ -1124,7 +1124,8 @@ const SettingsView = (() => {
   function _applyMemberPlanRestriction(el) {
     const isDemo = typeof Demo !== 'undefined' && Demo.isActive();
     const result = _getCachedLicenseResult();
-    const isSolo = !isDemo && result?.plan === 'solo';
+    // トライアル中は全機能（チーム機能含む）を解放 → ソロ制限はかけない
+    const isSolo = !isDemo && result?.plan === 'solo' && result?.trial !== true;
     const btn  = el.querySelector('#btnAddMember');
     const hint = el.querySelector('#memberPlanHint');
     if (!btn) return;
@@ -1162,17 +1163,15 @@ const SettingsView = (() => {
     if (!isTrial || !App.isAdmin()) { box.style.display = 'none'; return; }
     const key   = localStorage.getItem('keihi_license_key') || '';
     const email = (typeof Auth !== 'undefined' && Auth.getUserEmail && Auth.getUserEmail()) || '';
-    const url   = App.buildUpgradeUrl(result.plan || 'solo', key, email);
-    if (!url) { box.style.display = 'none'; return; }
+    const planButtons = App.buildPlanChoiceButtons(key, email);
+    if (!planButtons) { box.style.display = 'none'; return; }
     box.innerHTML = `
       <div class="alert alert-warning py-2 px-3 mb-0" style="font-size:0.83rem;">
         <div class="mb-2"><i class="bi bi-stars me-1"></i>${result.reason === 'expired'
-          ? 'トライアルが終了しました。引き続きご利用いただくには有料プランへの登録が必要です。'
-          : 'トライアル中です。期限が切れる前に有料プランへ登録しておくと、中断なくご利用いただけます。'}</div>
-        <a href="${url}" class="btn btn-primary btn-sm rounded-pill px-3">
-          <i class="bi bi-credit-card me-1"></i>有料プランに登録する
-        </a>
-        <div class="text-muted mt-2" style="font-size:0.75rem;">登録後も現在のデータ・設定はそのまま引き継がれます。</div>
+          ? 'トライアルが終了しました。引き続きご利用いただくには、プランを選んで登録してください。'
+          : 'トライアル中です（全機能をお試しいただけます）。期限が切れる前にプランを選んで登録しておくと、中断なくご利用いただけます。'}</div>
+        ${planButtons}
+        <div class="text-muted mt-1" style="font-size:0.75rem;">どちらを選んでもライセンスキー・データ・設定はそのまま引き継がれます。</div>
       </div>`;
     box.style.display = '';
   }

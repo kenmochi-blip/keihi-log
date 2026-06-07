@@ -351,7 +351,8 @@ const App = (() => {
   }
 
   /** Stripe Payment Link（有料転換用）のURLを組み立てる。client_reference_id に
-   *  既存ライセンスキーを載せることで、webhook が新キーを発行せず既存ライセンスを延長する。 */
+   *  既存ライセンスキーを載せることで、webhook が新キーを発行せず既存ライセンスを延長する。
+   *  プラン（solo/team）は支払い時に選ぶ＝同じキーに選んだプランが適用される。 */
   function buildUpgradeUrl(plan, licenseKey, email) {
     const s = (window.APP_CONFIG && window.APP_CONFIG.stripe) || {};
     const p = plan === 'team' ? 'team' : 'solo';
@@ -362,6 +363,23 @@ const App = (() => {
     return url;
   }
 
+  /** 有料登録のソロ/チーム2択ボタンHTMLを返す（キーは継続・支払い時にプラン確定）。
+   *  どちらのリンクも設定が無ければ空文字を返す。 */
+  function buildPlanChoiceButtons(licenseKey, email) {
+    const solo = buildUpgradeUrl('solo', licenseKey, email);
+    const team = buildUpgradeUrl('team', licenseKey, email);
+    if (!solo && !team) return '';
+    const card = (url, name, price, desc, primary) => !url ? '' : `
+      <a href="${url}" class="btn ${primary ? 'btn-primary' : 'btn-outline-primary'} d-block text-start rounded-3 px-3 py-2 mb-2">
+        <span class="fw-bold">${name}</span> <span class="ms-1" style="font-size:0.85rem;">${price}</span>
+        <span class="d-block text-muted-light" style="font-size:0.74rem;opacity:0.85;">${desc}</span>
+      </a>`;
+    return `<div class="mx-auto" style="max-width:340px;">
+      ${card(solo, 'ソロプラン', '月330円／年3,300円（税込）', '1人で使う', false)}
+      ${card(team, 'チームプラン', '月825円／年8,250円（税込）', '人数無制限・承認/権限/レポート', true)}
+    </div>`;
+  }
+
   /** トライアル期限切れ／ライセンス無効時の案内画面（有料登録ボタン付き） */
   function _showLicenseExpired(lic) {
     const main = document.getElementById('appMain');
@@ -370,23 +388,21 @@ const App = (() => {
     const email = (typeof Auth !== 'undefined' && Auth.getUserEmail && Auth.getUserEmail()) || '';
     const isExpired = lic.reason === 'expired';
     const wasTrial  = lic.trial === true;
-    const upgradeUrl = buildUpgradeUrl(lic.plan || 'solo', key, email);
+    const planButtons = buildPlanChoiceButtons(key, email);
     const heading = isExpired
       ? (wasTrial ? '無料トライアルが終了しました' : 'ライセンスの有効期限が切れています')
       : (lic.reason === 'suspended' ? 'ライセンスが停止されています' : 'ライセンスキーが無効です');
     const lead = isExpired
-      ? '引き続きご利用いただくには、有料プランへの登録（お支払い手続き）をお願いします。<br>登録後もこれまでのデータ・設定はそのまま引き継がれます。'
+      ? '引き続きご利用いただくには、下からプランを選んでお支払い手続きをお願いします。<br>登録後もライセンスキー・データ・設定はそのまま引き継がれます。'
       : '設定画面からライセンスキーをご確認ください。';
     main.innerHTML = `
       <div class="text-center py-5 px-3">
         <i class="bi bi-stars text-warning" style="font-size:3rem;"></i>
         <h5 class="mt-3 fw-bold">${heading}</h5>
         <p class="text-muted small mt-2" style="line-height:1.9;">${lead}</p>
-        ${isExpired && upgradeUrl ? `
-          <a href="${upgradeUrl}" class="btn btn-primary rounded-pill px-4 mt-2">
-            <i class="bi bi-credit-card me-1"></i>有料プランに登録する
-          </a>
-          <div class="text-muted mt-3" style="font-size:0.78rem;">
+        ${isExpired && planButtons ? `
+          <div class="mt-3">${planButtons}</div>
+          <div class="text-muted mt-2" style="font-size:0.78rem;">
             お支払いはStripeの安全な決済ページで行われます。<br>
             ご不明な点は <a href="mailto:support@keihi-log.com">support@keihi-log.com</a> までご連絡ください。
           </div>` : `
@@ -921,6 +937,7 @@ const App = (() => {
     hideLoading,
     showToast,
     buildUpgradeUrl,
+    buildPlanChoiceButtons,
   };
 })();
 

@@ -12,16 +12,20 @@ window.APP_CONFIG = {
   apiBase: '',
 
   // Stripe Payment Link
+  //   方針：トライアルは1本（全機能=チーム機能まで解放）。課金に進む時にソロ/チームを選ぶ。
+  //         ライセンスキーは終始不変で、プランは同じキーに付け替わる（webhookが更新）。
   stripe: {
-    // 新規申込用（2週間トライアル付き）— LPの申込ボタンと同じリンク
+    // 新規申込用（2週間トライアル付き）。理想は trialLink 1本（metadata.plan=team・全機能）。
+    //   ※当面は solo/team 別リンクのままでも動作する（トライアル中は plan に関わらず全機能解放）。
     signupLinks: {
       solo: 'https://buy.stripe.com/test_00w5kDfxH53DaY3fgPc7u04',
       team: 'https://buy.stripe.com/test_28E7sL99j53Dgin7Onc7u05',
     },
-    // トライアル → 有料へ切り替える用（★トライアル無し・即時課金の Payment Link）
-    //   Stripe ダッシュボードで「無料トライアルなし」の Payment Link を作成し、ここに設定すること。
-    //   未設定の場合は signupLinks にフォールバックするが、その場合トライアルが
-    //   再付与され課金が始まらない点に注意（必ず無トライアルのリンクを設定）。
+    // トライアル → 有料へ切り替える用（★トライアル無し・即時課金の Payment Link）。
+    //   有料登録画面でソロ/チームの2ボタンとして表示される。client_reference_id に
+    //   既存ライセンスキーが自動付与され、webhook が新キーを発行せず同じキーを延長する。
+    //   ★Stripeダッシュボードで「無料トライアルなし」のリンクをソロ/チーム分作成して設定すること。
+    //   未設定だと signupLinks（トライアル付き）にフォールバックし課金が始まらない点に注意。
     upgradeLinks: {
       solo: '',
       team: '',
