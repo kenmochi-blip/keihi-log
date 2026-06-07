@@ -522,12 +522,13 @@ ${logText}
     const licenses = await Promise.all(
       keys.map(async key => {
         const licKey = key.replace('license:', '');
-        const [data, usageThis, usageLast] = await Promise.all([
+        const [data, usageThis, usageLast, alias] = await Promise.all([
           kv.get(key),
           kv.get(`usage:${licKey}:${thisYM}`),
           kv.get(`usage:${licKey}:${lastYM}`),
+          kv.get(`license_alias:${licKey}`),
         ]);
-        return { key: licKey, ...data, usageThis: usageThis || 0, usageLast: usageLast || 0 };
+        return { key: licKey, ...data, usageThis: usageThis || 0, usageLast: usageLast || 0, alias: alias || '' };
       })
     );
 

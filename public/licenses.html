@@ -403,7 +403,8 @@
             <thead>
               <tr>
                 <th class="ps-first" style="width:80px;">発行日</th>
-                <th style="width:200px;">顧客</th>
+                <th style="width:180px;">顧客</th>
+                <th style="width:140px;">チームURL</th>
                 <th style="width:56px;">種別</th>
                 <th style="width:60px;">プラン</th>
                 <th style="width:130px;">有効期限</th>
@@ -1347,6 +1348,7 @@
         return `<tr data-key="${esc(l.key)}">
           <td class="ps-first" style="font-size:0.78rem;color:var(--text-sub);white-space:nowrap;">${dateShort}</td>
           <td>${_customerCell(l)}</td>
+          <td style="font-size:0.75rem;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${l.alias ? `<a href="https://keihi-log.com/${esc(l.alias)}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;" title="keihi-log.com/${esc(l.alias)}">${esc(l.alias)}<i class="bi bi-box-arrow-up-right ms-1" style="font-size:0.65rem;"></i></a>` : '<span style="color:var(--text-mute);">未設定</span>'}</td>
           <td>${isStripe ? '<span class="tag tag-stripe">Stripe</span>' : '<span class="tag tag-manual">手動</span>'}</td>
           <td><span class="tag tag-${plan}">${planLabel[plan]}</span></td>
           <td style="font-size:0.78rem;color:var(--text-sub);white-space:nowrap;">${expFmt}${intervalBadge}</td>
@@ -1369,12 +1371,13 @@
     }
 
     function exportCsv() {
-      const header = ['発行日','氏名','ビジネス名','メール','ライセンスキー','プラン','有効期限','今月申請数','先月申請数','ステータス'];
+      const header = ['発行日','氏名','ビジネス名','メール','ライセンスキー','チームURL','プラン','有効期限','今月申請数','先月申請数','ステータス'];
       const statusLabel = { active: '有効', expired: '期限切れ', suspended: '停止中' };
       const planLabel   = { solo: 'ソロ', team: 'チーム' };
       const rows = _all.map(l => [
         l.createdAt?.split('T')[0]||'', l.customerName||l.company||'', l.businessName||'',
-        l.email||'', l.key, planLabel[l.plan === 'team' ? 'team' : 'solo'], l.expiresAt||'',
+        l.email||'', l.key, l.alias ? `keihi-log.com/${l.alias}` : '',
+        planLabel[l.plan === 'team' ? 'team' : 'solo'], l.expiresAt||'',
         l.usageThis??'', l.usageLast??'', statusLabel[getStatus(l)]
       ]);
       const csv = [header,...rows].map(r => r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
