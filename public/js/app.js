@@ -373,13 +373,13 @@ const App = (() => {
     const team = buildUpgradeUrl('team', licenseKey, email);
     if (!solo && !team) return '';
     const card = (url, name, price, desc, primary) => !url ? '' : `
-      <a href="${url}" class="btn ${primary ? 'btn-primary' : 'btn-outline-primary'} d-block text-start rounded-3 px-3 py-2 mb-2">
+      <a href="${url}" target="_blank" rel="noopener" class="btn ${primary ? 'btn-primary' : 'btn-outline-primary'} d-block text-start rounded-3 px-3 py-2 mb-2">
         <span class="fw-bold">${name}</span> <span class="ms-1" style="font-size:0.85rem;">${price}</span>
         <span class="d-block text-muted-light" style="font-size:0.74rem;opacity:0.85;">${desc}</span>
       </a>`;
     return `<div class="mx-auto" style="max-width:340px;">
-      ${card(solo, 'ソロプラン', '月330円／年3,300円（税込）', '1人で使う', false)}
-      ${card(team, 'チームプラン', '月825円／年8,250円（税込）', '人数無制限・承認/権限/レポート', true)}
+      ${card(solo, 'ソロプラン', '月330円（税込）', '1人で使う', false)}
+      ${card(team, 'チームプラン', '月825円（税込）', 'チームで使う', true)}
     </div>`;
   }
 
@@ -398,16 +398,21 @@ const App = (() => {
     textEl.textContent = daysLeft !== null
       ? `無料トライアル中（残り${daysLeft}日）`
       : '無料トライアル中';
-    // バナーボタン：設定タブへ誘導（設定タブ内でソロ/チームを選択）
+    // バナーボタン：管理者は設定タブへ誘導、非管理者は非表示
     const upgradeBtn = document.getElementById('trialBannerUpgradeBtn');
     if (upgradeBtn) {
-      upgradeBtn.removeAttribute('href');
-      upgradeBtn.removeAttribute('target');
-      upgradeBtn.removeAttribute('rel');
-      upgradeBtn.onclick = (e) => {
-        e.preventDefault();
-        document.querySelector('[data-view=settings]')?.click();
-      };
+      if (_isAdmin) {
+        upgradeBtn.style.display = '';
+        upgradeBtn.removeAttribute('href');
+        upgradeBtn.removeAttribute('target');
+        upgradeBtn.removeAttribute('rel');
+        upgradeBtn.onclick = (e) => {
+          e.preventDefault();
+          document.querySelector('[data-view=settings]')?.click();
+        };
+      } else {
+        upgradeBtn.style.display = 'none';
+      }
     }
     banner.style.display = '';
   }

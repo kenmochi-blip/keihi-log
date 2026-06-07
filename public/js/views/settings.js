@@ -148,25 +148,23 @@ const SettingsView = (() => {
           </div>
           <div id="geminiKeyMsg" class="form-text"></div>
 
-          ${_renderRegulationInitStep()}` : ''}
+          ${_renderRegulationInitStep()}
+
+          ${isAdmin && ssId && !isDemo ? `
+          <hr class="my-3">
+          <div class="settings-step-title">プロキシ共有の再設定</div>
+          <p style="font-size:0.82rem;color:#666;">セットアップ時に共有設定が失敗した場合はここで再実行できます。</p>
+          <button class="btn btn-outline-secondary btn-sm" id="btnReShareSA">
+            <i class="bi bi-arrow-repeat me-1"></i>サービスアカウントを再共有する
+          </button>
+          <div id="reShareMsg" class="mt-2" style="font-size:0.82rem;display:none;"></div>` : ''}
+        ` : ''}
 
         </div>
       </div>
     </div>
   </div>
 
-  <!-- SAプロキシ共有の再設定（管理者・ssId設定済み・デモ以外のみ） -->
-  ${isAdmin && ssId && !isDemo ? `
-  <div class="card mb-3">
-    <div class="card-body">
-      <div class="settings-section-title">プロキシ共有の再設定</div>
-      <p style="font-size:0.82rem;color:#666;">セットアップ時に共有設定が失敗した場合はここで再実行できます。</p>
-      <button class="btn btn-outline-secondary btn-sm" id="btnReShareSA">
-        <i class="bi bi-arrow-repeat me-1"></i>サービスアカウントを再共有する
-      </button>
-      <div id="reShareMsg" class="mt-2" style="font-size:0.82rem;display:none;"></div>
-    </div>
-  </div>` : ''}
 
   <!-- スプレッドシートを直接開く（管理者・ssId設定済み・デモ以外のみ・最下部） -->
   ${isAdmin && ssId && !isDemo ? `
@@ -1202,7 +1200,7 @@ const SettingsView = (() => {
       <div class="alert alert-warning py-2 px-3 mb-0" style="font-size:0.83rem;">
         <div class="mb-2"><i class="bi bi-stars me-1"></i>${result.reason === 'expired'
           ? 'トライアル期間が終了しました。引き続きご利用いただくには、下のボタンからプランを選んで登録してください。'
-          : `トライアル中です（ソロ・チーム問わず全機能をお試しいただけます）。<strong>2週間以内に下のボタンからソロまたはチームプランへ切り替えをお願いします。</strong>トライアル期間終了後は自動課金されません。`}</div>
+          : `トライアル中です（ソロ・チーム問わず全機能をお試しいただけます）。<strong>トライアル期間内に下のボタンからソロまたはチームプランへ切り替えをお願いします。</strong>トライアル期間終了後は自動課金されません。`}</div>
         ${planButtons}
         <div class="text-muted mt-1" style="font-size:0.75rem;">どちらを選んでもライセンスキー・データ・設定はそのまま引き継がれます。</div>
       </div>`;
