@@ -18,6 +18,9 @@ const SettingsView = (() => {
 <div class="pt-3">
   <h5 class="fw-bold mb-3"><i class="bi bi-gear-fill me-2 text-primary"></i>設定</h5>
 
+  <!-- トライアル中のアップグレードボックス（app.jsが制御） -->
+  <div id="trialUpgradeBox" class="mb-3" style="display:none;"></div>
+
   <!-- アプリの表示名（管理者のみ・トップ） -->
   ${isAdmin ? `
   <div class="card mb-3">
@@ -96,7 +99,6 @@ const SettingsView = (() => {
             <button class="btn btn-outline-primary btn-sm" id="btnVerifyLicense">確認</button>
           </div>
           <div id="licenseMsg" class="form-text mb-2"></div>
-          <div id="trialUpgradeBox" class="mb-2" style="display:none;"></div>
 
           <!-- Gemini APIキー（管理者のみ） -->
           ${isAdmin ? `
