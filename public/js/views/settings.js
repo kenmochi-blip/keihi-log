@@ -1147,11 +1147,39 @@ const SettingsView = (() => {
       div.innerHTML = '<span class="text-muted small">ライセンス未確認</span>';
     } else if (result.valid) {
       div.innerHTML = `<span class="badge ${result.trial ? 'bg-warning text-dark' : 'bg-success'}"><i class="bi bi-check-circle me-1"></i>${result.trial ? 'トライアル中' : 'ライセンス有効'}</span>
-        ${result.expiresAt ? `<span class="text-muted small ms-2">${result.trial ? 'トライアル期限' : '期限'}: ${result.expiresAt.split('T')[0]}</span>` : ''}`;
+        ${result.expiresAt ? `<span class="text-muted small ms-2">${result.trial ? 'トライアル期限' : '期限'}: ${result.expiresAt.split('T')[0]}</span>` : ''}
+        ${!result.trial ? `<button class="btn btn-link btn-sm p-0 ms-2" style="font-size:0.78rem;" id="btnCustomerPortal">支払い・解約の管理</button>` : ''}`;
     } else {
       div.innerHTML = '<span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>ライセンス無効</span>';
     }
     _updateTrialUpgradeBox(el, result);
+    const portalBtn = el.querySelector('#btnCustomerPortal');
+    if (portalBtn) {
+      portalBtn.addEventListener('click', async () => {
+        portalBtn.disabled = true;
+        portalBtn.textContent = '読み込み中...';
+        try {
+          const key = localStorage.getItem('keihi_license_key') || '';
+          const base = (window.APP_CONFIG?.apiBase || '');
+          const resp = await fetch(`${base}/api/portal`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key }),
+          });
+          const data = await resp.json();
+          if (data.url) {
+            window.open(data.url, '_blank');
+          } else {
+            alert('ポータルURLの取得に失敗しました。しばらく後にお試しください。');
+          }
+        } catch (_) {
+          alert('通信エラーが発生しました。しばらく後にお試しください。');
+        } finally {
+          portalBtn.disabled = false;
+          portalBtn.textContent = '支払い・解約の管理';
+        }
+      });
+    }
   }
 
   // トライアル中（または期限切れ）の管理者に「有料プランに登録する」ボタンを表示
