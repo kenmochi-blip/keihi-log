@@ -71,6 +71,15 @@
     </div>
   </nav>
 
+  <!-- トライアル中バナー（app.jsが制御） -->
+  <div id="trialBanner" style="display:none;background:#fff3cd;border-bottom:1px solid #ffc107;">
+    <div class="container-fluid d-flex align-items-center gap-2 py-1 px-3" style="max-width:480px;margin:0 auto;font-size:0.8rem;">
+      <i class="bi bi-clock-history text-warning"></i>
+      <span id="trialBannerText" class="flex-grow-1"></span>
+      <button class="btn btn-warning btn-sm py-0 px-2" style="font-size:0.75rem;white-space:nowrap;" onclick="document.querySelector('[data-view=settings]').click()">設定タブへ</button>
+    </div>
+  </div>
+
   <!-- メインコンテンツ -->
   <div id="appMain" class="container-fluid" style="max-width:480px;margin:0 auto;padding-bottom:80px;">
     <!-- 初期スピナー（JSが起動するまで表示。Router.navigateで上書きされる） -->

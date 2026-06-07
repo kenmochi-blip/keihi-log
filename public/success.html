@@ -65,10 +65,16 @@
                 <li><i class="bi bi-envelope me-1"></i>${data.email || ''}</li>
                 <li><i class="bi bi-calendar me-1"></i>有効期限: ${data.expiresAt || ''}</li>
               </ul>
+              ${data.trial ? `
+              <div class="alert alert-warning py-2 small mb-3">
+                <i class="bi bi-clock-history me-1"></i>
+                <strong>2週間の無料トライアル開始です。</strong>ソロ・チーム問わず全機能をお使いいただけます。<br>
+                トライアル終了後は自動課金されません。引き続きご利用の場合は、<strong>2週間以内にアプリの設定タブから有料プランへ切り替え</strong>をお願いします。
+              </div>` : `
               <div class="alert alert-info py-2 small mb-3">
                 <i class="bi bi-info-circle me-1"></i>
                 このキーはメールでも送付されます。下のボタンからアプリを開くとライセンスキーが自動入力されます。
-              </div>
+              </div>`}
               <a id="btnOpenApp" href="/app.html" class="btn btn-primary w-100">
                 <i class="bi bi-box-arrow-in-right me-1"></i>アプリを開いてセットアップする
               </a>

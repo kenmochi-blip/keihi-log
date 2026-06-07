@@ -250,6 +250,7 @@ const App = (() => {
       }
     }
     _applyAdminVisibility(); // 最新ロールで再適用（キャッシュと異なる場合を考慮）
+    _updateTrialBanner(lic);
 
     // quickStart 中に別スプレッドシートが検出された場合、
     // 正しいシートIDで現在のビューを再描画（旧シートのデータが表示されるのを防ぐ）
@@ -378,6 +379,24 @@ const App = (() => {
       ${card(solo, 'ソロプラン', '月330円／年3,300円（税込）', '1人で使う', false)}
       ${card(team, 'チームプラン', '月825円／年8,250円（税込）', '人数無制限・承認/権限/レポート', true)}
     </div>`;
+  }
+
+  /** トライアル中バナーを表示（残り日数を毎回計算） */
+  function _updateTrialBanner(lic) {
+    const banner = document.getElementById('trialBanner');
+    const textEl = document.getElementById('trialBannerText');
+    if (!banner || !textEl) return;
+    const isDemo = typeof Demo !== 'undefined' && Demo.isActive();
+    if (isDemo || !lic?.valid || !lic.trial || !lic.expiresAt) {
+      banner.style.display = 'none';
+      return;
+    }
+    const msLeft = new Date(lic.expiresAt) - new Date();
+    const daysLeft = Math.max(0, Math.ceil(msLeft / 86400000));
+    textEl.textContent = daysLeft > 0
+      ? `トライアル期間中（残り${daysLeft}日）― 有料プランへの切り替えは設定タブから`
+      : 'トライアル期間終了間近です。設定タブから有料プランへ切り替えてください。';
+    banner.style.display = '';
   }
 
   /** トライアル期限切れ／ライセンス無効時の案内画面（有料登録ボタン付き） */
