@@ -78,6 +78,12 @@ export default async function handler(req, res) {
       });
     }
 
+    // trial フィールドがない旧ライセンスの後方互換：
+    // createdAt から 15 日以内の expiresAt なら trial と推定する
+    const isTrial = data.trial === true ||
+      (!('trial' in data) && data.createdAt && data.expiresAt &&
+        (new Date(data.expiresAt) - new Date(data.createdAt)) / 86400000 <= 15);
+
     return res.status(200).json({
       valid: true,
       company:      data.company      || '',
@@ -85,7 +91,7 @@ export default async function handler(req, res) {
       plan:         data.plan         || 'standard',
       expiresAt:    data.expiresAt    || null,
       ownerEmail:   (data.email       || '').toLowerCase(),
-      trial:        data.trial === true,
+      trial:        isTrial,
     });
 
   } catch (err) {
