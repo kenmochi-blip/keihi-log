@@ -96,6 +96,7 @@ const SettingsView = (() => {
             <button class="btn btn-outline-primary btn-sm" id="btnVerifyLicense">確認</button>
           </div>
           <div id="licenseMsg" class="form-text mb-2"></div>
+          <div id="trialUpgradeBox" class="mb-2" style="display:none;"></div>
 
           <!-- Gemini APIキー（管理者のみ） -->
           ${isAdmin ? `
@@ -1144,11 +1145,36 @@ const SettingsView = (() => {
     if (!result) {
       div.innerHTML = '<span class="text-muted small">ライセンス未確認</span>';
     } else if (result.valid) {
-      div.innerHTML = `<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>ライセンス有効</span>
-        ${result.expiresAt ? `<span class="text-muted small ms-2">期限: ${result.expiresAt.split('T')[0]}</span>` : ''}`;
+      div.innerHTML = `<span class="badge ${result.trial ? 'bg-warning text-dark' : 'bg-success'}"><i class="bi bi-check-circle me-1"></i>${result.trial ? 'トライアル中' : 'ライセンス有効'}</span>
+        ${result.expiresAt ? `<span class="text-muted small ms-2">${result.trial ? 'トライアル期限' : '期限'}: ${result.expiresAt.split('T')[0]}</span>` : ''}`;
     } else {
       div.innerHTML = '<span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>ライセンス無効</span>';
     }
+    _updateTrialUpgradeBox(el, result);
+  }
+
+  // トライアル中（または期限切れ）の管理者に「有料プランに登録する」ボタンを表示
+  function _updateTrialUpgradeBox(el, result) {
+    const box = el.querySelector('#trialUpgradeBox');
+    if (!box) return;
+    const isDemo = typeof Demo !== 'undefined' && Demo.isActive();
+    const isTrial = !isDemo && result && (result.trial === true || result.reason === 'expired');
+    if (!isTrial || !App.isAdmin()) { box.style.display = 'none'; return; }
+    const key   = localStorage.getItem('keihi_license_key') || '';
+    const email = (typeof Auth !== 'undefined' && Auth.getUserEmail && Auth.getUserEmail()) || '';
+    const url   = App.buildUpgradeUrl(result.plan || 'solo', key, email);
+    if (!url) { box.style.display = 'none'; return; }
+    box.innerHTML = `
+      <div class="alert alert-warning py-2 px-3 mb-0" style="font-size:0.83rem;">
+        <div class="mb-2"><i class="bi bi-stars me-1"></i>${result.reason === 'expired'
+          ? 'トライアルが終了しました。引き続きご利用いただくには有料プランへの登録が必要です。'
+          : 'トライアル中です。期限が切れる前に有料プランへ登録しておくと、中断なくご利用いただけます。'}</div>
+        <a href="${url}" class="btn btn-primary btn-sm rounded-pill px-3">
+          <i class="bi bi-credit-card me-1"></i>有料プランに登録する
+        </a>
+        <div class="text-muted mt-2" style="font-size:0.75rem;">登録後も現在のデータ・設定はそのまま引き継がれます。</div>
+      </div>`;
+    box.style.display = '';
   }
 
   function _getCachedLicenseResult() {

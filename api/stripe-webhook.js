@@ -104,6 +104,18 @@ async function _issueNewLicense(session) {
     } catch (_) {}
   }
 
+  // ── カード無しトライアル → 有料転換 ──────────────────────────────
+  // 「有料プランに登録」ボタンは Payment Link に client_reference_id=既存ライセンスキー を
+  // 付けて開く。新キーを発行せず、その既存ライセンスを課金サブスクへ付け替えて延長する。
+  const refKey = (session.client_reference_id || '').trim();
+  if (refKey) {
+    const refData = await kv.get(`license:${refKey}`);
+    if (refData) {
+      await _convertLicense(refKey, refData, session, customerEmail, customerName, businessName, company, plan, interval, trialEnd);
+      return;
+    }
+  }
+
   // ── メールアドレスごとの全ライセンス一覧を取得 ──────────────────
   const EMAIL_LICENSES_KEY = `email_licenses:${customerEmail}`;
   let allLicenseKeys = (await kv.get(EMAIL_LICENSES_KEY)) || [];
@@ -165,6 +177,7 @@ async function _issueNewLicense(session) {
     stripeSessionId: session.id,
     createdAt:       new Date().toISOString(),
     suspended:       false,
+    trial:           !!trialEnd,
   };
 
   // KV に保存
@@ -220,6 +233,7 @@ async function _reactivateLicense(key, oldData, session, email, name, businessNa
     expiresAt:        expiresAtStr,
     stripeSessionId:  session.id,
     suspended:        false,
+    trial:            !!trialEnd,
     reactivatedAt:    new Date().toISOString(),
     // businessName/company は最新の申込情報で上書き
     ...(businessName ? { businessName } : {}),
@@ -240,6 +254,62 @@ async function _reactivateLicense(key, oldData, session, email, name, businessNa
   }
 }
 
+// カード無しトライアル → 実課金への転換。新キーは発行せず既存ライセンスを延長する。
+async function _convertLicense(key, oldData, session, email, name, businessName, company, plan, interval, trialEnd) {
+  const SESSION_TTL = 60 * 60 * 24 * 30;
+  // 新しいサブスクが（設定ミス等で）またトライアルなら trial_end までに留める＝無償の有料期間を防ぐ。
+  // 実課金（card-onで paid）なら今日から interval 分を付与。
+  const isStillTrial = !!trialEnd;
+  const expiresAtStr = (isStillTrial
+    ? new Date(trialEnd * 1000)
+    : (() => {
+        const d = new Date();
+        if (interval === 'year') d.setFullYear(d.getFullYear() + 1);
+        else d.setMonth(d.getMonth() + 1);
+        return d;
+      })()
+  ).toISOString().split('T')[0];
+
+  // 旧トライアルのサブスクが別に残っていればキャンセル（宙ぶらりんの trial sub を防ぐ）
+  try {
+    if (oldData.stripeSessionId && oldData.stripeSessionId !== session.id) {
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY?.trim());
+      const oldSession = await stripe.checkout.sessions.retrieve(oldData.stripeSessionId);
+      const oldSub = oldSession?.subscription;
+      if (oldSub && oldSub !== session.subscription) {
+        await stripe.subscriptions.cancel(oldSub).catch(() => {});
+        await kv.del(`stripe_sub:${oldSub}`).catch(() => {});
+      }
+    }
+  } catch (_) {}
+
+  const updated = {
+    ...oldData,
+    plan,
+    interval,
+    expiresAt:       expiresAtStr,
+    stripeSessionId: session.id,
+    suspended:       false,
+    trial:           isStillTrial,
+    convertedAt:     new Date().toISOString(),
+    ...(businessName ? { businessName }      : {}),
+    ...(company      ? { company }           : {}),
+    ...(name         ? { customerName: name } : {}),
+  };
+  await kv.set(`license:${key}`, updated);
+  await kv.set(`session:${session.id}`, key, { ex: SESSION_TTL });
+  if (email) await kv.set(`email_to_license:${email}`, key);
+  if (session.subscription) await kv.set(`stripe_sub:${session.subscription}`, key);
+  console.log(`License converted to paid: ${key} for ${email} until ${expiresAtStr}`);
+
+  if (process.env.RESEND_API_KEY) {
+    await _sendUpgradeEmail(email, name || oldData.customerName || company, key, expiresAtStr);
+    if (process.env.ADMIN_NOTIFY_EMAIL) {
+      await _sendAdminUpgradeEmail(email, name, key, expiresAtStr);
+    }
+  }
+}
+
 async function _upgradeLicense(key, oldData, session, email, name, plan, interval = 'month') {
   const expiresAt = new Date();
   if (interval === 'year') expiresAt.setFullYear(expiresAt.getFullYear() + 1);
@@ -252,6 +322,7 @@ async function _upgradeLicense(key, oldData, session, email, name, plan, interva
     interval,
     expiresAt:       expiresAtStr,
     stripeSessionId: session.id,
+    trial:           false,
     upgradedAt:      new Date().toISOString(),
   };
   await kv.set(`license:${key}`, updated);
@@ -501,7 +572,7 @@ async function _renewLicense(invoice) {
     if (data.interval === 'year') newExpiry.setFullYear(newExpiry.getFullYear() + 1);
     else newExpiry.setMonth(newExpiry.getMonth() + 1);
   }
-  await kv.set(`license:${key}`, { ...data, expiresAt: newExpiry.toISOString().split('T')[0] });
+  await kv.set(`license:${key}`, { ...data, expiresAt: newExpiry.toISOString().split('T')[0], trial: false });
   console.log(`License renewed: ${key} until ${newExpiry.toISOString().split('T')[0]}`);
 }
 

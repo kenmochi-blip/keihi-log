@@ -71,7 +71,10 @@ export default async function handler(req, res) {
 
     // 有効期限確認
     if (data.expiresAt && new Date(data.expiresAt) < new Date()) {
-      return res.status(200).json({ valid: false, reason: 'expired', expiresAt: data.expiresAt });
+      return res.status(200).json({
+        valid: false, reason: 'expired', expiresAt: data.expiresAt,
+        trial: data.trial === true, plan: data.plan || 'solo',
+      });
     }
 
     return res.status(200).json({
@@ -81,6 +84,7 @@ export default async function handler(req, res) {
       plan:         data.plan         || 'standard',
       expiresAt:    data.expiresAt    || null,
       ownerEmail:   (data.email       || '').toLowerCase(),
+      trial:        data.trial === true,
     });
 
   } catch (err) {

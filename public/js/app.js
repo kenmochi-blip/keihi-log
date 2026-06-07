@@ -177,15 +177,19 @@ const App = (() => {
     // ライセンス検証
     const lic = licResult.status === 'fulfilled' ? licResult.value : { valid: false, reason: 'error' };
     if (!lic.valid) {
-      const reason = lic.reason === 'expired'  ? 'ライセンスの有効期限が切れています。' :
-                     lic.reason === 'suspended' ? 'ライセンスが停止されています。' :
-                                                  'ライセンスキーが無効です。';
+      // 期限切れ・停止 → 有料登録導線つきの専用画面（期日後にアプリを開いたときの案内）
+      if (lic.reason === 'expired' || lic.reason === 'suspended') {
+        if (_quickStarted) Router.navigate('settings'); else _setupUI('settings');
+        _showLicenseExpired(lic);
+        return;
+      }
+      // not_found / invalid → 設定画面でキー入力を促す
       if (_quickStarted) {
         Router.navigate('settings'); // 即時描画済みのUIを設定画面で上書き
       } else {
         _setupUI('settings');
       }
-      setTimeout(() => showToast(`${reason}設定画面からライセンスキーを更新してください。`, 'danger', 8000), 500);
+      setTimeout(() => showToast('ライセンスキーが無効です。設定画面からライセンスキーを更新してください。', 'danger', 8000), 500);
       return;
     }
 
@@ -342,6 +346,53 @@ const App = (() => {
         <p class="text-muted small mt-2">URLが正しくない可能性があります。<br>管理者から共有されたURLをご確認ください。</p>
         <a href="/" class="btn btn-outline-primary btn-sm mt-2">トップページへ</a>
       </div>`;
+    const bottomNav = document.querySelector('nav.fixed-bottom');
+    if (bottomNav) bottomNav.classList.add('d-none');
+  }
+
+  /** Stripe Payment Link（有料転換用）のURLを組み立てる。client_reference_id に
+   *  既存ライセンスキーを載せることで、webhook が新キーを発行せず既存ライセンスを延長する。 */
+  function buildUpgradeUrl(plan, licenseKey, email) {
+    const s = (window.APP_CONFIG && window.APP_CONFIG.stripe) || {};
+    const p = plan === 'team' ? 'team' : 'solo';
+    const base = (s.upgradeLinks && s.upgradeLinks[p]) || (s.signupLinks && s.signupLinks[p]) || '';
+    if (!base) return '';
+    let url = base + (base.includes('?') ? '&' : '?') + 'client_reference_id=' + encodeURIComponent(licenseKey || '');
+    if (email) url += '&prefilled_email=' + encodeURIComponent(email);
+    return url;
+  }
+
+  /** トライアル期限切れ／ライセンス無効時の案内画面（有料登録ボタン付き） */
+  function _showLicenseExpired(lic) {
+    const main = document.getElementById('appMain');
+    if (!main) return;
+    const key   = localStorage.getItem('keihi_license_key') || '';
+    const email = (typeof Auth !== 'undefined' && Auth.getUserEmail && Auth.getUserEmail()) || '';
+    const isExpired = lic.reason === 'expired';
+    const wasTrial  = lic.trial === true;
+    const upgradeUrl = buildUpgradeUrl(lic.plan || 'solo', key, email);
+    const heading = isExpired
+      ? (wasTrial ? '無料トライアルが終了しました' : 'ライセンスの有効期限が切れています')
+      : (lic.reason === 'suspended' ? 'ライセンスが停止されています' : 'ライセンスキーが無効です');
+    const lead = isExpired
+      ? '引き続きご利用いただくには、有料プランへの登録（お支払い手続き）をお願いします。<br>登録後もこれまでのデータ・設定はそのまま引き継がれます。'
+      : '設定画面からライセンスキーをご確認ください。';
+    main.innerHTML = `
+      <div class="text-center py-5 px-3">
+        <i class="bi bi-stars text-warning" style="font-size:3rem;"></i>
+        <h5 class="mt-3 fw-bold">${heading}</h5>
+        <p class="text-muted small mt-2" style="line-height:1.9;">${lead}</p>
+        ${isExpired && upgradeUrl ? `
+          <a href="${upgradeUrl}" class="btn btn-primary rounded-pill px-4 mt-2">
+            <i class="bi bi-credit-card me-1"></i>有料プランに登録する
+          </a>
+          <div class="text-muted mt-3" style="font-size:0.78rem;">
+            お支払いはStripeの安全な決済ページで行われます。<br>
+            ご不明な点は <a href="mailto:support@keihi-log.com">support@keihi-log.com</a> までご連絡ください。
+          </div>` : `
+          <button class="btn btn-outline-primary btn-sm mt-2" id="btnExpiredToSettings">設定画面を開く</button>`}
+      </div>`;
+    document.getElementById('btnExpiredToSettings')?.addEventListener('click', () => Router.navigate('settings'));
     const bottomNav = document.querySelector('nav.fixed-bottom');
     if (bottomNav) bottomNav.classList.add('d-none');
   }
@@ -869,6 +920,7 @@ const App = (() => {
     showLoading,
     hideLoading,
     showToast,
+    buildUpgradeUrl,
   };
 })();
 
