@@ -436,6 +436,12 @@ async function _sendLicenseEmail(to, name, licenseKey, expiresAt, plan = 'solo',
   <strong>トライアル終了後は自動課金されません。</strong>引き続きご利用の場合は、
   <strong>2週間以内にアプリの設定タブから有料プランへの切り替え</strong>をお願いします。
 </div>` : '';
+  const intro = trial
+    ? `この度は経費ログのトライアルにお申し込みいただきありがとうございます。`
+    : `この度は経費ログ（${planLabel}）にお申し込みいただきありがとうございます。`;
+  const licInfo = trial
+    ? `<li>トライアル期限：${expiresAt}</li>`
+    : `<li>プラン：${planLabel}</li><li>有効期限：${expiresAt}</li>`;
   const body = {
     from: process.env.RESEND_FROM_EMAIL || 'noreply@' + (process.env.VERCEL_PROJECT_PRODUCTION_URL || 'example.com'),
     to,
@@ -443,15 +449,18 @@ async function _sendLicenseEmail(to, name, licenseKey, expiresAt, plan = 'solo',
     html: `
 <p>${name} 様</p>
 
-<p>この度は経費ログ（${planLabel})にお申し込みいただきありがとうございます。</p>
+<p>${intro}</p>
 <p>以下のリンクからアプリを開くと、ライセンスキーが自動的に入力された状態で設定を始められます。</p>
 
 <p style="margin:1.5rem 0;">
   <a href="${setupUrl}" style="display:inline-block;background:#0d6efd;color:#fff;text-decoration:none;padding:12px 28px;border-radius:6px;font-size:1rem;font-weight:600;">経費ログを開いてセットアップする</a>
 </p>
 
-<p style="color:#555;font-size:0.9em;">ボタンが開かない場合は以下のURLをコピーしてブラウザに貼り付けてください：<br>
-<a href="${setupUrl}">${setupUrl}</a></p>
+<p style="color:#555;font-size:0.9em;">
+  ボタンが開かない場合は以下のURLをコピーして <strong>Safari・Chromeなどのブラウザ</strong> に貼り付けて開いてください：<br>
+  <a href="${setupUrl}">${setupUrl}</a><br>
+  <span style="color:#e67e22;">※ LINEやSlackのアプリ内ブラウザではGoogleログインが動作しない場合があります。必ずブラウザで開いてください。</span>
+</p>
 
 ${trialNotice}
 
@@ -462,18 +471,18 @@ ${trialNotice}
   <strong>${licenseKey}</strong>
 </p>
 <ul style="color:#555;font-size:0.9em;">
-  <li>プラン：${trial ? 'トライアル（全機能利用可）' : planLabel}</li>
-  <li>${trial ? 'トライアル期限' : '有効期限'}：${expiresAt}</li>
+  ${licInfo}
 </ul>
 
 <hr style="border:none;border-top:1px solid #eee;margin:1.5rem 0;">
 
-<p><strong>はじめかた（かんたん3ステップ）</strong></p>
-<ol style="line-height:2;">
-  <li>上のリンクからアプリを開き、Googleアカウントでログイン</li>
-  <li>画面の案内に従って会社名・Gemini APIキーなどを設定すると、Driveに経費管理シートが自動作成されます</li>
-  <li>チームでご利用の場合は、セットアップ完了後に表示される<strong>チームURL</strong>をメンバーに共有してください。メンバーはそのURLを開いてGoogleログインするだけで使い始められます。<br>
-  <span style="color:#888;font-size:0.9em;">※ LINEやSlackのアプリ内ブラウザではGoogleログインが動作しない場合があります。その際はURLをコピーしてSafariやChromeなどのブラウザに貼り付けて開いてください。</span></li>
+<p><strong>はじめかた（5ステップ）</strong></p>
+<ol style="line-height:2.2;font-size:0.95em;">
+  <li><strong>Safari・Chromeなどのブラウザ</strong>で上のリンクを開き、Googleアカウントでログイン</li>
+  <li>ライセンスキーを確認（すでに自動入力されています）→「確認して次へ」</li>
+  <li>会社名・チームURLを入力（チームURLは後から変更できません。任意）</li>
+  <li>Gemini APIキーを設定（AI領収書解析用。無料で取得できます）。電帳法対応の社内規程作成は任意でスキップ可能</li>
+  <li>「セットアップ開始」をタップ → Google DriveにスプレッドシートとフォルダーPが自動作成されます。完了後に表示される<strong>チームURL</strong>をメンバーに共有するだけで、メンバーはそのURLを開いてGoogleログインするだけで使い始められます</li>
 </ol>
 
 <p style="color:#555;font-size:0.9em;">ご不明な点は <a href="mailto:support@keihi-log.com">support@keihi-log.com</a> までお気軽にお問い合わせください。</p>
