@@ -398,15 +398,16 @@ const App = (() => {
     textEl.textContent = daysLeft !== null
       ? `無料トライアル中（残り${daysLeft}日）`
       : '無料トライアル中';
-    // チームプランへの切り替えURLをバナーボタンに設定
+    // バナーボタン：設定タブへ誘導（設定タブ内でソロ/チームを選択）
     const upgradeBtn = document.getElementById('trialBannerUpgradeBtn');
     if (upgradeBtn) {
-      const key   = localStorage.getItem('keihi_license_key') || '';
-      const email = (typeof Auth !== 'undefined' && Auth.getUserEmail && Auth.getUserEmail()) || '';
-      const url   = buildUpgradeUrl('team', key, email);
-      upgradeBtn.href = url || '#';
-      upgradeBtn.target = url ? '_blank' : '';
-      upgradeBtn.rel = url ? 'noopener' : '';
+      upgradeBtn.removeAttribute('href');
+      upgradeBtn.removeAttribute('target');
+      upgradeBtn.removeAttribute('rel');
+      upgradeBtn.onclick = (e) => {
+        e.preventDefault();
+        document.querySelector('[data-view=settings]')?.click();
+      };
     }
     banner.style.display = '';
   }
