@@ -31,10 +31,18 @@ export default async function handler(req, res) {
   try {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY?.trim());
 
-    // チェックアウトセッションからカスタマーIDを取得
+    // チェックアウトセッションからカスタマーID・サブスクを取得
     const checkoutSession = await stripe.checkout.sessions.retrieve(sessionId);
     const customerId = checkoutSession.customer;
     if (!customerId) return res.status(400).json({ error: 'no_customer' });
+
+    // トライアル中（カード未登録）はポータルを開けない — KV の trial フラグが誤っている場合の保険
+    if (checkoutSession.subscription) {
+      const sub = await stripe.subscriptions.retrieve(checkoutSession.subscription);
+      if (sub.status === 'trialing') {
+        return res.status(400).json({ error: 'trial_user' });
+      }
+    }
 
     const origin = req.headers.origin || 'https://keihi-log.com';
     const portalSession = await stripe.billingPortal.sessions.create({

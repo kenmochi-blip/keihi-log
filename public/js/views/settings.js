@@ -1115,9 +1115,11 @@ const SettingsView = (() => {
       if (!url) throw new Error(error || 'portal_error');
       window.location.href = url;
     } catch (err) {
-      const msg = err.message === 'stripe_error'
-        ? 'カスタマーポータルを開けませんでした。support@keihi-log.com までお問い合わせください。'
-        : 'ポータルを開けませんでした: ' + err.message;
+      const msg = err.message === 'trial_user'
+        ? 'トライアル中はポータルを利用できません。有料プランへ切り替えてからご利用ください。'
+        : err.message === 'stripe_error'
+          ? 'カスタマーポータルを開けませんでした。support@keihi-log.com までお問い合わせください。'
+          : 'ポータルを開けませんでした: ' + err.message;
       App.showToast(msg, 'danger');
     } finally {
       App.hideLoading();
