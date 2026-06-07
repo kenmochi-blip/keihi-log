@@ -350,16 +350,12 @@ async function _sendUpgradeEmail(to, name, licenseKey, expiresAt, plan = 'solo')
     html: `
 <p>${name} 様</p>
 <p>この度は経費ログ（${planLabel}）へのお申し込みありがとうございます。</p>
-<p>引き続き同じライセンスキーをお使いください。有効期限が更新されました。</p>
-<p style="font-size:1.2em;font-family:monospace;background:#f5f5f5;padding:12px 16px;border-radius:6px;letter-spacing:1px;">
-  <strong>${licenseKey}</strong>
-</p>
 <ul>
   <li>プラン：${planLabel}</li>
-  <li>新しい有効期限：${expiresAt}</li>
-  <li>アプリURL：<a href="${appUrl}">${appUrl}</a></li>
+  <li>有効期限：${expiresAt}</li>
 </ul>
-<p>ご不明な点はお気軽にお問い合わせください。</p>
+<p>有効期限を過ぎると経費ログへのアクセスができなくなります。引き続きご利用の場合は、期限前にアプリの設定タブから更新をお願いします。なお、Googleスプレッドシート上の経費データは有効期限に関わらず保持されます。</p>
+<p>ご不明な点は <a href="mailto:support@keihi-log.com">support@keihi-log.com</a> までお気軽にお問い合わせください。</p>
     `.trim(),
   };
   const resp = await fetch('https://api.resend.com/emails', {
