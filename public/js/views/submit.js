@@ -359,7 +359,7 @@ const SubmitView = (() => {
       <div class="d-flex justify-content-between align-items-center mb-1">
         <label class="form-label small fw-semibold mb-0">金額・勘定科目 <span class="text-danger">*</span></label>
         <div class="d-flex align-items-center gap-2">
-          <button class="btn btn-link btn-sm p-0 text-decoration-none" id="btnToggleSplit">明細分割</button>
+          <button class="btn btn-link btn-sm p-0 text-decoration-none btn-toggle-split">明細分割</button>
           <a href="/faq#q302" class="text-muted" style="font-size:0.78rem;" title="明細分割について"><i class="bi bi-question-circle"></i></a>
         </div>
       </div>
@@ -473,6 +473,7 @@ function _bindSubtypePills(el) {
   el.querySelectorAll('.subtype-pill[data-type]').forEach(pill => {
     pill.addEventListener('click', () => {
       const type = pill.dataset.type;
+      const subtypeCard = el.querySelector('#subtypeCard');
       if (_currentType === type) {
         // 同じピルを再クリック → 解除、領収書モードに戻る
         _currentType = '領収書';
@@ -484,6 +485,7 @@ function _bindSubtypePills(el) {
         });
         el.querySelector('#heroZone')?.classList.remove('d-none');
         el.querySelector('#submitUnit')?.classList.add('d-none');
+        if (subtypeCard) subtypeCard.classList.remove('subtype-active');
         return;
       }
       _currentType = type;
@@ -498,6 +500,7 @@ function _bindSubtypePills(el) {
       el.querySelector('#receiptFields')?.classList.add('d-none');
       const su = el.querySelector('#submitUnit');
       if (su) { su.classList.remove('d-none'); su.style.display = 'flex'; }
+      if (subtypeCard) subtypeCard.classList.add('subtype-active');
     });
   });
 }
@@ -644,7 +647,7 @@ function _bindSubtypePills(el) {
 
   function _bindSplitToggle(el) {
     // querySelectorAll で全パネルのトグルボタンにバインド
-    el.querySelectorAll('#btnToggleSplit').forEach(btn => {
+    el.querySelectorAll('.btn-toggle-split').forEach(btn => {
       btn.addEventListener('click', () => {
         // クリックされたボタンの親パネルを特定
         const pnl    = btn.closest('#receiptFields') || btn.closest('[id^="panel-"]') || el;
@@ -812,15 +815,10 @@ function _bindSubtypePills(el) {
     const rateHint  = el.querySelector('#carRateHint');
     if (!rateInput) return;
 
-    // 非管理者はreadonly表示
-    if (!isAdmin) {
-      rateInput.readOnly = true;
-      rateInput.classList.add('bg-light');
-      if (rateHint) rateHint.classList.remove('d-none');
-    } else {
-      rateInput.readOnly = false;
-      rateInput.classList.remove('bg-light');
-    }
+    // 登録画面では常にreadonly（設定タブから変更）
+    rateInput.readOnly = true;
+    rateInput.classList.add('bg-light');
+    if (rateHint) rateHint.classList.remove('d-none');
 
     // シートから最新のレートを取得（localStorageをフォールバックとして使用）
     const isDemo = typeof Demo !== 'undefined' && Demo.isActive();
@@ -840,10 +838,8 @@ function _bindSubtypePills(el) {
       const km   = Number(el.querySelector('#numCarKm')?.value)   || 0;
       const rate = Number(el.querySelector('#numCarRate')?.value)  || 20;
       el.querySelector('#lblCarTotal').textContent = Math.ceil(km * rate).toLocaleString() + '円';
-      if (App.isAdmin()) localStorage.setItem(CAR_RATE_KEY, rate);
     };
     el.querySelector('#numCarKm')?.addEventListener('input', calc);
-    el.querySelector('#numCarRate')?.addEventListener('input', calc);
   }
 
   /** 為替レート取得（複数APIを順に試す） */
@@ -998,7 +994,7 @@ function _bindSubtypePills(el) {
       if (hasMultiItems) {
         // 2件以上の明細 → 分割モード
         const isSplit = !el.querySelector('#splitLines')?.classList.contains('d-none');
-        if (!isSplit) el.querySelector('#btnToggleSplit')?.click();
+        if (!isSplit) el.querySelector('.btn-toggle-split')?.click();
         const container = el.querySelector('#splitLines');
         if (container) {
           container.innerHTML = '';

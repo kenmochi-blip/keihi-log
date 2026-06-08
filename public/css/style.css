@@ -540,6 +540,10 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 }
 .subtype-pill i { font-size: 0.88rem; }
 .subtype-pill:hover, .subtype-pill.active { border-color: #0d6efd; background: #e8f0fe; color: #0d6efd; }
+/* サブタイプ選択中：カードをアクティブ表示 */
+#subtypeCard { transition: opacity 0.15s, border-color 0.15s; }
+#subtypeCard:not(.subtype-active) { opacity: 0.55; }
+#subtypeCard.subtype-active { opacity: 1; border-color: #0d6efd !important; }
 /* 統合送信カード */
 .submit-unit {
   border: 2px solid #0d6efd; border-radius: 16px; padding: 12px;
