@@ -90,6 +90,16 @@ const Gemini = (() => {
    * @param {string} body
    * @param {function(attempt:number, max:number):void} [onRetry]
    */
+  const _STATUS_HINT = {
+    400: 'リクエスト不正（画像が破損しているか、対応していない形式の可能性があります）',
+    401: 'APIキーが無効です。設定シートのGemini APIキーを確認してください',
+    403: 'APIキーに権限がありません。Google AI StudioでGemini APIが有効になっているか確認してください',
+    404: 'モデルが見つかりません。管理者にお問い合わせください',
+    429: 'リクエスト制限を超えました。無料枠（1日1,500件）を超えた可能性があります',
+    500: 'Geminiサーバーの内部エラーです。しばらく待ってから再試行してください',
+    503: 'Geminiサーバーが一時的に過負荷です。しばらく待ってから再試行してください',
+  };
+
   async function _fetchWithRetry(body, onRetry, maxRetries = 3) {
     const RETRYABLE = new Set([429, 503]);
     for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -101,7 +111,9 @@ const Gemini = (() => {
       if (resp.ok) return resp;
       if (!RETRYABLE.has(resp.status) || attempt === maxRetries - 1) {
         const err = await resp.json().catch(() => ({}));
-        throw new Error(err.error?.message || `Gemini API error: ${resp.status}`);
+        const apiMsg  = err.error?.message || '';
+        const hint    = _STATUS_HINT[resp.status] || `Gemini API error: ${resp.status}`;
+        throw new Error(apiMsg ? `${hint}（${apiMsg}）` : hint);
       }
       // RETRYABLE かつまだ試行回数が残っている → 次のループへ
     }
