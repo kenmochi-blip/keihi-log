@@ -91,7 +91,7 @@ const SubmitView = (() => {
     ${_dateField()}
     ${_placeField('支払先（店名・会社名）')}
     ${_invoiceField()}
-    ${_amountSection()}
+    ${_amountSectionNoReceipt()}
     ${_noteField()}
   </div>
 
@@ -410,12 +410,12 @@ const SubmitView = (() => {
     _bindSubtypePills(el);
     _bindFileInputs(el);
     _bindSplitToggle(el);
-    // 領収書なしは常に分割モード → 初期1行を追加
-    const _noPanel = el.querySelector('#panel-領収書なし');
-    if (_noPanel) {
-      const _noSplit = _noPanel.querySelector('#splitLines');
-      if (_noSplit && _noSplit.children.length === 0) _addSplitRowTo(_noSplit, _noPanel);
-    }
+    // 領収書・領収書なしは常に分割モード → 初期1行を追加
+    [el.querySelector('#receiptFields'), el.querySelector('#panel-領収書なし')].forEach(pnl => {
+      if (!pnl) return;
+      const s = pnl.querySelector('#splitLines');
+      if (s && s.children.length === 0) _addSplitRowTo(s, pnl);
+    });
     _bindCorpPay(el);
     _bindTransitCalc(el);
     _initCarRate(el);
@@ -1003,53 +1003,54 @@ function _bindSubtypePills(el) {
         filled++;
       }
 
-      // 金額・勘定科目：items が複数なら分割、それ以外は単一行に統合
+      // 金額・勘定科目：常に分割行モード（1件でも split 行に流す）
+      const pnlRF = _activePanel(el);
+      const rfSplitLines = pnlRF.querySelector('#splitLines');
+      if (rfSplitLines) {
+        rfSplitLines.innerHTML = '';
+        pnlRF.querySelector('#btnAddSplitRow')?.remove();
+      }
+
       const hasMultiItems = result.items && result.items.length > 1;
 
       if (hasMultiItems) {
-        // 2件以上の明細 → 分割モード
-        const isSplit = !el.querySelector('#splitLines')?.classList.contains('d-none');
-        if (!isSplit) el.querySelector('.btn-toggle-split')?.click();
-        const container = el.querySelector('#splitLines');
-        if (container) {
-          container.innerHTML = '';
-          el.querySelector('#btnAddSplitRow')?.remove();
-          result.items.forEach(item => {
-            _addSplitRow(el);
-            const rows = container.querySelectorAll('.split-row');
-            const lastRow = rows[rows.length - 1];
-            if (lastRow) {
-              const amtInput = lastRow.querySelector('.split-amount');
-              const catSel   = lastRow.querySelector('.split-cat');
-              if (amtInput) amtInput.value = Number(item.amount || 0).toLocaleString('ja-JP');
-              if (catSel && item.category) {
-                [...catSel.options].forEach(o => o.selected = o.value === item.category);
-              }
-              const taxSel = lastRow.querySelector('.split-tax');
-              if (taxSel && item.tax_rate) taxSel.value = item.tax_rate;
+        // 2件以上の明細 → 各 item を1行ずつ追加
+        result.items.forEach(item => {
+          _addSplitRow(el);
+          const rows = rfSplitLines.querySelectorAll('.split-row');
+          const lastRow = rows[rows.length - 1];
+          if (lastRow) {
+            const amtInput = lastRow.querySelector('.split-amount');
+            const catSel   = lastRow.querySelector('.split-cat');
+            if (amtInput) amtInput.value = Number(item.amount || 0).toLocaleString('ja-JP');
+            if (catSel && item.category) {
+              [...catSel.options].forEach(o => o.selected = o.value === item.category);
             }
-          });
-          _calcSplitTotal(el);
-        }
+            const taxSel = lastRow.querySelector('.split-tax');
+            if (taxSel && item.tax_rate) taxSel.value = item.tax_rate;
+          }
+        });
+        _calcSplitTotal(el);
         filled++;
       } else {
-        // 1件 or items なし → 単一行モード（items[0] を優先して拾う）
-        const singleItem   = result.items?.[0];
-        const totalAmount  = singleItem?.amount  ?? result.total_amount;
-        const singleCat    = singleItem?.category ?? result.category;
+        // 1件 or items なし → split 行1行に統合（items[0] を優先して拾う）
+        const singleItem  = result.items?.[0];
+        const totalAmount = singleItem?.amount  ?? result.total_amount;
+        const singleCat   = singleItem?.category ?? result.category;
+        const singleTax   = singleItem?.tax_rate ?? result.tax_rate;
+
+        _addSplitRow(el);
+        const firstRow = rfSplitLines?.querySelector('.split-row');
 
         if (result.fx_currency && result.fx_amount) {
           // 外貨：取引日のレートを取得して換算（取引日 → AI認識日付 → 当日 の順でフォールバック）
           const txDate = el.querySelector('#inputDate')?.value || result.date || null;
           const baseRate = await _fetchExchangeRate(result.fx_currency, 'JPY', txDate);
           if (baseRate) {
-            // TTM（仲値）に3%上乗せ：クレジットカード会社の適用レートに近似
             const markupPct = 3;
             const rate = baseRate * (1 + markupPct / 100);
             const jpy = Math.floor(Number(result.fx_amount) * rate);
-            const amtInput = el.querySelector('#inputAmount');
-            if (amtInput) amtInput.value = jpy.toLocaleString('ja-JP');
-            // 備考欄に換算内訳を自動入力（取引日レートである旨を明記）
+            if (firstRow) firstRow.querySelector('.split-amount').value = jpy.toLocaleString('ja-JP');
             const noteInput = el.querySelector('#inputNote');
             const markupNote = markupPct > 0 ? `＋手数料${markupPct}%` : '';
             if (noteInput) noteInput.value =
@@ -1063,25 +1064,23 @@ function _bindSubtypePills(el) {
             App.showToast(`外貨検出（${result.fx_currency} ${result.fx_amount}）。為替レートが取得できませんでした。手動で入力してください`, 'warning');
           }
         } else if (totalAmount != null && totalAmount !== '') {
-          const amtInput = el.querySelector('#inputAmount');
-          if (amtInput) amtInput.value = Number(totalAmount).toLocaleString('ja-JP');
+          if (firstRow) firstRow.querySelector('.split-amount').value = Number(totalAmount).toLocaleString('ja-JP');
           filled++;
         }
 
-        if (singleCat) {
-          const sel = el.querySelector('#selCategory');
-          if (sel) [...sel.options].forEach(o => o.selected = o.value === singleCat);
+        if (singleCat && firstRow) {
+          const catSel = firstRow.querySelector('.split-cat');
+          if (catSel) [...catSel.options].forEach(o => o.selected = o.value === singleCat);
           filled++;
           if (result.category_fallback) {
             App.showToast('勘定科目を判断できなかったため仮で「' + singleCat + '」を設定しました。送信前に確認してください。', 'warning');
           }
         }
-      }
-
-      // 税区分を更新
-      if (result.tax_rate) {
-        const taxSel = el.querySelector('#selTaxRate');
-        if (taxSel) taxSel.value = result.tax_rate;
+        if (singleTax && firstRow) {
+          const taxSel = firstRow.querySelector('.split-tax');
+          if (taxSel) taxSel.value = singleTax;
+        }
+        if (rfSplitLines) _calcSplitTotal(el);
       }
 
       // 源泉徴収税額を保存（備考への記載は送信時に行う）
@@ -1090,8 +1089,8 @@ function _bindSubtypePills(el) {
         App.showToast(`源泉徴収税額 ¥${_withholdingAmount.toLocaleString()} を検出しました`, 'info');
       }
 
-      // 解析完了後、フォームを画面内にスクロール
-      el.querySelector('#receiptFields')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      // 解析完了後、日付フィールド先頭へスクロール（登録ボタンも画面内に入るよう start 基準）
+      el.querySelector('#inputDate')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
       if (filled === 0) {
         App.showToast('読み取れませんでした。内容を手動で入力してください', 'warning');
@@ -1810,16 +1809,12 @@ function _bindSubtypePills(el) {
     const lblTotal = el.querySelector('#lblTransitTotal');
     if (lblTotal) lblTotal.textContent = '¥0';
 
-    // 領収書なしパネルの分割行を初期1行にリセット
-    const noPanel = el.querySelector('#panel-領収書なし');
-    if (noPanel) {
-      const noSplit = noPanel.querySelector('#splitLines');
-      if (noSplit) {
-        noSplit.innerHTML = '';
-        noPanel.querySelector('#btnAddSplitRow')?.remove();
-        _addSplitRowTo(noSplit, noPanel);
-      }
-    }
+    // 領収書・領収書なしパネルの分割行を初期1行にリセット
+    [el.querySelector('#receiptFields'), el.querySelector('#panel-領収書なし')].forEach(pnl => {
+      if (!pnl) return;
+      const s = pnl.querySelector('#splitLines');
+      if (s) { s.innerHTML = ''; pnl.querySelector('#btnAddSplitRow')?.remove(); _addSplitRowTo(s, pnl); }
+    });
   }
 
   function _escape(s) {
