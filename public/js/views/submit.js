@@ -1098,7 +1098,9 @@ function _bindSubtypePills(el) {
 
   function _showReceiptFields(el) {
     el.querySelector('#receiptFields')?.classList.remove('d-none');
-    el.querySelector('#submitUnit')?.classList.remove('d-none');
+    el.querySelector('#subtypeCard')?.classList.add('d-none');
+    const su = el.querySelector('#submitUnit');
+    if (su) { su.classList.remove('d-none'); su.style.display = 'flex'; }
   }
 
   /** サーバー時刻を事前取得して _prefetchedTime に保存する（申請時の待ちをゼロにする） */
