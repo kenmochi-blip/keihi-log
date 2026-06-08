@@ -1478,10 +1478,36 @@ function _bindTypeButtons(el) {
         if (placeInput) placeInput.value = e.place || '';
         const invInput = pnl.querySelector('#inputInvoice');
         if (invInput) invInput.value = e.invoice || '';
-        const amtInput = pnl.querySelector('#inputAmount');
-        if (amtInput) amtInput.value = Number(e.amount).toLocaleString('ja-JP');
-        const sel = pnl.querySelector('#selCategory');
-        if (sel) [...sel.options].forEach(o => o.selected = o.value === e.category);
+        const cats = (e.category || '').split('/').map(s => s.trim()).filter(Boolean);
+        if (cats.length > 1) {
+          // 明細分割モードを復元（個別金額は保存されていないため空欄）
+          const splitLines = pnl.querySelector('#splitLines');
+          const singleLine = pnl.querySelector('#singleLine');
+          const splitTotalEl = pnl.querySelector('#splitTotal');
+          if (splitLines && singleLine && splitLines.classList.contains('d-none')) {
+            singleLine.classList.add('d-none');
+            splitLines.classList.remove('d-none');
+            if (splitTotalEl) splitTotalEl.classList.remove('d-none');
+          }
+          if (splitLines) {
+            splitLines.innerHTML = '';
+            pnl.querySelector('#btnAddSplitRow')?.remove();
+            cats.forEach(cat => {
+              _addSplitRowTo(splitLines, pnl);
+              const rows = splitLines.querySelectorAll('.split-row');
+              const lastRow = rows[rows.length - 1];
+              if (lastRow) {
+                const catSel = lastRow.querySelector('.split-cat');
+                if (catSel) [...catSel.options].forEach(o => o.selected = o.value === cat);
+              }
+            });
+          }
+        } else {
+          const amtInput = pnl.querySelector('#inputAmount');
+          if (amtInput) amtInput.value = Number(e.amount).toLocaleString('ja-JP');
+          const sel = pnl.querySelector('#selCategory');
+          if (sel) [...sel.options].forEach(o => o.selected = o.value === e.category);
+        }
         const taxSel = el.querySelector('#selTaxRate');
         if (taxSel && e.taxRate) taxSel.value = e.taxRate;
         const cfSel = el.querySelector('#selCustomFlag');
