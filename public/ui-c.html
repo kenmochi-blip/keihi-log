@@ -395,29 +395,6 @@
         </div>
       </div>
 
-      <!-- 支払区分セグメント -->
-      <div class="pay-segment mb-2">
-        <button class="pay-seg-btn active" id="segSelf" onclick="selectPaySeg('self')">
-          <i class="bi bi-person-fill"></i>自分が立替え（精算あり）
-        </button>
-        <button class="pay-seg-btn corp" id="segCorp" onclick="selectPaySeg('corp')">
-          <i class="bi bi-building"></i>会社払い（精算なし）
-        </button>
-      </div>
-      <!-- 会社払い：支払元セレクト（会社払い選択時のみ表示） -->
-      <div id="corpSourceWrap" class="d-none mb-2">
-        <div class="corp-source card border-0 shadow-sm">
-          <div class="card-body py-2">
-            <label class="form-label small fw-semibold mb-1">支払元</label>
-            <select class="form-select form-select-sm">
-              <option value="">支払元を選択</option>
-              <option>法人カード</option>
-              <option>法人口座振込</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
       <!-- AI解析後フォーム -->
       <div id="receiptForm" class="d-none"></div>
 
@@ -520,10 +497,34 @@
     let currentSub = null;
 
     // ─── 支払区分セグメント ───
-    function selectPaySeg(val) {
-      document.getElementById('segSelf').classList.toggle('active', val === 'self');
-      document.getElementById('segCorp').classList.toggle('active', val === 'corp');
-      document.getElementById('corpSourceWrap').classList.toggle('d-none', val === 'self');
+    function paySegHtml(uid) {
+      return `
+        <div class="pay-segment mb-2" id="paySeg-${uid}">
+          <button class="pay-seg-btn active" onclick="selectPaySeg('self','${uid}')">
+            <i class="bi bi-person-fill"></i>自分が立替え（精算あり）
+          </button>
+          <button class="pay-seg-btn corp" onclick="selectPaySeg('corp','${uid}')">
+            <i class="bi bi-building"></i>会社払い（精算なし）
+          </button>
+        </div>
+        <div id="corpSource-${uid}" class="d-none mb-2">
+          <div class="corp-source card border-0 shadow-sm">
+            <div class="card-body py-2">
+              <label class="form-label small fw-semibold mb-1">支払元</label>
+              <select class="form-select form-select-sm">
+                <option value="">支払元を選択</option>
+                <option>法人カード</option><option>法人口座振込</option>
+              </select>
+            </div>
+          </div>
+        </div>`;
+    }
+    function selectPaySeg(val, uid) {
+      const seg = document.getElementById(`paySeg-${uid}`);
+      if (!seg) return;
+      seg.querySelectorAll('.pay-seg-btn').forEach(b => b.classList.remove('active'));
+      seg.querySelectorAll('.pay-seg-btn')[val === 'self' ? 0 : 1].classList.add('active');
+      document.getElementById(`corpSource-${uid}`).classList.toggle('d-none', val === 'self');
     }
 
     // ─── ファイル選択 ───
@@ -637,7 +638,8 @@
             <label class="form-label small fw-semibold">備考</label>
             <textarea class="form-control form-control-sm" rows="2"></textarea>
           </div>
-          <div class="d-grid mt-3 mb-4">
+          ${paySegHtml('receipt')}
+          <div class="d-grid mt-2 mb-4">
             <button class="btn btn-primary btn-lg rounded-3" onclick="mockSubmit()">
               <i class="bi bi-send me-2"></i>登録する
             </button>
@@ -758,6 +760,7 @@
             <label class="form-label small fw-semibold">備考</label>
             <textarea class="form-control form-control-sm" rows="2"></textarea>
           </div>
+          ${paySegHtml('sub')}
           <div class="d-grid mt-2">
             <button class="btn btn-primary btn-lg rounded-3" onclick="mockSubmit()">
               <i class="bi bi-send me-2"></i>登録する
