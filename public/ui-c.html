@@ -48,45 +48,69 @@
     }
     .hero-icon-wrap i { font-size: 1.6rem; color: #fff; }
 
-    /* 会社払いセグメントコントロール */
-    .pay-segment {
+    /* ── 統合送信カード ── */
+    .submit-unit {
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.14);
+      margin-top: 16px;
+      margin-bottom: 20px;
+      background: #fff;
+    }
+    .submit-unit-seg {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      background: #e9ecef;
-      border-radius: 10px;
-      padding: 3px;
-      gap: 2px;
     }
-    .pay-seg-btn {
+    .submit-unit-btn {
       border: none;
-      border-radius: 8px;
-      padding: 9px 8px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: #6c757d;
-      background: transparent;
+      background: #f4f6f9;
       cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      padding: 14px 8px 12px;
       touch-action: manipulation;
+      transition: background 0.15s, color 0.15s;
+      border-bottom: 2.5px solid #e2e8f0;
+      color: #6c757d;
+      line-height: 1.35;
+    }
+    .submit-unit-btn:first-child { border-right: 1px solid #dee2e6; }
+    .submit-unit-btn .sub-icon { font-size: 1.15rem; }
+    .submit-unit-btn .sub-title { font-size: 0.88rem; font-weight: 700; color: #212529; }
+    .submit-unit-btn .sub-note  { font-size: 0.7rem; }
+    .submit-unit-btn.active {
+      background: #fff;
+      border-bottom-color: #0d6efd;
+    }
+    .submit-unit-btn.active .sub-icon { color: #0d6efd; }
+    .submit-unit-btn.active .sub-title { color: #0d6efd; }
+    .submit-unit-source {
+      padding: 12px 16px 8px;
+      border-bottom: 1px solid #f0f2f5;
+      animation: formSlideIn 0.18s ease-out both;
+    }
+    .submit-unit-action {
+      width: 100%;
+      border: none;
+      background: linear-gradient(135deg, #1a7fff 0%, #0d6efd 100%);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      padding: 16px;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 5px;
-      transition: background 0.15s, color 0.15s, box-shadow 0.15s;
-      line-height: 1.2;
+      gap: 8px;
+      cursor: pointer;
+      touch-action: manipulation;
+      transition: filter 0.12s;
     }
-    .pay-seg-btn i { font-size: 0.95rem; flex-shrink: 0; }
-    .pay-seg-btn.active {
-      background: #fff;
-      color: #212529;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.12);
-    }
-    .pay-seg-btn.active.corp { color: #0d6efd; }
-    /* 会社払い選択時のフォロー表示 */
-    .corp-source {
-      animation: formSlideIn 0.2s ease-out both;
-    }
-
-    .corp-source-wrap { animation: formSlideIn 0.18s ease-out both; }
+    .submit-unit-action:active { filter: brightness(0.9); }
+    .submit-unit-action i { font-size: 1.05rem; }
 
     .hero-title {
       font-size: 1.05rem;
@@ -498,40 +522,40 @@
     let hasFile = false;
     let currentSub = null;
 
-    // ─── 支払区分セグメント ───
+    // ─── 統合送信カード ───
     function paySegHtml() {
       const uid = Math.random().toString(36).slice(2, 7);
       return `
-        <div class="pay-segment mb-2" id="paySeg-${uid}">
-          <button class="pay-seg-btn active" onclick="selectPaySeg('self','${uid}')">
-            <i class="bi bi-person-fill"></i>自分が立替え（精算あり）
-          </button>
-          <button class="pay-seg-btn corp" onclick="selectPaySeg('corp','${uid}')">
-            <i class="bi bi-building"></i>会社払い（精算なし）
-          </button>
-        </div>
-        <div id="corpSource-${uid}" class="d-none mb-2 corp-source-wrap">
-          <div class="card border-0 shadow-sm">
-            <div class="card-body py-2">
-              <label class="form-label small fw-semibold mb-1">支払元</label>
-              <select class="form-select form-select-sm">
-                <option value="">支払元を選択</option>
-                <option>法人カード</option><option>法人口座振込</option>
-              </select>
-            </div>
+        <div class="submit-unit">
+          <div class="submit-unit-seg" id="paySeg-${uid}">
+            <button class="submit-unit-btn active" onclick="selectPaySeg('self','${uid}')">
+              <span class="sub-icon"><i class="bi bi-person-fill"></i></span>
+              <span class="sub-title">立替として</span>
+              <span class="sub-note">（精算あり）</span>
+            </button>
+            <button class="submit-unit-btn" onclick="selectPaySeg('corp','${uid}')">
+              <span class="sub-icon"><i class="bi bi-building"></i></span>
+              <span class="sub-title">会社払いで</span>
+              <span class="sub-note">（精算なし）</span>
+            </button>
           </div>
-        </div>
-        <div class="d-grid mt-2 mb-4">
-          <button class="btn btn-primary btn-lg rounded-3" onclick="mockSubmit()">
-            <i class="bi bi-send me-2"></i>登録する
+          <div id="corpSource-${uid}" class="d-none submit-unit-source">
+            <label class="form-label small fw-semibold mb-1">支払元</label>
+            <select class="form-select form-select-sm">
+              <option value="">支払元を選択</option>
+              <option>法人カード</option><option>法人口座振込</option>
+            </select>
+          </div>
+          <button class="submit-unit-action" onclick="mockSubmit()">
+            <i class="bi bi-send"></i>登　録　す　る
           </button>
         </div>`;
     }
     function selectPaySeg(val, uid) {
       const seg = document.getElementById(`paySeg-${uid}`);
       if (!seg) return;
-      seg.querySelectorAll('.pay-seg-btn').forEach(b => b.classList.remove('active'));
-      seg.querySelectorAll('.pay-seg-btn')[val === 'self' ? 0 : 1].classList.add('active');
+      seg.querySelectorAll('.submit-unit-btn').forEach(b => b.classList.remove('active'));
+      seg.querySelectorAll('.submit-unit-btn')[val === 'self' ? 0 : 1].classList.add('active');
       document.getElementById(`corpSource-${uid}`).classList.toggle('d-none', val === 'self');
     }
 
