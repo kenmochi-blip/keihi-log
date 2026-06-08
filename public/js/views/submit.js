@@ -915,7 +915,9 @@ function _bindTypeButtons(el) {
           _compressPromise = null;
         }
         const filesToAnalyze = _compressedFiles.length > 0 ? _compressedFiles : files;
-        result = await Gemini.analyzeReceipt(filesToAnalyze, _cats, true);
+        result = await Gemini.analyzeReceipt(filesToAnalyze, _cats, true, (attempt, max) => {
+          btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>リトライ中 (${attempt}/${max - 1})...`;
+        });
       }
 
       console.log('[AI解析結果]', result);

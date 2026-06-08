@@ -62,13 +62,59 @@ const Gemini = (() => {
     })));
   }
 
+  /** 呼び出し経路を選択して fetch を1回実行する */
+  async function _doApiFetch(body) {
+    if (typeof Demo !== 'undefined' && Demo.isActive()) {
+      const apiBase = window.APP_CONFIG?.apiBase || '';
+      return fetch(`${apiBase}/api/gemini-proxy`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body,
+      });
+    }
+    if (typeof Sheets !== 'undefined' && Sheets.useProxy && Sheets.useProxy()) {
+      const idToken = await Auth.getIdToken();
+      const ssId = localStorage.getItem('keihi_sheet_id') || '';
+      return fetch(`/api/data/gemini?sheetId=${encodeURIComponent(ssId)}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${idToken}`, 'Content-Type': 'application/json' },
+        body,
+      });
+    }
+    const key = await _getApiKey();
+    return fetch(`${API_URL}?key=${key}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body,
+    });
+  }
+
+  /**
+   * 503/429 をリトライしながら fetch する（最大3回、指数バックオフ 1→2→4秒）
+   * @param {string} body
+   * @param {function(attempt:number, max:number):void} [onRetry]
+   */
+  async function _fetchWithRetry(body, onRetry, maxRetries = 3) {
+    const RETRYABLE = new Set([429, 503]);
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      if (attempt > 0) {
+        onRetry?.(attempt, maxRetries);
+        await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt - 1)));
+      }
+      const resp = await _doApiFetch(body);
+      if (resp.ok) return resp;
+      if (!RETRYABLE.has(resp.status) || attempt === maxRetries - 1) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.error?.message || `Gemini API error: ${resp.status}`);
+      }
+      // RETRYABLE かつまだ試行回数が残っている → 次のループへ
+    }
+  }
+
   /**
    * 領収書画像を解析してJSON情報を返す
    * @param {Array<{base64: string, mimeType: string}>} files
    * @param {string[]} categories 勘定科目リスト
    * @param {boolean} alreadyCompressed 圧縮済みの場合はtrueで圧縮をスキップ
+   * @param {function(attempt:number, max:number):void} [onRetry] リトライ時に呼ばれるコールバック
    */
-  async function analyzeReceipt(files, categories, alreadyCompressed = false) {
+  async function analyzeReceipt(files, categories, alreadyCompressed = false, onRetry = null) {
     // 電帳法要件（200万画素以上）を満たしつつ圧縮（2000px長辺・quality 0.85）
     // precompress済みの場合はスキップ
     const processedFiles = alreadyCompressed ? files : await Promise.all(files.map(async f => ({
@@ -118,38 +164,7 @@ const Gemini = (() => {
       generationConfig: { temperature: 0.1, responseMimeType: 'application/json' },
     });
 
-    // 呼び出し経路の選択
-    let resp;
-    if (typeof Demo !== 'undefined' && Demo.isActive()) {
-      // デモモード：開発者キーのサーバープロキシ経由
-      const apiBase = window.APP_CONFIG?.apiBase || '';
-      resp = await fetch(`${apiBase}/api/gemini-proxy`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body,
-      });
-    } else if (typeof Sheets !== 'undefined' && Sheets.useProxy && Sheets.useProxy()) {
-      // B' プロキシ経由：APIキー(設定B5)はサーバー側でSAが読み、ブラウザに出さない
-      const idToken = await Auth.getIdToken();
-      const ssId = localStorage.getItem('keihi_sheet_id') || '';
-      resp = await fetch(`/api/data/gemini?sheetId=${encodeURIComponent(ssId)}`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${idToken}`, 'Content-Type': 'application/json' },
-        body,
-      });
-    } else {
-      // 直接アクセス（プロキシOFF）：設定B5またはローカルのキーで直接呼び出し
-      const key = await _getApiKey();
-      resp = await fetch(`${API_URL}?key=${key}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body,
-      });
-    }
-    if (!resp.ok) {
-      const err = await resp.json().catch(() => ({}));
-      throw new Error(err.error?.message || `Gemini API error: ${resp.status}`);
-    }
+    const resp = await _fetchWithRetry(body, onRetry);
 
     const data = await resp.json();
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
