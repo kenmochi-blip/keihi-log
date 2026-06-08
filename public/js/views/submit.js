@@ -618,17 +618,29 @@ function _bindTypeButtons(el) {
     _addSplitRowTo(pnl.querySelector('#splitLines'), pnl);
   }
 
+  const _TAX_OPTIONS = [
+    ['課税10%', '課税10%'],
+    ['課税8%',  '課税8%（軽減）'],
+    ['非課税',  '非課税'],
+    ['不課税',  '不課税'],
+  ];
+
   function _addSplitRowTo(container, pnl) {
     if (!container) return;
     const row = document.createElement('div');
-    row.className = 'split-row py-2 row g-2 align-items-center';
+    row.className = 'split-row py-2 border-bottom border-light-subtle';
     row.innerHTML = `
-      <div class="col-4"><input type="text" inputmode="numeric" class="form-control form-control-sm split-amount amount-input" placeholder="金額"></div>
-      <div class="col-6"><select class="form-select form-select-sm split-cat">
-        ${_cats.map(c => `<option value="${c}">${c}</option>`).join('')}
-      </select></div>
-      <div class="col-2 text-end">
-        <button class="btn btn-outline-danger btn-sm btn-del-row"><i class="bi bi-x"></i></button>
+      <div class="row g-1 align-items-center mb-1">
+        <div class="col"><input type="text" inputmode="numeric" class="form-control form-control-sm split-amount amount-input" placeholder="金額"></div>
+        <div class="col-auto"><button class="btn btn-outline-danger btn-sm btn-del-row"><i class="bi bi-x"></i></button></div>
+      </div>
+      <div class="row g-1">
+        <div class="col-7"><select class="form-select form-select-sm split-cat">
+          ${_cats.map(c => `<option value="${c}">${c}</option>`).join('')}
+        </select></div>
+        <div class="col-5"><select class="form-select form-select-sm split-tax">
+          ${_TAX_OPTIONS.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}
+        </select></div>
       </div>`;
     row.querySelector('.btn-del-row').addEventListener('click', () => {
       row.remove();
@@ -946,6 +958,8 @@ function _bindTypeButtons(el) {
               if (catSel && item.category) {
                 [...catSel.options].forEach(o => o.selected = o.value === item.category);
               }
+              const taxSel = lastRow.querySelector('.split-tax');
+              if (taxSel && item.tax_rate) taxSel.value = item.tax_rate;
             }
           });
           _calcSplitTotal(el);
@@ -1270,11 +1284,15 @@ function _bindTypeButtons(el) {
         const rows = pnl.querySelectorAll('.split-row');
         const rowData = Array.from(rows).map(r => {
           const raw = (r.querySelector('.split-amount')?.value || '').replace(/[^\d]/g, '');
-          return { amt: Number(raw) || 0, cat: r.querySelector('.split-cat')?.value || '' };
+          return {
+            amt: Number(raw) || 0,
+            cat: r.querySelector('.split-cat')?.value || '',
+            tax: r.querySelector('.split-tax')?.value || '課税10%',
+          };
         });
         amount   = rowData.reduce((s, r) => s + r.amt, 0);
-        // 個別金額を "科目:金額" 形式で埋め込んで保存（edit時に復元可能にする）
-        category = rowData.map(r => r.amt ? `${r.cat}:${r.amt}` : r.cat).join('/');
+        // "科目:金額:税区分" 形式で保存（edit時・CSV展開時に復元可能にする）
+        category = rowData.map(r => r.amt ? `${r.cat}:${r.amt}:${r.tax}` : r.cat).join('/');
       } else {
         const rawAmt = (pnl.querySelector('#inputAmount')?.value || '').replace(/[^\d]/g, '');
         amount   = Number(rawAmt) || 0;
@@ -1298,10 +1316,21 @@ function _bindTypeButtons(el) {
     const paySource = el.querySelector('#selPaySource')?.value || '';
     if (corpPay && !paySource) { App.showToast('会社払いの支払元を選択してください', 'danger'); return null; }
 
+    // split時はrow別税区分から全体taxRateを自動計算（単一なら共通値、複数なら「混在」）
+    const isSplitMode = !pnl.querySelector('#splitLines')?.classList.contains('d-none');
+    let taxRate;
+    if (isSplitMode) {
+      const splitTaxes = [...new Set(
+        Array.from(pnl.querySelectorAll('.split-row .split-tax')).map(s => s.value || '課税10%')
+      )];
+      taxRate = splitTaxes.length === 1 ? splitTaxes[0] : '混在';
+    } else {
+      taxRate = el.querySelector('#selTaxRate')?.value || '課税10%';
+    }
     return {
       date, place, amount, category, note,
       invoice:    pnl.querySelector('#inputInvoice')?.value?.trim() || '',
-      taxRate:    el.querySelector('#selTaxRate')?.value || '課税10%',
+      taxRate,
       customFlag: el.querySelector('#selCustomFlag')?.value || '',
       corpPay, paySource,
     };
@@ -1494,7 +1523,7 @@ function _bindTypeButtons(el) {
           if (splitLines) {
             splitLines.innerHTML = '';
             pnl.querySelector('#btnAddSplitRow')?.remove();
-            splitParts.forEach(({ cat, amount: partAmt }) => {
+            splitParts.forEach(({ cat, amount: partAmt, taxRate: partTax }) => {
               _addSplitRowTo(splitLines, pnl);
               const rows = splitLines.querySelectorAll('.split-row');
               const lastRow = rows[rows.length - 1];
@@ -1504,6 +1533,10 @@ function _bindTypeButtons(el) {
                 if (partAmt !== null) {
                   const amtInp = lastRow.querySelector('.split-amount');
                   if (amtInp) amtInp.value = Number(partAmt).toLocaleString('ja-JP');
+                }
+                if (partTax) {
+                  const taxSel = lastRow.querySelector('.split-tax');
+                  if (taxSel) taxSel.value = partTax;
                 }
               }
             });

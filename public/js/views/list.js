@@ -789,21 +789,26 @@ const ListView = (() => {
     const header = ['発生日','勘定科目','税区分','金額(税込)','税額','摘要','支払方法','申請者','備考'];
     const rows = [];
     filtered.forEach(e => {
-      const amount  = Number(e.amount) || 0;
-      const corpSrc = _corpPaySource(e);
-      const { tax, freeeKbn } = _taxInfo(amount, e.taxRate);
+      const totalAmt = Number(e.amount) || 0;
+      const corpSrc  = _corpPaySource(e);
       const payMethod = corpSrc ? corpSrc : `個人（${App.getMemberName(e.email, e.name)}）`;
-      rows.push([
-        _isoToSlash(e.date), App.categoryLabel(e.category), freeeKbn, amount, tax,
-        e.place, payMethod, App.getMemberName(e.email, e.name), e.note
-      ]);
-      // 源泉徴収がある場合は預り金行を追加
+      const splitParts = App.parseSplitCategory(e.category);
+      const isSplit = splitParts.length > 1 && splitParts.every(p => p.amount !== null);
+      if (isSplit) {
+        splitParts.forEach(p => {
+          const { tax, freeeKbn } = _taxInfo(p.amount, p.taxRate || e.taxRate);
+          rows.push([_isoToSlash(e.date), p.cat, freeeKbn, p.amount, tax,
+            e.place, payMethod, App.getMemberName(e.email, e.name), e.note]);
+        });
+      } else {
+        const { tax, freeeKbn } = _taxInfo(totalAmt, e.taxRate);
+        rows.push([_isoToSlash(e.date), App.categoryLabel(e.category), freeeKbn, totalAmt, tax,
+          e.place, payMethod, App.getMemberName(e.email, e.name), e.note]);
+      }
       const wh = Number(e.withholding) || 0;
       if (wh > 0) {
-        rows.push([
-          _isoToSlash(e.date), '預り金', '対象外', -wh, 0,
-          `${e.place}（源泉徴収）`, payMethod, App.getMemberName(e.email, e.name), ''
-        ]);
+        rows.push([_isoToSlash(e.date), '預り金', '対象外', -wh, 0,
+          `${e.place}（源泉徴収）`, payMethod, App.getMemberName(e.email, e.name), '']);
       }
     });
     const csv = [header, ...rows].map(r =>
@@ -820,34 +825,38 @@ const ListView = (() => {
     let slipNo = 0;
     filtered.forEach(e => {
       slipNo++;
-      const amount  = Number(e.amount) || 0;
-      const corpSrc = _corpPaySource(e);
-      const { tax, yayoiKbn } = _taxInfo(amount, e.taxRate);
+      const totalAmt  = Number(e.amount) || 0;
+      const corpSrc   = _corpPaySource(e);
       const creditSub = corpSrc ? corpSrc : `個人（${App.getMemberName(e.email, e.name)}）`;
       const summary   = `${e.place}${e.note ? ' ' + e.note : ''}`;
       const wh = Number(e.withholding) || 0;
-      // 源泉徴収あり：借方=経費科目 / 貸方=未払金（支払額）＋預り金（源泉額）で2行
-      if (wh > 0) {
-        const payAmt = amount - wh;
-        rows.push([
-          slipNo, '', _isoToSlash(e.date),
-          App.categoryLabel(e.category), '', yayoiKbn, amount, tax,
-          '未払金', creditSub, '', payAmt, '',
-          summary, e.id
-        ]);
-        rows.push([
-          slipNo, '', _isoToSlash(e.date),
-          '', '', '', '', '',
-          '預り金', '源泉徴収', '', wh, '',
-          `${e.place}（源泉徴収）`, e.id
-        ]);
+      const splitParts = App.parseSplitCategory(e.category);
+      const isSplit = splitParts.length > 1 && splitParts.every(p => p.amount !== null);
+      if (isSplit) {
+        splitParts.forEach((p, i) => {
+          const { tax, yayoiKbn } = _taxInfo(p.amount, p.taxRate || e.taxRate);
+          const payAmt = i === 0 && wh > 0 ? p.amount - wh : p.amount;
+          rows.push([slipNo, '', _isoToSlash(e.date),
+            p.cat, '', yayoiKbn, p.amount, tax,
+            '未払金', creditSub, '', payAmt, '',
+            summary, e.id]);
+        });
+        if (wh > 0) rows.push([slipNo, '', _isoToSlash(e.date), '', '', '', '', '',
+          '預り金', '源泉徴収', '', wh, '', `${e.place}（源泉徴収）`, e.id]);
       } else {
-        rows.push([
-          slipNo, '', _isoToSlash(e.date),
-          App.categoryLabel(e.category), '', yayoiKbn, amount, tax,
-          '未払金', creditSub, '', amount, '',
-          summary, e.id
-        ]);
+        const { tax, yayoiKbn } = _taxInfo(totalAmt, e.taxRate);
+        if (wh > 0) {
+          const payAmt = totalAmt - wh;
+          rows.push([slipNo, '', _isoToSlash(e.date),
+            App.categoryLabel(e.category), '', yayoiKbn, totalAmt, tax,
+            '未払金', creditSub, '', payAmt, '', summary, e.id]);
+          rows.push([slipNo, '', _isoToSlash(e.date), '', '', '', '', '',
+            '預り金', '源泉徴収', '', wh, '', `${e.place}（源泉徴収）`, e.id]);
+        } else {
+          rows.push([slipNo, '', _isoToSlash(e.date),
+            App.categoryLabel(e.category), '', yayoiKbn, totalAmt, tax,
+            '未払金', creditSub, '', totalAmt, '', summary, e.id]);
+        }
       }
     });
     const csv = [header, ...rows].map(r =>
@@ -862,35 +871,42 @@ const ListView = (() => {
     const header = ['取引日','借方勘定科目','借方補助科目','借方税区分','借方金額','貸方勘定科目','貸方補助科目','貸方税区分','貸方金額','摘要','メモ'];
     const rows = [];
     filtered.forEach(e => {
-      const amount  = Number(e.amount) || 0;
-      const corpSrc = _corpPaySource(e);
-      const { tax, mfcKbn } = _taxInfo(amount, e.taxRate);
+      const totalAmt  = Number(e.amount) || 0;
+      const corpSrc   = _corpPaySource(e);
       const creditSub = corpSrc ? corpSrc : `個人（${App.getMemberName(e.email, e.name)}）`;
       const summary   = `${e.place}${e.note ? ' ' + e.note : ''}`;
       const wh = Number(e.withholding) || 0;
-      if (wh > 0) {
-        const payAmt = amount - wh;
-        // 経費行（借方:経費科目 / 貸方:未払金 = 支払額）
-        rows.push([
-          _isoToSlash(e.date),
-          App.categoryLabel(e.category), '', mfcKbn, amount,
-          '未払金', creditSub, '', payAmt,
-          summary, e.id
-        ]);
-        // 源泉行（借方:未払金 / 貸方:預り金 = 源泉額）
-        rows.push([
-          _isoToSlash(e.date),
+      const splitParts = App.parseSplitCategory(e.category);
+      const isSplit = splitParts.length > 1 && splitParts.every(p => p.amount !== null);
+      if (isSplit) {
+        splitParts.forEach((p, i) => {
+          const { mfcKbn } = _taxInfo(p.amount, p.taxRate || e.taxRate);
+          const payAmt = i === 0 && wh > 0 ? p.amount - wh : p.amount;
+          rows.push([_isoToSlash(e.date),
+            p.cat, '', mfcKbn, p.amount,
+            '未払金', creditSub, '', payAmt,
+            summary, e.id]);
+        });
+        if (wh > 0) rows.push([_isoToSlash(e.date),
           '未払金', creditSub, '', wh,
           '預り金', '源泉徴収', '', wh,
-          `${e.place}（源泉徴収）`, e.id
-        ]);
+          `${e.place}（源泉徴収）`, e.id]);
       } else {
-        rows.push([
-          _isoToSlash(e.date),
-          App.categoryLabel(e.category), '', mfcKbn, amount,
-          '未払金', creditSub, '', amount,
-          summary, e.id
-        ]);
+        const { mfcKbn } = _taxInfo(totalAmt, e.taxRate);
+        if (wh > 0) {
+          const payAmt = totalAmt - wh;
+          rows.push([_isoToSlash(e.date),
+            App.categoryLabel(e.category), '', mfcKbn, totalAmt,
+            '未払金', creditSub, '', payAmt, summary, e.id]);
+          rows.push([_isoToSlash(e.date),
+            '未払金', creditSub, '', wh,
+            '預り金', '源泉徴収', '', wh,
+            `${e.place}（源泉徴収）`, e.id]);
+        } else {
+          rows.push([_isoToSlash(e.date),
+            App.categoryLabel(e.category), '', mfcKbn, totalAmt,
+            '未払金', creditSub, '', totalAmt, summary, e.id]);
+        }
       }
     });
     const csv = [header, ...rows].map(r =>

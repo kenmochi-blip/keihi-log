@@ -357,14 +357,17 @@ const App = (() => {
    *  既存ライセンスキーを載せることで、webhook が新キーを発行せず既存ライセンスを延長する。
    *  プラン（solo/team）は支払い時に選ぶ＝同じキーに選んだプランが適用される。 */
   /**
-   * "消耗品費:880/会議費:1080" → [{cat:"消耗品費", amount:880}, {cat:"会議費", amount:1080}]
-   * "消耗品費/会議費" → [{cat:"消耗品費", amount:null}, ...]
-   * 個別金額なし旧データにも対応（amount:null）
+   * "消耗品費:880:課税10%/会議費:1080:課税8%" → [{cat, amount, taxRate}, ...]
+   * "消耗品費:880/会議費:1080"（旧: taxRateなし）→ taxRate: null
+   * "消耗品費/会議費"（旧: amountなし）→ amount: null, taxRate: null
    */
   function parseSplitCategory(categoryStr) {
     return (categoryStr || '').split('/').map(s => {
-      const [cat, amt] = s.trim().split(':');
-      return { cat: cat.trim(), amount: amt !== undefined ? Number(amt) : null };
+      const parts = s.trim().split(':');
+      const cat     = parts[0].trim();
+      const amount  = parts[1] !== undefined ? Number(parts[1]) : null;
+      const taxRate = parts[2] || null;
+      return { cat, amount, taxRate };
     }).filter(p => p.cat);
   }
 

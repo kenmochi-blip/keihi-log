@@ -97,7 +97,7 @@ const Gemini = (() => {
   "total_amount": 金額（日本円の場合）またはnull（外貨の場合）,
   "category": "勘定科目（単一カテゴリの場合）",
   "category_fallback": true または false（勘定科目の判断が難しくリスト先頭を返した場合はtrue）,
-  "items": [{"amount": 金額, "category": "勘定科目"}] または null（明細分割の場合のみ使用）,
+  "items": [{"amount": 金額, "category": "勘定科目", "tax_rate": "課税10%/課税8%/非課税/不課税のいずれか"}] または null（明細分割の場合のみ使用）,
   "fx_currency": "USD/EUR等の通貨コードまたはnull",
   "fx_amount": 外貨金額またはnull,
   "tax_rate": "課税10%/課税8%/混在/非課税/不課税のいずれか",
