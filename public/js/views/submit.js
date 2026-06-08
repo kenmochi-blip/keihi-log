@@ -397,7 +397,7 @@ const SubmitView = (() => {
     // fromCache=true のとき：キャッシュ済みHTMLに正しい選択肢・選択値が含まれるため再描画不要
     if (!opts.fromCache) _populateSelects(el);
     _bindAmountInputs(el);
-    _bindTypeButtons(el);
+    _bindSubtypePills(el);
     _bindFileInputs(el);
     _bindSplitToggle(el);
     _bindCorpPay(el);
@@ -407,8 +407,7 @@ const SubmitView = (() => {
     _bindSubmit(el);
     el.querySelector('#btnRefreshHistory')?.addEventListener('click', () => _loadHistory(el, true));
     el.querySelector('#btnCancelEdit')?.addEventListener('click', () => _cancelEdit(el));
-    // 初期パネルが領収書の場合は申請ボタンを非表示
-    if (_currentType === '領収書') el.querySelector('#btnSubmit')?.classList.add('d-none');
+    el.querySelector('#btnAddMore')?.addEventListener('click', () => el.querySelector('#fileInput-領収書')?.click());
     // fromCache=true のとき：スワイプ由来でキャッシュ済みHTMLが表示されているため再ロード不要
     // 手動リフレッシュボタンはいつでも使える
     if (!opts.fromCache) _loadHistory(el);
@@ -469,28 +468,37 @@ const SubmitView = (() => {
     });
   }
 
-function _bindTypeButtons(el) {
-    el.querySelectorAll('[data-type]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        _currentType = btn.dataset.type;
+function _bindSubtypePills(el) {
+  el.querySelectorAll('.subtype-pill[data-type]').forEach(pill => {
+    pill.addEventListener('click', () => {
+      const type = pill.dataset.type;
+      if (_currentType === type) {
+        // 同じピルを再クリック → 解除、領収書モードに戻る
+        _currentType = '領収書';
         _selectedFiles = []; _compressedFiles = []; _compressPromise = null;
         _aiAutoPromise = null; _prefetchedTime = null; ++_aiAutoVersion;
-        el.querySelectorAll('[data-type]').forEach(b => {
-          b.classList.toggle('active', b.dataset.type === _currentType);
+        el.querySelectorAll('.subtype-pill').forEach(p => p.classList.remove('active'));
+        ['領収書なし', '電車/バス', '自家用車'].forEach(t => {
+          el.querySelector(`#panel-${_typeId(t)}`)?.classList.add('d-none');
         });
-        TYPES.forEach(t => {
-          el.querySelector(`#panel-${_typeId(t)}`)?.classList.toggle('d-none', t !== _currentType);
-        });
-        // 領収書：フォームとボタンを非表示（AI読み取り後に表示）
-        if (_currentType === '領収書') {
-          el.querySelector('#receiptFields')?.classList.add('d-none');
-          el.querySelector('#btnSubmit')?.classList.add('d-none');
-        } else {
-          el.querySelector('#btnSubmit')?.classList.remove('d-none');
-        }
+        el.querySelector('#heroZone')?.classList.remove('d-none');
+        el.querySelector('#submitUnit')?.classList.add('d-none');
+        return;
+      }
+      _currentType = type;
+      _selectedFiles = []; _compressedFiles = []; _compressPromise = null;
+      _aiAutoPromise = null; _prefetchedTime = null; ++_aiAutoVersion;
+      el.querySelectorAll('.subtype-pill').forEach(p => p.classList.toggle('active', p === pill));
+      ['領収書なし', '電車/バス', '自家用車'].forEach(t => {
+        el.querySelector(`#panel-${_typeId(t)}`)?.classList.toggle('d-none', t !== type);
       });
+      el.querySelector('#heroZone')?.classList.add('d-none');
+      el.querySelector('#btnAnalyze')?.classList.add('d-none');
+      el.querySelector('#receiptFields')?.classList.add('d-none');
+      el.querySelector('#submitUnit')?.classList.remove('d-none');
     });
-  }
+  });
+}
 
   function _bindFileInputs(el) {
     const processFiles = async (el, type, files) => {
@@ -499,6 +507,12 @@ function _bindTypeButtons(el) {
         const base64 = await Drive.fileToBase64(file);
         _selectedFiles.push({ base64, mimeType: file.type, name: file.name });
         _addPreviewItem(el, type, base64, file.type, _selectedFiles.length - 1);
+      }
+
+      if (type === '領収書' && _selectedFiles.filter(Boolean).length > 0) {
+        el.querySelector('#heroDefault')?.classList.add('d-none');
+        el.querySelector('#heroPreview')?.classList.remove('d-none');
+        el.querySelector('#btnAnalyze')?.classList.remove('d-none');
       }
 
       // 領収書タイプの場合：写真選択直後にバックグラウンドで先読みを開始
@@ -539,10 +553,10 @@ function _bindTypeButtons(el) {
       if (fileBtn) fileBtn.addEventListener('click', () => fileInput.click());
       fileInput.addEventListener('change', e => { processFiles(el, type, e.target.files); e.target.value = ''; });
 
-      // ドラッグ＆ドロップ（領収書カード全体 or 参考資料エリア）
-      const dropZone = el.querySelector(
-        type === '領収書' ? '.receipt-upload-card' : `#previewArea-${_typeId(type)}`
-      )?.closest(type === '領収書' ? '.receipt-upload-card' : '.mb-2') ?? null;
+      // ドラッグ＆ドロップ（領収書ヒーローゾーン全体 or 参考資料エリア）
+      const dropZone = type === '領収書'
+        ? el.querySelector('#heroZone')
+        : el.querySelector(`#previewArea-${_typeId(type)}`)?.closest('.mb-2') ?? null;
       if (!dropZone) return;
 
       dropZone.addEventListener('dragover', e => {
@@ -579,6 +593,14 @@ function _bindTypeButtons(el) {
     div.querySelector('.remove-btn').addEventListener('click', () => {
       _selectedFiles[idx] = null;
       div.remove();
+      if (type === '領収書') {
+        const area2 = el.querySelector('#previewArea-領収書');
+        if (area2 && area2.children.length === 0 && _existingUrls.filter(Boolean).length === 0) {
+          el.querySelector('#heroDefault')?.classList.remove('d-none');
+          el.querySelector('#heroPreview')?.classList.add('d-none');
+          el.querySelector('#btnAnalyze')?.classList.add('d-none');
+        }
+      }
     });
     area.appendChild(div);
   }
@@ -693,14 +715,20 @@ function _bindTypeButtons(el) {
   }
 
   function _bindCorpPay(el) {
-    el.querySelector('#chkCorpPay')?.addEventListener('change', e => {
+    function setCorpPay(isCorp) {
+      const chk = el.querySelector('#chkCorpPay');
+      if (chk) chk.checked = isCorp;
+      el.querySelector('#btnPaySelf')?.classList.toggle('active', !isCorp);
+      el.querySelector('#btnPayCorp')?.classList.toggle('active', isCorp);
       const details = el.querySelector('#corpPayDetails');
-      details.classList.toggle('d-none', !e.target.checked);
-      if (e.target.checked) {
+      if (details) details.classList.toggle('d-none', !isCorp);
+      if (isCorp) {
         const sel = el.querySelector('#selPaySource');
         if (sel && !sel.value && _paySources.length > 0) sel.value = _paySources[0];
       }
-    });
+    }
+    el.querySelector('#btnPaySelf')?.addEventListener('click', () => setCorpPay(false));
+    el.querySelector('#btnPayCorp')?.addEventListener('click', () => setCorpPay(true));
   }
 
   function _bindTransitCalc(el) {
@@ -1061,7 +1089,7 @@ function _bindTypeButtons(el) {
 
   function _showReceiptFields(el) {
     el.querySelector('#receiptFields')?.classList.remove('d-none');
-    el.querySelector('#btnSubmit')?.classList.remove('d-none');
+    el.querySelector('#submitUnit')?.classList.remove('d-none');
   }
 
   /** サーバー時刻を事前取得して _prefetchedTime に保存する（申請時の待ちをゼロにする） */
@@ -1507,13 +1535,29 @@ function _bindTypeButtons(el) {
     _editId = id;
     _existingUrls = e.imageLinks ? e.imageLinks.split(',').map(s => s.trim()).filter(Boolean) : [];
     _existingHash = e.imageHash || '';
+    _currentType = e.type;
 
-    // タイプ切り替え（_currentType も更新される）
-    const typeBtn = el.querySelector(`[data-type="${e.type}"]`);
-    if (typeBtn) typeBtn.click();
+    // サブタイプピルの状態とパネル表示
+    el.querySelectorAll('.subtype-pill').forEach(p => {
+      p.classList.toggle('active', p.dataset.type === e.type);
+    });
+    ['領収書なし', '電車/バス', '自家用車'].forEach(t => {
+      el.querySelector(`#panel-${_typeId(t)}`)?.classList.toggle('d-none', t !== e.type);
+    });
 
     setTimeout(() => {
-      if (e.type === '領収書') _showReceiptFields(el);
+      if (e.type === '領収書') {
+        _showReceiptFields(el);
+        if (_existingUrls.filter(Boolean).length > 0) {
+          el.querySelector('#heroDefault')?.classList.add('d-none');
+          el.querySelector('#heroPreview')?.classList.remove('d-none');
+          el.querySelector('#btnAnalyze')?.classList.remove('d-none');
+        }
+      } else {
+        el.querySelector('#heroZone')?.classList.add('d-none');
+        el.querySelector('#btnAnalyze')?.classList.add('d-none');
+      }
+
       const pnl = _activePanel(el);
 
       // 共通フィールド（パネルにスコープ）
@@ -1522,7 +1566,7 @@ function _bindTypeButtons(el) {
       const noteInput = pnl.querySelector('#inputNote');
       if (noteInput) noteInput.value = e.note || '';
 
-      // タイプ別フィールド
+      // タイプ別フィールド（keep exact same logic as original)
       if (e.type === '領収書' || e.type === '領収書なし') {
         const placeInput = pnl.querySelector('#inputPlace');
         if (placeInput) placeInput.value = e.place || '';
@@ -1530,7 +1574,6 @@ function _bindTypeButtons(el) {
         if (invInput) invInput.value = e.invoice || '';
         const splitParts = App.parseSplitCategory(e.category);
         if (splitParts.length > 1) {
-          // 明細分割モードを復元（"科目:金額" 形式なら個別金額も復元）
           const splitLines = pnl.querySelector('#splitLines');
           const singleLine = pnl.querySelector('#singleLine');
           const splitTotalEl = pnl.querySelector('#splitTotal');
@@ -1588,15 +1631,25 @@ function _bindTypeButtons(el) {
         if (selC) [...selC.options].forEach(o => o.selected = o.value === e.category);
       }
 
-      // 既存証票をプレビューエリアに表示
+      // 会社払いセグメントの状態を復元
+      if (e.corpPay) {
+        el.querySelector('#chkCorpPay') && (el.querySelector('#chkCorpPay').checked = true);
+        el.querySelector('#btnPaySelf')?.classList.remove('active');
+        el.querySelector('#btnPayCorp')?.classList.add('active');
+        el.querySelector('#corpPayDetails')?.classList.remove('d-none');
+        const sel = el.querySelector('#selPaySource');
+        if (sel && e.paySource) sel.value = e.paySource;
+      }
+
       _renderExistingUrlPreviews(el, e.type);
 
       el.querySelector('#editBanner')?.classList.remove('d-none');
-      el.querySelector('.type-grid')?.classList.add('d-none');
+      el.querySelector('#subtypeCard')?.classList.add('d-none');
       el.querySelector('#historySection')?.classList.add('d-none');
       el.querySelector('#regulationAcc')?.classList.add('d-none');
+      el.querySelector('#submitUnit')?.classList.remove('d-none');
       const btn = el.querySelector('#btnSubmit');
-      if (btn) { btn.textContent = '上書き保存'; btn.className = 'btn btn-warning btn-lg rounded-3'; }
+      if (btn) { btn.textContent = '上書き保存'; btn.style.cssText = 'background:#cc8800;'; }
       el.scrollIntoView({ behavior: 'smooth' });
     }, 100);
   }
@@ -1646,40 +1699,67 @@ function _bindTypeButtons(el) {
 
   function _resetForm(el) {
     _selectedFiles = []; _compressedFiles = []; _compressPromise = null;
-    _aiAutoPromise = null; _prefetchedTime = null; ++_aiAutoVersion; // プリフェッチ状態をリセット
-    // AIボタンをデフォルトに戻す
-    const analyzeBtn = el.querySelector('#btnAnalyze');
-    if (analyzeBtn && !analyzeBtn.disabled) analyzeBtn.innerHTML = '<i class="bi bi-stars me-2"></i>AIで読み取る';
+    _aiAutoPromise = null; _prefetchedTime = null; ++_aiAutoVersion;
     _editId = null;
     _returnAfterEdit = null;
     _withholdingAmount = 0;
+
+    // AIボタンをリセット（非表示に戻す）
+    const analyzeBtn = el.querySelector('#btnAnalyze');
+    if (analyzeBtn) {
+      analyzeBtn.innerHTML = '<i class="bi bi-stars me-2"></i>AIで読み取る';
+      analyzeBtn.disabled = false;
+      analyzeBtn.className = 'btn-ai d-none mb-3';
+    }
+
+    // ヒーローゾーンをリセット
     el.querySelector('#editBanner')?.classList.add('d-none');
-    el.querySelector('.type-grid')?.classList.remove('d-none');
+    el.querySelector('#heroZone')?.classList.remove('d-none');
+    el.querySelector('#heroDefault')?.classList.remove('d-none');
+    el.querySelector('#heroPreview')?.classList.add('d-none');
+    el.querySelector('#subtypeCard')?.classList.remove('d-none');
     el.querySelector('#historySection')?.classList.remove('d-none');
     el.querySelector('#regulationAcc')?.classList.remove('d-none');
-    const btn = el.querySelector('#btnSubmit');
-    if (btn) { btn.innerHTML = '<i class="bi bi-send me-2"></i>登録する'; btn.className = 'btn btn-primary btn-lg rounded-3'; }
-    TYPES.forEach(t => el.querySelector(`#previewArea-${_typeId(t)}`)?.replaceChildren());
+    el.querySelector('#submitUnit')?.classList.add('d-none');
     el.querySelector('#receiptFields')?.classList.add('d-none');
-    // 領収書パネルのリセット時は申請ボタンを非表示
-    if (_currentType === '領収書') el.querySelector('#btnSubmit')?.classList.add('d-none');
-    // 重複IDは querySelectorAll で全パネル一括リセット
+
+    // タイプリセット
+    _currentType = '領収書';
+    el.querySelectorAll('.subtype-pill').forEach(p => p.classList.remove('active'));
+    ['領収書なし', '電車/バス', '自家用車'].forEach(t => {
+      el.querySelector(`#panel-${_typeId(t)}`)?.classList.add('d-none');
+    });
+
+    // 送信ボタンをリセット
+    const btn = el.querySelector('#btnSubmit');
+    if (btn) {
+      btn.innerHTML = '<i class="bi bi-send me-1"></i>登録する';
+      btn.className = 'submit-unit-action';
+      btn.style.cssText = '';
+    }
+
+    // 会社払いをリセット
+    el.querySelector('#btnPaySelf')?.classList.add('active');
+    el.querySelector('#btnPayCorp')?.classList.remove('active');
+    el.querySelector('#chkCorpPay') && (el.querySelector('#chkCorpPay').checked = false);
+    el.querySelector('#corpPayDetails')?.classList.add('d-none');
+
+    // ファイルプレビューをクリア
+    TYPES.forEach(t => el.querySelector(`#previewArea-${_typeId(t)}`)?.replaceChildren());
+
+    // フォームフィールドをクリア
     const today = new Date().toISOString().split('T')[0];
     el.querySelectorAll('#inputDate').forEach(i => { i.value = today; });
     el.querySelectorAll('#inputPlace').forEach(i => { i.value = ''; });
     el.querySelectorAll('#inputAmount').forEach(i => { i.value = ''; });
     el.querySelectorAll('#inputNote').forEach(i => { i.value = ''; });
     el.querySelectorAll('#inputInvoice').forEach(i => { i.value = ''; });
-    el.querySelector('#chkCorpPay') && (el.querySelector('#chkCorpPay').checked = false);
-    el.querySelector('#corpPayDetails')?.classList.add('d-none');
-    // 交通費・自家用車の専用フィールドもクリア
-    el.querySelector('#txtFrom')     && (el.querySelector('#txtFrom').value = '');
-    el.querySelector('#txtTo')       && (el.querySelector('#txtTo').value = '');
-    el.querySelector('#txtCarRoute') && (el.querySelector('#txtCarRoute').value = '');
+    el.querySelector('#txtFrom')        && (el.querySelector('#txtFrom').value = '');
+    el.querySelector('#txtTo')          && (el.querySelector('#txtTo').value = '');
+    el.querySelector('#txtCarRoute')    && (el.querySelector('#txtCarRoute').value = '');
     el.querySelector('#numTransitFare') && (el.querySelector('#numTransitFare').value = '');
     el.querySelector('#numCarKm')       && (el.querySelector('#numCarKm').value = '');
     el.querySelector('#txtReason')      && (el.querySelector('#txtReason').value = '');
-    // 往復チェック・検索結果・合計表示もクリア
     const chkRound = el.querySelector('#chkRoundTrip');
     if (chkRound) chkRound.checked = false;
     el.querySelector('#transitResult')?.classList.add('d-none');

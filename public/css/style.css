@@ -475,3 +475,97 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
   --bs-tooltip-bg: rgba(33, 37, 41, 0.82);
   --bs-tooltip-font-size: 0.68rem;
 }
+
+/* ─── SubmitView: カメラ起点ヒーローゾーン ─── */
+.hero-zone {
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px 16px 18px;
+  text-align: center;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+  border: 2px dashed transparent;
+  transition: border-color 0.15s, background 0.15s;
+}
+.hero-zone.drag-over { border-color: #0d6efd; background: #f0f5ff; }
+.hero-icon-wrap {
+  width: 56px; height: 56px; border-radius: 50%;
+  background: linear-gradient(145deg, #5aa6ff 0%, #0d6efd 100%);
+  display: inline-flex; align-items: center; justify-content: center;
+  margin-bottom: 12px; box-shadow: 0 4px 12px rgba(13,110,253,0.28);
+}
+.hero-icon-wrap i { font-size: 1.6rem; color: #fff; }
+.hero-title { font-size: 1rem; font-weight: 800; color: #212529; margin-bottom: 14px; }
+.hero-btn-camera {
+  width: 100%; padding: 13px 16px; border-radius: 12px;
+  background: #0d6efd; color: #fff; border: none;
+  font-size: 0.95rem; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  cursor: pointer; box-shadow: 0 3px 12px rgba(13,110,253,0.30);
+  transition: filter 0.12s; margin-bottom: 9px;
+}
+.hero-btn-camera:active { filter: brightness(0.9); }
+.hero-btn-camera i { font-size: 1.2rem; }
+.hero-btn-file {
+  width: 100%; padding: 10px 16px; border-radius: 10px;
+  background: #f4f7ff; color: #3d71d4; border: 1.5px solid #c8d8f8;
+  font-size: 0.85rem; font-weight: 600;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  cursor: pointer; transition: background 0.12s, border-color 0.12s;
+}
+.hero-btn-file:hover { background: #e8f0fe; border-color: #90beff; }
+/* AIボタン */
+.btn-ai {
+  width: 100%; padding: 13px; border-radius: 12px;
+  font-size: 0.95rem; font-weight: 700; border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  background: linear-gradient(135deg, #7c3aed, #0d6efd); color: #fff;
+  box-shadow: 0 4px 14px rgba(99,60,228,0.35);
+  transition: opacity 0.15s, transform 0.1s;
+}
+.btn-ai:disabled { background: #e9ecef; color: #adb5bd; cursor: not-allowed; box-shadow: none; }
+.btn-ai:not(:disabled):active { transform: scale(0.98); }
+/* サブタイプ選択 */
+.subtype-divider {
+  text-align: center; font-size: 0.75rem; color: #adb5bd;
+  display: flex; align-items: center; gap: 10px;
+}
+.subtype-divider::before, .subtype-divider::after { content: ''; flex: 1; height: 1px; background: #dee2e6; }
+.subtype-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.subtype-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 7px 15px; border-radius: 20px; border: 1.5px solid #dee2e6;
+  background: #fff; font-size: 0.78rem; font-weight: 600; color: #6c757d;
+  cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  transition: border-color 0.12s, background 0.12s, color 0.12s;
+}
+.subtype-pill i { font-size: 0.88rem; }
+.subtype-pill:hover, .subtype-pill.active { border-color: #0d6efd; background: #e8f0fe; color: #0d6efd; }
+/* 統合送信カード */
+.submit-unit {
+  border: 2px solid #0d6efd; border-radius: 16px; padding: 12px;
+  background: #fff; box-shadow: 0 4px 18px rgba(13,110,253,0.15);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.submit-unit-inner { border: 1.5px solid #e2e8f0; border-radius: 11px; overflow: hidden; }
+.pay-segment {
+  display: grid; grid-template-columns: 1fr 1fr;
+  background: #e9ecef; padding: 3px; gap: 2px;
+}
+.pay-seg-btn {
+  border: none; border-radius: 8px; padding: 10px 8px;
+  font-size: 0.78rem; font-weight: 600; color: #6c757d; background: transparent;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  gap: 5px; transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+  line-height: 1.2; white-space: nowrap;
+}
+.pay-seg-btn i { font-size: 0.9rem; flex-shrink: 0; }
+.pay-seg-btn.active { background: #fff; color: #212529; box-shadow: 0 1px 4px rgba(0,0,0,0.12); }
+.pay-seg-btn.active.corp { color: #0d6efd; }
+.submit-unit-source { padding: 10px 12px; border-top: 1px solid #e9ecef; }
+.submit-unit-action {
+  width: 100%; border: none; background: #0d6efd; color: #fff;
+  font-size: 1rem; font-weight: 700; padding: 14px 16px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  cursor: pointer; transition: background 0.12s;
+}
+.submit-unit-action:active { background: #0b5ed7; }
