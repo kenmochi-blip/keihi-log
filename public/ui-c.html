@@ -86,52 +86,7 @@
       animation: formSlideIn 0.2s ease-out both;
     }
 
-    /* スプリット送信ボタン */
-    .split-submit-wrap {
-      margin-top: 12px;
-      margin-bottom: 16px;
-    }
-    .split-submit-label {
-      text-align: center;
-      font-size: 0.72rem;
-      color: #6c757d;
-      margin-bottom: 6px;
-    }
-    .split-submit {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      border-radius: 14px;
-      overflow: hidden;
-      box-shadow: 0 3px 12px rgba(0,0,0,0.14);
-      gap: 2px;
-      background: #dee2e6;
-    }
-    .split-submit-btn {
-      border: none;
-      padding: 14px 10px;
-      font-weight: 700;
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 5px;
-      touch-action: manipulation;
-      transition: filter 0.12s;
-      line-height: 1.25;
-    }
-    .split-submit-btn:active { filter: brightness(0.9); }
-    .split-submit-btn .ssb-icon { font-size: 1.3rem; }
-    .split-submit-btn .ssb-label { font-size: 0.72rem; opacity: 0.85; }
-    .split-submit-btn .ssb-main  { font-size: 0.88rem; }
-    .split-submit-btn.jiritsu {
-      background: #0d6efd;
-      color: #fff;
-    }
-    .split-submit-btn.corp {
-      background: #3d5a99;
-      color: #fff;
-    }
+    .corp-source-wrap { animation: formSlideIn 0.18s ease-out both; }
 
     .hero-title {
       font-size: 1.05rem;
@@ -545,22 +500,39 @@
 
     // ─── 支払区分セグメント ───
     function paySegHtml() {
+      const uid = Math.random().toString(36).slice(2, 7);
       return `
-        <div class="split-submit-wrap">
-          <div class="split-submit-label">精算方法を選んで登録</div>
-          <div class="split-submit">
-            <button class="split-submit-btn jiritsu" onclick="mockSubmit()">
-              <span class="ssb-icon"><i class="bi bi-person-fill"></i></span>
-              <span class="ssb-main">立替として登録</span>
-              <span class="ssb-label">（精算あり）</span>
-            </button>
-            <button class="split-submit-btn corp" onclick="mockSubmit()">
-              <span class="ssb-icon"><i class="bi bi-building"></i></span>
-              <span class="ssb-main">会社払いで登録</span>
-              <span class="ssb-label">（精算なし）</span>
-            </button>
+        <div class="pay-segment mb-2" id="paySeg-${uid}">
+          <button class="pay-seg-btn active" onclick="selectPaySeg('self','${uid}')">
+            <i class="bi bi-person-fill"></i>自分が立替え（精算あり）
+          </button>
+          <button class="pay-seg-btn corp" onclick="selectPaySeg('corp','${uid}')">
+            <i class="bi bi-building"></i>会社払い（精算なし）
+          </button>
+        </div>
+        <div id="corpSource-${uid}" class="d-none mb-2 corp-source-wrap">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body py-2">
+              <label class="form-label small fw-semibold mb-1">支払元</label>
+              <select class="form-select form-select-sm">
+                <option value="">支払元を選択</option>
+                <option>法人カード</option><option>法人口座振込</option>
+              </select>
+            </div>
           </div>
+        </div>
+        <div class="d-grid mt-2 mb-4">
+          <button class="btn btn-primary btn-lg rounded-3" onclick="mockSubmit()">
+            <i class="bi bi-send me-2"></i>登録する
+          </button>
         </div>`;
+    }
+    function selectPaySeg(val, uid) {
+      const seg = document.getElementById(`paySeg-${uid}`);
+      if (!seg) return;
+      seg.querySelectorAll('.pay-seg-btn').forEach(b => b.classList.remove('active'));
+      seg.querySelectorAll('.pay-seg-btn')[val === 'self' ? 0 : 1].classList.add('active');
+      document.getElementById(`corpSource-${uid}`).classList.toggle('d-none', val === 'self');
     }
 
     // ─── ファイル選択 ───
