@@ -1706,8 +1706,9 @@ function _bindSubtypePills(el) {
         await Sheets.deleteRow('経費一覧', rowNum);
       }
 
+      App.clearExpensesCache();
       App.showToast('削除しました', 'success');
-      _loadHistory(el);
+      _loadHistory(el, true);
     } catch (err) {
       App.showToast('削除エラー: ' + err.message, 'danger');
     } finally {
