@@ -377,24 +377,26 @@
         <i class="bi bi-stars"></i>AIで読み取る
       </button>
 
-      <!-- サブタイプ仕切り -->
-      <div class="subtype-divider mb-3">レシート以外の申請</div>
-
-      <!-- サブタイプ Pill -->
-      <div class="subtype-row mb-3">
-        <button class="subtype-pill" data-sub="transit" onclick="toggleSub('transit')">
-          <i class="bi bi-train-front-fill"></i>電車/バス
-        </button>
-        <button class="subtype-pill" data-sub="car" onclick="toggleSub('car')">
-          <i class="bi bi-car-front-fill"></i>自家用車
-        </button>
-        <button class="subtype-pill" data-sub="nashi" onclick="toggleSub('nashi')">
-          <i class="bi bi-pencil-square"></i>領収書なし
-        </button>
+      <!-- その他の申請（枠付き） -->
+      <div class="card border shadow-sm mb-4" style="border-color:#dee2e6 !important;">
+        <div class="card-body py-3 px-3">
+          <div class="subtype-divider mb-3" style="font-size:0.75rem;color:#adb5bd;">その他の申請</div>
+          <div class="subtype-row">
+            <button class="subtype-pill" data-sub="transit" onclick="toggleSub('transit')">
+              <i class="bi bi-train-front-fill"></i>電車/バス
+            </button>
+            <button class="subtype-pill" data-sub="car" onclick="toggleSub('car')">
+              <i class="bi bi-car-front-fill"></i>自家用車
+            </button>
+            <button class="subtype-pill" data-sub="nashi" onclick="toggleSub('nashi')">
+              <i class="bi bi-pencil-square"></i>領収書なし
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- 支払区分セグメント -->
-      <div class="pay-segment mb-3">
+      <div class="pay-segment mb-2">
         <button class="pay-seg-btn active" id="segSelf" onclick="selectPaySeg('self')">
           <i class="bi bi-person-fill"></i>自分が立替え（精算あり）
         </button>
@@ -403,7 +405,7 @@
         </button>
       </div>
       <!-- 会社払い：支払元セレクト（会社払い選択時のみ表示） -->
-      <div id="corpSourceWrap" class="d-none mb-3">
+      <div id="corpSourceWrap" class="d-none mb-2">
         <div class="corp-source card border-0 shadow-sm">
           <div class="card-body py-2">
             <label class="form-label small fw-semibold mb-1">支払元</label>
@@ -423,7 +425,7 @@
       <div id="subForm" class="d-none"></div>
 
       <!-- ─── 直近の自分の履歴 ─── -->
-      <div class="history-section mt-3" id="historySection">
+      <div class="history-section mt-4" id="historySection">
         <div class="history-section-title">
           <span>直近の自分の履歴</span>
           <button class="refresh-btn"><i class="bi bi-arrow-clockwise"></i>更新</button>
