@@ -522,6 +522,13 @@ function _bindSubtypePills(el) {
 
   function _bindFileInputs(el) {
     const processFiles = async (el, type, files) => {
+      // 領収書の場合：base64変換を待たずに即座にAIボタン画面へ遷移
+      if (type === '領収書' && files.length > 0) {
+        el.querySelector('#heroDefault')?.classList.add('d-none');
+        el.querySelector('#heroPreview')?.classList.remove('d-none');
+        el.querySelector('#btnAnalyze')?.classList.remove('d-none');
+      }
+
       for (const file of files) {
         if (file.size > 10 * 1024 * 1024) { App.showToast(`${file.name} は10MBを超えています`, 'warning'); continue; }
         const base64 = await Drive.fileToBase64(file);
@@ -529,10 +536,12 @@ function _bindSubtypePills(el) {
         _addPreviewItem(el, type, base64, file.type, _selectedFiles.length - 1);
       }
 
-      if (type === '領収書' && _selectedFiles.filter(Boolean).length > 0) {
-        el.querySelector('#heroDefault')?.classList.add('d-none');
-        el.querySelector('#heroPreview')?.classList.remove('d-none');
-        el.querySelector('#btnAnalyze')?.classList.remove('d-none');
+      // 全ファイルがサイズエラーで追加されなかった場合はUIを元に戻す
+      if (type === '領収書' && _selectedFiles.filter(Boolean).length === 0 && _existingUrls.filter(Boolean).length === 0) {
+        el.querySelector('#heroDefault')?.classList.remove('d-none');
+        el.querySelector('#heroPreview')?.classList.add('d-none');
+        el.querySelector('#btnAnalyze')?.classList.add('d-none');
+        return;
       }
 
       // 領収書タイプの場合：写真選択直後にバックグラウンドで先読みを開始
@@ -1089,8 +1098,8 @@ function _bindSubtypePills(el) {
         App.showToast(`源泉徴収税額 ¥${_withholdingAmount.toLocaleString()} を検出しました`, 'info');
       }
 
-      // 解析完了後、日付フィールド先頭へスクロール（登録ボタンも画面内に入るよう start 基準）
-      el.querySelector('#inputDate')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // 解析完了後、登録ボタンが下端に来るようスクロール
+      el.querySelector('#submitUnit')?.scrollIntoView({ behavior: 'smooth', block: 'end' });
 
       if (filled === 0) {
         App.showToast('読み取れませんでした。内容を手動で入力してください', 'warning');
