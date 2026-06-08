@@ -117,7 +117,7 @@ const SubmitView = (() => {
   <div id="panel-領収書なし" class="d-none">
     ${_dateField()}
     ${_placeField('支払先・目的')}
-    ${_amountSection()}
+    ${_amountSectionNoReceipt()}
     <div class="mb-2">
       <label class="form-label small fw-semibold">理由・詳細 <span class="text-danger">*</span></label>
       <textarea class="form-control form-control-sm" id="txtReason" rows="3"
@@ -386,6 +386,15 @@ const SubmitView = (() => {
     </div>`;
   }
 
+  function _amountSectionNoReceipt() {
+    return `
+    <div class="mb-2">
+      <label class="form-label small fw-semibold mb-1">金額・勘定科目 <span class="text-danger">*</span></label>
+      <div id="splitLines"></div>
+      <div id="splitTotal" class="text-end text-muted small mt-1">合計: <span id="lblSplitTotal">0</span>円</div>
+    </div>`;
+  }
+
   async function bindEvents(el, opts = {}) {
     // マスタデータ読み込み
     try {
@@ -401,6 +410,12 @@ const SubmitView = (() => {
     _bindSubtypePills(el);
     _bindFileInputs(el);
     _bindSplitToggle(el);
+    // 領収書なしは常に分割モード → 初期1行を追加
+    const _noPanel = el.querySelector('#panel-領収書なし');
+    if (_noPanel) {
+      const _noSplit = _noPanel.querySelector('#splitLines');
+      if (_noSplit && _noSplit.children.length === 0) _addSplitRowTo(_noSplit, _noPanel);
+    }
     _bindCorpPay(el);
     _bindTransitCalc(el);
     _initCarRate(el);
@@ -1594,7 +1609,9 @@ function _bindSubtypePills(el) {
         const invInput = pnl.querySelector('#inputInvoice');
         if (invInput) invInput.value = e.invoice || '';
         const splitParts = App.parseSplitCategory(e.category);
-        if (splitParts.length > 1) {
+        // singleLineがないパネル（領収書なし）は常に分割パスへ
+        const noSingleLine = !pnl.querySelector('#singleLine');
+        if (splitParts.length > 1 || noSingleLine) {
           const splitLines = pnl.querySelector('#splitLines');
           const singleLine = pnl.querySelector('#singleLine');
           const splitTotalEl = pnl.querySelector('#splitTotal');
@@ -1613,13 +1630,18 @@ function _bindSubtypePills(el) {
               if (lastRow) {
                 const catSel = lastRow.querySelector('.split-cat');
                 if (catSel) [...catSel.options].forEach(o => o.selected = o.value === cat);
-                if (partAmt !== null) {
+                // 旧形式（amount未埋め込み）は e.amount にフォールバック
+                const resolvedAmt = partAmt !== null ? partAmt : (splitParts.length === 1 ? e.amount : null);
+                if (resolvedAmt !== null) {
                   const amtInp = lastRow.querySelector('.split-amount');
-                  if (amtInp) amtInp.value = Number(partAmt).toLocaleString('ja-JP');
+                  if (amtInp) amtInp.value = Number(resolvedAmt).toLocaleString('ja-JP');
                 }
                 if (partTax) {
                   const taxSel = lastRow.querySelector('.split-tax');
                   if (taxSel) taxSel.value = partTax;
+                } else if (e.taxRate) {
+                  const taxSel = lastRow.querySelector('.split-tax');
+                  if (taxSel) taxSel.value = e.taxRate;
                 }
               }
             });
@@ -1787,6 +1809,17 @@ function _bindSubtypePills(el) {
     el.querySelector('#transitResult')?.classList.add('d-none');
     const lblTotal = el.querySelector('#lblTransitTotal');
     if (lblTotal) lblTotal.textContent = '¥0';
+
+    // 領収書なしパネルの分割行を初期1行にリセット
+    const noPanel = el.querySelector('#panel-領収書なし');
+    if (noPanel) {
+      const noSplit = noPanel.querySelector('#splitLines');
+      if (noSplit) {
+        noSplit.innerHTML = '';
+        noPanel.querySelector('#btnAddSplitRow')?.remove();
+        _addSplitRowTo(noSplit, noPanel);
+      }
+    }
   }
 
   function _escape(s) {
