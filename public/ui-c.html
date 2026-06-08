@@ -36,17 +36,55 @@
 
     /* アイコン円 */
     .hero-icon-wrap {
-      width: 76px;
-      height: 76px;
+      width: 56px;
+      height: 56px;
       border-radius: 50%;
       background: linear-gradient(145deg, #5aa6ff 0%, #0d6efd 100%);
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: 14px;
-      box-shadow: 0 6px 18px rgba(13,110,253,0.32);
+      margin-bottom: 12px;
+      box-shadow: 0 4px 12px rgba(13,110,253,0.28);
     }
-    .hero-icon-wrap i { font-size: 2.2rem; color: #fff; }
+    .hero-icon-wrap i { font-size: 1.6rem; color: #fff; }
+
+    /* 会社払いセグメントコントロール */
+    .pay-segment {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      background: #e9ecef;
+      border-radius: 10px;
+      padding: 3px;
+      gap: 2px;
+    }
+    .pay-seg-btn {
+      border: none;
+      border-radius: 8px;
+      padding: 9px 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #6c757d;
+      background: transparent;
+      cursor: pointer;
+      touch-action: manipulation;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+      line-height: 1.2;
+    }
+    .pay-seg-btn i { font-size: 0.95rem; flex-shrink: 0; }
+    .pay-seg-btn.active {
+      background: #fff;
+      color: #212529;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+    }
+    .pay-seg-btn.active.corp { color: #0d6efd; }
+    /* 会社払い選択時のフォロー表示 */
+    .corp-source {
+      animation: formSlideIn 0.2s ease-out both;
+    }
 
     .hero-title {
       font-size: 1.05rem;
@@ -355,12 +393,25 @@
         </button>
       </div>
 
-      <!-- 会社払いトグル -->
-      <div class="card mb-3 border-0 shadow-sm">
-        <div class="card-body py-2">
-          <div class="form-check form-switch d-flex align-items-center gap-2 mb-0">
-            <input class="form-check-input" type="checkbox" id="chkCorpPay" style="width:2.5rem;height:1.3rem;">
-            <label class="form-check-label fw-semibold" for="chkCorpPay">会社払い（立替精算なし）</label>
+      <!-- 支払区分セグメント -->
+      <div class="pay-segment mb-3">
+        <button class="pay-seg-btn active" id="segSelf" onclick="selectPaySeg('self')">
+          <i class="bi bi-person-fill"></i>自分が立替え（精算あり）
+        </button>
+        <button class="pay-seg-btn corp" id="segCorp" onclick="selectPaySeg('corp')">
+          <i class="bi bi-building"></i>会社払い（精算なし）
+        </button>
+      </div>
+      <!-- 会社払い：支払元セレクト（会社払い選択時のみ表示） -->
+      <div id="corpSourceWrap" class="d-none mb-3">
+        <div class="corp-source card border-0 shadow-sm">
+          <div class="card-body py-2">
+            <label class="form-label small fw-semibold mb-1">支払元</label>
+            <select class="form-select form-select-sm">
+              <option value="">支払元を選択</option>
+              <option>法人カード</option>
+              <option>法人口座振込</option>
+            </select>
           </div>
         </div>
       </div>
@@ -465,6 +516,13 @@
   <script>
     let hasFile = false;
     let currentSub = null;
+
+    // ─── 支払区分セグメント ───
+    function selectPaySeg(val) {
+      document.getElementById('segSelf').classList.toggle('active', val === 'self');
+      document.getElementById('segCorp').classList.toggle('active', val === 'corp');
+      document.getElementById('corpSourceWrap').classList.toggle('d-none', val === 'self');
+    }
 
     // ─── ファイル選択 ───
     document.getElementById('btnCamera').addEventListener('click', () => document.getElementById('camInput').click());
