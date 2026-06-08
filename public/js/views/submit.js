@@ -55,62 +55,61 @@ const SubmitView = (() => {
     <button class="btn btn-link btn-sm text-muted p-0 ms-2" id="btnCancelEdit">キャンセル</button>
   </div>
 
-  <!-- タイプ選択 2×2グリッド -->
-  <div class="type-grid mb-3">
-    <button class="type-card active" data-type="領収書">
-      <i class="bi bi-camera-fill"></i>レシート/領収書
-    </button>
-    <button class="type-card" data-type="領収書なし">
-      <i class="bi bi-pencil-square"></i>領収書なし
-    </button>
-    <button class="type-card" data-type="電車/バス">
-      <i class="bi bi-train-front-fill"></i>電車/バス
-    </button>
-    <button class="type-card" data-type="自家用車">
-      <i class="bi bi-car-front-fill"></i>自家用車
-    </button>
-  </div>
-
-  <!-- 会社払いトグル -->
-  <div class="card mb-3 border-0 shadow-sm">
-    <div class="card-body py-2">
-      <div class="form-check form-switch d-flex align-items-center gap-2 mb-0">
-        <input class="form-check-input" type="checkbox" id="chkCorpPay" style="width:2.5rem;height:1.3rem;">
-        <label class="form-check-label fw-semibold" for="chkCorpPay">会社払い（立替精算なし）</label>
-        <a href="/faq#q106" class="text-muted ms-1" style="font-size:0.78rem;" title="会社払いについて"><i class="bi bi-question-circle"></i></a>
-      </div>
-      <div id="corpPayDetails" class="d-none mt-2">
-        <select class="form-select form-select-sm" id="selPaySource">
-          <option value="">支払元を選択</option>
-        </select>
-      </div>
-    </div>
-  </div>
-
-  <!-- 領収書：カメラ/ファイル → プレビュー → AI → フォーム -->
-  <div id="panel-領収書">
+  <!-- ヒーローゾーン（証票撮影/選択） -->
+  <div class="hero-zone mb-3" id="heroZone">
     <input type="file" class="d-none" id="camInput-領収書" accept="image/*" capture="environment">
     <input type="file" class="d-none" id="fileInput-領収書" accept="*/*" multiple>
-    <div class="receipt-upload-card mb-3">
-      <div class="upload-grid mb-2">
-        <button class="upload-card" id="btnCamera-領収書">
-          <i class="bi bi-camera-fill"></i>カメラ
-        </button>
-        <button class="upload-card" id="btnFile-領収書">
-          <i class="bi bi-folder-fill"></i>ファイル
-        </button>
+    <div id="heroDefault">
+      <div class="hero-icon-wrap">
+        <i class="bi bi-camera-fill"></i>
       </div>
-      <div id="previewArea-領収書" class="d-flex flex-wrap gap-2 mb-2"></div>
-      <button class="btn btn-primary w-100" id="btnAnalyze">
-        <i class="bi bi-stars me-2"></i>AIで読み取る
+      <div class="hero-title">証票を撮影 / ファイルを選択</div>
+      <button class="hero-btn-camera" id="btnCamera-領収書">
+        <i class="bi bi-camera-fill"></i>カメラで証票を撮影
+      </button>
+      <button class="hero-btn-file" id="btnFile-領収書">
+        <i class="bi bi-folder-fill"></i>ファイルから証票を選択/ドロップ
       </button>
     </div>
-    <div id="receiptFields" class="d-none">
-      ${_dateField()}
-      ${_placeField('支払先（店名・会社名）')}
-      ${_invoiceField()}
-      ${_amountSection()}
-      ${_noteField()}
+    <div id="heroPreview" class="d-none text-start">
+      <div class="d-flex align-items-start gap-2 flex-wrap">
+        <div class="d-flex flex-wrap gap-2 flex-1" id="previewArea-領収書"></div>
+        <button class="upload-card-sm" style="flex-shrink:0;" id="btnAddMore">
+          <i class="bi bi-plus me-1"></i>追加
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AIボタン（ファイル選択後のみ表示） -->
+  <button class="btn-ai d-none mb-3" id="btnAnalyze">
+    <i class="bi bi-stars me-2"></i>AIで読み取る
+  </button>
+
+  <!-- AI解析後フォーム（領収書） -->
+  <div id="receiptFields" class="d-none">
+    ${_dateField()}
+    ${_placeField('支払先（店名・会社名）')}
+    ${_invoiceField()}
+    ${_amountSection()}
+    ${_noteField()}
+  </div>
+
+  <!-- その他のタイプの申請 -->
+  <div class="card border shadow-sm mb-3" id="subtypeCard" style="border-color:#dee2e6 !important;">
+    <div class="card-body py-3 px-3">
+      <div class="subtype-divider mb-3">その他のタイプの申請</div>
+      <div class="subtype-row">
+        <button class="subtype-pill" data-type="電車/バス">
+          <i class="bi bi-train-front-fill"></i>電車/バス
+        </button>
+        <button class="subtype-pill" data-type="自家用車">
+          <i class="bi bi-car-front-fill"></i>自家用車
+        </button>
+        <button class="subtype-pill" data-type="領収書なし">
+          <i class="bi bi-pencil-square"></i>領収書なし
+        </button>
+      </div>
     </div>
   </div>
 
@@ -131,16 +130,16 @@ const SubmitView = (() => {
       <input type="file" class="d-none" id="fileInput-領収書なし" accept="*/*" multiple>
       <div class="d-flex gap-2">
         <button class="upload-card-sm flex-fill" id="btnCamera-領収書なし">
-          <i class="bi bi-camera-fill"></i>カメラ
+          <i class="bi bi-camera-fill"></i>カメラで証票を撮影
         </button>
         <button class="upload-card-sm flex-fill" id="btnFile-領収書なし">
-          <i class="bi bi-folder-fill"></i>ファイル
+          <i class="bi bi-folder-fill"></i>ファイルから証票を選択
         </button>
       </div>
     </div>
   </div>
 
-  <!-- 交通費 -->
+  <!-- 電車/バス -->
   <div id="panel-電車バス" class="d-none">
     ${_dateField()}
     <div class="row g-2 mb-2">
@@ -156,7 +155,6 @@ const SubmitView = (() => {
     <button class="btn btn-outline-secondary btn-sm w-100" id="btnYahooTransit">
       <i class="bi bi-search me-1"></i>料金を検索して入力
     </button>
-    <!-- 検索結果表示エリア -->
     <div id="transitResult" class="d-none mt-2 mb-3 p-2 rounded" style="background:#f0f7ff;border:1px solid #c8e0f8;font-size:0.82rem;">
       <div id="transitResultRoute" class="fw-semibold mb-1"></div>
       <div id="transitResultFare" class="text-primary fw-bold mb-1"></div>
@@ -197,10 +195,10 @@ const SubmitView = (() => {
       <input type="file" class="d-none" id="fileInput-電車バス" accept="*/*" multiple>
       <div class="d-flex gap-2">
         <button class="upload-card-sm flex-fill" id="btnCamera-電車バス">
-          <i class="bi bi-camera-fill"></i>カメラ
+          <i class="bi bi-camera-fill"></i>カメラで証票を撮影
         </button>
         <button class="upload-card-sm flex-fill" id="btnFile-電車バス">
-          <i class="bi bi-folder-fill"></i>ファイル
+          <i class="bi bi-folder-fill"></i>ファイルから証票を選択
         </button>
       </div>
     </div>
@@ -241,16 +239,16 @@ const SubmitView = (() => {
       <input type="file" class="d-none" id="fileInput-自家用車" accept="*/*" multiple>
       <div class="d-flex gap-2">
         <button class="upload-card-sm flex-fill" id="btnCamera-自家用車">
-          <i class="bi bi-camera-fill"></i>カメラ
+          <i class="bi bi-camera-fill"></i>カメラで証票を撮影
         </button>
         <button class="upload-card-sm flex-fill" id="btnFile-自家用車">
-          <i class="bi bi-folder-fill"></i>ファイル
+          <i class="bi bi-folder-fill"></i>ファイルから証票を選択
         </button>
       </div>
     </div>
   </div>
 
-  <!-- カスタムフラグ（管理者が選択肢を設定した場合のみ表示） -->
+  <!-- カスタムフラグ -->
   <div id="customFlagWrap" class="d-none mb-3">
     <label class="form-label small fw-semibold">カスタムフラグ <span class="text-muted fw-normal">（任意）</span> <a href="/faq#q109" class="text-muted" style="font-size:0.78rem;" title="カスタムフラグについて"><i class="bi bi-question-circle"></i></a></label>
     <select class="form-select form-select-sm" id="selCustomFlag">
@@ -258,11 +256,30 @@ const SubmitView = (() => {
     </select>
   </div>
 
-  <!-- 申請ボタン -->
-  <div class="d-grid mt-3 mb-4 no-print">
-    <button class="btn btn-primary btn-lg rounded-3" id="btnSubmit">
-      <i class="bi bi-send me-2"></i>登録する
-    </button>
+  <!-- 統合送信カード（初期は非表示） -->
+  <div class="submit-unit d-none mt-3 mb-4 no-print" id="submitUnit">
+    <input type="checkbox" id="chkCorpPay" class="d-none">
+    <div class="submit-unit-inner">
+      <div class="pay-segment" id="paySegMain">
+        <button type="button" class="pay-seg-btn active" id="btnPaySelf">
+          <i class="bi bi-person-fill"></i>自分が立替（精算あり）
+        </button>
+        <button type="button" class="pay-seg-btn" id="btnPayCorp">
+          <i class="bi bi-building"></i>会社払い（精算なし）
+        </button>
+      </div>
+      <div id="corpPayDetails" class="d-none submit-unit-source">
+        <label class="form-label small fw-semibold mb-1">支払元 <span class="text-danger">*</span></label>
+        <select class="form-select form-select-sm" id="selPaySource">
+          <option value="">支払元を選択</option>
+        </select>
+      </div>
+    </div>
+    <div class="submit-unit-inner">
+      <button class="submit-unit-action" id="btnSubmit">
+        <i class="bi bi-send me-1"></i>登録する
+      </button>
+    </div>
   </div>
 
   <!-- 直近履歴 -->
