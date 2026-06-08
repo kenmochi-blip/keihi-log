@@ -1577,6 +1577,7 @@ function _bindTypeButtons(el) {
       el.querySelector('#editBanner')?.classList.remove('d-none');
       el.querySelector('.type-grid')?.classList.add('d-none');
       el.querySelector('#historySection')?.classList.add('d-none');
+      el.querySelector('#regulationAcc')?.classList.add('d-none');
       const btn = el.querySelector('#btnSubmit');
       if (btn) { btn.textContent = '上書き保存'; btn.className = 'btn btn-warning btn-lg rounded-3'; }
       el.scrollIntoView({ behavior: 'smooth' });
@@ -1638,6 +1639,7 @@ function _bindTypeButtons(el) {
     el.querySelector('#editBanner')?.classList.add('d-none');
     el.querySelector('.type-grid')?.classList.remove('d-none');
     el.querySelector('#historySection')?.classList.remove('d-none');
+    el.querySelector('#regulationAcc')?.classList.remove('d-none');
     const btn = el.querySelector('#btnSubmit');
     if (btn) { btn.innerHTML = '<i class="bi bi-send me-2"></i>登録する'; btn.className = 'btn btn-primary btn-lg rounded-3'; }
     TYPES.forEach(t => el.querySelector(`#previewArea-${_typeId(t)}`)?.replaceChildren());
