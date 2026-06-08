@@ -63,9 +63,9 @@ const SubmitView = (() => {
       <div class="hero-icon-wrap">
         <i class="bi bi-camera-fill"></i>
       </div>
-      <div class="hero-title">証票を撮影 / ファイルを選択</div>
+      <div class="hero-title">領収書を撮影 / ファイルを選択</div>
       <button class="hero-btn-camera" id="btnCamera-領収書">
-        <i class="bi bi-camera-fill"></i>カメラで証票を撮影
+        <i class="bi bi-camera-fill"></i>カメラで領収書を撮影
       </button>
       <button class="hero-btn-file" id="btnFile-領収書">
         <i class="bi bi-folder-fill"></i>ファイルから証票を選択/ドロップ
