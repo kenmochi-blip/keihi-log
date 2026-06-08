@@ -1405,7 +1405,21 @@ function _bindSubtypePills(el) {
       alerts.push(`2ヶ月以上前の日付 (${data.date})`);
     }
 
-    // 2. 画像ハッシュ重複チェック
+    // 2. インボイス番号＋金額の重複チェック（最優先・確実な重複）
+    if (data.invoice && data.invoice.trim()) {
+      const invNorm = data.invoice.trim().toUpperCase();
+      const invDup = expenses.find(e => {
+        if (e.id === _editId) return false;
+        return e.invoice &&
+          e.invoice.trim().toUpperCase() === invNorm &&
+          Number(e.amount) === Number(data.amount);
+      });
+      if (invDup) {
+        alerts.push(`インボイス番号と金額が一致する申請済みデータがあります (${invDup.date} ${invDup.place} ¥${Number(invDup.amount).toLocaleString('ja-JP')})`);
+      }
+    }
+
+    // 3. 画像ハッシュ重複チェック
     if (newHashes.length > 0) {
       const dup = expenses.find(e => {
         if (e.id === _editId) return false;
@@ -1414,7 +1428,7 @@ function _bindSubtypePills(el) {
       if (dup) alerts.push(`同一画像が既に申請済み (${dup.date} ${dup.place})`);
     }
 
-    // 3. 同日・同額・類似取引先の重複チェック（揺らぎ許容）
+    // 4. 同日・同額・類似取引先の重複チェック（揺らぎ許容）
     function _similarPlace(a, b) {
       if (!a || !b) return false;
       const na = a.trim().toLowerCase().replace(/[\s　]/g, '');
