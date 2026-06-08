@@ -24,6 +24,8 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 
 /* ナビゲーション */
 .nav-item-btn {
+  background: none;
+  border: none;
   color: #6c757d;
   opacity: 0.8;
   padding: 0.3rem 0.5rem;
