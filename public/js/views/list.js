@@ -411,7 +411,7 @@ const ListView = (() => {
       if (type && e.type !== type) return false;
       if (status && _getStatus(e) !== status) return false;
       if (customFlag && e.customFlag !== customFlag) return false;
-      if (keyword && ![e.place, e.note, e.category].join(' ').toLowerCase().includes(keyword)) return false;
+      if (keyword && ![e.place, e.note, App.categoryLabel(e.category)].join(' ').toLowerCase().includes(keyword)) return false;
       if (paySrc) {
         const corpSrc = _corpPaySource(e);
         if (paySrc === '__individual__') { if (corpSrc) return false; }
@@ -506,7 +506,7 @@ const ListView = (() => {
         </td>
         <td class="list-type-cell">${_escape(e.type)}</td>
         <td class="text-end list-amount">¥${e.amount.toLocaleString()}</td>
-        <td class="list-cat">${_escape(e.category)}${e.taxRate && e.taxRate !== '課税10%' ? `<br><span class="badge text-bg-light border" style="font-size:0.65rem;font-weight:normal;">${_escape(e.taxRate)}</span>` : ''}</td>
+        <td class="list-cat">${_escape(App.categoryLabel(e.category))}${e.taxRate && e.taxRate !== '課税10%' ? `<br><span class="badge text-bg-light border" style="font-size:0.65rem;font-weight:normal;">${_escape(e.taxRate)}</span>` : ''}</td>
         <td class="list-note-cell text-muted${e.note ? ' expandable' : ''}">${e.note ? `<span class="note-text">${_escape(e.note)}</span><i class="bi bi-chevron-down note-expand-chevron"></i>` : ''}</td>
         <td class="text-center"><div class="d-flex flex-wrap gap-1 justify-content-center">${receiptBtns}</div></td>
         <td>${statusBadge}</td>
@@ -536,7 +536,7 @@ const ListView = (() => {
           <div class="d-flex justify-content-between align-items-center mt-1 gap-2">
             <div class="d-flex align-items-center gap-1 flex-wrap" style="min-width:0;">
               ${statusBadge}
-              <span class="list-sp-cat">${_escape(e.category)}</span>
+              <span class="list-sp-cat">${_escape(App.categoryLabel(e.category))}</span>
               ${e.taxRate && e.taxRate !== '課税10%' ? `<span class="badge text-bg-light border" style="font-size:0.65rem;font-weight:normal;">${_escape(e.taxRate)}</span>` : ''}
               ${e.note ? `<span class="list-sp-note-wrap expandable"><span class="list-sp-note">${_escape(e.note)}</span><i class="bi bi-chevron-down chevron"></i></span>` : ''}
             </div>
@@ -699,7 +699,7 @@ const ListView = (() => {
       const paySource = corpSrc ? corpSrc : `個人（${App.getMemberName(e.email, e.name)}）`;
       return [
         _isoToSlash(e.appliedAt), App.getMemberName(e.email, e.name), e.type, _isoToSlash(e.date), e.place, e.amount,
-        e.category,
+        App.categoryLabel(e.category),
         e.note, e.imageLinks.split(',')[0]?.trim() || '',
         _getStatus(e), e.invoice, e.email, e.id,
         e.settlementDate || '', e.taxRate || '課税10%', paySource,
@@ -794,7 +794,7 @@ const ListView = (() => {
       const { tax, freeeKbn } = _taxInfo(amount, e.taxRate);
       const payMethod = corpSrc ? corpSrc : `個人（${App.getMemberName(e.email, e.name)}）`;
       rows.push([
-        _isoToSlash(e.date), e.category, freeeKbn, amount, tax,
+        _isoToSlash(e.date), App.categoryLabel(e.category), freeeKbn, amount, tax,
         e.place, payMethod, App.getMemberName(e.email, e.name), e.note
       ]);
       // 源泉徴収がある場合は預り金行を追加
@@ -831,7 +831,7 @@ const ListView = (() => {
         const payAmt = amount - wh;
         rows.push([
           slipNo, '', _isoToSlash(e.date),
-          e.category, '', yayoiKbn, amount, tax,
+          App.categoryLabel(e.category), '', yayoiKbn, amount, tax,
           '未払金', creditSub, '', payAmt, '',
           summary, e.id
         ]);
@@ -844,7 +844,7 @@ const ListView = (() => {
       } else {
         rows.push([
           slipNo, '', _isoToSlash(e.date),
-          e.category, '', yayoiKbn, amount, tax,
+          App.categoryLabel(e.category), '', yayoiKbn, amount, tax,
           '未払金', creditSub, '', amount, '',
           summary, e.id
         ]);
@@ -873,7 +873,7 @@ const ListView = (() => {
         // 経費行（借方:経費科目 / 貸方:未払金 = 支払額）
         rows.push([
           _isoToSlash(e.date),
-          e.category, '', mfcKbn, amount,
+          App.categoryLabel(e.category), '', mfcKbn, amount,
           '未払金', creditSub, '', payAmt,
           summary, e.id
         ]);
@@ -887,7 +887,7 @@ const ListView = (() => {
       } else {
         rows.push([
           _isoToSlash(e.date),
-          e.category, '', mfcKbn, amount,
+          App.categoryLabel(e.category), '', mfcKbn, amount,
           '未払金', creditSub, '', amount,
           summary, e.id
         ]);

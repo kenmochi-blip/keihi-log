@@ -269,9 +269,14 @@ const SummaryView = (() => {
     return [{ key: App.getMemberName(e.email, e.name) || e.email || '（不明）', amount: e.amount }];
   }
   function _categoryKey(e) {
-    const parts = (e.category || '（未分類）').split('/').map(s => s.trim()).filter(Boolean);
-    if (!parts.length) parts.push('（未分類）');
-    return parts.map(k => ({ key: k, amount: e.amount / parts.length }));
+    const parts = App.parseSplitCategory(e.category);
+    if (!parts.length) return [{ key: '（未分類）', amount: e.amount }];
+    const hasAmounts = parts.every(p => p.amount !== null);
+    if (hasAmounts) {
+      return parts.map(p => ({ key: p.cat, amount: p.amount }));
+    }
+    // 旧データ（個別金額なし）は均等割り
+    return parts.map(p => ({ key: p.cat, amount: e.amount / parts.length }));
   }
 
   // ─── 一括精算処理 ──────────────────────────────────────────

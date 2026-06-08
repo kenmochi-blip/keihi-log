@@ -1268,11 +1268,13 @@ function _bindTypeButtons(el) {
       const isSplit = !pnl.querySelector('#splitLines')?.classList.contains('d-none');
       if (isSplit) {
         const rows = pnl.querySelectorAll('.split-row');
-        amount   = Array.from(rows).reduce((s, r) => {
+        const rowData = Array.from(rows).map(r => {
           const raw = (r.querySelector('.split-amount')?.value || '').replace(/[^\d]/g, '');
-          return s + (Number(raw) || 0);
-        }, 0);
-        category = Array.from(rows).map(r => r.querySelector('.split-cat')?.value).join('/');
+          return { amt: Number(raw) || 0, cat: r.querySelector('.split-cat')?.value || '' };
+        });
+        amount   = rowData.reduce((s, r) => s + r.amt, 0);
+        // 個別金額を "科目:金額" 形式で埋め込んで保存（edit時に復元可能にする）
+        category = rowData.map(r => r.amt ? `${r.cat}:${r.amt}` : r.cat).join('/');
       } else {
         const rawAmt = (pnl.querySelector('#inputAmount')?.value || '').replace(/[^\d]/g, '');
         amount   = Number(rawAmt) || 0;
@@ -1438,7 +1440,7 @@ function _bindTypeButtons(el) {
       </div>
       <div class="d-flex justify-content-between align-items-center mt-1">
         <div class="d-flex align-items-center gap-1">
-          <span class="h-meta">${e.date} / ${_escape(e.category)} (${e.type})</span>
+          <span class="h-meta">${e.date} / ${_escape(App.categoryLabel(e.category))} (${e.type})</span>
           ${noteToggle}
         </div>
         <span class="badge ${statusClass} rounded-pill px-2">${statusText}</span>
@@ -1478,9 +1480,9 @@ function _bindTypeButtons(el) {
         if (placeInput) placeInput.value = e.place || '';
         const invInput = pnl.querySelector('#inputInvoice');
         if (invInput) invInput.value = e.invoice || '';
-        const cats = (e.category || '').split('/').map(s => s.trim()).filter(Boolean);
-        if (cats.length > 1) {
-          // 明細分割モードを復元（個別金額は保存されていないため空欄）
+        const splitParts = App.parseSplitCategory(e.category);
+        if (splitParts.length > 1) {
+          // 明細分割モードを復元（"科目:金額" 形式なら個別金額も復元）
           const splitLines = pnl.querySelector('#splitLines');
           const singleLine = pnl.querySelector('#singleLine');
           const splitTotalEl = pnl.querySelector('#splitTotal');
@@ -1492,15 +1494,20 @@ function _bindTypeButtons(el) {
           if (splitLines) {
             splitLines.innerHTML = '';
             pnl.querySelector('#btnAddSplitRow')?.remove();
-            cats.forEach(cat => {
+            splitParts.forEach(({ cat, amount: partAmt }) => {
               _addSplitRowTo(splitLines, pnl);
               const rows = splitLines.querySelectorAll('.split-row');
               const lastRow = rows[rows.length - 1];
               if (lastRow) {
                 const catSel = lastRow.querySelector('.split-cat');
                 if (catSel) [...catSel.options].forEach(o => o.selected = o.value === cat);
+                if (partAmt !== null) {
+                  const amtInp = lastRow.querySelector('.split-amount');
+                  if (amtInp) amtInp.value = Number(partAmt).toLocaleString('ja-JP');
+                }
               }
             });
+            _calcSplitTotalIn(pnl);
           }
         } else {
           const amtInput = pnl.querySelector('#inputAmount');

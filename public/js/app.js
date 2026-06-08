@@ -356,6 +356,23 @@ const App = (() => {
   /** Stripe Payment Link（有料転換用）のURLを組み立てる。client_reference_id に
    *  既存ライセンスキーを載せることで、webhook が新キーを発行せず既存ライセンスを延長する。
    *  プラン（solo/team）は支払い時に選ぶ＝同じキーに選んだプランが適用される。 */
+  /**
+   * "消耗品費:880/会議費:1080" → [{cat:"消耗品費", amount:880}, {cat:"会議費", amount:1080}]
+   * "消耗品費/会議費" → [{cat:"消耗品費", amount:null}, ...]
+   * 個別金額なし旧データにも対応（amount:null）
+   */
+  function parseSplitCategory(categoryStr) {
+    return (categoryStr || '').split('/').map(s => {
+      const [cat, amt] = s.trim().split(':');
+      return { cat: cat.trim(), amount: amt !== undefined ? Number(amt) : null };
+    }).filter(p => p.cat);
+  }
+
+  /** "消耗品費:880/会議費:1080" → "消耗品費/会議費"（表示用） */
+  function categoryLabel(categoryStr) {
+    return parseSplitCategory(categoryStr).map(p => p.cat).join('/');
+  }
+
   function buildUpgradeUrl(plan, licenseKey, email) {
     const s = (window.APP_CONFIG && window.APP_CONFIG.stripe) || {};
     const p = plan === 'team' ? 'team' : 'solo';
@@ -972,6 +989,8 @@ const App = (() => {
     getMaster,
     clearMasterCache,
     reloadMaster,
+    parseSplitCategory,
+    categoryLabel,
     getMemberName,
     getExpenses,
     clearExpensesCache,
