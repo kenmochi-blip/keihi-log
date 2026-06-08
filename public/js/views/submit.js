@@ -130,10 +130,10 @@ const SubmitView = (() => {
       <input type="file" class="d-none" id="fileInput-領収書なし" accept="*/*" multiple>
       <div class="d-flex gap-2">
         <button class="upload-card-sm flex-fill" id="btnCamera-領収書なし">
-          <i class="bi bi-camera-fill"></i>カメラで証票を撮影
+          <i class="bi bi-camera-fill"></i>カメラ
         </button>
         <button class="upload-card-sm flex-fill" id="btnFile-領収書なし">
-          <i class="bi bi-folder-fill"></i>ファイルから証票を選択
+          <i class="bi bi-folder-fill"></i>ファイル
         </button>
       </div>
     </div>
@@ -195,10 +195,10 @@ const SubmitView = (() => {
       <input type="file" class="d-none" id="fileInput-電車バス" accept="*/*" multiple>
       <div class="d-flex gap-2">
         <button class="upload-card-sm flex-fill" id="btnCamera-電車バス">
-          <i class="bi bi-camera-fill"></i>カメラで証票を撮影
+          <i class="bi bi-camera-fill"></i>カメラ
         </button>
         <button class="upload-card-sm flex-fill" id="btnFile-電車バス">
-          <i class="bi bi-folder-fill"></i>ファイルから証票を選択
+          <i class="bi bi-folder-fill"></i>ファイル
         </button>
       </div>
     </div>
@@ -239,10 +239,10 @@ const SubmitView = (() => {
       <input type="file" class="d-none" id="fileInput-自家用車" accept="*/*" multiple>
       <div class="d-flex gap-2">
         <button class="upload-card-sm flex-fill" id="btnCamera-自家用車">
-          <i class="bi bi-camera-fill"></i>カメラで証票を撮影
+          <i class="bi bi-camera-fill"></i>カメラ
         </button>
         <button class="upload-card-sm flex-fill" id="btnFile-自家用車">
-          <i class="bi bi-folder-fill"></i>ファイルから証票を選択
+          <i class="bi bi-folder-fill"></i>ファイル
         </button>
       </div>
     </div>
@@ -283,7 +283,8 @@ const SubmitView = (() => {
   </div>
 
   <!-- 直近履歴 -->
-  <div id="historySection" class="mt-2 mb-4">
+  <hr class="my-3">
+  <div id="historySection" class="mb-4">
     <div class="d-flex justify-content-between align-items-center mb-2">
       <h6 class="fw-bold mb-0">直近の自分の履歴</h6>
       <div class="d-flex gap-2 align-items-center">
@@ -495,7 +496,8 @@ function _bindSubtypePills(el) {
       el.querySelector('#heroZone')?.classList.add('d-none');
       el.querySelector('#btnAnalyze')?.classList.add('d-none');
       el.querySelector('#receiptFields')?.classList.add('d-none');
-      el.querySelector('#submitUnit')?.classList.remove('d-none');
+      const su = el.querySelector('#submitUnit');
+      if (su) { su.classList.remove('d-none'); su.style.display = 'flex'; }
     });
   });
 }
@@ -545,7 +547,14 @@ function _bindSubtypePills(el) {
       const camBtn   = el.querySelector(`#btnCamera-${tid}`);
       if (camBtn && camInput) {
         camBtn.addEventListener('click', () => camInput.click());
-        camInput.addEventListener('change', e => { processFiles(el, type, e.target.files); e.target.value = ''; });
+        const onCamChange = e => {
+          if (!e.target.files?.length) return;
+          const files = Array.from(e.target.files);
+          e.target.value = '';
+          processFiles(el, type, files).catch(err => App.showToast('ファイル読み込みエラー: ' + err.message, 'danger'));
+        };
+        camInput.addEventListener('change', onCamChange);
+        camInput.addEventListener('input', onCamChange);
       }
 
       // ファイルボタン：通常のファイル選択
