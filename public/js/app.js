@@ -520,11 +520,12 @@ const App = (() => {
       }
     }
 
-    // 保存済みナビカラーを適用（旧デフォルト#808000は青にリセット）
+    // 保存済みナビカラーを適用（シート固有キー優先、グローバルキーは旧互換）
     const _defaultNavColor = '#0d6efd';
-    const _rawNavColor = localStorage.getItem('keihi_nav_color');
-    if (_rawNavColor === '#808000') localStorage.removeItem('keihi_nav_color');
-    const savedNavColor = (localStorage.getItem('keihi_nav_color')) || _defaultNavColor;
+    const _ssIdForColor = localStorage.getItem('keihi_sheet_id');
+    const _navColorKey  = _ssIdForColor ? `keihi_nav_color_${_ssIdForColor}` : 'keihi_nav_color';
+    const _rawNavColor  = localStorage.getItem(_navColorKey);
+    const savedNavColor = (_rawNavColor && _rawNavColor !== '#808000') ? _rawNavColor : _defaultNavColor;
     const navbar = document.querySelector('nav.navbar.sticky-top');
     if (navbar) navbar.style.setProperty('background-color', savedNavColor, 'important');
 
@@ -898,7 +899,7 @@ const App = (() => {
       const prevSheetId = localStorage.getItem('keihi_sheet_id');
       if (prevSheetId && prevSheetId !== token) {
         ['keihi_company_name', 'keihi_master_cache', 'keihi_folder_id', 'keihi_setup_code',
-         'keihi_nav_color', 'keihi_gemini_key', 'keihi_alias', 'keihi_user_email',
+         'keihi_gemini_key', 'keihi_alias', 'keihi_user_email',
          'keihi_regulation', 'keihi_expenses_cache'].forEach(k => localStorage.removeItem(k));
         _expensesCache = null; _expensesCacheAt = 0; // メモリキャッシュも即時クリア
         _sheetIdChanged = true; // init完了後に現在ビューを再描画するフラグ
@@ -924,7 +925,7 @@ const App = (() => {
             // 別チームのシートまたは別エイリアスに切り替わる場合、チーム固有データをクリア
             // ライセンスキーはユーザーレベルのため保持（init()内の検証・B3自動取得で上書きされる）
             ['keihi_company_name', 'keihi_master_cache', 'keihi_folder_id', 'keihi_setup_code',
-             'keihi_nav_color', 'keihi_gemini_key', 'keihi_alias', 'keihi_user_email',
+             'keihi_gemini_key', 'keihi_alias', 'keihi_user_email',
              'keihi_regulation', 'keihi_expenses_cache'].forEach(k => localStorage.removeItem(k));
             _expensesCache = null; _expensesCacheAt = 0; // メモリキャッシュも即時クリア
             _sheetIdChanged = true; // init完了後に現在ビューを再描画するフラグ
@@ -945,7 +946,7 @@ const App = (() => {
           // 別ライセンスのセットアップURLを開いた場合、既存シートデータをクリアしてセットアップへ誘導
           if (prevLicKey && prevLicKey !== data.licenseKey) {
             ['keihi_sheet_id', 'keihi_alias', 'keihi_company_name', 'keihi_master_cache',
-             'keihi_folder_id', 'keihi_setup_code', 'keihi_nav_color', 'keihi_gemini_key',
+             'keihi_folder_id', 'keihi_setup_code', 'keihi_gemini_key',
              'keihi_user_email', 'keihi_regulation', 'keihi_expenses_cache'].forEach(k => localStorage.removeItem(k));
             sessionStorage.removeItem('keihi_sheet_id');
           }

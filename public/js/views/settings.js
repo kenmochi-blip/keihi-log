@@ -744,7 +744,7 @@ const SettingsView = (() => {
     // ヘッダー色：localStorageから読み込み
     const colorInput = el.querySelector('#inputHeaderColor');
     if (colorInput) {
-      const saved = localStorage.getItem('keihi_nav_color');
+      const saved = localStorage.getItem(_navColorKey());
       colorInput.value = saved || '#0d6efd';
       // リアルタイムプレビュー
       colorInput.addEventListener('input', () => _applyNavColor(colorInput.value));
@@ -775,12 +775,17 @@ const SettingsView = (() => {
     el.querySelector('#btnApplyHeaderColor')?.addEventListener('click', () => {
       const color = el.querySelector('#inputHeaderColor').value;
       const msg   = el.querySelector('#headerColorMsg');
-      localStorage.setItem('keihi_nav_color', color);
+      localStorage.setItem(_navColorKey(), color);
       _applyNavColor(color);
       msg.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>適用しました</span>';
       App.showToast('ヘッダーカラーを変更しました', 'success');
       setTimeout(() => { msg.innerHTML = ''; }, 3000);
     });
+  }
+
+  function _navColorKey() {
+    const ssId = localStorage.getItem('keihi_sheet_id');
+    return ssId ? `keihi_nav_color_${ssId}` : 'keihi_nav_color';
   }
 
   function _applyNavColor(hexColor) {
