@@ -266,7 +266,7 @@ const SubmitView = (() => {
   </div>
 
   <!-- 直近履歴 -->
-  <div class="mt-2 mb-4">
+  <div id="historySection" class="mt-2 mb-4">
     <div class="d-flex justify-content-between align-items-center mb-2">
       <h6 class="fw-bold mb-0">直近の自分の履歴</h6>
       <div class="d-flex gap-2 align-items-center">
@@ -1573,6 +1573,8 @@ function _bindTypeButtons(el) {
       _renderExistingUrlPreviews(el, e.type);
 
       el.querySelector('#editBanner')?.classList.remove('d-none');
+      el.querySelector('.type-grid')?.classList.add('d-none');
+      el.querySelector('#historySection')?.classList.add('d-none');
       const btn = el.querySelector('#btnSubmit');
       if (btn) { btn.textContent = '上書き保存'; btn.className = 'btn btn-warning btn-lg rounded-3'; }
       el.scrollIntoView({ behavior: 'smooth' });
@@ -1632,6 +1634,8 @@ function _bindTypeButtons(el) {
     _returnAfterEdit = null;
     _withholdingAmount = 0;
     el.querySelector('#editBanner')?.classList.add('d-none');
+    el.querySelector('.type-grid')?.classList.remove('d-none');
+    el.querySelector('#historySection')?.classList.remove('d-none');
     const btn = el.querySelector('#btnSubmit');
     if (btn) { btn.innerHTML = '<i class="bi bi-send me-2"></i>登録する'; btn.className = 'btn btn-primary btn-lg rounded-3'; }
     TYPES.forEach(t => el.querySelector(`#previewArea-${_typeId(t)}`)?.replaceChildren());
