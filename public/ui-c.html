@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>UI案C（カメラファースト）｜経費ログ</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <meta name="theme-color" content="#0d6efd">
+  <style>
+    /* ─── Pattern C: カメラファースト ─── */
+
+    /* ヒーローゾーン */
+    .hero-zone {
+      background: #fff;
+      border: 2.5px dashed #90beff;
+      border-radius: 18px;
+      padding: 28px 16px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      position: relative;
+    }
+    .hero-zone:hover, .hero-zone.drag-over {
+      border-color: #0d6efd;
+      background: #f0f6ff;
+    }
+    .hero-zone.has-file {
+      border-style: solid;
+      border-color: #0d6efd;
+      padding: 12px 16px;
+    }
+    .hero-icon {
+      font-size: 2.8rem;
+      color: #90beff;
+      display: block;
+      margin-bottom: 8px;
+      transition: color 0.15s;
+    }
+    .hero-zone:hover .hero-icon { color: #0d6efd; }
+    .hero-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #495057;
+      margin-bottom: 4px;
+    }
+    .hero-sub {
+      font-size: 0.78rem;
+      color: #6c757d;
+    }
+    .hero-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 14px;
+    }
+    .hero-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 20px;
+      border-radius: 10px;
+      border: 1.5px solid #dee2e6;
+      background: #fff;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #0d6efd;
+      cursor: pointer;
+      touch-action: manipulation;
+      transition: border-color 0.12s, background 0.12s;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    }
+    .hero-btn i { font-size: 1.1rem; }
+    .hero-btn:hover { border-color: #0d6efd; background: #f0f6ff; }
+
+    /* ファイル選択後サムネイル */
+    .preview-strip {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .preview-thumb {
+      width: 64px;
+      height: 64px;
+      border-radius: 8px;
+      object-fit: cover;
+      border: 1.5px solid #c0d8f8;
+    }
+    .preview-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .preview-filename {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #212529;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .preview-filesize {
+      font-size: 0.7rem;
+      color: #6c757d;
+    }
+    .btn-clear-file {
+      background: none;
+      border: none;
+      color: #6c757d;
+      font-size: 1rem;
+      cursor: pointer;
+      padding: 4px;
+      line-height: 1;
+      touch-action: manipulation;
+    }
+    .btn-clear-file:hover { color: #dc3545; }
+
+    /* AIボタン */
+    .btn-ai {
+      width: 100%;
+      padding: 13px;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.15s, opacity 0.15s, transform 0.1s;
+      touch-action: manipulation;
+    }
+    .btn-ai.ready {
+      background: linear-gradient(135deg, #0d6efd, #6610f2);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(13,110,253,0.35);
+    }
+    .btn-ai.ready:active { transform: scale(0.98); }
+    .btn-ai.waiting {
+      background: #e9ecef;
+      color: #adb5bd;
+      cursor: not-allowed;
+    }
+
+    /* サブタイプ Pill */
+    .subtype-row {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .subtype-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1.5px solid #dee2e6;
+      background: #fff;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #6c757d;
+      cursor: pointer;
+      touch-action: manipulation;
+      transition: border-color 0.12s, background 0.12s, color 0.12s;
+    }
+    .subtype-pill i { font-size: 0.9rem; }
+    .subtype-pill:hover,
+    .subtype-pill.active {
+      border-color: #0d6efd;
+      background: #e8f0fe;
+      color: #0d6efd;
+    }
+
+    /* 会社払いトグル（コンパクト） */
+    .corp-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      justify-content: center;
+      font-size: 0.8rem;
+      color: #6c757d;
+    }
+
+    /* フォームエリア（AI解析後に出現） */
+    .form-area {
+      animation: formSlideIn 0.28s ease-out both;
+    }
+    @keyframes formSlideIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* AI解析完了バナー */
+    .ai-done-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #d1f0e0;
+      color: #0f5132;
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    /* 比較バナー */
+    .compare-bar {
+      background: #fff3cd;
+      border-bottom: 1px solid #ffc107;
+      font-size: 0.78rem;
+      padding: 6px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* サブタイプフォームアニメーション */
+    .subtype-form {
+      animation: formSlideIn 0.22s ease-out both;
+    }
+  </style>
+</head>
+<body class="bg-light">
+
+  <!-- ヘッダー -->
+  <nav class="navbar navbar-dark bg-primary sticky-top px-3 py-2">
+    <span class="navbar-brand fw-bold fs-6">
+      <i class="bi bi-receipt me-1"></i>経費ログ
+      <span class="badge bg-danger text-white ms-2" style="font-size:0.6rem;">UI案C プレビュー</span>
+    </span>
+    <a href="/app" class="btn btn-outline-light btn-sm">通常版</a>
+  </nav>
+
+  <!-- 比較バナー -->
+  <div class="compare-bar">
+    <i class="bi bi-camera2 text-warning"></i>
+    <span>案C：写真撮影を起点に。タイプ選択ステップなしで最速登録</span>
+    <span class="ms-auto d-flex gap-2">
+      <a href="/ui-a" class="btn btn-sm btn-outline-secondary py-0">案A</a>
+      <a href="/ui-b" class="btn btn-sm btn-outline-secondary py-0">案B</a>
+    </span>
+  </div>
+
+  <div class="container-fluid" style="max-width:480px; padding-bottom:80px;">
+    <div class="pt-3">
+
+      <!-- ─── ヒーローゾーン ─── -->
+      <div class="hero-zone mb-3" id="heroZone">
+        <!-- 初期状態 -->
+        <div id="heroDefault">
+          <i class="bi bi-camera2 hero-icon"></i>
+          <div class="hero-title">証票を撮影 / ファイルを選択</div>
+          <div class="hero-sub">写真を選ぶとAIが金額・店名・勘定科目を自動入力</div>
+          <div class="hero-actions">
+            <button class="hero-btn" id="btnCamera">
+              <i class="bi bi-camera-fill"></i>カメラ
+            </button>
+            <button class="hero-btn" id="btnFile">
+              <i class="bi bi-folder-fill"></i>ファイル
+            </button>
+          </div>
+        </div>
+        <!-- ファイル選択後 -->
+        <div id="heroPreview" class="d-none">
+          <div class="preview-strip">
+            <img id="previewImg" class="preview-thumb" src="" alt="preview">
+            <div class="preview-info">
+              <div class="preview-filename" id="previewName">—</div>
+              <div class="preview-filesize" id="previewSize">—</div>
+              <button class="hero-btn mt-1 px-2 py-1" style="font-size:0.72rem;" id="btnAddMore">
+                <i class="bi bi-plus"></i>追加
+              </button>
+            </div>
+            <button class="btn-clear-file" id="btnClearFile">
+              <i class="bi bi-x-circle-fill"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- AIボタン -->
+      <button class="btn-ai waiting mb-3" id="btnAi" disabled>
+        <i class="bi bi-stars"></i>AIで読み取る
+      </button>
+
+      <!-- サブタイプ（非レシート） -->
+      <div class="subtype-row mb-3">
+        <span style="font-size:0.72rem;color:#adb5bd;align-self:center;">または</span>
+        <button class="subtype-pill" data-sub="transit" onclick="toggleSub('transit')">
+          <i class="bi bi-train-front-fill"></i>電車/バス
+        </button>
+        <button class="subtype-pill" data-sub="car" onclick="toggleSub('car')">
+          <i class="bi bi-car-front-fill"></i>自家用車
+        </button>
+        <button class="subtype-pill" data-sub="nashi" onclick="toggleSub('nashi')">
+          <i class="bi bi-pencil-square"></i>領収書なし
+        </button>
+      </div>
+
+      <!-- 会社払いトグル（コンパクト） -->
+      <div class="card mb-3 border-0 shadow-sm">
+        <div class="card-body py-2">
+          <div class="form-check form-switch d-flex align-items-center gap-2 mb-0">
+            <input class="form-check-input" type="checkbox" id="chkCorpPay" style="width:2.5rem;height:1.3rem;">
+            <label class="form-check-label fw-semibold" for="chkCorpPay">会社払い（立替精算なし）</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── AI解析後フォーム ─── -->
+      <div id="receiptForm" class="d-none"></div>
+
+      <!-- ─── サブタイプフォーム ─── -->
+      <div id="subForm" class="d-none"></div>
+
+    </div>
+  </div>
+
+  <!-- ボトムナビ -->
+  <nav class="fixed-bottom bg-white border-top py-1">
+    <div class="d-flex justify-content-around">
+      <button class="nav-item-btn active d-flex flex-column align-items-center gap-1 border-0 bg-transparent">
+        <i class="bi bi-plus-circle-fill" style="font-size:1.4rem;"></i>
+        <span style="font-size:0.7rem;">登録</span>
+      </button>
+      <button class="nav-item-btn d-flex flex-column align-items-center gap-1 border-0 bg-transparent">
+        <i class="bi bi-list-ul" style="font-size:1.4rem;"></i>
+        <span style="font-size:0.7rem;">一覧</span>
+      </button>
+      <button class="nav-item-btn d-flex flex-column align-items-center gap-1 border-0 bg-transparent">
+        <i class="bi bi-bar-chart-fill" style="font-size:1.4rem;"></i>
+        <span style="font-size:0.7rem;">集計</span>
+      </button>
+      <button class="nav-item-btn d-flex flex-column align-items-center gap-1 border-0 bg-transparent">
+        <i class="bi bi-gear-fill" style="font-size:1.4rem;"></i>
+        <span style="font-size:0.7rem;">設定</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- hidden file inputs -->
+  <input type="file" id="camInput" accept="image/*" capture="environment" class="d-none">
+  <input type="file" id="fileInput" accept="*/*" multiple class="d-none">
+
+  <script>
+    let hasFile = false;
+    let currentSub = null;
+
+    // ─── ファイル選択 ───
+    document.getElementById('btnCamera').addEventListener('click', () => document.getElementById('camInput').click());
+    document.getElementById('btnFile').addEventListener('click',   () => document.getElementById('fileInput').click());
+
+    document.getElementById('camInput').addEventListener('change',  e => handleFiles(e.target.files));
+    document.getElementById('fileInput').addEventListener('change', e => handleFiles(e.target.files));
+
+    function handleFiles(files) {
+      if (!files || !files[0]) return;
+      const file = files[0];
+      hasFile = true;
+
+      // ヒーローゾーンをプレビューに切り替え
+      document.getElementById('heroDefault').classList.add('d-none');
+      document.getElementById('heroPreview').classList.remove('d-none');
+      document.getElementById('heroZone').classList.add('has-file');
+
+      // サムネイル
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = e => { document.getElementById('previewImg').src = e.target.result; };
+        reader.readAsDataURL(file);
+      } else {
+        document.getElementById('previewImg').src = '';
+        document.getElementById('previewImg').style.display = 'none';
+      }
+      document.getElementById('previewName').textContent = file.name;
+      document.getElementById('previewSize').textContent = (file.size / 1024).toFixed(0) + ' KB';
+
+      // AIボタンを有効化
+      const btn = document.getElementById('btnAi');
+      btn.disabled = false;
+      btn.className = 'btn-ai ready mb-3';
+
+      // サブフォームを閉じる
+      clearSub();
+    }
+
+    document.getElementById('btnClearFile').addEventListener('click', () => {
+      hasFile = false;
+      document.getElementById('heroDefault').classList.remove('d-none');
+      document.getElementById('heroPreview').classList.add('d-none');
+      document.getElementById('heroZone').classList.remove('has-file');
+      const btn = document.getElementById('btnAi');
+      btn.disabled = true;
+      btn.className = 'btn-ai waiting mb-3';
+      document.getElementById('receiptForm').classList.add('d-none');
+      document.getElementById('receiptForm').innerHTML = '';
+    });
+
+    document.getElementById('btnAddMore').addEventListener('click', () => document.getElementById('fileInput').click());
+
+    // ドラッグ＆ドロップ
+    const hz = document.getElementById('heroZone');
+    hz.addEventListener('dragover', e => { e.preventDefault(); hz.classList.add('drag-over'); });
+    hz.addEventListener('dragleave', e => { if (!hz.contains(e.relatedTarget)) hz.classList.remove('drag-over'); });
+    hz.addEventListener('drop', e => {
+      e.preventDefault(); hz.classList.remove('drag-over');
+      handleFiles(e.dataTransfer.files);
+    });
+
+    // ─── AIボタン（デモ用：モックデータを表示） ───
+    document.getElementById('btnAi').addEventListener('click', () => {
+      if (!hasFile) return;
+      const btn = document.getElementById('btnAi');
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 解析中...';
+      btn.disabled = true;
+
+      // デモ：1.2秒後にモックデータでフォームを描画
+      setTimeout(() => {
+        btn.style.display = 'none';
+        showReceiptForm({
+          date:     new Date().toISOString().split('T')[0],
+          shop:     '（AIが読み取った店名）',
+          amount:   '',
+          category: '消耗品費',
+          tax:      '課税10%',
+        });
+      }, 1200);
+    });
+
+    function showReceiptForm(data) {
+      const today = new Date().toISOString().split('T')[0];
+      const cats = ['交際費','消耗品費','旅費交通費','会議費','通信費','外注費','地代家賃'];
+      const catOpts = cats.map(c =>
+        `<option value="${c}" ${c === data.category ? 'selected' : ''}>${c}</option>`
+      ).join('');
+
+      const html = `
+        <div class="form-area">
+          <div class="ai-done-badge">
+            <i class="bi bi-check-circle-fill"></i>AI読み取り完了 — 内容を確認してください
+          </div>
+          <div class="mb-2">
+            <label class="form-label small fw-semibold">日付 <span class="text-danger">*</span></label>
+            <input type="date" class="form-control form-control-sm" value="${data.date}" max="${today}">
+          </div>
+          <div class="mb-2">
+            <label class="form-label small fw-semibold">支払先 <span class="text-danger">*</span></label>
+            <input type="text" class="form-control form-control-sm" value="${data.shop}" placeholder="店名・会社名">
+          </div>
+          <div class="mb-2">
+            <label class="form-label small fw-semibold">インボイス番号（T+13桁）</label>
+            <input type="text" class="form-control form-control-sm" placeholder="T0000000000000">
+          </div>
+          <div class="mb-2">
+            <label class="form-label small fw-semibold">金額・勘定科目 <span class="text-danger">*</span></label>
+            <div class="row g-2">
+              <div class="col-5">
+                <input type="text" inputmode="numeric" class="form-control form-control-sm"
+                  value="${data.amount}" placeholder="金額（円）">
+              </div>
+              <div class="col-7">
+                <select class="form-select form-select-sm">${catOpts}</select>
+              </div>
+            </div>
+          </div>
+          <div class="d-flex align-items-center gap-1 mt-1 mb-2">
+            <span class="text-muted" style="font-size:0.72rem;">税区分:</span>
+            <select class="form-select form-select-sm" style="width:auto;font-size:0.72rem;padding-top:0.1rem;padding-bottom:0.1rem;">
+              <option ${data.tax==='課税10%'?'selected':''}>課税10%</option>
+              <option ${data.tax==='課税8%'?'selected':''}>課税8%（軽減税率）</option>
+              <option ${data.tax==='混在'?'selected':''}>混在（複数税率）</option>
+              <option ${data.tax==='非課税'?'selected':''}>非課税</option>
+              <option ${data.tax==='不課税'?'selected':''}>不課税</option>
+            </select>
+          </div>
+          <div class="mb-2">
+            <label class="form-label small fw-semibold">備考</label>
+            <textarea class="form-control form-control-sm" rows="2"></textarea>
+          </div>
+          <div class="d-grid mt-3 mb-4">
+            <button class="btn btn-primary btn-lg rounded-3">
+              <i class="bi bi-send me-2"></i>登録する
+            </button>
+          </div>
+        </div>`;
+
+      const area = document.getElementById('receiptForm');
+      area.innerHTML = html;
+      area.classList.remove('d-none');
+      area.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // ─── サブタイプ（電車/バス・自家用車・領収書なし） ───
+    function toggleSub(type) {
+      if (currentSub === type) { clearSub(); return; }
+      currentSub = type;
+
+      // pill の active 状態
+      document.querySelectorAll('.subtype-pill').forEach(p => {
+        p.classList.toggle('active', p.dataset.sub === type);
+      });
+
+      // ファイル選択・AIボタン・receiptForm をリセット
+      hasFile = false;
+      document.getElementById('heroDefault').classList.remove('d-none');
+      document.getElementById('heroPreview').classList.add('d-none');
+      document.getElementById('heroZone').classList.remove('has-file');
+      const aiBtn = document.getElementById('btnAi');
+      aiBtn.disabled = true;
+      aiBtn.className = 'btn-ai waiting mb-3';
+      aiBtn.style.display = '';
+      aiBtn.innerHTML = '<i class="bi bi-stars"></i>AIで読み取る';
+      document.getElementById('receiptForm').classList.add('d-none');
+
+      const today = new Date().toISOString().split('T')[0];
+      let html = '';
+
+      if (type === 'transit') {
+        html = `
+          <div class="subtype-form">
+            <div class="d-flex align-items-center gap-2 mb-3">
+              <span style="font-size:1.2rem;"><i class="bi bi-train-front-fill text-primary"></i></span>
+              <span class="fw-bold">電車/バス</span>
+            </div>
+            <div class="mb-2">
+              <label class="form-label small fw-semibold">日付 <span class="text-danger">*</span></label>
+              <input type="date" class="form-control form-control-sm" value="${today}" max="${today}">
+            </div>
+            <div class="row g-2 mb-2">
+              <div class="col-6">
+                <label class="form-label small fw-semibold">出発駅・バス停</label>
+                <input type="text" class="form-control form-control-sm">
+              </div>
+              <div class="col-6">
+                <label class="form-label small fw-semibold">到着駅・バス停</label>
+                <input type="text" class="form-control form-control-sm">
+              </div>
+            </div>
+            <div class="row g-2 mb-2">
+              <div class="col-6">
+                <label class="form-label small fw-semibold">片道運賃（円）</label>
+                <input type="text" inputmode="numeric" class="form-control form-control-sm" placeholder="0">
+              </div>
+              <div class="col-6 d-flex align-items-end pb-1">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="chkRound">
+                  <label class="form-check-label small" for="chkRound">往復</label>
+                </div>
+              </div>
+            </div>
+            <div class="mb-2">
+              <label class="form-label small fw-semibold">勘定科目</label>
+              <select class="form-select form-select-sm"><option>旅費交通費</option></select>
+            </div>
+            <div class="mb-2">
+              <label class="form-label small fw-semibold">備考</label>
+              <textarea class="form-control form-control-sm" rows="2"></textarea>
+            </div>
+            <div class="d-grid mt-3 mb-4">
+              <button class="btn btn-primary btn-lg rounded-3">
+                <i class="bi bi-send me-2"></i>登録する
+              </button>
+            </div>
+          </div>`;
+
+      } else if (type === 'car') {
+        html = `
+          <div class="subtype-form">
+            <div class="d-flex align-items-center gap-2 mb-3">
+              <span style="font-size:1.2rem;"><i class="bi bi-car-front-fill text-primary"></i></span>
+              <span class="fw-bold">自家用車</span>
+            </div>
+            <div class="mb-2">
+              <label class="form-label small fw-semibold">日付 <span class="text-danger">*</span></label>
+              <input type="date" class="form-control form-control-sm" value="${today}" max="${today}">
+            </div>
+            <div class="mb-2">
+              <label class="form-label small fw-semibold">案件・経路名</label>
+              <input type="text" class="form-control form-control-sm" placeholder="例：〇〇社訪問 東京→横浜">
+            </div>
+            <div class="row g-2 mb-2">
+              <div class="col-6">
+                <label class="form-label small fw-semibold">距離（km）</label>
+                <input type="number" class="form-control form-control-sm">
+              </div>
+              <div class="col-6">
+                <label class="form-label small fw-semibold">レート（円/km）</label>
+                <input type="number" class="form-control form-control-sm" value="20">
+              </div>
+            </div>
+            <div class="mb-2">
+              <label class="form-label small fw-semibold">勘定科目</label>
+              <select class="form-select form-select-sm"><option>旅費交通費</option></select>
+            </div>
+            <div class="mb-2">
+              <label class="form-label small fw-semibold">備考</label>
+              <textarea class="form-control form-control-sm" rows="2"></textarea>
+            </div>
+            <div class="d-grid mt-3 mb-4">
+              <button class="btn btn-primary btn-lg rounded-3">
+                <i class="bi bi-send me-2"></i>登録する
+              </button>
+            </div>
+          </div>`;
+
+      } else if (type === 'nashi') {
+        html = `
+          <div class="subtype-form">
+            <div class="d-flex align-items-center gap-2 mb-3">
+              <span style="font-size:1.2rem;"><i class="bi bi-pencil-square text-primary"></i></span>
+              <span class="fw-bold">領収書なし</span>
+            </div>
+            <div class="mb-2">
+              <label class="form-label small fw-semibold">日付 <span class="text-danger">*</span></label>
+              <input type="date" class="form-control form-control-sm" value="${today}" max="${today}">
+            </div>
+            <div class="mb-2">
+              <label class="form-label small fw-semibold">支払先・目的 <span class="text-danger">*</span></label>
+              <input type="text" class="form-control form-control-sm">
+            </div>
+            <div class="row g-2 mb-2">
+              <div class="col-5">
+                <input type="text" inputmode="numeric" class="form-control form-control-sm" placeholder="金額（円）">
+              </div>
+              <div class="col-7">
+                <select class="form-select form-select-sm">
+                  <option>交際費</option><option>消耗品費</option><option>旅費交通費</option>
+                </select>
+              </div>
+            </div>
+            <div class="mb-2">
+              <label class="form-label small fw-semibold">領収書がない理由 <span class="text-danger">*</span></label>
+              <textarea class="form-control form-control-sm" rows="3" placeholder="具体的な理由を記入してください"></textarea>
+            </div>
+            <div class="mb-2">
+              <label class="form-label small fw-semibold">参考資料（任意）</label>
+              <div class="d-flex gap-2">
+                <button class="upload-card-sm flex-fill"><i class="bi bi-camera-fill"></i>カメラ</button>
+                <button class="upload-card-sm flex-fill"><i class="bi bi-folder-fill"></i>ファイル</button>
+              </div>
+            </div>
+            <div class="d-grid mt-3 mb-4">
+              <button class="btn btn-primary btn-lg rounded-3">
+                <i class="bi bi-send me-2"></i>登録する
+              </button>
+            </div>
+          </div>`;
+      }
+
+      const area = document.getElementById('subForm');
+      area.innerHTML = html;
+      area.classList.remove('d-none');
+      area.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function clearSub() {
+      currentSub = null;
+      document.querySelectorAll('.subtype-pill').forEach(p => p.classList.remove('active'));
+      document.getElementById('subForm').classList.add('d-none');
+      document.getElementById('subForm').innerHTML = '';
+    }
+  </script>
+</body>
+</html>
