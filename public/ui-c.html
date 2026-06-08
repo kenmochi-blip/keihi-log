@@ -386,12 +386,11 @@
             <i class="bi bi-camera-fill"></i>
           </div>
           <div class="hero-title">証票を撮影 / ファイルを選択</div>
-          <div class="hero-sub">写真を選ぶとAIが金額・支払先<br>勘定科目を自動で読み取ります</div>
           <button class="hero-btn-camera" id="btnCamera">
-            <i class="bi bi-camera-fill"></i>カメラで撮影
+            <i class="bi bi-camera-fill"></i>カメラで証票を撮影
           </button>
           <button class="hero-btn-file" id="btnFile">
-            <i class="bi bi-folder-fill"></i>ファイルから選択
+            <i class="bi bi-folder-fill"></i>ファイルから証票を選択 または ここにドロップ
           </button>
         </div>
 
@@ -421,7 +420,7 @@
       <!-- その他の申請（枠付き） -->
       <div class="card border shadow-sm mb-4" style="border-color:#dee2e6 !important;">
         <div class="card-body py-3 px-3">
-          <div class="subtype-divider mb-3" style="font-size:0.75rem;color:#adb5bd;">その他の申請</div>
+          <div class="subtype-divider mb-3" style="font-size:0.75rem;color:#adb5bd;">その他のタイプの申請</div>
           <div class="subtype-row">
             <button class="subtype-pill" data-sub="transit" onclick="toggleSub('transit')">
               <i class="bi bi-train-front-fill"></i>電車/バス
@@ -545,10 +544,10 @@
           <div class="submit-unit-inner">
             <div class="pay-segment" id="paySeg-${uid}">
               <button class="pay-seg-btn active" onclick="selectPaySeg('self','${uid}')">
-                <i class="bi bi-person-fill"></i>立替として（精算あり）
+                <i class="bi bi-person-fill"></i>自分が立替（精算あり）
               </button>
               <button class="pay-seg-btn corp" onclick="selectPaySeg('corp','${uid}')">
-                <i class="bi bi-building"></i>会社払いで（精算なし）
+                <i class="bi bi-building"></i>会社払い（精算なし）
               </button>
             </div>
             <div id="corpSource-${uid}" class="d-none submit-unit-source">
@@ -561,7 +560,7 @@
           </div>
           <div class="submit-unit-inner">
             <button class="submit-unit-action" onclick="mockSubmit()">
-              <i class="bi bi-send"></i>登　録　す　る
+              <i class="bi bi-send"></i>登録する
             </button>
           </div>
         </div>`;
@@ -787,12 +786,14 @@
           </div>`;
       }
 
+      const attachUid = Math.random().toString(36).slice(2, 7);
       document.getElementById('subForm').innerHTML = `
         <div class="subtype-form card border-0 shadow-sm p-3 mb-3">
           <div class="d-flex align-items-center gap-2 mb-3">
             <i class="bi ${icons[type]} text-primary" style="font-size:1.1rem;"></i>
             <span class="fw-bold">${labels[type]}</span>
           </div>
+          ${attachHtml(attachUid)}
           <div class="mb-2">
             <label class="form-label small fw-semibold">日付 <span class="text-danger">*</span></label>
             <input type="date" class="form-control form-control-sm" value="${today}" max="${today}">
@@ -806,6 +807,58 @@
         </div>`;
       document.getElementById('subForm').classList.remove('d-none');
       document.getElementById('subForm').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // ─── サブタイプ用証憑添付 ───
+    function attachHtml(uid) {
+      return `
+        <div class="mb-3" id="subAttach-${uid}">
+          <label class="form-label small fw-semibold">証票（任意）</label>
+          <div id="subAttachDefault-${uid}" class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-primary btn-sm flex-fill"
+              onclick="document.getElementById('subCam-${uid}').click()">
+              <i class="bi bi-camera-fill me-1"></i>カメラで証票を撮影
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm flex-fill"
+              onclick="document.getElementById('subFile-${uid}').click()">
+              <i class="bi bi-folder-fill me-1"></i>ファイルから証票を選択
+            </button>
+          </div>
+          <div id="subAttachPreview-${uid}" class="d-none mt-2">
+            <div class="preview-strip">
+              <img id="subPreviewImg-${uid}" class="preview-thumb" src="" alt="">
+              <div class="preview-info">
+                <div class="preview-filename" id="subPreviewName-${uid}">—</div>
+                <div class="preview-filesize" id="subPreviewSize-${uid}">—</div>
+              </div>
+              <button type="button" class="btn-clear-file" onclick="clearSubAttach('${uid}')">
+                <i class="bi bi-x-circle-fill"></i>
+              </button>
+            </div>
+          </div>
+          <input type="file" id="subCam-${uid}" accept="image/*" capture="environment" class="d-none"
+            onchange="handleSubFiles(this.files,'${uid}')">
+          <input type="file" id="subFile-${uid}" accept="*/*" multiple class="d-none"
+            onchange="handleSubFiles(this.files,'${uid}')">
+        </div>`;
+    }
+    function handleSubFiles(files, uid) {
+      if (!files || !files[0]) return;
+      const file = files[0];
+      document.getElementById(`subAttachDefault-${uid}`).classList.add('d-none');
+      document.getElementById(`subAttachPreview-${uid}`).classList.remove('d-none');
+      if (file.type.startsWith('image/')) {
+        const r = new FileReader();
+        r.onload = e => { document.getElementById(`subPreviewImg-${uid}`).src = e.target.result; };
+        r.readAsDataURL(file);
+      }
+      document.getElementById(`subPreviewName-${uid}`).textContent = file.name;
+      document.getElementById(`subPreviewSize-${uid}`).textContent = (file.size / 1024).toFixed(0) + ' KB';
+    }
+    function clearSubAttach(uid) {
+      document.getElementById(`subAttachDefault-${uid}`).classList.remove('d-none');
+      document.getElementById(`subAttachPreview-${uid}`).classList.add('d-none');
+      document.getElementById(`subPreviewImg-${uid}`).src = '';
     }
 
     function clearSub() {
