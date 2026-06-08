@@ -50,22 +50,21 @@
 
     /* ── 統合送信カード ── */
     .submit-unit {
+      border: 2px solid #0d6efd;
       border-radius: 16px;
-      overflow: hidden;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.14);
+      padding: 12px;
       margin-top: 16px;
       margin-bottom: 20px;
       background: #fff;
+      box-shadow: 0 4px 18px rgba(13,110,253,0.15);
       display: flex;
       flex-direction: column;
+      gap: 10px;
     }
-    .submit-unit-body {
-      padding: 14px 14px 12px;
-    }
-    /* 内側ボックス（セグメント＋支払元） */
+    /* 内側ボックス共通（セグメント用・ボタン用両方） */
     .submit-unit-inner {
       border: 1.5px solid #e2e8f0;
-      border-radius: 12px;
+      border-radius: 11px;
       overflow: hidden;
     }
     /* iOS型セグメントコントロール */
@@ -107,7 +106,7 @@
       border-top: 1px solid #e9ecef;
       animation: formSlideIn 0.18s ease-out both;
     }
-    /* 登録するボタン（カード下部全幅） */
+    /* 登録するボタン（内側ボックス内・全幅） */
     .submit-unit-action {
       width: 100%;
       border: none;
@@ -116,7 +115,7 @@
       font-size: 1rem;
       font-weight: 700;
       letter-spacing: 0.05em;
-      padding: 16px;
+      padding: 14px 16px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -543,28 +542,28 @@
       const uid = Math.random().toString(36).slice(2, 7);
       return `
         <div class="submit-unit">
-          <div class="submit-unit-body">
-            <div class="submit-unit-inner">
-              <div class="pay-segment" id="paySeg-${uid}">
-                <button class="pay-seg-btn active" onclick="selectPaySeg('self','${uid}')">
-                  <i class="bi bi-person-fill"></i>立替として（精算あり）
-                </button>
-                <button class="pay-seg-btn corp" onclick="selectPaySeg('corp','${uid}')">
-                  <i class="bi bi-building"></i>会社払いで（精算なし）
-                </button>
-              </div>
-              <div id="corpSource-${uid}" class="d-none submit-unit-source">
-                <label class="form-label small fw-semibold mb-1">支払元</label>
-                <select class="form-select form-select-sm">
-                  <option value="">支払元を選択</option>
-                  <option>法人カード</option><option>法人口座振込</option>
-                </select>
-              </div>
+          <div class="submit-unit-inner">
+            <div class="pay-segment" id="paySeg-${uid}">
+              <button class="pay-seg-btn active" onclick="selectPaySeg('self','${uid}')">
+                <i class="bi bi-person-fill"></i>立替として（精算あり）
+              </button>
+              <button class="pay-seg-btn corp" onclick="selectPaySeg('corp','${uid}')">
+                <i class="bi bi-building"></i>会社払いで（精算なし）
+              </button>
+            </div>
+            <div id="corpSource-${uid}" class="d-none submit-unit-source">
+              <label class="form-label small fw-semibold mb-1">支払元</label>
+              <select class="form-select form-select-sm">
+                <option value="">支払元を選択</option>
+                <option>法人カード</option><option>法人口座振込</option>
+              </select>
             </div>
           </div>
-          <button class="submit-unit-action" onclick="mockSubmit()">
-            <i class="bi bi-send"></i>登　録　す　る
-          </button>
+          <div class="submit-unit-inner">
+            <button class="submit-unit-action" onclick="mockSubmit()">
+              <i class="bi bi-send"></i>登　録　す　る
+            </button>
+          </div>
         </div>`;
     }
     function selectPaySeg(val, uid) {
