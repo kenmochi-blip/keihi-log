@@ -155,7 +155,7 @@ const Gemini = (() => {
   "total_amount": 金額（日本円の場合）またはnull（外貨の場合）,
   "category": "勘定科目（単一カテゴリの場合）",
   "category_fallback": true または false（勘定科目の判断が難しくリスト先頭を返した場合はtrue）,
-  "items": [{"amount": 金額, "category": "勘定科目", "tax_rate": "課税10%/課税8%/非課税/不課税のいずれか"}] または null（明細分割の場合のみ使用）,
+  "items": [{"amount": 金額（合算後）, "category": "勘定科目", "tax_rate": "課税10%/課税8%/非課税/不課税のいずれか"}] または null（明細分割の場合のみ使用）,
   "fx_currency": "USD/EUR等の通貨コードまたはnull",
   "fx_amount": 外貨金額またはnull,
   "tax_rate": "課税10%/課税8%/混在/非課税/不課税のいずれか",
@@ -165,7 +165,10 @@ const Gemini = (() => {
 注意：
 - 金額が日本円なら total_amount に数値を入れ fx_* は null
 - 外貨なら total_amount は null にして fx_currency と fx_amount を埋める
-- 複数カテゴリに分けられる場合は items を使い category は null
+- 複数カテゴリ・税区分が混在する場合は items を使い category は null
+- items の集約ルール：「勘定科目」と「税区分」の組み合わせが同じ明細は1行に合算すること
+  （例：消耗品費・課税8% が3行あれば合計額で1行に、消耗品費・課税10% が別途あれば別行）
+  全品目が同じ勘定科目・同じ税区分なら items は null にして category と tax_rate のみ返す
 - インボイス番号は T+13桁の数字で始まる番号
 - tax_rate：食品・飲料なら「課税8%」、非課税取引（医療・教育・住宅家賃等）なら「非課税」、不課税取引（給与・保険料等）なら「不課税」、複数税率混在なら「混在」、それ以外は「課税10%」
 - withholding_amount：請求書に源泉徴収税額の記載がある場合のみ数値を入れる（ない場合はnull）
