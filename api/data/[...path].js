@@ -456,8 +456,9 @@ async function mastersWrite(req, res) {
   }
 
   // キャッシュ即時無効化 + 逆引きインデックス更新を並列実行
+  _inProcDel(`acct:master:${sheetId}`);
   await Promise.all([
-    _inProcDel(`acct:master:${sheetId}`); kv.del(`acct:master:${sheetId}`).catch(() => {}),
+    kv.del(`acct:master:${sheetId}`).catch(() => {}),
     kv.del(`acct:all:${sheetId}`).catch(() => {}),
     _updateClientIndex(sheetId, oldEmails, newEmails),
   ]);
@@ -502,23 +503,30 @@ async function settings(req, res) {
   const authz = await _authorize(req, res);
   if (!authz) return;
 
+  const settCacheKey = `cfg:settings:${authz.sheetId}`;
+  let cached = _inProcGet(settCacheKey);
+  if (!cached) {
+    cached = await kv.get(settCacheKey).catch(() => null);
+    if (cached) _inProcSet(settCacheKey, cached, 55_000);
+  }
+  if (cached) return res.status(200).json(cached);
+
   const sheets = sheetsClient();
   const resp = await sheets.spreadsheets.values.get({
     spreadsheetId: authz.sheetId, range: '設定!B2:B7',
   });
   const rows = resp.data.values || [];
   const cell = i => rows?.[i]?.[0] ?? '';
-  return res.status(200).json({
+  const payload = {
     settings: {
-      B2: cell(0),            // 会社名
-      B3: cell(1),            // ライセンスキー
-      B4: cell(2),            // フォルダID
-      B5: '',                 // Gemini APIキーは返さない（秘匿）
-      B6: cell(4),
-      B7: cell(5),
+      B2: cell(0), B3: cell(1), B4: cell(2),
+      B5: '',      B6: cell(4), B7: cell(5),
     },
-    hasGeminiKey: !!cell(3),  // B5 の有無のみ通知
-  });
+    hasGeminiKey: !!cell(3),
+  };
+  _inProcSet(settCacheKey, payload, 55_000);
+  kv.set(settCacheKey, payload, { ex: 60 }).catch(() => {}); // fire-and-forget
+  return res.status(200).json(payload);
 }
 
 /**
@@ -538,10 +546,13 @@ async function settingsWrite(req, res) {
   const value = body?.value;
 
   await updateRangeViaSA(authz.sheetId, `設定!${cell}`, [[value == null ? '' : value]]);
-  // Geminiキー（B5）更新時はキーキャッシュを即削除（古いキーが使われ続けるのを防ぐ）
+  // 設定キャッシュを即削除（書き込み後に古い値が返され続けるのを防ぐ）
+  _inProcDel(`cfg:settings:${authz.sheetId}`);
+  kv.del(`cfg:settings:${authz.sheetId}`).catch(() => {});
+  // Geminiキー（B5）更新時はキーキャッシュも即削除
   if (cell === 'B5') {
     _inProcDel(`gemini:key:${authz.sheetId}`);
-    await kv.del(`gemini:key:${authz.sheetId}`).catch(() => {});
+    kv.del(`gemini:key:${authz.sheetId}`).catch(() => {});
   }
   return res.status(200).json({ ok: true });
 }

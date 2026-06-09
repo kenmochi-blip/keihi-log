@@ -552,54 +552,37 @@ const SettingsView = (() => {
     const isDemo = typeof Demo !== 'undefined' && Demo.isActive();
     const ssId = localStorage.getItem('keihi_sheet_id');
     let _cfgB4 = ''; // readAllSettings で取得したフォルダID（後段の重複読み込み回避用）
-    if (!opts.fromCache) {
-    // 設定シートをB2:B7まとめて1回のAPIコールで読み込む
-    if (isDemo) {
-      if (el.querySelector('#inputCompanyName')) el.querySelector('#inputCompanyName').value = Demo.COMPANY_NAME;
-    } else if (ssId) {
-      try {
-        const cfg = await Sheets.readAllSettings();
-        // 会社名 (B2)
-        if (cfg.B2 && el.querySelector('#inputCompanyName')) {
-          el.querySelector('#inputCompanyName').value = cfg.B2;
-        }
-        // Gemini APIキー (B5)
-        const geminiInput = el.querySelector('#inputGeminiKey');
-        if (geminiInput) geminiInput.value = cfg.B5 || localStorage.getItem('keihi_gemini_key') || '';
-        if (cfg.B5) localStorage.setItem('keihi_gemini_key', cfg.B5);
-        // 自家用車レート (B7)
-        const carRateInput = el.querySelector('#inputCarRate');
-        if (carRateInput && cfg.B7) {
-          carRateInput.value = cfg.B7;
-          localStorage.setItem('keihi_car_rate', cfg.B7);
-        }
-        // 証票フォルダID (B4) — 後段で再利用し、次回以降は localStorage から即時表示
-        _cfgB4 = cfg.B4 || '';
-        if (_cfgB4) localStorage.setItem('keihi_folder_id', _cfgB4);
-      } catch (err) {
-        // 読み込み失敗時はキャッシュから復元
-        const cached = localStorage.getItem('keihi_gemini_key');
-        const geminiInput = el.querySelector('#inputGeminiKey');
-        if (cached && geminiInput) {
-          geminiInput.value = cached;
-        } else {
-          const geminiMsg = el.querySelector('#geminiKeyMsg');
-          if (geminiMsg) geminiMsg.innerHTML = '<span class="text-warning small"><i class="bi bi-exclamation-triangle me-1"></i>読み込みに失敗しました。キーを再入力して保存してください</span>';
-        }
-      }
-    }
-    } // end !opts.fromCache
 
-    // fromCache=true のとき：innerHTML は input の .value プロパティを保存しないため
-    // localStorage から input 値を復元する（APIコールなし）
-    if (opts.fromCache) {
-      const companyInput = el.querySelector('#inputCompanyName');
-      if (companyInput) companyInput.value = localStorage.getItem('keihi_company_name') || '';
-      const geminiInput = el.querySelector('#inputGeminiKey');
-      if (geminiInput) geminiInput.value = localStorage.getItem('keihi_gemini_key') || '';
-      const carRateInput = el.querySelector('#inputCarRate');
-      const cachedRate = localStorage.getItem('keihi_car_rate');
-      if (carRateInput && cachedRate) carRateInput.value = cachedRate;
+    // まず localStorage キャッシュで即時表示（API 待ちなし）
+    const _applySettingsToUI = (companyName, geminiKey, carRate, folderId) => {
+      if (companyName) { const inp = el.querySelector('#inputCompanyName'); if (inp) inp.value = companyName; }
+      if (geminiKey)   { const inp = el.querySelector('#inputGeminiKey');   if (inp) inp.value = geminiKey; }
+      if (carRate)     { const inp = el.querySelector('#inputCarRate');      if (inp) inp.value = carRate; }
+      if (folderId)    { _cfgB4 = folderId; }
+    };
+    _applySettingsToUI(
+      isDemo ? Demo.COMPANY_NAME : localStorage.getItem('keihi_company_name'),
+      localStorage.getItem('keihi_gemini_key'),
+      localStorage.getItem('keihi_car_rate'),
+      localStorage.getItem('keihi_folder_id'),
+    );
+
+    // バックグラウンドで最新値を取得・反映（await しない → 画面表示をブロックしない）
+    if (!opts.fromCache && !isDemo && ssId) {
+      Sheets.readAllSettings().then(cfg => {
+        _applySettingsToUI(cfg.B2, cfg.B5, cfg.B7, cfg.B4);
+        if (cfg.B2) localStorage.setItem('keihi_company_name', cfg.B2);
+        if (cfg.B5) localStorage.setItem('keihi_gemini_key', cfg.B5);
+        if (cfg.B7) localStorage.setItem('keihi_car_rate', cfg.B7);
+        if (cfg.B4) localStorage.setItem('keihi_folder_id', cfg.B4);
+        // フォルダリンクも更新
+        if (cfg.B4) _setFolderLink?.(cfg.B4);
+      }).catch(() => {
+        const geminiMsg = el.querySelector('#geminiKeyMsg');
+        if (geminiMsg && !el.querySelector('#inputGeminiKey')?.value) {
+          geminiMsg.innerHTML = '<span class="text-warning small"><i class="bi bi-exclamation-triangle me-1"></i>読み込みに失敗しました。キーを再入力して保存してください</span>';
+        }
+      });
     }
 
     el.querySelector('#btnSaveCompanyName')?.addEventListener('click', async () => {
