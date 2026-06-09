@@ -291,5 +291,32 @@ const SwipeNav = (() => {
     }
   }
 
-  return { init };
+  // プログラム的にスワイプアニメーションで遷移する
+  function swipeTo(targetView) {
+    if (_overlay) return;
+    const cur = Router.current();
+    if (cur === targetView) return;
+
+    const order = _order();
+    const idx = order.indexOf(cur);
+    if (idx === -1) { Router.navigate(targetView); return; }
+
+    const prevName = order[(idx + order.length - 1) % order.length];
+    const nextName = order[(idx + 1) % order.length];
+
+    // 隣接ビュー以外はフォールバック
+    if (targetView !== prevName && targetView !== nextName) {
+      Router.navigate(targetView);
+      return;
+    }
+
+    _decided = true;
+    _isHoriz = true;
+    _build();
+
+    const targetX = targetView === nextName ? -_W * 2 : 0;
+    _animate(targetX, targetView);
+  }
+
+  return { init, swipeTo };
 })();
