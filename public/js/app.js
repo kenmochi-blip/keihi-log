@@ -508,6 +508,16 @@ const App = (() => {
     if (bottomNav) bottomNav.classList.add('d-none');
   }
 
+  function _applyStoredNavColor() {
+    const defaultColor = '#0d6efd';
+    const ssId = localStorage.getItem('keihi_sheet_id');
+    const key  = ssId ? `keihi_nav_color_${ssId}` : 'keihi_nav_color';
+    const raw  = localStorage.getItem(key);
+    const color = (raw && raw !== '#808000') ? raw : defaultColor;
+    const navbar = document.querySelector('nav.navbar.sticky-top');
+    if (navbar) navbar.style.setProperty('background-color', color, 'important');
+  }
+
   function _setupUI(initialView = 'submit', companyName = '') {
     // URLをシートID付きパスに書き換え（例: /app.html → /SHEET_ID）デモ中は除外
     if (!(typeof Demo !== 'undefined' && Demo.isActive())) {
@@ -521,13 +531,7 @@ const App = (() => {
     }
 
     // 保存済みナビカラーを適用（シート固有キー優先、グローバルキーは旧互換）
-    const _defaultNavColor = '#0d6efd';
-    const _ssIdForColor = localStorage.getItem('keihi_sheet_id');
-    const _navColorKey  = _ssIdForColor ? `keihi_nav_color_${_ssIdForColor}` : 'keihi_nav_color';
-    const _rawNavColor  = localStorage.getItem(_navColorKey);
-    const savedNavColor = (_rawNavColor && _rawNavColor !== '#808000') ? _rawNavColor : _defaultNavColor;
-    const navbar = document.querySelector('nav.navbar.sticky-top');
-    if (navbar) navbar.style.setProperty('background-color', savedNavColor, 'important');
+    _applyStoredNavColor();
 
     // ナビゲーションにユーザーEmail表示
     const nav = document.getElementById('navUserEmail');
@@ -909,6 +913,7 @@ const App = (() => {
       }
       sessionStorage.setItem('keihi_sheet_id', token);
       localStorage.setItem('keihi_sheet_id', token);
+      _applyStoredNavColor();
       return;
     }
     // 3秒タイムアウト・リトライなし（タイムアウト時は既存localStorageのIDで続行）
@@ -935,6 +940,7 @@ const App = (() => {
           }
           sessionStorage.setItem('keihi_sheet_id', data.sheetId);
           localStorage.setItem('keihi_sheet_id', data.sheetId);
+          _applyStoredNavColor();
           localStorage.setItem('keihi_alias', token);
           _setCookieAlias(token);
           if (data.licenseKey && data.licenseKey.startsWith('KL-')) {
