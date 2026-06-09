@@ -22,6 +22,8 @@ import { kv } from '@vercel/kv';
 import { sheetsClient, driveClient, isSaConfigured } from '../_sa.js';
 import { getSaAuth } from '../_sa.js';
 import { verifyIdToken } from '../_verifyToken.js';
+import { rateLimit } from '../_rateLimit.js';
+import { FAQ_TEXT } from '../_faq-data.js';
 
 // レシート画像は Base64 で送られるため、デフォルト4.5MBでは不足する可能性がある
 export const config = { api: { bodyParser: { sizeLimit: '12mb' } } };
@@ -52,6 +54,8 @@ export default async function handler(req, res) {
         return await gemini(req, res);
       case 'accountant':
         return await accountantRouter(req, res);
+      case 'chat':
+        return await chat(req, res);
       default:
         return res.status(404).json({ error: 'not_found', resource });
     }
@@ -1268,6 +1272,62 @@ async function _body(req) {
     for await (const c of req) chunks.push(c);
     return JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}');
   } catch (_) { return null; }
+}
+
+// ── チャットサポート ──────────────────────────────────────────────
+async function chat(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
+
+  const { message, history = [] } = req.body || {};
+  if (!message || typeof message !== 'string' || message.length > 500)
+    return res.status(400).json({ error: 'invalid_message' });
+
+  // IPベースのレート制限: 1時間に20回まで
+  const rl = await rateLimit(req, { prefix: 'chat', limit: 20, window: 3600 });
+  if (!rl.ok) return res.status(429).json({ error: 'rate_limited', message: '利用制限に達しました。1時間後に再試行してください。' });
+
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return res.status(500).json({ error: 'not_configured' });
+
+  const systemPrompt = `あなたは「経費ログ」というWebアプリのサポートAIです。
+以下のFAQ内容だけを根拠として、日本語で簡潔に回答してください。
+FAQに答えがない場合は「FAQに該当する情報がありません。support@keihi-log.com までお問い合わせください。」と答えてください。
+HTMLタグや長い箇条書きは使わず、2〜4文で端的に答えてください。
+関連するFAQがある場合は回答末尾に「詳細: /faq#qXXX」の形式で1件だけ示してください。
+
+--- FAQ ---
+${FAQ_TEXT}`;
+
+  // 会話履歴（最大5往復）
+  const messages = [
+    ...history.slice(-10).map(h => ({ role: h.role, content: h.content })),
+    { role: 'user', content: message },
+  ];
+
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 512,
+      system: systemPrompt,
+      messages,
+    }),
+  });
+
+  if (!resp.ok) {
+    const err = await resp.text();
+    console.error('Anthropic API error:', err);
+    return res.status(502).json({ error: 'upstream_error' });
+  }
+
+  const data = await resp.json();
+  const reply = data.content?.[0]?.text || '';
+  return res.status(200).json({ reply });
 }
 
 function _uuid() {
