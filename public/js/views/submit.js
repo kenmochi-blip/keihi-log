@@ -283,7 +283,7 @@ const SubmitView = (() => {
   </div>
 
   <!-- 直近履歴 -->
-  <hr class="my-3">
+  <hr class="mt-4 mb-3">
   <div id="historySection" class="mb-4">
     <div class="d-flex justify-content-between align-items-center mb-2">
       <h6 class="fw-bold mb-0">直近の自分の履歴</h6>
