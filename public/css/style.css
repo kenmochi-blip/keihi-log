@@ -528,7 +528,7 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 .btn-ai:not(:disabled):active { transform: scale(0.98); }
 /* サブタイプ選択 */
 .subtype-divider {
-  text-align: center; font-size: 0.75rem; color: #6c757d;
+  text-align: center; font-size: 0.82rem; color: #6c757d;
   display: flex; align-items: center; gap: 10px;
 }
 .subtype-divider::before, .subtype-divider::after { content: ''; flex: 1; height: 1px; background: #ced4da; }
