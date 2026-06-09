@@ -95,7 +95,7 @@ const Gemini = (() => {
     401: 'APIキーが無効です。設定シートのGemini APIキーを確認してください',
     403: 'APIキーに権限がありません。Google AI StudioでGemini APIが有効になっているか確認してください',
     404: 'モデルが見つかりません。管理者にお問い合わせください',
-    429: 'リクエスト数が多すぎます（無料枠は1分間15件まで）。数秒待ってから再試行してください。チームで同時利用している場合は少し間をおいてください',
+    429: 'APIのリクエスト上限に達しました。数秒〜1分待ってから再試行してください。繰り返す場合はGoogle AI StudioでAPIキーのクォータ状況を確認してください',
     500: 'Geminiサーバーの内部エラーです。しばらく待ってから再試行してください',
     503: 'Geminiサーバーが一時的に過負荷です。しばらく待ってから再試行してください',
   };
@@ -111,7 +111,9 @@ const Gemini = (() => {
       if (resp.ok) return resp;
       if (!RETRYABLE.has(resp.status) || attempt === maxRetries - 1) {
         const err = await resp.json().catch(() => ({}));
-        const apiMsg  = err.error?.message || '';
+        // プロキシ経由: { error: 'gemini_error', message: '...' }
+        // 直接呼び出し: { error: { message: '...' } }
+        const apiMsg  = err.error?.message || err.message || '';
         const hint    = _STATUS_HINT[resp.status] || `Gemini API error: ${resp.status}`;
         throw new Error(apiMsg ? `${hint}（${apiMsg}）` : hint);
       }
