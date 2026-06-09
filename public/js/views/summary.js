@@ -119,7 +119,7 @@ const SummaryView = (() => {
       try {
         _expenses = await App.getExpenses();
       } catch (err) {
-        App.showToast(err.message, 'danger');
+        App.showToast(App.friendlyError(err, 'load'), 'danger');
         return;
       } finally {
         App.hideLoading();
@@ -294,7 +294,7 @@ const SummaryView = (() => {
       App.showToast(`${ids.length}件を精算済みにしました`, 'success');
       if (onDone) onDone();
     } catch (err) {
-      App.showToast('精算処理エラー: ' + err.message, 'danger');
+      App.showToast('精算処理に失敗しました。' + App.friendlyError(err), 'danger');
     } finally {
       App.hideLoading();
     }
@@ -578,7 +578,7 @@ const SummaryView = (() => {
           btn.closest('.drill-detail-row')?.querySelector('.drill-approve-btn')?.remove();
           App.showToast('登録済にしました', 'success');
         } catch (err) {
-          App.showToast('承認エラー: ' + err.message, 'danger');
+          App.showToast('登録済への変更に失敗しました。' + App.friendlyError(err), 'danger');
         } finally {
           App.hideLoading();
         }
@@ -611,7 +611,7 @@ const SummaryView = (() => {
           }
           App.showToast('削除しました', 'success');
         } catch (err) {
-          App.showToast('削除エラー: ' + err.message, 'danger');
+          App.showToast('削除に失敗しました。' + App.friendlyError(err), 'danger');
         } finally {
           App.hideLoading();
         }

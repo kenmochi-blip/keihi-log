@@ -520,7 +520,7 @@ const SettingsView = (() => {
         });
         App.showToast('スプレッドシートを作成しました', 'success');
       } catch (err) {
-        msg.innerHTML = `<span class="text-danger">${_escape(err.message)}</span>`;
+        msg.innerHTML = `<span class="text-danger">${App.friendlyError(err)}</span>`;
       } finally {
         btn.disabled = false;
         btn.innerHTML = '<i class="bi bi-plus-circle me-1"></i>データ保存先を新規作成';
@@ -598,7 +598,7 @@ const SettingsView = (() => {
         const titleEl = document.getElementById('navAppTitle');
         if (titleEl) titleEl.textContent = name ? `経費ログ - ${name}` : '経費ログ';
       } catch (err) {
-        msg.innerHTML = `<span class="text-danger">${_escape(err.message)}</span>`;
+        msg.innerHTML = `<span class="text-danger">${App.friendlyError(err)}</span>`;
       }
     });
 
@@ -616,7 +616,7 @@ const SettingsView = (() => {
         msg.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>保存しました</span>';
         App.showToast('Gemini APIキーを保存しました', 'success');
       } catch (err) {
-        msg.innerHTML = `<span class="text-danger">${_escape(err.message)}</span>`;
+        msg.innerHTML = `<span class="text-danger">${App.friendlyError(err)}</span>`;
       }
     });
 
@@ -633,7 +633,7 @@ const SettingsView = (() => {
         msg.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>保存しました</span>';
         App.showToast('自家用車レートを保存しました', 'success');
       } catch (err) {
-        msg.innerHTML = `<span class="text-danger">${_escape(err.message)}</span>`;
+        msg.innerHTML = `<span class="text-danger">${App.friendlyError(err)}</span>`;
       }
     });
 
@@ -737,7 +737,7 @@ const SettingsView = (() => {
         _setFolderLink(folderId);
         App.showToast('証票フォルダを変更しました', 'success');
       } catch (err) {
-        msg.innerHTML = `<span class="text-danger">${_escape(err.message)}</span>`;
+        msg.innerHTML = `<span class="text-danger">${App.friendlyError(err)}</span>`;
       }
     });
 
@@ -1031,7 +1031,7 @@ const SettingsView = (() => {
     try {
       await _saveMasterToSheet(el);
     } catch (err) {
-      App.showToast(`削除エラー: ${err.message}`, 'danger');
+      App.showToast('メンバーの削除に失敗しました。' + App.friendlyError(err), 'danger');
       _master.members.splice(idx, 0, member); // ロールバック
       _renderMembers(el);
     }

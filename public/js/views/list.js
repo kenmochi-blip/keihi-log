@@ -186,8 +186,9 @@ const ListView = (() => {
       _expenses = await App.getExpenses();
     } catch (err) {
       if (!opts.fromCache) {
-        el.querySelector('#listTbodyPc').innerHTML = `<tr><td colspan="10" class="text-danger text-center">${err.message}</td></tr>`;
-        el.querySelector('#listCardsSp').innerHTML = `<div class="text-danger text-center py-3">${err.message}</div>`;
+        const msg = App.friendlyError(err, 'load');
+        el.querySelector('#listTbodyPc').innerHTML = `<tr><td colspan="10" class="text-danger text-center">${msg}</td></tr>`;
+        el.querySelector('#listCardsSp').innerHTML = `<div class="text-danger text-center py-3">${msg}</div>`;
       }
       return;
     }
@@ -202,7 +203,7 @@ const ListView = (() => {
           _populatePaySourceFilter(el);
           _renderTable(el);
           App.showToast('更新しました', 'success');
-        } catch (err) { App.showToast(err.message, 'danger'); }
+        } catch (err) { App.showToast(App.friendlyError(err, 'load'), 'danger'); }
       });
       el.querySelector('#btnExportCsv')?.addEventListener('click', () => _exportCsv(el));
       el.querySelector('#btnExportFreee')?.addEventListener('click', e => { e.preventDefault(); _exportFreee(el); });
@@ -303,7 +304,7 @@ const ListView = (() => {
         _renderTable(el);
         App.showToast('更新しました', 'success');
       } catch (err) {
-        App.showToast(err.message, 'danger');
+        App.showToast(App.friendlyError(err, 'load'), 'danger');
       }
     });
 
@@ -650,7 +651,7 @@ const ListView = (() => {
       _renderTable(el);
       App.showToast('登録済にしました', 'success');
     } catch (err) {
-      App.showToast('承認エラー: ' + err.message, 'danger');
+      App.showToast('登録済への変更に失敗しました。' + App.friendlyError(err), 'danger');
     } finally {
       App.hideLoading();
     }
@@ -671,7 +672,7 @@ const ListView = (() => {
       _renderTable(el);
       App.showToast('精算を解除しました', 'success');
     } catch (err) {
-      App.showToast('精算解除エラー: ' + err.message, 'danger');
+      App.showToast('精算解除に失敗しました。' + App.friendlyError(err), 'danger');
     } finally {
       App.hideLoading();
     }
@@ -735,7 +736,7 @@ const ListView = (() => {
       _renderTable(el);
       App.showToast('削除しました', 'success');
     } catch (err) {
-      App.showToast('削除エラー: ' + err.message, 'danger');
+      App.showToast('削除に失敗しました。' + App.friendlyError(err), 'danger');
     } finally {
       App.hideLoading();
     }

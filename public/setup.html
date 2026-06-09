@@ -76,6 +76,9 @@
           <button class="btn btn-primary w-100" id="btnVerifyLic">
             確認して次へ <i class="bi bi-arrow-right ms-1"></i>
           </button>
+          <p class="text-center mt-2 mb-0" style="font-size:0.78rem;">
+            <a href="/faq#q803" class="text-muted">キーが届いていない・無効と表示される場合</a>
+          </p>
           <hr class="my-3 d-none">
         </div>
 
@@ -161,6 +164,7 @@
           <p class="text-muted mb-2" style="font-size:0.85rem;">
             スキャナ保存で紙の原本を廃棄可能にするために必要な社内規程を作成します。<br>
             後から設定画面でも作成できます。
+            <a href="/faq#q602" target="_blank" class="text-muted text-decoration-underline">電帳法対応について詳しく <i class="bi bi-box-arrow-up-right" style="font-size:0.7rem;"></i></a>
           </p>
           <!-- 規程サンプルのアコーディオン -->
           <div class="accordion mb-3" id="regPreviewAcc">
@@ -276,6 +280,13 @@
             アプリを開いて設定画面の「プロキシ共有を再設定」ボタンを押してください。
           </div>
 
+          <div class="alert alert-light border mb-3" style="font-size:0.82rem;">
+            <div class="fw-semibold mb-1"><i class="bi bi-list-check me-1 text-primary"></i>次にやること</div>
+            <ul class="mb-0 ps-3" style="line-height:2;">
+              <li>上記URLをメンバーに共有する（Slack・メール等）</li>
+              <li>アプリの<strong>設定タブ</strong>でメンバーの役割を設定する</li>
+            </ul>
+          </div>
           <button class="btn btn-primary w-100 btn-lg" id="btnOpenApp">
             <i class="bi bi-check-circle me-1"></i>アプリを開く
           </button>
@@ -625,9 +636,12 @@ ${o}
         setProgState('prog2', 'error');
         setProgState('prog3', 'error');
         const is403 = /403/.test(err.message || '');
-        $('setupErrMsg').textContent = is403
-          ? 'Googleドライブへのアクセス権限がありません（403）。下のボタンで再認証してください。'
-          : 'エラーが発生しました: ' + (err.message || err);
+        const errDetail = is403
+          ? 'Googleアカウントの再認証が必要です。下のボタンで再認証してください。'
+          : /fetch|network/i.test(err.message || '')
+            ? '通信エラーが発生しました。ネットワーク接続を確認してから再試行してください。'
+            : 'セットアップに失敗しました。しばらく経ってから再試行してください。';
+        $('setupErrMsg').innerHTML = errDetail + ' <a href="/faq#q901" style="color:inherit;font-weight:600;">詳しくはFAQ</a>';
         $('setupErrMsg').style.display = 'block';
         $('btnReauth').style.display = is403 ? '' : 'none';
         $('btnStartSetup').style.display = is403 ? 'none' : '';

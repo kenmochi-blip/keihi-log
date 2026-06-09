@@ -839,6 +839,25 @@ const App = (() => {
   }
 
   /**
+   * エラーをユーザー向けの日本語メッセージに変換する。
+   * FAQリンクを含むHTMLを返す場合あり。
+   */
+  function friendlyError(err, context) {
+    const m = String(err?.message || '');
+    if (m.includes('403') || m.includes('permission') || m.includes('PERMISSION_DENIED'))
+      return `アクセス権がありません。管理者に共有設定を依頼してください。<a href="/faq#q801" class="alert-link ms-1">詳細</a>`;
+    if (m.includes('401') || m.toLowerCase().includes('unauthorized') || m.includes('token'))
+      return 'セッションが切れました。ページを再読み込みしてください。';
+    if (m.toLowerCase().includes('failed to fetch') || m.includes('network') || m.includes('NetworkError'))
+      return '通信エラーが発生しました。ネットワーク接続を確認してください。';
+    if (m.includes('quota') || m.includes('RESOURCE_EXHAUSTED') || m.includes('429'))
+      return `APIの利用上限に達しました。しばらくしてから再試行してください。<a href="/faq#q403" class="alert-link ms-1">詳細</a>`;
+    if (context === 'load')
+      return `データの読み込みに失敗しました。再読み込みしてください。<a href="/faq#q801" class="alert-link ms-1">詳細</a>`;
+    return '処理に失敗しました。しばらく経ってから再試行してください。';
+  }
+
+  /**
    * トースト通知を表示
    * @param {string} message
    * @param {'success'|'danger'|'warning'|'info'} type
@@ -1013,6 +1032,7 @@ const App = (() => {
     showLoading,
     hideLoading,
     showToast,
+    friendlyError,
     buildUpgradeUrl,
     buildPlanChoiceButtons,
   };
