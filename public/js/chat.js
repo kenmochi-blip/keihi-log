@@ -44,7 +44,7 @@ const SupportChat = (() => {
 
         <div class="chat-messages" id="chatMessages">
           <!-- 初期メッセージ -->
-          ${_botBubble('こんにちは！経費ログのサポートAIです。<br>ご不明な点をお気軽にどうぞ。')}
+          ${_botBubble('こんにちは！経費ログのサポートAIです。<br>ご不明な点をお気軽にどうぞ。<br><a href="https://forms.gle/wPBbW8aniDdoynXAA" target="_blank" rel="noopener" class="chat-faq-link"><i class="bi bi-megaphone me-1"></i>バグ・改善要望はこちら</a>')}
         </div>
 
         <div class="chat-quick-replies" id="chatQuickReplies">
