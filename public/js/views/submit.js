@@ -460,16 +460,14 @@ const SubmitView = (() => {
       _paySources.map(p => `<option value="${p}">${p}</option>`).join('');
     el.querySelectorAll('#selPaySource').forEach(s => { s.innerHTML = psHtml; });
 
-    // カスタムフラグ：選択肢があれば表示
+    // カスタムフラグ：選択肢を埋める（表示は submitUnit と連動するため初期は隠したまま）
     const cfWrap = el.querySelector('#customFlagWrap');
     const cfSel  = el.querySelector('#selCustomFlag');
-    if (_customFlags.length > 0 && cfWrap && cfSel) {
+    if (_customFlags.length > 0 && cfSel) {
       cfSel.innerHTML = '<option value="">未設定</option>' +
         _customFlags.map(f => `<option value="${f}">${f}</option>`).join('');
-      cfWrap.classList.remove('d-none');
-    } else if (cfWrap) {
-      cfWrap.classList.add('d-none');
     }
+    if (cfWrap) cfWrap.classList.add('d-none');
   }
 
   /** 金額入力欄を自動カンマ整形する */
@@ -499,7 +497,7 @@ function _bindSubtypePills(el) {
           el.querySelector(`#panel-${_typeId(t)}`)?.classList.add('d-none');
         });
         el.querySelector('#heroZone')?.classList.remove('d-none');
-        el.querySelector('#submitUnit')?.classList.add('d-none');
+        _setSubmitUnitVisible(el, false);
         if (subtypeCard) subtypeCard.classList.remove('subtype-active');
         return;
       }
@@ -513,8 +511,7 @@ function _bindSubtypePills(el) {
       el.querySelector('#heroZone')?.classList.add('d-none');
       el.querySelector('#btnAnalyze')?.classList.add('d-none');
       el.querySelector('#receiptFields')?.classList.add('d-none');
-      const su = el.querySelector('#submitUnit');
-      if (su) { su.classList.remove('d-none'); su.style.display = 'flex'; }
+      _setSubmitUnitVisible(el, true);
       if (subtypeCard) subtypeCard.classList.add('subtype-active');
     });
   });
@@ -1115,11 +1112,22 @@ function _bindSubtypePills(el) {
     }
   }
 
+  /** 「登録する」セクション（submitUnit）とカスタムフラグを連動して表示/非表示する。
+   *  カスタムフラグはマスタに登録がある場合のみ submitUnit と一緒に出す。 */
+  function _setSubmitUnitVisible(el, show) {
+    const su = el.querySelector('#submitUnit');
+    if (su) {
+      if (show) { su.classList.remove('d-none'); su.style.display = 'flex'; }
+      else su.classList.add('d-none');
+    }
+    const cf = el.querySelector('#customFlagWrap');
+    if (cf) cf.classList.toggle('d-none', !(show && _customFlags.length > 0));
+  }
+
   function _showReceiptFields(el) {
     el.querySelector('#receiptFields')?.classList.remove('d-none');
     el.querySelector('#subtypeCard')?.classList.add('d-none');
-    const su = el.querySelector('#submitUnit');
-    if (su) { su.classList.remove('d-none'); su.style.display = 'flex'; }
+    _setSubmitUnitVisible(el, true);
   }
 
   /** サーバー時刻を事前取得して _prefetchedTime に保存する（申請時の待ちをゼロにする） */
@@ -1698,7 +1706,7 @@ function _bindSubtypePills(el) {
       el.querySelector('#subtypeCard')?.classList.add('d-none');
       el.querySelector('#historySection')?.classList.add('d-none');
       el.querySelector('#regulationAcc')?.classList.add('d-none');
-      el.querySelector('#submitUnit')?.classList.remove('d-none');
+      _setSubmitUnitVisible(el, true);
       const btn = el.querySelector('#btnSubmit');
       if (btn) { btn.textContent = '上書き保存'; btn.style.cssText = 'background:#cc8800;'; }
       el.scrollIntoView({ behavior: 'smooth' });
@@ -1772,7 +1780,7 @@ function _bindSubtypePills(el) {
     el.querySelector('#subtypeCard')?.classList.remove('d-none');
     el.querySelector('#historySection')?.classList.remove('d-none');
     el.querySelector('#regulationAcc')?.classList.remove('d-none');
-    el.querySelector('#submitUnit')?.classList.add('d-none');
+    _setSubmitUnitVisible(el, false);
     el.querySelector('#receiptFields')?.classList.add('d-none');
 
     // タイプリセット
