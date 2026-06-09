@@ -126,6 +126,14 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 .upload-card-sm i { font-size: 1.1rem; }
 .upload-card-sm:hover { border-color: #0d6efd; }
 
+/* フォーム入力中の履歴エリアグレーアウト */
+#historySection.history-inactive {
+  opacity: 0.35;
+  pointer-events: none;
+  user-select: none;
+  transition: opacity 0.2s;
+}
+
 /* 履歴カード */
 .history-card {
   background: #fff;

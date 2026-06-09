@@ -1122,6 +1122,11 @@ function _bindSubtypePills(el) {
     }
     const cf = el.querySelector('#customFlagWrap');
     if (cf) cf.classList.toggle('d-none', !(show && _customFlags.length > 0));
+    const hs = el.querySelector('#historySection');
+    if (hs) {
+      hs.classList.remove('d-none');
+      hs.classList.toggle('history-inactive', show);
+    }
   }
 
   function _showReceiptFields(el) {
@@ -1704,7 +1709,6 @@ function _bindSubtypePills(el) {
 
       el.querySelector('#editBanner')?.classList.remove('d-none');
       el.querySelector('#subtypeCard')?.classList.add('d-none');
-      el.querySelector('#historySection')?.classList.add('d-none');
       el.querySelector('#regulationAcc')?.classList.add('d-none');
       _setSubmitUnitVisible(el, true);
       const btn = el.querySelector('#btnSubmit');
@@ -1778,7 +1782,6 @@ function _bindSubtypePills(el) {
     el.querySelector('#heroDefault')?.classList.remove('d-none');
     el.querySelector('#heroPreview')?.classList.add('d-none');
     el.querySelector('#subtypeCard')?.classList.remove('d-none');
-    el.querySelector('#historySection')?.classList.remove('d-none');
     el.querySelector('#regulationAcc')?.classList.remove('d-none');
     _setSubmitUnitVisible(el, false);
     el.querySelector('#receiptFields')?.classList.add('d-none');
