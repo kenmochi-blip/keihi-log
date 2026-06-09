@@ -8,7 +8,7 @@ export default async function handler(req, res) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return res.status(503).json({ error: 'Gemini APIキーが設定されていません' });
 
-  const MODEL   = 'gemini-1.5-flash';
+  const MODEL   = 'gemini-2.0-flash';
   const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
 
   try {
