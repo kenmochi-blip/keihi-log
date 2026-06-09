@@ -528,15 +528,15 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 .btn-ai:not(:disabled):active { transform: scale(0.98); }
 /* サブタイプ選択 */
 .subtype-divider {
-  text-align: center; font-size: 0.75rem; color: #adb5bd;
+  text-align: center; font-size: 0.75rem; color: #6c757d;
   display: flex; align-items: center; gap: 10px;
 }
-.subtype-divider::before, .subtype-divider::after { content: ''; flex: 1; height: 1px; background: #dee2e6; }
+.subtype-divider::before, .subtype-divider::after { content: ''; flex: 1; height: 1px; background: #ced4da; }
 .subtype-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
 .subtype-pill {
   display: inline-flex; align-items: center; gap: 5px;
-  padding: 7px 15px; border-radius: 20px; border: 1.5px solid #dee2e6;
-  background: #fff; font-size: 0.78rem; font-weight: 600; color: #6c757d;
+  padding: 7px 15px; border-radius: 20px; border: 1.5px solid #adb5bd;
+  background: #fff; font-size: 0.78rem; font-weight: 600; color: #495057;
   cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
   transition: border-color 0.12s, background 0.12s, color 0.12s;
 }
@@ -544,7 +544,7 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 .subtype-pill:hover, .subtype-pill.active { border-color: #0d6efd; background: #e8f0fe; color: #0d6efd; }
 /* サブタイプ選択中：カードをアクティブ表示 */
 #subtypeCard { transition: opacity 0.15s, border-color 0.15s; }
-#subtypeCard:not(.subtype-active) { opacity: 0.55; }
+#subtypeCard:not(.subtype-active) { opacity: 0.85; }
 #subtypeCard.subtype-active { opacity: 1; border-color: #0d6efd !important; }
 /* 統合送信カード */
 .submit-unit {
