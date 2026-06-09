@@ -394,7 +394,7 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 /* 印刷対応 */
 @media print {
   @page { size: A4 landscape; margin: 1cm; }
-  .navbar, .fixed-bottom, #toastContainer, .btn, .no-print { display: none !important; }
+  .navbar, .fixed-bottom, #toastContainer, .btn, .no-print, #supportChatRoot { display: none !important; }
   body { background: #fff; }
   .card { border: 1px solid #ccc; box-shadow: none; break-inside: avoid; }
   /* 集計ビュー：テーブルを全幅に展開 */
