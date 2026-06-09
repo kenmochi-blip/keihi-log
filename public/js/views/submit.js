@@ -283,7 +283,7 @@ const SubmitView = (() => {
   </div>
 
   <!-- 直近履歴 -->
-  <div style="height:5rem;display:flex;justify-content:space-between;align-items:center;">
+  <div id="navShortcuts" style="height:5rem;display:flex;justify-content:space-between;align-items:center;">
     <button class="btn btn-link btn-sm text-decoration-none text-secondary p-0" id="btnNavLeft" style="font-size:0.82rem;">
       👈 ${App.isAdmin() ? '設定' : '集計'}
     </button>
@@ -1146,6 +1146,11 @@ function _bindSubtypePills(el) {
     if (hs) {
       hs.classList.remove('d-none');
       hs.classList.toggle('history-inactive', show);
+    }
+    const ns = el.querySelector('#navShortcuts');
+    if (ns) {
+      ns.style.opacity = show ? '0.35' : '';
+      ns.style.pointerEvents = show ? 'none' : '';
     }
   }
 
