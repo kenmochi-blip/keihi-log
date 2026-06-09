@@ -217,6 +217,14 @@
     },
     {
       "@type": "Question",
+      "name": "「リクエスト上限に達しました」エラーが出て新しいAPIキーに替えても直らない",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Gemini APIの利用上限はAPIキー単位ではなくGoogle Cloudプロジェクト単位で管理されています。同じGoogleアカウントで新しいキーを作成しても同じプロジェクトに紐づくため上限はリセットされません。解決策はGoogle AI Studioで「新しいプロジェクトでAPIキーを作成」を選んで新規プロジェクトのキーを取得し、設定タブに貼り付けることです。APIキーはGoogleドライブと別のアカウントで発行しても問題ありません。上限は毎日深夜（太平洋時間）にリセットされるため、翌日まで待てば回復する場合もあります。"
+      }
+    },
+    {
+      "@type": "Question",
       "name": "Gemini APIキーが漏洩するリスクはありますか？対策方法は？",
       "acceptedAnswer": {
         "@type": "Answer",
@@ -1037,6 +1045,32 @@
           <p>AI解析にはGemini APIを使用します。APIキーはチームの管理者が設定・管理します。領収書1枚の登録につきAPIリクエストは<strong>1回</strong>です。</p>
           <p>Google AI Studioの無料アカウントは<strong>1日1,500リクエストまで無料</strong>です。たとえば10名のチームが1人1日15件ずつ登録しても合計150リクエストでまだ余裕があり、数十名規模のチームでも通常の業務量であれば無料枠内に収まります。使用量が増えた場合はGoogleのAPI料金が発生することがあります（Gemini 2.5 Flashで約0.003円/枚程度）。詳細はGoogle AI Studioの料金ページをご確認ください。</p>
           <p>メンバー個人でAPIキーを用意・入力する必要はありません。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion-item faq-item" id="q402b">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c402b">
+          <span class="faq-q-badge">Q</span>「リクエスト上限に達しました」というエラーが出て、新しいAPIキーに替えても直らない
+        </button>
+      </h2>
+      <div id="c402b" class="accordion-collapse collapse">
+        <div class="accordion-body answer">
+          <p>Gemini APIの利用上限は<strong>APIキー単位ではなく、Google Cloudプロジェクト単位</strong>で管理されています。同じGoogle AIアカウントで新しいキーを作成しても、同じプロジェクトに紐づくため上限はリセットされません。</p>
+          <p><strong>対処法：新規プロジェクトでAPIキーを作成する</strong></p>
+          <ol>
+            <li><a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio（APIキー管理）</a>を開く</li>
+            <li>「APIキーを作成」→ <strong>「新しいプロジェクトでAPIキーを作成」</strong> を選択（既存プロジェクトへの追加ではなく新規）</li>
+            <li>生成されたキーを設定タブの「Gemini APIキー」欄に貼り付けて保存</li>
+          </ol>
+          <div class="tip">APIキーはGoogleドライブと別のGoogleアカウントで発行しても問題ありません。キーは画像解析専用で、データ保存先（ドライブ）とは独立しています。</div>
+          <p><strong>よくある原因：</strong></p>
+          <ul>
+            <li><strong>gemini-2.5-flash</strong>：無料枠が20件/日と少ないため、数回のテストで上限に達する</li>
+            <li><strong>gemini-2.0-flash / 1.5-flash</strong>：通常は1,500件/日だが、プロジェクトの課金設定によって無料枠が0になるケースがある</li>
+            <li>上限は毎日深夜（太平洋時間）にリセットされる。翌日まで待てば回復する場合もある</li>
+          </ul>
         </div>
       </div>
     </div>
