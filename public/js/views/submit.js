@@ -794,12 +794,21 @@ function _bindSubtypePills(el) {
         );
         const data = await resp.json();
 
+        const yahooUrl = `https://transit.yahoo.co.jp/search/result?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&type=1&expkind=1&userpass=1&ticket=ic&shin=1&seat=1`;
+        const googleUrl = `https://www.google.com/maps/dir/${encodeURIComponent(from)}/${encodeURIComponent(to)}`;
+
         if (!resp.ok || !data.fare) {
-          App.showToast(data.error || '運賃を取得できませんでした', 'warning');
-          window.open(
-            `https://transit.yahoo.co.jp/search/result?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&type=1&expkind=1&userpass=1&ticket=ic&shin=1&seat=1`,
-            '_blank'
-          );
+          App.showToast(data.error || '運賃を取得できませんでした。リンクから手動で確認してください', 'warning');
+          if (resultDiv) {
+            el.querySelector('#transitResultRoute').textContent = `${from} → ${to}`;
+            el.querySelector('#transitResultFare').textContent = '運賃を取得できませんでした';
+            el.querySelector('#transitResultFare').className = 'text-warning fw-bold mb-1';
+            const linkYahoo = el.querySelector('#transitResultLinkYahoo');
+            if (linkYahoo) linkYahoo.href = data?.yahooUrl || yahooUrl;
+            const linkGoogle = el.querySelector('#transitResultLinkGoogle');
+            if (linkGoogle) linkGoogle.href = data?.resultUrl || googleUrl;
+            resultDiv.classList.remove('d-none');
+          }
           return;
         }
 
@@ -813,10 +822,11 @@ function _bindSubtypePills(el) {
           el.querySelector('#transitResultRoute').textContent = routeText;
           el.querySelector('#transitResultFare').textContent =
             `最安値（IC）: ¥${data.fare.toLocaleString()} ／片道`;
+          el.querySelector('#transitResultFare').className = 'text-primary fw-bold mb-1';
           const linkGoogle = el.querySelector('#transitResultLinkGoogle');
-          if (linkGoogle) linkGoogle.href = data.resultUrl || '#';
+          if (linkGoogle) linkGoogle.href = data.resultUrl || googleUrl;
           const linkYahoo = el.querySelector('#transitResultLinkYahoo');
-          if (linkYahoo) linkYahoo.href = data.yahooUrl || '#';
+          if (linkYahoo) linkYahoo.href = data.yahooUrl || yahooUrl;
           resultDiv.classList.remove('d-none');
         }
 
