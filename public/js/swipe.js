@@ -226,54 +226,51 @@ const SwipeNav = (() => {
   function _animate(targetX, targetView) {
     _track.style.transition = 'transform 0.22s cubic-bezier(0.25,0.46,0.45,0.94)';
     _track.style.transform  = `translateX(${targetX}px)`;
+    // transitionend が発火しない場合（稀なブラウザ挙動）のフォールバック
+    const fallback = setTimeout(() => _finish(targetX, targetView), 350);
     _track.addEventListener('transitionend', () => {
-      const main = document.getElementById('appMain');
-
-      // ① オーバーレイが覆っている間に新ビューを main へ先行描画
-      //    → overlay 撤去直後から正しいコンテンツが表示される（旧コンテンツが一瞬現れない）
-      if (main) {
-        // summary・list は全幅が必要なため maxWidth を '' に。他は 480px でリセット
-        main.style.maxWidth = ['summary', 'list'].includes(targetView) ? '' : '480px';
-        // スワイプ中にすでに隣パネルへ描画済みの HTML を再利用する
-        // （render() を呼ばないことで画面がいったん白紙に戻ることを防ぐ）
-        const panelIndex = targetX === 0 ? 0 : 2;
-        const panelInner = _track.children[panelIndex]?.firstElementChild;
-        if (panelInner) {
-          main.innerHTML = panelInner.innerHTML;
-        } else if (_views()[targetView]) {
-          try { main.innerHTML = _views()[targetView].render(); } catch (_) {}
-        }
-        // テーブル横スクロール位置を復元
-        const savedScrolls = _scrollCache[targetView];
-        if (savedScrolls?.length) {
-          main.querySelectorAll('.table-responsive').forEach((el, i) => {
-            if (savedScrolls[i] > 0) el.scrollLeft = savedScrolls[i];
-          });
-        }
-      }
-
-      // スワイプ完了直後の transition ちらつきを防ぐ：
-      // main が visibility:visible になった瞬間に CSS が初期計算を走らせ、
-      // transition:all を持つ要素（type-card 等）が brief にアニメーションすることがある。
-      // 2フレーム間だけ全 transition を無効化してから復元する。
-      if (main) main.classList.add('swipe-settling');
-      _cleanup(); // overlay 撤去 → main が即座に新コンテンツで表示される
-      requestAnimationFrame(() => requestAnimationFrame(() => {
-        document.getElementById('appMain')?.classList.remove('swipe-settling');
-      }));
-
-      // ② Router はナビ状態・_current 更新 + bindEvents のみ実行（再描画・フェードインなし）
-      // fromCache=true のとき bindEvents 側でデータ再ロードをスキップする
-      //（キャッシュ済み HTML にすでにデータが表示されているため）
-      const fromCache = !!_builtFromCache[targetView];
-      Router.navigate(targetView, { skipRender: true, skipFade: true, fromCache });
+      clearTimeout(fallback);
+      _finish(targetX, targetView);
     }, { once: true });
+  }
+
+  function _finish(targetX, targetView) {
+    if (!_overlay) return; // 二重呼び出し防止
+    const main = document.getElementById('appMain');
+
+    // ① オーバーレイが覆っている間に新ビューを main へ先行描画
+    if (main) {
+      main.style.maxWidth = ['summary', 'list'].includes(targetView) ? '' : '480px';
+      const panelIndex = targetX === 0 ? 0 : 2;
+      const panelInner = _track.children[panelIndex]?.firstElementChild;
+      if (panelInner) {
+        main.innerHTML = panelInner.innerHTML;
+      } else if (_views()[targetView]) {
+        try { main.innerHTML = _views()[targetView].render(); } catch (_) {}
+      }
+      const savedScrolls = _scrollCache[targetView];
+      if (savedScrolls?.length) {
+        main.querySelectorAll('.table-responsive').forEach((el, i) => {
+          if (savedScrolls[i] > 0) el.scrollLeft = savedScrolls[i];
+        });
+      }
+    }
+
+    if (main) main.classList.add('swipe-settling');
+    _cleanup();
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      document.getElementById('appMain')?.classList.remove('swipe-settling');
+    }));
+
+    const fromCache = !!_builtFromCache[targetView];
+    Router.navigate(targetView, { skipRender: true, skipFade: true, fromCache });
   }
 
   function _snapBack() {
     _track.style.transition = 'transform 0.2s cubic-bezier(0.25,0.46,0.45,0.94)';
     _track.style.transform  = `translateX(${-_W}px)`;
-    _track.addEventListener('transitionend', () => _cleanup(), { once: true });
+    const fallback = setTimeout(() => _cleanup(), 350);
+    _track.addEventListener('transitionend', () => { clearTimeout(fallback); _cleanup(); }, { once: true });
   }
 
   function _cleanup() {
@@ -313,6 +310,12 @@ const SwipeNav = (() => {
     _decided = true;
     _isHoriz = true;
     _build();
+
+    // _build() と _animate() が同一フレームで実行されると、ブラウザが初期 transform を
+    // 描画前にバッチ処理してトランジションをスキップする。offsetWidth 参照でレイアウトを
+    // 強制コミットしてからアニメーション開始位置を確定させる。
+    // eslint-disable-next-line no-unused-expressions
+    void _track.offsetWidth;
 
     const targetX = targetView === nextName ? -_W * 2 : 0;
     _animate(targetX, targetView);
