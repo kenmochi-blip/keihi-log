@@ -108,9 +108,10 @@ async function _issueNewLicense(session) {
       interval  = sub.items.data[0]?.price?.recurring?.interval || 'month';
       if (sub.status === 'trialing' && sub.trial_end) trialEnd = sub.trial_end;
     } catch (_) {}
-    // サブスク取得が失敗してもカード無しなら trial と確定できる
-    if (!trialEnd && isCardlessTrial) trialEnd = 1;
   }
+  // サブスク取得が失敗した場合 or サブスク自体がない（$0 一時決済型）でも
+  // payment_status が no_payment_required ならカード無しトライアルと確定できる
+  if (!trialEnd && isCardlessTrial) trialEnd = 1;
 
   // ── カード無しトライアル → 有料転換 ──────────────────────────────
   // 「有料プランに登録」ボタンは Payment Link に client_reference_id=既存ライセンスキー を
