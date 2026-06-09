@@ -283,7 +283,15 @@ const SubmitView = (() => {
   </div>
 
   <!-- 直近履歴 -->
-  <hr style="margin-top:5rem;margin-bottom:1.25rem;">
+  <div style="margin-top:5rem;margin-bottom:1.25rem;display:flex;justify-content:space-between;align-items:flex-end;">
+    <button class="btn btn-link btn-sm text-decoration-none text-secondary p-0" id="btnNavLeft" style="font-size:0.8rem;">
+      <i class="bi bi-arrow-left me-1"></i><span id="navLeftLabel">${App.isAdmin() ? '設定' : '集計'}</span>
+    </button>
+    <button class="btn btn-link btn-sm text-decoration-none text-secondary p-0" id="btnNavRight" style="font-size:0.8rem;">
+      一覧<i class="bi bi-arrow-right ms-1"></i>
+    </button>
+  </div>
+  <hr style="margin:0 0 1.25rem;">
   <div id="historySection" class="mb-4">
     <div class="d-flex justify-content-between align-items-center mb-2">
       <h6 class="fw-bold mb-0">直近の自分の履歴</h6>
@@ -422,6 +430,8 @@ const SubmitView = (() => {
     _bindCarCalc(el);
     _bindSubmit(el);
     el.querySelector('#btnRefreshHistory')?.addEventListener('click', () => _loadHistory(el, true));
+    el.querySelector('#btnNavLeft')?.addEventListener('click', () => Router.navigate(App.isAdmin() ? 'settings' : 'summary'));
+    el.querySelector('#btnNavRight')?.addEventListener('click', () => Router.navigate('list'));
     el.querySelector('#btnCancelEdit')?.addEventListener('click', () => _cancelEdit(el));
     el.querySelector('#btnAddMore')?.addEventListener('click', () => el.querySelector('#fileInput-領収書')?.click());
     // fromCache=true のとき：スワイプ由来でキャッシュ済みHTMLが表示されているため再ロード不要
