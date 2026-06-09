@@ -43,6 +43,9 @@ const Router = (() => {
       btn.classList.toggle('active', btn.dataset.view === viewName);
     });
 
+    // チャットのクイック返信をタブに合わせて切り替え
+    if (typeof SupportChat !== 'undefined') SupportChat.setContext(viewName);
+
     if (!opts.skipRender) {
       main.style.maxWidth = '480px'; // 集計ビューが広げた場合にリセット
       // type="password" フィールドを削除前に type="text" へ変換

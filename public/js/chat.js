@@ -10,11 +10,29 @@ const SupportChat = (() => {
       '電帳法対応は必須ですか',
       'セットアップが失敗する',
     ],
-    app: [
-      'AI解析が動かない',
-      'バス・電車の運賃検索',
-      '精算・承認の操作',
-      'ライセンスの有効期限',
+    submit: [
+      'AI解析で読み取れない場合は',
+      '外貨の経費はどう入力する',
+      'バス・電車の運賃検索ができない',
+      '会社払いの登録方法',
+    ],
+    list: [
+      '申請済・登録済・精算済の違い',
+      '承認（登録済にする）方法',
+      '提出済みの申請を修正したい',
+      '精算解除の方法',
+    ],
+    summary: [
+      '集計の絞り込み方法',
+      '精算処理の方法',
+      'CSVでエクスポートできますか',
+      '特定メンバーの集計を見たい',
+    ],
+    settings: [
+      'Gemini APIキーの設定方法',
+      'メンバーの権限変更',
+      'プランの変更・解約方法',
+      'ライセンスの有効期限確認',
     ],
   };
 
@@ -114,13 +132,13 @@ const SupportChat = (() => {
   }
 
   function _renderQuickReplies() {
-    const replies = QUICK_REPLIES[_context] || QUICK_REPLIES.app;
+    const replies = QUICK_REPLIES[_context] || QUICK_REPLIES.submit;
     _el('chatQuickReplies').innerHTML = replies
       .map(q => `<button class="chat-qr-btn" data-msg="${q}">${q}</button>`).join('');
   }
 
   function setContext(ctx) {
-    _context = ctx === 'setup' ? 'setup' : 'app';
+    _context = QUICK_REPLIES[ctx] ? ctx : 'submit';
     _renderQuickReplies();
   }
 
