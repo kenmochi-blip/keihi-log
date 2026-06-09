@@ -551,6 +551,7 @@ const SettingsView = (() => {
     // シートからの再読み込み（社名・Gemini APIキー・車両レート）をスキップ
     const isDemo = typeof Demo !== 'undefined' && Demo.isActive();
     const ssId = localStorage.getItem('keihi_sheet_id');
+    let _cfgB4 = ''; // readAllSettings で取得したフォルダID（後段の重複読み込み回避用）
     if (!opts.fromCache) {
     // 設定シートをB2:B7まとめて1回のAPIコールで読み込む
     if (isDemo) {
@@ -572,6 +573,9 @@ const SettingsView = (() => {
           carRateInput.value = cfg.B7;
           localStorage.setItem('keihi_car_rate', cfg.B7);
         }
+        // 証票フォルダID (B4) — 後段で再利用し、次回以降は localStorage から即時表示
+        _cfgB4 = cfg.B4 || '';
+        if (_cfgB4) localStorage.setItem('keihi_folder_id', _cfgB4);
       } catch (err) {
         // 読み込み失敗時はキャッシュから復元
         const cached = localStorage.getItem('keihi_gemini_key');
@@ -672,7 +676,11 @@ const SettingsView = (() => {
     el.querySelector('#btnAddCustomFlag')?.addEventListener('click', () => _showInlineAdd(el, 'customFlag'));
 
     // 証票フォルダ：フォルダを開くリンクを生成（ssId設定済み・デモ以外のみ）
-    const currentFolderId = isDemo ? '' : (localStorage.getItem('keihi_folder_id') || await Sheets.readSetting('B4').catch(() => ''));
+    // B4 は readAllSettings で取得済みのため追加のAPIコールはしない
+    // （fromCache かつ localStorage 未保存の場合のみフォールバックで1回読む）
+    const currentFolderId = isDemo ? ''
+      : (localStorage.getItem('keihi_folder_id') || _cfgB4
+         || (opts.fromCache ? await Sheets.readSetting('B4').catch(() => '') : ''));
     const folderOpenWrap = el.querySelector('#folderOpenLinkWrap');
     const _setFolderLink = fid => {
       if (!folderOpenWrap) return;

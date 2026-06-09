@@ -80,7 +80,7 @@ async function _authorize(req, res) {
 
   let master;
   try {
-    master = await readMaster(sheetId);
+    master = await readMasterCached(sheetId);
   } catch (e) {
     // SA がシートにアクセスできない場合（共有未設定など）は 503 を返す（500 ではなくプロキシ失敗と明示）
     res.status(503).json({ error: 'sa_sheet_access_failed', message: e.message || 'SA cannot read sheet' });
@@ -510,6 +510,8 @@ async function settingsWrite(req, res) {
   const value = body?.value;
 
   await updateRangeViaSA(authz.sheetId, `設定!${cell}`, [[value == null ? '' : value]]);
+  // Geminiキー（B5）更新時はキーキャッシュを即削除（古いキーが使われ続けるのを防ぐ）
+  if (cell === 'B5') await kv.del(`gemini:key:${authz.sheetId}`).catch(() => {});
   return res.status(200).json({ ok: true });
 }
 
@@ -641,11 +643,17 @@ async function gemini(req, res) {
   const authz = await _authorize(req, res);
   if (!authz) return;
 
-  const sheets = sheetsClient();
-  const cfg = await sheets.spreadsheets.values.get({
-    spreadsheetId: authz.sheetId, range: '設定!B5',
-  });
-  const apiKey = cfg.data.values?.[0]?.[0] || '';
+  // キーは5分KVキャッシュ（B5更新時は settingsWrite が即削除する）
+  const keyCacheKey = `gemini:key:${authz.sheetId}`;
+  let apiKey = await kv.get(keyCacheKey).catch(() => null);
+  if (!apiKey) {
+    const sheets = sheetsClient();
+    const cfg = await sheets.spreadsheets.values.get({
+      spreadsheetId: authz.sheetId, range: '設定!B5',
+    });
+    apiKey = cfg.data.values?.[0]?.[0] || '';
+    if (apiKey) await kv.set(keyCacheKey, apiKey, { ex: 300 }).catch(() => {});
+  }
   if (!apiKey) return res.status(400).json({ error: 'no_gemini_key' });
 
   const body = await _body(req);
@@ -914,6 +922,19 @@ async function accountantSummary(req, res) {
 
 /** マスタ表 A2:H を SA で読み、クライアントの readMaster と同一形のオブジェクトを返す。
  *  A:氏名 B:メール C:所属 D:権限 E:備考 F:会社払い支払元 G:勘定科目 H:カスタムフラグ */
+/** マスタ表を60秒KVキャッシュ付きで読む。認可（_authorize）が全APIで通るため、
+ *  ここの遅延削減が全エンドポイントのレイテンシに効く。
+ *  アプリ経由のマスタ書き込み（mastersWrite）はキャッシュを即削除するため遅延なし。
+ *  シート直接編集時のみ最大60秒の反映遅れが生じる。 */
+async function readMasterCached(sheetId) {
+  const key = `acct:master:${sheetId}`;
+  const cached = await kv.get(key).catch(() => null);
+  if (cached?.members) return cached;
+  const master = await readMaster(sheetId);
+  await kv.set(key, master, { ex: 60 }).catch(() => {});
+  return master;
+}
+
 async function readMaster(sheetId) {
   const sheets = sheetsClient();
   const resp = await sheets.spreadsheets.values.get({
