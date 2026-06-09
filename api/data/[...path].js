@@ -647,7 +647,7 @@ async function gemini(req, res) {
   const body = await _body(req);
   if (!body?.contents) return res.status(400).json({ error: 'invalid_request' });
 
-  const MODEL = 'gemini-2.0-flash';
+  const MODEL = 'gemini-1.5-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`;
   const upstream = await fetch(url, {
     method: 'POST',
