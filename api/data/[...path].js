@@ -28,6 +28,26 @@ import { FAQ_TEXT } from '../_faq-data.js';
 // レシート画像は Base64 で送られるため、デフォルト4.5MBでは不足する可能性がある
 export const config = { api: { bodyParser: { sizeLimit: '12mb' } } };
 
+// in-processキャッシュ（ウォームインスタンス内でのKV往復を排除する）
+// Vercelのサーバーレス関数はウォームインスタンスを再利用するため、モジュール変数がリクエスト間で共有される。
+// 外部KVへのネットワーク往復（~50-100ms）をゼロにできる。
+const _inProc = new Map(); // key → { value, expiresAt }
+function _inProcGet(key) {
+  const e = _inProc.get(key);
+  if (!e) return null;
+  if (Date.now() > e.expiresAt) { _inProc.delete(key); return null; }
+  return e.value;
+}
+function _inProcSet(key, value, ttlMs) {
+  _inProc.set(key, { value, expiresAt: Date.now() + ttlMs });
+  // マップが肥大化しないよう上限を設ける
+  if (_inProc.size > 200) {
+    const now = Date.now();
+    for (const [k, v] of _inProc) { if (now > v.expiresAt) _inProc.delete(k); }
+  }
+}
+function _inProcDel(key) { _inProc.delete(key); }
+
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
 
@@ -196,13 +216,21 @@ async function expensesGet(req, res) {
   const refresh = _query(req).get('refresh') === '1';
 
   // キャッシュ（全件）→ レスポンス時にロール別フィルタ
+  // 1st: in-process / 2nd: KV / 3rd: Sheets
   const cacheKey = `data:exp:${sheetId}`;
   let all = null;
-  if (!refresh) all = await kv.get(cacheKey).catch(() => null);
+  if (!refresh) {
+    all = _inProcGet(cacheKey);
+    if (!all) {
+      all = await kv.get(cacheKey).catch(() => null);
+      if (all) _inProcSet(cacheKey, all, 55_000);
+    }
+  }
   let cached = !!all;
   if (!all) {
     all = await readExpensesViaSA(sheetId);
-    await kv.set(cacheKey, all, { ex: 60 }).catch(() => {});
+    _inProcSet(cacheKey, all, 55_000);
+    kv.set(cacheKey, all, { ex: 60 }).catch(() => {}); // fire-and-forget
     cached = false;
   }
 
@@ -247,7 +275,7 @@ async function expensesCreate(req, res) {
   r[8]  = _normalizeImageLinks(r[8]);     // I: 署名付きプロキシURL→永続Drive URLへ戻す
 
   await prependExpenseRowViaSA(sheetId, r);
-  await kv.del(`data:exp:${sheetId}`).catch(() => {}); // 一覧キャッシュ無効化
+  _inProcDel(`data:exp:${sheetId}`); await kv.del(`data:exp:${sheetId}`).catch(() => {}); // 一覧キャッシュ無効化
 
   return res.status(200).json({ ok: true, id: r[16] });
 }
@@ -284,7 +312,7 @@ async function expensesEdit(req, res) {
   // 修正履歴に変更前/変更後を2行で残す（変更セルを色付き）
   await _writeEditHistory(sheetId, _nowJst(), me.email, found.raw, r);
   await updateRangeViaSA(sheetId, `経費一覧!A${found.rowNum}:U${found.rowNum}`, [r]);
-  await kv.del(`data:exp:${sheetId}`).catch(() => {});
+  _inProcDel(`data:exp:${sheetId}`); await kv.del(`data:exp:${sheetId}`).catch(() => {});
 
   return res.status(200).json({ ok: true, id });
 }
@@ -313,7 +341,7 @@ async function expensesDelete(req, res) {
   while (raw21.length < 21) raw21.push('');
   await prependRowViaSA(sheetId, '削除一覧', [_nowJst(), me.email, ...raw21]);
   await deleteRowViaSA(sheetId, '経費一覧', found.rowNum);
-  await kv.del(`data:exp:${sheetId}`).catch(() => {});
+  _inProcDel(`data:exp:${sheetId}`); await kv.del(`data:exp:${sheetId}`).catch(() => {});
 
   return res.status(200).json({ ok: true, id });
 }
@@ -334,7 +362,7 @@ async function expensesApprove(req, res) {
   const rowNums = await _rowNumsByIds(authz.sheetId, ids);
   const data = rowNums.map(n => ({ range: `経費一覧!J${n}`, values: [[true]] }));
   if (data.length) await batchUpdateValuesViaSA(authz.sheetId, data);
-  await kv.del(`data:exp:${authz.sheetId}`).catch(() => {});
+  _inProcDel(`data:exp:${authz.sheetId}`); await kv.del(`data:exp:${authz.sheetId}`).catch(() => {});
 
   return res.status(200).json({ ok: true, updated: data.length });
 }
@@ -357,7 +385,7 @@ async function expensesSettle(req, res) {
   const rowNums = await _rowNumsByIds(authz.sheetId, ids);
   const data = rowNums.map(n => ({ range: `経費一覧!L${n}`, values: [[String(date)]] }));
   if (data.length) await batchUpdateValuesViaSA(authz.sheetId, data);
-  await kv.del(`data:exp:${authz.sheetId}`).catch(() => {});
+  _inProcDel(`data:exp:${authz.sheetId}`); await kv.del(`data:exp:${authz.sheetId}`).catch(() => {});
 
   return res.status(200).json({ ok: true, updated: data.length });
 }
@@ -386,7 +414,7 @@ async function expensesUnsettle(req, res) {
   }
   const data = rowNums.map(n => ({ range: `経費一覧!L${n}`, values: [['']] }));
   if (data.length) await batchUpdateValuesViaSA(authz.sheetId, data);
-  await kv.del(`data:exp:${authz.sheetId}`).catch(() => {});
+  _inProcDel(`data:exp:${authz.sheetId}`); await kv.del(`data:exp:${authz.sheetId}`).catch(() => {});
 
   return res.status(200).json({ ok: true, updated: data.length });
 }
@@ -429,7 +457,7 @@ async function mastersWrite(req, res) {
 
   // キャッシュ即時無効化 + 逆引きインデックス更新を並列実行
   await Promise.all([
-    kv.del(`acct:master:${sheetId}`).catch(() => {}),
+    _inProcDel(`acct:master:${sheetId}`); kv.del(`acct:master:${sheetId}`).catch(() => {}),
     kv.del(`acct:all:${sheetId}`).catch(() => {}),
     _updateClientIndex(sheetId, oldEmails, newEmails),
   ]);
@@ -511,7 +539,10 @@ async function settingsWrite(req, res) {
 
   await updateRangeViaSA(authz.sheetId, `設定!${cell}`, [[value == null ? '' : value]]);
   // Geminiキー（B5）更新時はキーキャッシュを即削除（古いキーが使われ続けるのを防ぐ）
-  if (cell === 'B5') await kv.del(`gemini:key:${authz.sheetId}`).catch(() => {});
+  if (cell === 'B5') {
+    _inProcDel(`gemini:key:${authz.sheetId}`);
+    await kv.del(`gemini:key:${authz.sheetId}`).catch(() => {});
+  }
   return res.status(200).json({ ok: true });
 }
 
@@ -643,16 +674,23 @@ async function gemini(req, res) {
   const authz = await _authorize(req, res);
   if (!authz) return;
 
-  // キーは5分KVキャッシュ（B5更新時は settingsWrite が即削除する）
+  // キーは5分キャッシュ（in-process優先→KV→Sheets。B5更新時は両キャッシュを即削除）
   const keyCacheKey = `gemini:key:${authz.sheetId}`;
-  let apiKey = await kv.get(keyCacheKey).catch(() => null);
+  let apiKey = _inProcGet(keyCacheKey);
+  if (!apiKey) {
+    apiKey = await kv.get(keyCacheKey).catch(() => null);
+    if (apiKey) _inProcSet(keyCacheKey, apiKey, 290_000);
+  }
   if (!apiKey) {
     const sheets = sheetsClient();
     const cfg = await sheets.spreadsheets.values.get({
       spreadsheetId: authz.sheetId, range: '設定!B5',
     });
     apiKey = cfg.data.values?.[0]?.[0] || '';
-    if (apiKey) await kv.set(keyCacheKey, apiKey, { ex: 300 }).catch(() => {});
+    if (apiKey) {
+      _inProcSet(keyCacheKey, apiKey, 290_000);
+      kv.set(keyCacheKey, apiKey, { ex: 300 }).catch(() => {}); // fire-and-forget
+    }
   }
   if (!apiKey) return res.status(400).json({ error: 'no_gemini_key' });
 
@@ -922,16 +960,23 @@ async function accountantSummary(req, res) {
 
 /** マスタ表 A2:H を SA で読み、クライアントの readMaster と同一形のオブジェクトを返す。
  *  A:氏名 B:メール C:所属 D:権限 E:備考 F:会社払い支払元 G:勘定科目 H:カスタムフラグ */
-/** マスタ表を60秒KVキャッシュ付きで読む。認可（_authorize）が全APIで通るため、
- *  ここの遅延削減が全エンドポイントのレイテンシに効く。
- *  アプリ経由のマスタ書き込み（mastersWrite）はキャッシュを即削除するため遅延なし。
- *  シート直接編集時のみ最大60秒の反映遅れが生じる。 */
+/** マスタ表をキャッシュ付きで読む。
+ *  1st: in-processキャッシュ（ウォームインスタンス内、ネットワーク往復なし）
+ *  2nd: Vercel KV（別インスタンスとの共有、~20-50ms）
+ *  3rd: Sheets API（フォールバック、~200ms）
+ *  アプリ経由のマスタ書き込み（mastersWrite）は両キャッシュを即削除するため遅延なし。 */
 async function readMasterCached(sheetId) {
   const key = `acct:master:${sheetId}`;
-  const cached = await kv.get(key).catch(() => null);
-  if (cached?.members) return cached;
+  // 1st: in-process
+  const inProc = _inProcGet(key);
+  if (inProc?.members) return inProc;
+  // 2nd: KV
+  const fromKv = await kv.get(key).catch(() => null);
+  if (fromKv?.members) { _inProcSet(key, fromKv, 55_000); return fromKv; }
+  // 3rd: Sheets
   const master = await readMaster(sheetId);
-  await kv.set(key, master, { ex: 60 }).catch(() => {});
+  _inProcSet(key, master, 55_000);
+  kv.set(key, master, { ex: 60 }).catch(() => {}); // fire-and-forget
   return master;
 }
 
