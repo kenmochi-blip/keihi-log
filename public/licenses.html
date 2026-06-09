@@ -503,6 +503,32 @@
       </div>
 
 
+      <!-- フィードバック -->
+      <div class="panel" style="margin-top:1rem;" id="feedbackSection">
+        <div class="panel-header" style="justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:0.5rem;">
+            <i class="bi bi-megaphone" style="color:#d97706;"></i>
+            <span class="title">フィードバック（Googleフォーム）</span>
+            <span id="feedbackCount" style="font-size:0.72rem;color:var(--text-mute);"></span>
+          </div>
+          <button class="btn-ghost" id="btnFeedbackRefresh" style="font-size:0.75rem;padding:0.25rem 0.6rem;">
+            <i class="bi bi-arrow-clockwise"></i>更新
+          </button>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="data-table" id="feedbackTable">
+            <thead>
+              <tr id="feedbackTableHead">
+                <th class="ps-first pe-last" colspan="10" style="text-align:center;color:var(--text-mute);">読み込み中...</th>
+              </tr>
+            </thead>
+            <tbody id="feedbackTableBody">
+            </tbody>
+          </table>
+        </div>
+        <div id="feedbackError" class="d-none" style="padding:1.25rem;color:#dc2626;font-size:0.82rem;"></div>
+      </div>
+
     </div>
   </div>
 
@@ -531,6 +557,7 @@
     document.getElementById('btnIssue').addEventListener('click', issueLicense);
     document.getElementById('btnAddReferrer').addEventListener('click', addReferrer);
     document.getElementById('btnReferrerRefresh').addEventListener('click', loadReferrers);
+    document.getElementById('btnFeedbackRefresh').addEventListener('click', () => loadFeedback());
     document.getElementById('filterText').addEventListener('input', render);
     document.getElementById('filterStatus').addEventListener('change', render);
     document.getElementById('btnCsvExport').addEventListener('click', exportCsv);
@@ -977,6 +1004,7 @@
       renderReferrerTable();
       loadAppLogs();
       loadNotifyList();
+      loadFeedback();
       if (_hasCfKey) loadCloudflare();
       if (_sentryToken) loadSentry();
     }
@@ -1508,6 +1536,56 @@
       }
     }
 
+
+    // ── フィードバック ──────────────────────────────────────────
+    async function loadFeedback() {
+      const head    = document.getElementById('feedbackTableHead');
+      const tbody   = document.getElementById('feedbackTableBody');
+      const countEl = document.getElementById('feedbackCount');
+      const errDiv  = document.getElementById('feedbackError');
+      head.innerHTML  = '<th class="ps-first pe-last" colspan="10" style="text-align:center;color:var(--text-mute);">読み込み中...</th>';
+      tbody.innerHTML = '';
+      errDiv.classList.add('d-none');
+      countEl.textContent = '';
+
+      try {
+        const resp = await fetch(`/api/admin-licenses?secret=${encodeURIComponent(_secret)}&feedback=1`);
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+
+        const rows = data.rows || [];
+        if (rows.length === 0) {
+          head.innerHTML = '<th class="ps-first pe-last" colspan="10" style="text-align:center;color:var(--text-mute);">データがありません（フォームと連携シートを確認してください）</th>';
+          return;
+        }
+
+        const headers = rows[0];
+        const dataRows = rows.slice(1);
+        countEl.textContent = `${dataRows.length}件`;
+
+        head.innerHTML = headers.map((h, i) =>
+          `<th${i === 0 ? ' class="ps-first"' : i === headers.length - 1 ? ' class="pe-last"' : ''}>${esc(h)}</th>`
+        ).join('');
+
+        // 新しい順（末尾→先頭）
+        tbody.innerHTML = [...dataRows].reverse().map(row => {
+          const cells = headers.map((_, i) => {
+            const val = esc(row[i] || '');
+            const isFirst = i === 0;
+            const isLast  = i === headers.length - 1;
+            const cls = isFirst ? ' class="ps-first"' : isLast ? ' class="pe-last"' : '';
+            return `<td${cls} style="font-size:0.78rem;max-width:280px;word-break:break-word;">${val}</td>`;
+          }).join('');
+          return `<tr>${cells}</tr>`;
+        }).join('');
+
+      } catch (err) {
+        head.innerHTML = '<th class="ps-first pe-last" colspan="10"></th>';
+        errDiv.textContent = `読み込みエラー: ${err.message}`;
+        errDiv.classList.remove('d-none');
+        countEl.textContent = '';
+      }
+    }
 
     function esc(s) {
       return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

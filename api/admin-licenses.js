@@ -14,6 +14,7 @@
 import { kv } from '@vercel/kv';
 import crypto from 'crypto';
 import { rateLimit } from './_rateLimit.js';
+import { sheetsClient } from './_sa.js';
 
 export default async function handler(req, res) {
   const { ok } = await rateLimit(req, { prefix: 'rl:admin', limit: 120, window: 60 });
@@ -372,6 +373,24 @@ ${logText}
     }
 
     return res.status(400).json({ error: 'unknown action' });
+  }
+
+  // フィードバック（Googleフォーム連携シート）
+  if (req.query.feedback) {
+    const sheetId = process.env.FEEDBACK_SHEET_ID;
+    if (!sheetId) return res.status(503).json({ error: 'FEEDBACK_SHEET_ID not configured' });
+    try {
+      const sheets = sheetsClient();
+      const result = await sheets.spreadsheets.values.get({
+        spreadsheetId: sheetId,
+        range: 'A:Z',
+      });
+      const rows = result.data.values || [];
+      return res.status(200).json({ rows });
+    } catch (err) {
+      await _logToKV('feedback', 'error', err.message);
+      return res.status(502).json({ error: err.message });
+    }
   }
 
   // DELETE: ライセンス削除
