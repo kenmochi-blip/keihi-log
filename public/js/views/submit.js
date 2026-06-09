@@ -1163,7 +1163,7 @@ function _bindSubtypePills(el) {
       if (!ok) return;
     }
 
-    App.showLoading('申請中...');
+    App.showLoading('保存中...');
     try {
       // 1. サーバー時刻取得（電帳法対応）
       //    写真選択時にプリフェッチ済みの場合は待ちゼロ（経過時間を加算して精度維持）
@@ -1231,7 +1231,7 @@ function _bindSubtypePills(el) {
           `⚠️ 以下の問題が検出されました:\n\n${alerts.map(a => `• ${a}`).join('\n')}\n\nこのまま申請しますか？`
         );
         if (!ok) return;
-        App.showLoading('申請中...');
+        App.showLoading('保存中...');
       }
 
       // 4. AI監査フラグ設定
