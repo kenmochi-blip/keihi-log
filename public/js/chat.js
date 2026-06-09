@@ -39,6 +39,7 @@ const SupportChat = (() => {
             <div class="chat-header-title">サポートAI</div>
             <div class="chat-header-sub">FAQをもとに回答します</div>
           </div>
+          <button class="chat-close-btn" id="chatReset" aria-label="会話をリセット" title="会話をリセット"><i class="bi bi-arrow-counterclockwise"></i></button>
           <button class="chat-close-btn" id="chatClose" aria-label="閉じる"><i class="bi bi-x-lg"></i></button>
         </div>
 
@@ -63,6 +64,7 @@ const SupportChat = (() => {
   function _bind() {
     _el('chatFab').addEventListener('click', _openChat);
     _el('chatClose').addEventListener('click', _closeChat);
+    _el('chatReset').addEventListener('click', _resetChat);
 
     _el('chatSend').addEventListener('click', _sendMessage);
     _el('chatInput').addEventListener('keydown', e => {
@@ -94,6 +96,13 @@ const SupportChat = (() => {
     _open = false;
     _el('chatWindow').classList.add('d-none');
     _el('chatFab').classList.remove('d-none');
+  }
+
+  function _resetChat() {
+    _history = [];
+    const msgs = _el('chatMessages');
+    msgs.innerHTML = _botBubble('こんにちは！経費ログのサポートAIです。<br>ご不明な点をお気軽にどうぞ。<br><a href="https://forms.gle/wPBbW8aniDdoynXAA" target="_blank" rel="noopener" class="chat-faq-link"><i class="bi bi-megaphone me-1"></i>バグ・改善要望はこちら</a>');
+    _el('chatQuickReplies').classList.remove('d-none');
   }
 
   async function _sendMessage() {
