@@ -112,6 +112,11 @@ const SettingsView = (() => {
               <li>表示されたキー（AIzaSy...）をコピー</li>
               <li>このページに戻って下の欄に貼り付けて「保存」</li>
             </ol>
+            <div class="alert alert-warning py-1 px-2 mb-1 mt-1" style="font-size:0.78rem;">
+              <i class="bi bi-exclamation-triangle me-1"></i><strong>新規プロジェクトは支払い情報の登録が必要です。</strong>
+              AI Studioの「プロジェクト」→「お支払い情報を設定」からカード登録してください。
+              無料枠（1,500件/日）以内は課金されません。
+            </div>
             <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener"
                class="btn btn-warning btn-sm rounded-pill px-3 mt-1">
               <i class="bi bi-box-arrow-up-right me-1"></i>Google AI Studioでキーを取得する

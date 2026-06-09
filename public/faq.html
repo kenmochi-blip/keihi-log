@@ -1058,17 +1058,19 @@
       <div id="c402b" class="accordion-collapse collapse">
         <div class="accordion-body answer">
           <p>Gemini APIの利用上限は<strong>APIキー単位ではなく、Google Cloudプロジェクト単位</strong>で管理されています。同じGoogle AIアカウントで新しいキーを作成しても、同じプロジェクトに紐づくため上限はリセットされません。</p>
-          <p><strong>対処法：新規プロジェクトでAPIキーを作成する</strong></p>
+          <p>また、<strong>2025年以降に作成した新規AI Studioプロジェクトは、支払い情報の設定が必要</strong>になりました。支払い情報を登録しないと無料枠（1,500件/日）が有効化されず、リクエストが通りません。</p>
+          <p><strong>対処法</strong></p>
           <ol>
             <li><a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio（APIキー管理）</a>を開く</li>
-            <li>「APIキーを作成」→ <strong>「新しいプロジェクトでAPIキーを作成」</strong> を選択（既存プロジェクトへの追加ではなく新規）</li>
-            <li>生成されたキーを設定タブの「Gemini APIキー」欄に貼り付けて保存</li>
+            <li>左メニューの「プロジェクト」を開き、使用するプロジェクトの「<strong>お支払い情報を設定</strong>」をクリック</li>
+            <li>クレジットカードを登録する（<strong>無料枠の1,500件/日以内なら課金されません</strong>。10名規模のチームで1日数十枚程度であれば無料枠内に収まります）</li>
+            <li>支払い情報の設定後、そのプロジェクトのAPIキーを設定タブに貼り付けて保存</li>
           </ol>
           <div class="tip">APIキーはGoogleドライブと別のGoogleアカウントで発行しても問題ありません。キーは画像解析専用で、データ保存先（ドライブ）とは独立しています。</div>
           <p><strong>よくある原因：</strong></p>
           <ul>
-            <li><strong>gemini-2.5-flash</strong>：無料枠が20件/日と少ないため、数回のテストで上限に達する</li>
-            <li><strong>gemini-2.0-flash / 1.5-flash</strong>：通常は1,500件/日だが、プロジェクトの課金設定によって無料枠が0になるケースがある</li>
+            <li><strong>新規プロジェクトで支払い情報未設定</strong>：無料枠が有効化されず上限0になる（2025年以降の仕様）</li>
+            <li><strong>同一プロジェクト内でキーを作り直した</strong>：プロジェクト単位の上限はリセットされない</li>
             <li>上限は毎日深夜（太平洋時間）にリセットされる。翌日まで待てば回復する場合もある</li>
           </ul>
         </div>
