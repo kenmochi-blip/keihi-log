@@ -20,7 +20,9 @@ export default async function handler(req, res) {
   const { ok } = await rateLimit(req, { prefix: 'rl:admin', limit: 120, window: 60 });
   if (!ok) return res.status(429).json({ error: 'too_many_requests' });
 
-  if (req.query.secret !== process.env.ADMIN_SECRET) {
+  // Authorization ヘッダー優先（URLクエリはログに残るため非推奨・後方互換のみ）
+  const providedSecret = (req.headers.authorization || '').replace(/^Bearer\s+/i, '') || req.query.secret;
+  if (!providedSecret || providedSecret !== process.env.ADMIN_SECRET) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
@@ -113,7 +115,10 @@ export default async function handler(req, res) {
   // Sentryプロキシ
   if (req.query.sentry_path) {
     const sentryPath = req.query.sentry_path;
-    if (!sentryPath.startsWith('/')) return res.status(400).json({ error: 'invalid path' });
+    // 利用箇所は組織一覧とイシュー一覧のみ。パストラバーサル防止のためホワイトリスト化
+    if (!/^\/organizations\/[a-zA-Z0-9_\-./?=&%:+]*$/.test(sentryPath) || sentryPath.includes('..')) {
+      return res.status(400).json({ error: 'invalid path' });
+    }
     const token = process.env.SENTRY_AUTH_TOKEN;
     if (!token) return res.status(503).json({ error: 'SENTRY_AUTH_TOKEN not configured' });
     try {

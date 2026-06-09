@@ -652,12 +652,13 @@ async function gemini(req, res) {
   if (!body?.contents) return res.status(400).json({ error: 'invalid_request' });
 
   const MODEL = 'gemini-2.5-flash';
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`;
+  // キーはURLに含めずヘッダーで送る（アクセスログへの漏洩防止）
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
   let upstream;
   try {
     upstream = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(55000),
     });

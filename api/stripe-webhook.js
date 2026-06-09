@@ -44,6 +44,14 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid signature' });
   }
 
+  // テストモードのイベントは本物のライセンスを発行しない
+  // （テスト署名で検証が通っても livemode=false なら処理をスキップ。
+  //   テストフロー検証時は ALLOW_TEST_WEBHOOK=1 を設定すれば通せる）
+  if (!event.livemode && process.env.ALLOW_TEST_WEBHOOK !== '1') {
+    console.log(`Test-mode event skipped: ${event.type} (${event.id})`);
+    return res.status(200).json({ received: true, skipped: 'test_mode' });
+  }
+
   if (event.type === 'checkout.session.completed') {
     await _issueNewLicense(event.data.object);
   }

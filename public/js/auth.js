@@ -96,9 +96,6 @@ const Auth = (() => {
     localStorage.setItem('keihi_pkce_verifier', verifier);
     localStorage.setItem('keihi_oauth_state',   state);
 
-    // forceConsent=true のとき consent を要求してリフレッシュトークンを確実に取得する
-    const prompt = forceConsent ? 'consent' : 'select_account';
-
     const params = new URLSearchParams({
       client_id:             CLIENT_ID,
       redirect_uri:          _redirectUri(),
@@ -108,8 +105,21 @@ const Auth = (() => {
       code_challenge_method: 'S256',
       state,
       access_type:           'offline',
-      prompt,
     });
+
+    // forceConsent=true のとき consent を要求してリフレッシュトークンを確実に取得する。
+    // 再ログイン時（前回メールあり）は login_hint で対象アカウントを指定し prompt を省略
+    // → Googleセッションが生きていれば画面表示なしで即完了（iOS Safariの毎回入力対策）。
+    // 初回のみアカウント選択画面を出す。
+    const lastEmail = localStorage.getItem('keihi_user_email') || '';
+    if (forceConsent) {
+      params.set('prompt', 'consent');
+      if (lastEmail) params.set('login_hint', lastEmail);
+    } else if (lastEmail) {
+      params.set('login_hint', lastEmail);
+    } else {
+      params.set('prompt', 'select_account');
+    }
     location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
   }
 
