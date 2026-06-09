@@ -341,6 +341,31 @@ const SummaryView = (() => {
     let drillIdx = 0;
     const drillMap = []; // [{key, ym}]
 
+    // 行ごとの全レコード（行の総計ドリル用）
+    const rowAllRecords = {};
+    rowKeys.forEach(key => {
+      const seen = new Set();
+      rowAllRecords[key] = Object.values(drillRecords[key] || {}).flat().filter(e => {
+        if (seen.has(e.id)) return false;
+        seen.add(e.id); return true;
+      });
+    });
+    // 月ごとの全レコード（列の総計ドリル用）
+    const colAllRecords = {};
+    months.forEach(ym => {
+      const seen = new Set();
+      colAllRecords[ym] = rowKeys.flatMap(key => drillRecords[key]?.[ym] || []).filter(e => {
+        if (seen.has(e.id)) return false;
+        seen.add(e.id); return true;
+      });
+    });
+    // 全レコード（右下総計ドリル用）
+    const allRecordsSeen = new Set();
+    const allRecords = records.filter(e => {
+      if (allRecordsSeen.has(e.id)) return false;
+      allRecordsSeen.add(e.id); return true;
+    });
+
     const bodyRows = rowKeys.map(key => {
       const cells = months.map(ym => {
         const v = matrix[key]?.[ym] || 0;
@@ -353,13 +378,13 @@ const SummaryView = (() => {
       return `<tr>
         <td title="${_escape(key)}">${_escape(key)}</td>
         ${cells}
-        <td class="text-end fw-bold">${Math.round(rowTotals[key]).toLocaleString()}</td>
+        <td class="text-end fw-bold pivot-row-total" data-key="${_escape(key)}" style="cursor:pointer;">${Math.round(rowTotals[key]).toLocaleString()}</td>
       </tr>`;
     }).join('');
 
     // フッター（合計行）
     const footCells = months.map(ym =>
-      `<td class="text-end fw-bold">${Math.round(colTotals[ym] || 0).toLocaleString()}</td>`
+      `<td class="text-end fw-bold pivot-col-total" data-ym="${ym}" style="cursor:pointer;">${Math.round(colTotals[ym] || 0).toLocaleString()}</td>`
     ).join('');
 
     container.innerHTML = `
@@ -373,11 +398,11 @@ const SummaryView = (() => {
         <tfoot><tr>
           <td class="fw-bold">総計</td>
           ${footCells}
-          <td class="text-end fw-bold">${Math.round(grandTotal).toLocaleString()}</td>
+          <td class="text-end fw-bold pivot-grand-total" style="cursor:pointer;">${Math.round(grandTotal).toLocaleString()}</td>
         </tr></tfoot>
       </table>`;
 
-    // ドリルダウン：セルクリック
+    // ドリルダウン：個別セルクリック
     container.querySelectorAll('.pivot-cell[data-di]').forEach(td => {
       const { key, ym } = drillMap[Number(td.dataset.di)];
       td.addEventListener('click', () => {
@@ -385,6 +410,25 @@ const SummaryView = (() => {
         const settle = settleCallback ? (onDone) => settleCallback(drillExp, onDone) : null;
         _showDrill(`${key} — ${_fmtYM(ym)}`, drillExp, settle, showName);
       });
+    });
+    // ドリルダウン：行の総計クリック
+    container.querySelectorAll('.pivot-row-total[data-key]').forEach(td => {
+      const key = td.dataset.key;
+      td.addEventListener('click', () => {
+        _showDrill(`${key} — 総計`, rowAllRecords[key] || [], null, showName);
+      });
+    });
+    // ドリルダウン：列の総計クリック（フッター）
+    container.querySelectorAll('.pivot-col-total[data-ym]').forEach(td => {
+      const ym = td.dataset.ym;
+      td.addEventListener('click', () => {
+        const settle = settleCallback ? (onDone) => settleCallback(colAllRecords[ym] || [], onDone) : null;
+        _showDrill(`${_fmtYM(ym)} — 総計`, colAllRecords[ym] || [], settle, showName);
+      });
+    });
+    // ドリルダウン：右下の総計クリック
+    container.querySelector('.pivot-grand-total')?.addEventListener('click', () => {
+      _showDrill('総計', allRecords, null, showName);
     });
   }
 
