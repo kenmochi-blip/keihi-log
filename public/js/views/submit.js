@@ -1347,6 +1347,8 @@ function _bindSubtypePills(el) {
       if (returnTo) Router.navigate(returnTo);
     } catch (err) {
       App.showToast('登録エラー: ' + err.message, 'danger');
+      // 編集モード中のエラーはフォームをリセットして編集バナーが残り続けるのを防ぐ
+      if (_editId) _cancelEdit(el);
     } finally {
       App.hideLoading();
     }
@@ -1614,6 +1616,10 @@ function _bindSubtypePills(el) {
   function _startEdit(el, id, expenses) {
     const e = expenses.find(x => x.id === id);
     if (!e) return;
+    // 新規選択ファイルをクリア（前の操作で残った _selectedFiles が再アップロードされるのを防ぐ）
+    _selectedFiles = []; _compressedFiles = []; _compressPromise = null;
+    // 新規プレビューエリアもクリア
+    el.querySelectorAll('[id^="previewArea-"]').forEach(a => a.replaceChildren());
     _editId = id;
     _existingUrls = e.imageLinks ? e.imageLinks.split(',').map(s => s.trim()).filter(Boolean) : [];
     _existingHash = e.imageHash || '';
