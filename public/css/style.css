@@ -624,8 +624,8 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
   display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0;
 }
 .chat-header-info { flex: 1; min-width: 0; }
-.chat-header-title { font-weight: 700; font-size: 0.88rem; }
-.chat-header-sub { font-size: 0.7rem; opacity: 0.85; }
+.chat-header-title { font-weight: 700; font-size: 0.95rem; }
+.chat-header-sub { font-size: 0.78rem; opacity: 0.85; }
 .chat-close-btn {
   background: none; border: none; color: rgba(255,255,255,0.85);
   font-size: 1rem; cursor: pointer; padding: 4px; line-height: 1;
@@ -644,7 +644,7 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 .chat-avatar.is-user { background: #6c757d; }
 .chat-bubble {
   max-width: 80%; padding: 8px 11px;
-  border-radius: 14px; font-size: 0.8rem; line-height: 1.55;
+  border-radius: 14px; font-size: 0.875rem; line-height: 1.55;
 }
 .chat-bubble.is-bot {
   background: #fff; border: 1px solid #e8ecf0;
@@ -654,7 +654,7 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
   background: #0d6efd; color: #fff; border-bottom-right-radius: 4px;
 }
 .chat-faq-link {
-  display: inline-block; margin-top: 5px; font-size: 0.72rem;
+  display: inline-block; margin-top: 5px; font-size: 0.8rem;
   color: #0d6efd; background: #e8f0fe; padding: 2px 8px;
   border-radius: 10px; text-decoration: none;
 }
@@ -671,7 +671,7 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
   padding: 6px 10px 8px; background: #f8f9fb; flex-shrink: 0;
 }
 .chat-qr-btn {
-  font-size: 0.72rem; padding: 3px 9px;
+  font-size: 0.8rem; padding: 4px 10px;
   border: 1px solid #0d6efd; border-radius: 11px;
   color: #0d6efd; background: #fff; cursor: pointer; white-space: nowrap;
 }
@@ -682,7 +682,7 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 }
 .chat-input {
   flex: 1; border: 1.5px solid #dee2e6; border-radius: 18px;
-  padding: 7px 12px; font-size: 0.8rem; outline: none; resize: none;
+  padding: 7px 12px; font-size: 0.875rem; outline: none; resize: none;
   line-height: 1.4; color: #495057; font-family: inherit;
 }
 .chat-input:focus { border-color: #0d6efd; }
