@@ -318,6 +318,16 @@ const SettingsView = (() => {
   <!-- 有料プラン：プラン変更・解約（app.jsが制御） -->
   <div id="portalSection"></div>
 
+  <!-- フィードバック（常時表示） -->
+  <div class="card mb-3">
+    <div class="card-body text-center">
+      <a href="https://forms.gle/wPBbW8aniDdoynXAA" target="_blank" rel="noopener" class="btn btn-outline-primary w-100">
+        <i class="bi bi-megaphone me-1"></i>バグ報告・改善要望を送る
+      </a>
+      <div class="text-muted mt-1" style="font-size:0.75rem;">ご意見・不具合のご報告はこちらから。</div>
+    </div>
+  </div>
+
 `;
   }
 
@@ -1187,14 +1197,7 @@ const SettingsView = (() => {
           <div class="text-muted mt-1" style="font-size:0.75rem;text-align:center;">Stripeのカスタマーポータルで支払い・プラン変更・解約を管理できます。</div>
         </div>
       </div>
-      <div class="card mb-3">
-        <div class="card-body text-center">
-          <a href="https://forms.gle/wPBbW8aniDdoynXAA" target="_blank" rel="noopener" class="btn btn-outline-primary w-100">
-            <i class="bi bi-megaphone me-1"></i>バグ報告・改善要望を送る
-          </a>
-          <div class="text-muted mt-1" style="font-size:0.75rem;">ご意見・不具合のご報告はこちらから。</div>
-        </div>
-      </div>`;
+      `;
     section.querySelector('#btnCustomerPortal')?.addEventListener('click', _openStripePortal);
   }
 

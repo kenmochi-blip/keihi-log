@@ -3,22 +3,31 @@
  * FAQをシステムプロンプトとしたClaude Haikuによる自動回答
  */
 const SupportChat = (() => {
-  const QUICK_REPLIES = [
-    'セットアップの方法',
-    'AI解析が動かない',
-    'ライセンスキーについて',
-    '精算・承認の操作',
-  ];
+  const QUICK_REPLIES = {
+    setup: [
+      'ライセンスキーが無効と表示される',
+      'Gemini APIキーの取得方法',
+      '電帳法対応は必須ですか',
+      'セットアップが失敗する',
+    ],
+    app: [
+      'AI解析が動かない',
+      'バス・電車の運賃検索',
+      '精算・承認の操作',
+      'ライセンスの有効期限',
+    ],
+  };
 
-  let _history = [];   // { role: 'user'|'assistant', content: string }[]
+  let _history = [];
   let _open = false;
+  let _context = 'app'; // 'setup' | 'app'
 
   function _el(id) { return document.getElementById(id); }
 
   function init() {
-    // デモモードでも使えるが、APIキー未設定環境では非表示にしない（エラーメッセージで対応）
     _render();
     _bind();
+    _renderQuickReplies();
   }
 
   function _render() {
@@ -48,9 +57,7 @@ const SupportChat = (() => {
           ${_botBubble('こんにちは！経費ログのサポートAIです。<br>ご不明な点をお気軽にどうぞ。<br><a href="https://forms.gle/wPBbW8aniDdoynXAA" target="_blank" rel="noopener" class="chat-faq-link"><i class="bi bi-megaphone me-1"></i>バグ・改善要望はこちら</a>')}
         </div>
 
-        <div class="chat-quick-replies" id="chatQuickReplies">
-          ${QUICK_REPLIES.map(q => `<button class="chat-qr-btn" data-msg="${q}">${q}</button>`).join('')}
-        </div>
+        <div class="chat-quick-replies" id="chatQuickReplies"></div>
 
         <div class="chat-input-area">
           <textarea class="chat-input" id="chatInput" placeholder="質問を入力..." rows="1" maxlength="500"></textarea>
@@ -102,7 +109,19 @@ const SupportChat = (() => {
     _history = [];
     const msgs = _el('chatMessages');
     msgs.innerHTML = _botBubble('こんにちは！経費ログのサポートAIです。<br>ご不明な点をお気軽にどうぞ。<br><a href="https://forms.gle/wPBbW8aniDdoynXAA" target="_blank" rel="noopener" class="chat-faq-link"><i class="bi bi-megaphone me-1"></i>バグ・改善要望はこちら</a>');
+    _renderQuickReplies();
     _el('chatQuickReplies').classList.remove('d-none');
+  }
+
+  function _renderQuickReplies() {
+    const replies = QUICK_REPLIES[_context] || QUICK_REPLIES.app;
+    _el('chatQuickReplies').innerHTML = replies
+      .map(q => `<button class="chat-qr-btn" data-msg="${q}">${q}</button>`).join('');
+  }
+
+  function setContext(ctx) {
+    _context = ctx === 'setup' ? 'setup' : 'app';
+    _renderQuickReplies();
   }
 
   async function _sendMessage() {
@@ -206,5 +225,5 @@ const SupportChat = (() => {
     document.getElementById(id)?.remove();
   }
 
-  return { init };
+  return { init, setContext };
 })();
