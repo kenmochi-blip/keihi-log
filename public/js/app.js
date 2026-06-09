@@ -533,6 +533,9 @@ const App = (() => {
     const nav = document.getElementById('navUserEmail');
     if (nav) nav.textContent = Auth.getUserEmail();
 
+    // ロゴ／タイトルクリックで申請タブ（初期画面）へ
+    document.getElementById('btnNavHome')?.addEventListener('click', () => Router.navigate('submit'));
+
     // ログアウトボタン
     document.getElementById('btnLogout')?.addEventListener('click', () => Auth.signOut());
 
