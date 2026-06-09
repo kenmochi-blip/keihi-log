@@ -649,11 +649,20 @@ async function gemini(req, res) {
 
   const MODEL = 'gemini-2.0-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`;
-  const upstream = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
+  let upstream;
+  try {
+    upstream = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(55000),
+    });
+  } catch (e) {
+    if (e.name === 'TimeoutError' || e.name === 'AbortError') {
+      return res.status(504).json({ error: 'gemini_error', message: 'Gemini APIがタイムアウトしました（55秒超）。画像を小さくするか、時間をおいて再試行してください。' });
+    }
+    throw e;
+  }
   const data = await upstream.json().catch(() => ({}));
   // 鍵が含まれ得るエラー詳細はそのまま返さず、ステータスのみ透過
   if (!upstream.ok) {
