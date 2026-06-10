@@ -512,8 +512,21 @@ ${logText}
 <p>
   <a href="${setupUrl}" style="display:inline-block;background:#0d6efd;color:#fff;text-decoration:none;padding:12px 28px;border-radius:6px;font-size:1rem;font-weight:600;">経費ログのセットアップを開始する</a>
 </p>
-<p style="color:#666;font-size:0.9em;">ボタンが押せない場合は <a href="${setupUrl}">${setupUrl}</a> を開いてください。</p>
-<p>ご不明な点はお気軽にお問い合わせください。</p>
+<p style="color:#666;font-size:0.9em;">ボタンが押せない場合は <a href="${setupUrl}">${setupUrl}</a> を開いてください。<br>
+<span style="color:#e67e22;">※ LINEやSlackのアプリ内ブラウザではGoogleログインが動作しない場合があります。必ずSafari・Chromeなどのブラウザで開いてください。</span></p>
+
+<hr style="border:none;border-top:1px solid #eee;margin:1.5rem 0;">
+
+<p><strong>はじめかた（5ステップ）</strong></p>
+<ol style="line-height:2.2;font-size:0.95em;">
+  <li><strong>Safari・Chromeなどのブラウザ</strong>で上のリンクを開き、Googleアカウントでログイン</li>
+  <li>ライセンスキーを入力 →「確認して次へ」</li>
+  <li>会社名・チームURLを入力（チームURLは後から変更できません。任意）</li>
+  <li>Gemini APIキーを設定（AI領収書解析用。無料で取得できます）。電帳法対応の社内規程作成は任意でスキップ可能</li>
+  <li>「セットアップ開始」をタップ → Google Driveにスプレッドシートとフォルダーが自動作成されます。完了後に表示される<strong>チームURL</strong>をメンバーに共有するだけで、メンバーはそのURLを開いてGoogleログインするだけで使い始められます</li>
+</ol>
+
+<p style="color:#555;font-size:0.9em;">ご不明な点は <a href="mailto:support@keihi-log.com">support@keihi-log.com</a> までお気軽にお問い合わせください。</p>
       `.trim());
 
       if (process.env.ADMIN_NOTIFY_EMAIL) {
