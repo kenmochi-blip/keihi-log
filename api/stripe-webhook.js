@@ -146,8 +146,9 @@ async function _issueNewLicense(session) {
   // ── 3件上限チェック（停止済み含む全ライセンスを対象） ──────────
   const activeCount = allLicenses.filter(l => !l.data.suspended).length;
   if (activeCount >= 3) {
-    console.error(`License limit (3) reached for ${customerEmail}. Payment taken but no license issued. Admin action required.`);
+    console.error(`License limit (3) reached for ${customerEmail}. Refunding.`);
     captureException(new Error(`License limit reached: ${customerEmail}`), { context: 'license_limit' });
+    await _refundAndNotifyLimit(session, customerEmail, customerName || businessName || company);
     return;
   }
 
@@ -549,6 +550,70 @@ async function _sendDuplicateLicenseEmail(to, name, licenseKey, expiresAt) {
     body: JSON.stringify(body),
   });
   if (!resp.ok) console.error('Resend error:', await resp.text());
+}
+
+async function _refundAndNotifyLimit(session, email, name) {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY?.trim());
+  const from   = process.env.RESEND_FROM_EMAIL || 'support@keihi-log.com';
+
+  // 自動返金（payment_intent がある場合のみ。トライアルは payment_intent なし）
+  let refunded = false;
+  if (session.payment_intent) {
+    try {
+      await stripe.refunds.create({ payment_intent: session.payment_intent });
+      refunded = true;
+      console.log(`Refunded payment_intent ${session.payment_intent} for ${email}`);
+    } catch (err) {
+      console.error('Refund failed:', err.message);
+      captureException(err, { context: 'refund_limit' });
+    }
+  }
+
+  // ユーザーへ通知
+  if (process.env.RESEND_API_KEY) {
+    const body = {
+      from,
+      to: email,
+      subject: '【経費ログ】ライセンス発行上限のお知らせ',
+      html: `
+<p>${name} 様</p>
+<p>この度はお申し込みいただきありがとうございます。</p>
+<p>誠に恐れ入りますが、同一メールアドレスでご利用いただけるライセンスは<strong>最大3件</strong>までとなっております。すでに上限に達しているため、今回のライセンス発行ができませんでした。</p>
+${refunded ? '<p>ご決済いただいた金額は自動的に全額返金いたします。返金の反映にはカード会社により数日かかる場合があります。</p>' : '<p>返金処理が自動で完了できませんでした。大変お手数ですが <a href="mailto:support@keihi-log.com">support@keihi-log.com</a> までご連絡ください。</p>'}
+<p>4チーム目以降をご利用になりたい場合は、<strong>別のメールアドレス</strong>でお申し込みください。</p>
+<p>ご不明な点は <a href="mailto:support@keihi-log.com">support@keihi-log.com</a> までお気軽にお問い合わせください。</p>
+      `.trim(),
+    };
+    const resp = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!resp.ok) console.error('Resend limit notify error:', await resp.text());
+  }
+
+  // 管理者アラート
+  if (process.env.RESEND_API_KEY && process.env.ADMIN_NOTIFY_EMAIL) {
+    const body = {
+      from,
+      to: process.env.ADMIN_NOTIFY_EMAIL,
+      subject: `【経費ログ】ライセンス上限超過 — ${email}`,
+      html: `
+<p>同一メールアドレスでの3件上限により、ライセンスを発行できませんでした。</p>
+<table style="border-collapse:collapse;font-size:14px;">
+  <tr><td style="padding:4px 12px 4px 0;color:#666;">メール</td><td>${email}</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;color:#666;">名前</td><td>${name}</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;color:#666;">返金</td><td>${refunded ? '自動返金済み' : '返金失敗 → 手動対応要'}</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;color:#666;">payment_intent</td><td style="font-family:monospace;">${session.payment_intent || '（トライアル・なし）'}</td></tr>
+</table>
+      `.trim(),
+    };
+    await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }).catch(() => {});
+  }
 }
 
 async function _sendAdminNotifyEmail(customerEmail, customerName, licenseKey, expiresAt, businessName = '', plan = 'solo') {
