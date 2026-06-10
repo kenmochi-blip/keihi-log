@@ -450,15 +450,26 @@ const App = (() => {
     const heading = isExpired
       ? (wasTrial ? '無料トライアルが終了しました' : 'ライセンスの有効期限が切れています')
       : (lic.reason === 'suspended' ? 'ライセンスが停止されています' : 'ライセンスキーが無効です');
-    const lead = isExpired
-      ? '引き続きご利用いただくには、下からプランを選んでお支払い手続きをお願いします。<br>登録後もライセンスキー・データ・設定はそのまま引き継がれます。'
-      : '設定画面からライセンスキーをご確認ください。';
+    const lead = isExpired && !wasTrial
+      ? 'クレジットカードの有効期限切れなどでお支払いが完了しなかった可能性があります。<br>設定画面のカスタマーポータルからカード情報を更新してください。'
+      : isExpired
+        ? '引き続きご利用いただくには、下からプランを選んでお支払い手続きをお願いします。<br>登録後もライセンスキー・データ・設定はそのまま引き継がれます。'
+        : '設定画面からライセンスキーをご確認ください。';
     main.innerHTML = `
       <div class="text-center py-5 px-3">
         <i class="bi bi-stars text-warning" style="font-size:3rem;"></i>
         <h5 class="mt-3 fw-bold">${heading}</h5>
         <p class="text-muted small mt-2" style="line-height:1.9;">${lead}</p>
-        ${isExpired && planButtons ? `
+        ${isExpired && !wasTrial ? `
+          <button class="btn btn-primary btn-sm mt-2" id="btnExpiredToSettings">設定画面でカード情報を更新する</button>
+          ${planButtons ? `
+          <div class="mt-4 pt-3 border-top">
+            <p class="text-muted small mb-2">プランを変更する場合はこちら</p>
+            ${planButtons}
+          </div>` : ''}
+          <div class="text-muted mt-3" style="font-size:0.78rem;">
+            ご不明な点は <a href="mailto:support@keihi-log.com">support@keihi-log.com</a> までご連絡ください。
+          </div>` : isExpired && planButtons ? `
           <div class="mt-3">${planButtons}</div>
           <div class="text-muted mt-2" style="font-size:0.78rem;">
             お支払いはStripeの安全な決済ページで行われます。<br>
