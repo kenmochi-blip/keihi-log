@@ -1115,7 +1115,32 @@ const SettingsView = (() => {
     } catch (_) { return 0; }
   }
 
-  async function _newContract() {
+  function _buildNewContractPlanButtons(email) {
+    const s = window.APP_CONFIG?.stripe || {};
+    const buildUrl = plan => {
+      const base = s.upgradeLinks?.[plan] || s.signupLinks?.[plan] || '';
+      if (!base) return '';
+      const sep = base.includes('?') ? '&' : '?';
+      return email ? base + sep + 'prefilled_email=' + encodeURIComponent(email) : base;
+      // client_reference_id は付けない（既存キーの更新ではなく新規ライセンス発行）
+    };
+    const solo = buildUrl('solo');
+    const team = buildUrl('team');
+    if (!solo && !team) return '';
+    const card = (url, name, price, desc, primary) => !url ? '' : `
+      <a href="${url}" target="_blank" rel="noopener"
+         class="btn ${primary ? 'btn-primary' : 'btn-outline-primary'} d-block text-start rounded-3 px-3 py-2 mb-2">
+        <span class="fw-bold">${name}</span>
+        <span class="ms-1" style="font-size:0.85rem;">${price}</span>
+        <span class="d-block" style="font-size:0.74rem;opacity:0.8;">${desc}</span>
+      </a>`;
+    return `<div>
+      ${card(solo, 'ソロプラン', '月330円（税込）', '1人で使う', false)}
+      ${card(team, 'チームプラン', '月825円（税込）', 'チームで使う', true)}
+    </div>`;
+  }
+
+  async function _newContract(sectionEl) {
     const key = localStorage.getItem('keihi_license_key');
     if (!key) { App.showToast('ライセンスキーが設定されていません', 'danger'); return; }
     App.showLoading('確認中...');
@@ -1128,8 +1153,20 @@ const SettingsView = (() => {
         App.showToast('同一メールアドレスでは最大3チームまでご利用いただけます。4チーム目以降は別のメールアドレスでお申し込みください。', 'danger');
         return;
       }
-      const link = window.APP_CONFIG?.stripe?.signupLinks?.solo;
-      if (link) window.location.href = link;
+      const email = (typeof Auth !== 'undefined' && Auth.getUserEmail?.()) || '';
+      const planButtons = _buildNewContractPlanButtons(email);
+      if (!planButtons) { App.showToast('プランリンクが設定されていません', 'danger'); return; }
+      const btn = sectionEl.querySelector('#btnNewContract');
+      if (btn) {
+        btn.insertAdjacentHTML('afterend', `
+          <div id="newContractPlanChoice" class="mt-2 p-2 border rounded bg-light">
+            <div class="small text-muted mb-2">
+              <i class="bi bi-info-circle me-1"></i>即時課金（試用なし）。プランをお選びください。
+            </div>
+            ${planButtons}
+          </div>`);
+        btn.remove();
+      }
     } catch (err) {
       App.showToast('確認に失敗しました: ' + err.message, 'danger');
     } finally {
@@ -1218,7 +1255,7 @@ const SettingsView = (() => {
         </div>
       </div>
       `;
-    section.querySelector('#btnNewContract')?.addEventListener('click', _newContract);
+    section.querySelector('#btnNewContract')?.addEventListener('click', () => _newContract(section));
     section.querySelector('#btnCustomerPortal')?.addEventListener('click', _openStripePortal);
   }
 
