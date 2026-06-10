@@ -1429,16 +1429,22 @@ function _bindSubtypePills(el) {
     const paySource = el.querySelector('#selPaySource')?.value || '';
     if (corpPay && !paySource) { App.showToast('会社払いの支払元を選択してください', 'danger'); return null; }
 
-    // split時はrow別税区分から全体taxRateを自動計算（単一なら共通値、複数なら「混在」）
-    const isSplitMode = !pnl.querySelector('#splitLines')?.classList.contains('d-none');
+    // 電車/バス・自家用車は税区分選択なし → 常に課税10%
+    // 領収書系はsplit有無で判定（splitLinesが存在しないパネルでは必ずelse側へ）
     let taxRate;
-    if (isSplitMode) {
-      const splitTaxes = [...new Set(
-        Array.from(pnl.querySelectorAll('.split-row .split-tax')).map(s => s.value || '課税10%')
-      )];
-      taxRate = splitTaxes.length === 1 ? splitTaxes[0] : '混在';
+    if (_currentType === '電車/バス' || _currentType === '自家用車') {
+      taxRate = '課税10%';
     } else {
-      taxRate = el.querySelector('#selTaxRate')?.value || '課税10%';
+      const splitLines = pnl.querySelector('#splitLines');
+      const isSplitMode = splitLines && !splitLines.classList.contains('d-none');
+      if (isSplitMode) {
+        const splitTaxes = [...new Set(
+          Array.from(pnl.querySelectorAll('.split-row .split-tax')).map(s => s.value || '課税10%')
+        )];
+        taxRate = splitTaxes.length === 1 ? splitTaxes[0] : '混在';
+      } else {
+        taxRate = el.querySelector('#selTaxRate')?.value || '課税10%';
+      }
     }
     return {
       date, place, amount, category, note,
