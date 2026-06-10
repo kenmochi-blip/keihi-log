@@ -1115,6 +1115,28 @@ const SettingsView = (() => {
     } catch (_) { return 0; }
   }
 
+  async function _newContract() {
+    const key = localStorage.getItem('keihi_license_key');
+    if (!key) { App.showToast('ライセンスキーが設定されていません', 'danger'); return; }
+    App.showLoading('確認中...');
+    try {
+      const base = window.APP_CONFIG?.apiBase || '';
+      const res = await fetch(`${base}/api/license?action=count&key=${encodeURIComponent(key)}`);
+      const { count, error } = await res.json();
+      if (error) throw new Error(error);
+      if (count >= 3) {
+        App.showToast('同一メールアドレスでは最大3チームまでご利用いただけます。4チーム目以降は別のメールアドレスでお申し込みください。', 'danger');
+        return;
+      }
+      const link = window.APP_CONFIG?.stripe?.signupLinks?.solo;
+      if (link) window.location.href = link;
+    } catch (err) {
+      App.showToast('確認に失敗しました: ' + err.message, 'danger');
+    } finally {
+      App.hideLoading();
+    }
+  }
+
   async function _openStripePortal() {
     const key = localStorage.getItem('keihi_license_key');
     if (!key) { App.showToast('ライセンスキーが設定されていません', 'danger'); return; }
@@ -1186,6 +1208,9 @@ const SettingsView = (() => {
     section.innerHTML = `
       <div class="card mb-3">
         <div class="card-body">
+          <button class="btn btn-outline-primary w-100 mb-2" id="btnNewContract">
+            <i class="bi bi-plus-circle me-1"></i>新規にプランを契約する
+          </button>
           <button class="btn btn-outline-secondary w-100" id="btnCustomerPortal">
             <i class="bi bi-arrow-repeat me-1"></i>プランを変更・解約する
           </button>
@@ -1193,6 +1218,7 @@ const SettingsView = (() => {
         </div>
       </div>
       `;
+    section.querySelector('#btnNewContract')?.addEventListener('click', _newContract);
     section.querySelector('#btnCustomerPortal')?.addEventListener('click', _openStripePortal);
   }
 

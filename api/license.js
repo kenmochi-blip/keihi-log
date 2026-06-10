@@ -20,7 +20,26 @@ export default async function handler(req, res) {
   // GET /api/license?session=cs_xxx → セッションIDからライセンスキーを返す（サンクスページ用）
   // ※ Hobbyプランの関数数上限のため旧 /api/get-license をここに統合
   if (req.method === 'GET') {
-    const { session } = req.query;
+    const { session, action, key: queryKey } = req.query;
+
+    // GET /api/license?action=count&key=KL-xxx → 同一メールの有効ライセンス数を返す
+    if (action === 'count') {
+      if (!queryKey || !queryKey.startsWith('KL-')) return res.status(400).json({ error: 'key required' });
+      try {
+        const data = await kv.get(`license:${queryKey}`);
+        if (!data) return res.status(404).json({ error: 'not_found' });
+        const email = (data.email || '').toLowerCase();
+        if (!email) return res.status(200).json({ count: 1 });
+        const allKeys = (await kv.get(`email_licenses:${email}`)) || [];
+        const allData = await Promise.all(allKeys.map(k => kv.get(`license:${k}`)));
+        const count = allData.filter(d => d && !d.suspended).length;
+        return res.status(200).json({ count: Math.max(count, 1) });
+      } catch (err) {
+        console.error('License count error:', err);
+        return res.status(500).json({ error: 'server_error' });
+      }
+    }
+
     if (!session) return res.status(400).json({ error: 'session required' });
     try {
       const licenseKey = await kv.get(`session:${session}`);
