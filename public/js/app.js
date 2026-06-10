@@ -9,6 +9,7 @@ const App = (() => {
   let _userRole     = 'member'; // 'admin' | 'viewer' | 'member'
   let _confirmModal = null;
   let _confirmResolve = null;
+  let _confirmPendingResult = null; // OKクリック時に 'ok' をセット、hidden.bs.modal で解決
   let _aliasNotFound = false; // URLにエイリアスが指定されたが存在しなかった場合にtrue
   let _sheetIdChanged = false; // quickStart後に別シートが検出されたフラグ（init完了後に再描画）
   // シートID確定を待つ Promise（_loadHistory など API 呼び出し前に await する）
@@ -551,15 +552,20 @@ const App = (() => {
     const modalEl = document.getElementById('confirmModal');
     if (modalEl) {
       _confirmModal = new bootstrap.Modal(modalEl);
+      // OK: 結果を記録してモーダルを閉じ、hidden.bs.modal で解決（フェードアウト中の二重発火を防ぐ）
       document.getElementById('confirmOk')?.addEventListener('click', () => {
+        _confirmPendingResult = 'ok';
         _confirmModal.hide();
-        if (_confirmResolve) { _confirmResolve(true); _confirmResolve = null; }
       });
+      // Cancel: data-bs-dismiss がhideを起動するので結果だけ記録
       document.getElementById('confirmCancel')?.addEventListener('click', () => {
-        if (_confirmResolve) { _confirmResolve(false); _confirmResolve = null; }
+        _confirmPendingResult = 'cancel';
       });
+      // hidden.bs.modal: モーダルが完全に閉じてから Promise を解決する
       modalEl.addEventListener('hidden.bs.modal', () => {
-        if (_confirmResolve) { _confirmResolve(false); _confirmResolve = null; }
+        const result = _confirmPendingResult;
+        _confirmPendingResult = null;
+        if (_confirmResolve) { _confirmResolve(result === 'ok'); _confirmResolve = null; }
       });
     }
   }
