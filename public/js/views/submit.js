@@ -289,7 +289,7 @@ const SubmitView = (() => {
 
   <!-- 直近履歴 -->
   <div id="navShortcuts" style="height:5rem;display:flex;justify-content:space-between;align-items:center;">
-    <button id="btnNavLeft" class="subtype-pill" style="clip-path:polygon(12px 0%,100% 0%,100% 100%,12px 100%,0% 50%);border-radius:0;border:none;background:#e9ecef;filter:drop-shadow(0 0 1.5px #333);padding-left:20px;padding-right:14px;">👈 ${App.isAdmin() ? '設定' : '集計'}</button>
+    <button id="btnNavLeft" class="subtype-pill" style="clip-path:polygon(12px 0%,100% 0%,100% 100%,12px 100%,0% 50%);border-radius:0;border:none;background:#e9ecef;filter:drop-shadow(0 0 1.5px #333);padding-left:20px;padding-right:14px;">👈 集計</button>
     <button id="btnNavRight" class="subtype-pill" style="clip-path:polygon(0% 0%,calc(100% - 12px) 0%,100% 50%,calc(100% - 12px) 100%,0% 100%);border-radius:0;border:none;background:#e9ecef;filter:drop-shadow(0 0 1.5px #333);padding-right:20px;padding-left:14px;">一覧 👉</button>
   </div>
   <hr style="margin:0 0 1.25rem;">
@@ -431,7 +431,7 @@ const SubmitView = (() => {
     _bindCarCalc(el);
     _bindSubmit(el);
     el.querySelector('#btnRefreshHistory')?.addEventListener('click', () => _loadHistory(el, true));
-    el.querySelector('#btnNavLeft')?.addEventListener('click', () => SwipeNav.swipeTo(App.isAdmin() ? 'settings' : 'summary'));
+    el.querySelector('#btnNavLeft')?.addEventListener('click', () => SwipeNav.swipeTo('summary'));
     el.querySelector('#btnNavRight')?.addEventListener('click', () => SwipeNav.swipeTo('list'));
     el.querySelector('#btnCancelEdit')?.addEventListener('click', () => _cancelEdit(el));
     el.querySelector('#btnAddMore')?.addEventListener('click', () => el.querySelector('#fileInput-領収書')?.click());
