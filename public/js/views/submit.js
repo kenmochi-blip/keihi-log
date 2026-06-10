@@ -431,6 +431,12 @@ const SubmitView = (() => {
     _bindCarCalc(el);
     _bindSubmit(el);
     el.querySelector('#btnRefreshHistory')?.addEventListener('click', () => _loadHistory(el, true));
+    el.querySelector('#historySection')?.addEventListener('click', e => {
+      if (e.target.closest('#btnHistoryMore')) {
+        _historyShown += _HIST_PAGE;
+        _renderHistory(el);
+      }
+    });
     el.querySelector('#btnNavLeft')?.addEventListener('click', () => SwipeNav.swipeTo('summary'));
     el.querySelector('#btnNavRight')?.addEventListener('click', () => SwipeNav.swipeTo('list'));
     el.querySelector('#btnCancelEdit')?.addEventListener('click', () => _cancelEdit(el));
@@ -1618,10 +1624,6 @@ function _bindSubtypePills(el) {
     });
     list.querySelectorAll('.btn-del-history').forEach(btn => {
       btn.addEventListener('click', () => _deleteExpense(btn.dataset.id, el));
-    });
-    list.querySelector('#btnHistoryMore')?.addEventListener('click', () => {
-      _historyShown += _HIST_PAGE;
-      _renderHistory(el);
     });
   }
 
