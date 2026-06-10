@@ -1260,10 +1260,23 @@ function _bindSubtypePills(el) {
         App.showLoading('保存中...');
       }
 
-      // 4. AI監査フラグ設定
+      // 4. 高額チェック（10万円以上）
+      if (data.amount >= 100000) {
+        App.hideLoading();
+        const label = data.amount >= 300000 ? '30万円以上のため固定資産計上の検討が必要です。' : '固定資産の検討が必要な場合があります。';
+        const ok = await App.confirm(
+          '⚠️ 金額を確認してください',
+          `<div class="text-center my-2"><span class="fs-5 fw-bold text-danger">¥${data.amount.toLocaleString()}</span></div>` +
+          `<div class="text-muted small">10万円を超える金額です。${label}<br>この金額で登録しますか？</div>`
+        );
+        if (!ok) return;
+        App.showLoading('保存中...');
+      }
+
+      // 5. AI監査フラグ設定
       const aiAudit = alerts.length > 0 ? `⛔ ${alerts.join(' / ')}` : '✅ OK';
 
-      // 5. 備考への自動注記
+      // 6. 備考への自動注記
       let finalNote = data.note || '';
       // 固定資産警告（10万円以上）
       if (data.amount >= 300000) {
@@ -1278,7 +1291,7 @@ function _bindSubtypePills(el) {
         if (!finalNote.includes('源泉徴収')) finalNote = [finalNote, withholdingNote].filter(Boolean).join('\n');
       }
 
-      // 6. 行データ組み立て
+      // 7. 行データ組み立て
       const row = Sheets.expenseToRow({
         appliedAt,
         name:           userName,
