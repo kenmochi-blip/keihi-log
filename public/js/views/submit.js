@@ -284,14 +284,8 @@ const SubmitView = (() => {
 
   <!-- 直近履歴 -->
   <div id="navShortcuts" style="height:5rem;display:flex;justify-content:space-between;align-items:center;">
-    <button id="btnNavLeft" style="display:flex;align-items:center;gap:0.4rem;background:none;border:none;padding:0;color:#6c757d;font-size:0.82rem;cursor:pointer;">
-      <span style="width:2rem;height:2rem;border-radius:50%;border:1.5px solid #ced4da;display:inline-flex;align-items:center;justify-content:center;font-size:1rem;background:#fff;flex-shrink:0;">👈</span>
-      ${App.isAdmin() ? '設定' : '集計'}
-    </button>
-    <button id="btnNavRight" style="display:flex;align-items:center;gap:0.4rem;background:none;border:none;padding:0;color:#6c757d;font-size:0.82rem;cursor:pointer;">
-      一覧
-      <span style="width:2rem;height:2rem;border-radius:50%;border:1.5px solid #ced4da;display:inline-flex;align-items:center;justify-content:center;font-size:1rem;background:#fff;flex-shrink:0;">👉</span>
-    </button>
+    <button class="subtype-pill" id="btnNavLeft">👈 ${App.isAdmin() ? '設定' : '集計'}</button>
+    <button class="subtype-pill" id="btnNavRight">一覧 👉</button>
   </div>
   <hr style="margin:0 0 1.25rem;">
   <div id="historySection" class="mb-4">
