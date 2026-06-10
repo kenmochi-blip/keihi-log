@@ -652,6 +652,18 @@ const SettingsView = (() => {
     }
 
     _applyMemberPlanRestriction(el);
+    el.querySelector('#memberList')?.addEventListener('click', e => {
+      const edit = e.target.closest('.btn-edit-member');
+      const del  = e.target.closest('.btn-del-member');
+      if (edit) _showMemberForm(el, Number(edit.dataset.index));
+      if (del)  _deleteMember(el, Number(del.dataset.index));
+    });
+    ['#categoryList', '#paySourceList', '#customFlagList'].forEach(sel => {
+      el.querySelector(sel)?.addEventListener('click', e => {
+        const btn = e.target.closest('.btn-del-item');
+        if (btn) _deleteSimpleItem(el, btn.dataset.type, Number(btn.dataset.index));
+      });
+    });
     el.querySelector('#btnAddMember')?.addEventListener('click', () => _showMemberForm(el, null));
     el.querySelector('#btnUpgradePlan')?.addEventListener('click', () => _openStripePortal());
     el.querySelector('#btnAddCategory')?.addEventListener('click', () => _showInlineAdd(el, 'category'));
@@ -844,10 +856,6 @@ const SettingsView = (() => {
         <button class="btn btn-outline-danger btn-sm btn-del-member" data-index="${i}"><i class="bi bi-trash"></i></button>
       </div>`;
     }).join('');
-    container.querySelectorAll('.btn-edit-member').forEach(btn =>
-      btn.addEventListener('click', () => _showMemberForm(el, Number(btn.dataset.index))));
-    container.querySelectorAll('.btn-del-member').forEach(btn =>
-      btn.addEventListener('click', () => _deleteMember(el, Number(btn.dataset.index))));
     // ロールバッジのツールチップ初期化
     container.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(tipEl => {
       const tooltip = new bootstrap.Tooltip(tipEl, { trigger: 'manual' });
@@ -876,8 +884,6 @@ const SettingsView = (() => {
           <i class="bi bi-trash"></i>
         </button>
       </div>`).join('');
-    container.querySelectorAll('.btn-del-item').forEach(btn =>
-      btn.addEventListener('click', () => _deleteSimpleItem(el, btn.dataset.type, Number(btn.dataset.index))));
   }
 
   function _renderCategoryList(el) {
@@ -928,9 +934,6 @@ const SettingsView = (() => {
       });
     });
 
-    // ── 削除 ──
-    container.querySelectorAll('.btn-del-item').forEach(btn =>
-      btn.addEventListener('click', () => _deleteSimpleItem(el, btn.dataset.type, Number(btn.dataset.index))));
   }
 
   function _showMemberForm(el, idx) {
