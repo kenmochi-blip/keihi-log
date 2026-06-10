@@ -493,7 +493,7 @@ const App = (() => {
         if (!url) throw new Error(error || 'portal_error');
         window.location.href = url;
       } catch (err) {
-        const msg = err.message === 'stripe_error'
+        const msg = ['stripe_error', 'no_session', 'no_customer'].includes(err.message)
           ? 'カスタマーポータルを開けませんでした。support@keihi-log.com までお問い合わせください。'
           : 'ポータルを開けませんでした: ' + err.message;
         showToast(msg, 'danger');
