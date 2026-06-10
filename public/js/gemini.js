@@ -5,7 +5,8 @@
  */
 const Gemini = (() => {
 
-  const MODEL   = 'gemini-2.5-flash';
+  // gemini-2.5-flash は無料枠が20 RPD/日に削減されたため、500 RPD の flash-lite を使用（2026-06確認）
+  const MODEL   = 'gemini-3.1-flash-lite';
   const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
 
   // 設定シートから読んだAPIキーをメモリにキャッシュ

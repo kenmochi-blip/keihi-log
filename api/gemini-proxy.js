@@ -8,7 +8,8 @@ export default async function handler(req, res) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return res.status(503).json({ error: 'Gemini APIキーが設定されていません' });
 
-  const MODEL   = 'gemini-2.5-flash';
+  // gemini-2.5-flash は無料枠が20 RPD/日に削減されたため、500 RPD の flash-lite を使用（2026-06確認）
+  const MODEL   = 'gemini-3.1-flash-lite';
   const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
 
   try {

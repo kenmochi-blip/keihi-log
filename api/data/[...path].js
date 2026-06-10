@@ -708,7 +708,8 @@ async function gemini(req, res) {
   const body = await _body(req);
   if (!body?.contents) return res.status(400).json({ error: 'invalid_request' });
 
-  const MODEL = 'gemini-2.5-flash';
+  // gemini-2.5-flash は無料枠が20 RPD/日に削減されたため、500 RPD の flash-lite を使用（2026-06確認）
+  const MODEL = 'gemini-3.1-flash-lite';
   // キーはURLに含めずヘッダーで送る（アクセスログへの漏洩防止）
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
   let upstream;
