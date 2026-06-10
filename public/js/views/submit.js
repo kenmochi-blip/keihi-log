@@ -289,18 +289,8 @@ const SubmitView = (() => {
 
   <!-- 直近履歴 -->
   <div id="navShortcuts" style="height:5rem;display:flex;justify-content:space-between;align-items:center;">
-    <!-- 左矢形：CSSボーダートリックで確実に枠線を表示 -->
-    <button id="btnNavLeft" style="position:relative;display:inline-flex;align-items:center;margin-left:12px;padding:7px 14px;border:1.5px solid #6c757d;border-left:none;border-radius:0 20px 20px 0;background:#fff;font-size:0.78rem;font-weight:600;color:#495057;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
-      <span style="position:absolute;left:-12px;top:50%;transform:translateY(-50%);width:0;height:0;border-style:solid;border-width:15px 11px 15px 0;border-color:transparent #6c757d transparent transparent;"></span>
-      <span style="position:absolute;left:-10px;top:50%;transform:translateY(-50%);width:0;height:0;border-style:solid;border-width:13.5px 10px 13.5px 0;border-color:transparent #fff transparent transparent;"></span>
-      ${App.isAdmin() ? '設定' : '集計'}
-    </button>
-    <!-- 右矢形 -->
-    <button id="btnNavRight" style="position:relative;display:inline-flex;align-items:center;margin-right:12px;padding:7px 14px;border:1.5px solid #6c757d;border-right:none;border-radius:20px 0 0 20px;background:#fff;font-size:0.78rem;font-weight:600;color:#495057;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
-      一覧
-      <span style="position:absolute;right:-12px;top:50%;transform:translateY(-50%);width:0;height:0;border-style:solid;border-width:15px 0 15px 11px;border-color:transparent transparent transparent #6c757d;"></span>
-      <span style="position:absolute;right:-10px;top:50%;transform:translateY(-50%);width:0;height:0;border-style:solid;border-width:13.5px 0 13.5px 10px;border-color:transparent transparent transparent #fff;"></span>
-    </button>
+    <button id="btnNavLeft" class="subtype-pill" style="clip-path:polygon(12px 0%,100% 0%,100% 100%,12px 100%,0% 50%);border-radius:0;border:none;background:#e9ecef;filter:drop-shadow(0 0 1.5px #333);padding-left:20px;padding-right:14px;">👈 ${App.isAdmin() ? '設定' : '集計'}</button>
+    <button id="btnNavRight" class="subtype-pill" style="clip-path:polygon(0% 0%,calc(100% - 12px) 0%,100% 50%,calc(100% - 12px) 100%,0% 100%);border-radius:0;border:none;background:#e9ecef;filter:drop-shadow(0 0 1.5px #333);padding-right:20px;padding-left:14px;">一覧 👉</button>
   </div>
   <hr style="margin:0 0 1.25rem;">
   <div id="historySection" class="mb-4">
