@@ -21,6 +21,65 @@
   （その日の解析が止まるだけ）── LPもこの訴求で統一
 - この仕組みにより低価格を実現
 
+### Geminiクォータアラート対応手順
+
+GCPコンソールのクォータアラートポリシーでメール通知を設定済み。
+アラートメールが届いたら以下の手順で対応する。
+
+#### 1. 現状確認（5分）
+
+```
+Cloud Console → APIとサービス → Generative Language API
+→ 割り当てとシステム上限 → フィルタ: "Request limit per model per day"
+```
+
+「free tier」行の各モデルの「値」列を確認し、現在のモデル（`gemini-3.1-flash-lite`）の
+RPDと、より大きい値を持つモデルを探す。
+
+#### 2. 乗り換え先の選定基準
+
+- free tier RPDが**現在値より大きい**（最低でも100以上を目安）
+- モデル名に `lite` または `flash` を含む軽量系（領収書OCRにはProは不要）
+- `experimental` は本番には使わない（廃止リスクが高い）
+- `tts`・`image`・`embedding` は用途が違うので対象外
+
+#### 3. 変更箇所（3ファイル・計3行）
+
+```
+public/js/gemini.js          : const MODEL = '...'
+api/data/[...path].js        : const MODEL = '...'  （handleGemini関数内）
+api/gemini-proxy.js          : const MODEL = '...'  （デモ用）
+```
+
+#### 4. 文言の更新箇所
+
+RPD値が変わった場合は以下を一括修正する（数値は実測値に合わせる）：
+
+```
+public/index.html   : 「無料枠は1日XXXリクエスト」（BYOK説明セクション・FAQ3）
+public/faq.html     : 「1日XXX件」（q402・q402b の2箇所）
+public/setup.html   : 「1日あたりXXXリクエストまで無料」
+api/_faq-data.js    : 上記faqと同じ内容のプレーンテキスト版
+CLAUDE.md           : 本セクションの「実測確認」の値と日付
+```
+
+#### 5. バージョンバンプ・コミット・プッシュ
+
+```bash
+# app.html のバージョンクエリを更新（キャッシュ無効化）
+# 例: gemini.js?v=YYYYMMDD
+
+git add -A
+git commit -m "Geminiモデルを XXX に変更（無料枠YYY RPD・YYYY-MM確認）"
+git branch -f main claude/rebuild-receipt-app-Ft3lE
+git push origin main
+git push origin claude/rebuild-receipt-app-Ft3lE
+```
+
+#### 6. 動作確認
+
+デプロイ後、デモモードで領収書を1枚読み取って正常に解析されることを確認する。
+
 ## アーキテクチャメモ
 - Vanilla JS SPA + Bootstrap 5
 - Vercel ホスティング（静的サイト + Serverless Functions）
