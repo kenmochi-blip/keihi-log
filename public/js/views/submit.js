@@ -289,8 +289,8 @@ const SubmitView = (() => {
 
   <!-- 直近履歴 -->
   <div id="navShortcuts" style="height:5rem;display:flex;justify-content:space-between;align-items:center;">
-    <button class="subtype-pill" id="btnNavLeft" style="clip-path:polygon(10px 0%,100% 0%,100% 100%,10px 100%,0% 50%);border-radius:0;border:none;filter:drop-shadow(1px 0 0 #adb5bd) drop-shadow(-1px 0 0 #adb5bd) drop-shadow(0 1px 0 #adb5bd) drop-shadow(0 -1px 0 #adb5bd);padding-left:18px;">👈 ${App.isAdmin() ? '設定' : '集計'}</button>
-    <button class="subtype-pill" id="btnNavRight" style="clip-path:polygon(0% 0%,calc(100% - 10px) 0%,100% 50%,calc(100% - 10px) 100%,0% 100%);border-radius:0;border:none;filter:drop-shadow(1px 0 0 #adb5bd) drop-shadow(-1px 0 0 #adb5bd) drop-shadow(0 1px 0 #adb5bd) drop-shadow(0 -1px 0 #adb5bd);padding-right:18px;">一覧 👉</button>
+    <button class="subtype-pill" id="btnNavLeft" style="clip-path:polygon(10px 0%,100% 0%,100% 100%,10px 100%,0% 50%);border-radius:0;border:none;filter:drop-shadow(1px 0 0 #6c757d) drop-shadow(-1px 0 0 #6c757d) drop-shadow(0 1px 0 #6c757d) drop-shadow(0 -1px 0 #6c757d) drop-shadow(1px 0 0 #6c757d) drop-shadow(0 1px 0 #6c757d);padding-left:18px;">👈 ${App.isAdmin() ? '設定' : '集計'}</button>
+    <button class="subtype-pill" id="btnNavRight" style="clip-path:polygon(0% 0%,calc(100% - 10px) 0%,100% 50%,calc(100% - 10px) 100%,0% 100%);border-radius:0;border:none;filter:drop-shadow(1px 0 0 #6c757d) drop-shadow(-1px 0 0 #6c757d) drop-shadow(0 1px 0 #6c757d) drop-shadow(0 -1px 0 #6c757d) drop-shadow(1px 0 0 #6c757d) drop-shadow(0 1px 0 #6c757d);padding-right:18px;">一覧 👉</button>
   </div>
   <hr style="margin:0 0 1.25rem;">
   <div id="historySection" class="mb-4">
