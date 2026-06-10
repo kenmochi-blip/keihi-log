@@ -451,7 +451,7 @@ const App = (() => {
       ? (wasTrial ? '無料トライアルが終了しました' : 'ライセンスの有効期限が切れています')
       : (lic.reason === 'suspended' ? 'ライセンスが停止されています' : 'ライセンスキーが無効です');
     const lead = isExpired && !wasTrial
-      ? 'クレジットカードの有効期限切れなどでお支払いが完了しなかった可能性があります。<br>設定画面のカスタマーポータルからカード情報を更新してください。'
+      ? 'クレジットカードの有効期限切れなどでお支払いが完了しなかった可能性があります。<br>カスタマーポータルでカード情報を更新してください。'
       : isExpired
         ? '引き続きご利用いただくには、下からプランを選んでお支払い手続きをお願いします。<br>登録後もライセンスキー・データ・設定はそのまま引き継がれます。'
         : '設定画面からライセンスキーをご確認ください。';
@@ -461,7 +461,9 @@ const App = (() => {
         <h5 class="mt-3 fw-bold">${heading}</h5>
         <p class="text-muted small mt-2" style="line-height:1.9;">${lead}</p>
         ${isExpired && !wasTrial ? `
-          <button class="btn btn-primary btn-sm mt-2" id="btnExpiredToSettings">設定画面でカード情報を更新する</button>
+          <button class="btn btn-primary mt-2" id="btnOpenPortal">
+            <i class="bi bi-arrow-repeat me-1"></i>カスタマーポータルを開く
+          </button>
           ${planButtons ? `
           <div class="mt-4 pt-3 border-top">
             <p class="text-muted small mb-2">プランを変更する場合はこちら</p>
@@ -478,6 +480,27 @@ const App = (() => {
           <button class="btn btn-outline-primary btn-sm mt-2" id="btnExpiredToSettings">設定画面を開く</button>`}
       </div>`;
     document.getElementById('btnExpiredToSettings')?.addEventListener('click', () => Router.navigate('settings'));
+    document.getElementById('btnOpenPortal')?.addEventListener('click', async () => {
+      if (!key) { showToast('ライセンスキーが設定されていません', 'danger'); return; }
+      showLoading('ポータルを開いています...');
+      try {
+        const res = await fetch('/api/portal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key }),
+        });
+        const { url, error } = await res.json();
+        if (!url) throw new Error(error || 'portal_error');
+        window.location.href = url;
+      } catch (err) {
+        const msg = err.message === 'stripe_error'
+          ? 'カスタマーポータルを開けませんでした。support@keihi-log.com までお問い合わせください。'
+          : 'ポータルを開けませんでした: ' + err.message;
+        showToast(msg, 'danger');
+      } finally {
+        hideLoading();
+      }
+    });
     const bottomNav = document.querySelector('nav.fixed-bottom');
     if (bottomNav) bottomNav.classList.add('d-none');
   }
