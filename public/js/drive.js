@@ -121,18 +121,26 @@ const Drive = (() => {
     let warn = null;
 
     if (mimeType.startsWith('image/')) {
-      warn = await _checkResolution(base64);           // 元画像で解像度チェック
-      const hash = await _sha256(base64);              // 元画像でハッシュ（重複検知用）
-      base64   = await _compressForUpload(base64);     // 圧縮+EXIF回転してアップロード
+      warn = await _checkResolution(base64);
+      const hash = await _sha256(base64);
+      base64   = await _compressForUpload(base64);
       mimeType = 'image/jpeg';
       filename = filename.replace(/\.[^.]+$/, '.jpg');
-      const { webViewLink } = await uploadFile(base64, mimeType, filename);
-      return { url: webViewLink, hash, warn };
+      const { id, webViewLink } = await uploadFile(base64, mimeType, filename);
+      return { id, url: webViewLink, hash, warn };
     }
 
     const hash = await _sha256(base64);
-    const { webViewLink } = await uploadFile(base64, mimeType, filename);
-    return { url: webViewLink, hash, warn };
+    const { id, webViewLink } = await uploadFile(base64, mimeType, filename);
+    return { id, url: webViewLink, hash, warn };
+  }
+
+  async function renameFile(fileId, newName) {
+    if (!fileId || fileId === 'demo') return;
+    await Auth.authFetch(
+      `https://www.googleapis.com/drive/v3/files/${fileId}`,
+      { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: newName }) }
+    );
   }
 
   /** 画像を長辺2000px・quality 0.85 に圧縮しつつEXIF回転を補正して返す */
@@ -240,5 +248,5 @@ const Drive = (() => {
     );
   }
 
-  return { createSpreadsheetInFolder, createFolder, moveToFolder, uploadFile, uploadReceiptFile, fileToBase64, grantEditorAccess, revokeAccess };
+  return { createSpreadsheetInFolder, createFolder, moveToFolder, uploadFile, uploadReceiptFile, renameFile, fileToBase64, grantEditorAccess, revokeAccess };
 })();

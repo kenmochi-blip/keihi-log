@@ -29,6 +29,11 @@ const SubmitView = (() => {
   let _aiAutoVersion  = 0;   // 写真が差し替えられた際に古い結果を破棄するためのバージョン番号
   let _prefetchedTime = null; // { jst: string, fetchedAt: number } 申請時刻のプリフェッチ
 
+  // バックグラウンドアップロード状態
+  let _preUploadVersion = 0;
+  let _preUploadPromise = null; // Promise<[{id,url,hash,warn}]>
+  let _preUploadResult  = null; // 解決済み結果
+
   const TYPES = ['領収書', '領収書なし', '電車/バス', '自家用車'];
   const _typeId = t => t.replace(/\//g, '');
   const CAR_RATE_KEY = 'keihi_car_rate';
@@ -284,8 +289,8 @@ const SubmitView = (() => {
 
   <!-- 直近履歴 -->
   <div id="navShortcuts" style="height:5rem;display:flex;justify-content:space-between;align-items:center;">
-    <button class="subtype-pill" id="btnNavLeft">👈 ${App.isAdmin() ? '設定' : '集計'}</button>
-    <button class="subtype-pill" id="btnNavRight">一覧 👉</button>
+    <button class="subtype-pill" id="btnNavLeft" style="clip-path:polygon(10px 0%,100% 0%,100% 100%,10px 100%,0% 50%);border-radius:0;border:none;filter:drop-shadow(0 0 0.8px #adb5bd) drop-shadow(0 1px 2px rgba(0,0,0,0.06));padding-left:18px;">👈 ${App.isAdmin() ? '設定' : '集計'}</button>
+    <button class="subtype-pill" id="btnNavRight" style="clip-path:polygon(0% 0%,calc(100% - 10px) 0%,100% 50%,calc(100% - 10px) 100%,0% 100%);border-radius:0;border:none;filter:drop-shadow(0 0 0.8px #adb5bd) drop-shadow(0 1px 2px rgba(0,0,0,0.06));padding-right:18px;">一覧 👉</button>
   </div>
   <hr style="margin:0 0 1.25rem;">
   <div id="historySection" class="mb-4">
@@ -498,6 +503,7 @@ function _bindSubtypePills(el) {
         _currentType = '領収書';
         _selectedFiles = []; _compressedFiles = []; _compressPromise = null;
         _aiAutoPromise = null; _prefetchedTime = null; ++_aiAutoVersion;
+        ++_preUploadVersion; _preUploadPromise = null; _preUploadResult = null;
         el.querySelectorAll('.subtype-pill').forEach(p => p.classList.remove('active'));
         ['領収書なし', '電車/バス', '自家用車'].forEach(t => {
           el.querySelector(`#panel-${_typeId(t)}`)?.classList.add('d-none');
@@ -510,6 +516,7 @@ function _bindSubtypePills(el) {
       _currentType = type;
       _selectedFiles = []; _compressedFiles = []; _compressPromise = null;
       _aiAutoPromise = null; _prefetchedTime = null; ++_aiAutoVersion;
+      ++_preUploadVersion; _preUploadPromise = null; _preUploadResult = null;
       el.querySelectorAll('.subtype-pill').forEach(p => p.classList.toggle('active', p === pill));
       ['領収書なし', '電車/バス', '自家用車'].forEach(t => {
         el.querySelector(`#panel-${_typeId(t)}`)?.classList.toggle('d-none', t !== type);
@@ -564,6 +571,8 @@ function _bindSubtypePills(el) {
 
         // 申請時刻をプリフェッチ（申請ボタン押下時の待ちをゼロにする）
         _prefetchServerTime();
+        // Driveアップロードをバックグラウンドで先行開始（保存ボタン押下時の待ちを削減）
+        _startPreUpload();
       }
     };
 
@@ -631,6 +640,7 @@ function _bindSubtypePills(el) {
     div.innerHTML += `<button class="remove-btn" data-file-idx="${idx}">✕</button>`;
     div.querySelector('.remove-btn').addEventListener('click', () => {
       _selectedFiles[idx] = null;
+      ++_preUploadVersion; _preUploadPromise = null; _preUploadResult = null;
       div.remove();
       if (type === '領収書') {
         const area2 = el.querySelector('#previewArea-領収書');
@@ -1156,6 +1166,24 @@ function _bindSubtypePills(el) {
     _setSubmitUnitVisible(el, true);
   }
 
+  /** 写真選択後すぐにDriveアップロードを開始し、保存時の待ちを削減する */
+  function _startPreUpload() {
+    const version = ++_preUploadVersion;
+    _preUploadResult = null;
+    _preUploadPromise = null;
+    const files = _selectedFiles.filter(Boolean);
+    if (!files.length) return;
+    const ts = Date.now();
+    _preUploadPromise = Promise.all(files.map((f, i) => {
+      const ext = (f.mimeType || '').split('/')[1]?.replace('jpeg', 'jpg') || 'jpg';
+      return Drive.uploadReceiptFile(f.base64, f.mimeType, `PENDING_${ts}_${i + 1}.${ext}`);
+    })).then(results => {
+      if (version !== _preUploadVersion) return null; // 差し替えられた場合は破棄
+      _preUploadResult = results;
+      return results;
+    }).catch(() => null);
+  }
+
   /** サーバー時刻を事前取得して _prefetchedTime に保存する（申請時の待ちをゼロにする） */
   function _prefetchServerTime() {
     if (_prefetchedTime) return; // 既にプリフェッチ済み
@@ -1233,16 +1261,31 @@ function _bindSubtypePills(el) {
       const amtStr   = String(data.amount);
       const placeStr = (data.place || '').replace(/[\\/:*?"<>|]/g, '').trim().slice(0, 20);
 
-      // Drive アップロード（複数ファイル並列）と expenses キャッシュ取得を同時に走らせる
-      const uploadPromises = activeFiles.map((f, i) => {
-        const ext      = f.mimeType.split('/')[1]?.replace('jpeg', 'jpg') || 'jpg';
-        const filename = `${dateStr}_${placeStr}_${amtStr}円_${userName}_${i + 1}.${ext}`;
-        return Drive.uploadReceiptFile(f.base64, f.mimeType, filename);
-      });
-      const [uploadResults, expenses] = await Promise.all([
-        Promise.all(uploadPromises),
-        App.getExpenses(),  // アップロード中にキャッシュを温める
-      ]);
+      // Drive アップロード：バックグラウンドプレアップロード済みならそれを使い、なければ通常アップロード
+      let uploadResults, expenses, _preResult = null;
+      const preReady = _preUploadResult && _preUploadResult.length === activeFiles.length;
+      if (preReady) {
+        // プレアップロード完了済み → Sheets書き込みのみ（体感速度が大幅改善）
+        _preResult = _preUploadResult;
+        [, expenses] = await Promise.all([Promise.resolve(), App.getExpenses()]);
+        uploadResults = _preResult;
+      } else if (_preUploadPromise) {
+        // プレアップロード進行中 → 完了を待つ（通常より速い場合が多い）
+        [_preResult, expenses] = await Promise.all([_preUploadPromise, App.getExpenses()]);
+        uploadResults = _preResult && _preResult.length === activeFiles.length
+          ? _preResult
+          : await Promise.all(activeFiles.map((f, i) => {
+              const ext = f.mimeType.split('/')[1]?.replace('jpeg', 'jpg') || 'jpg';
+              return Drive.uploadReceiptFile(f.base64, f.mimeType, `${dateStr}_${placeStr}_${amtStr}円_${userName}_${i + 1}.${ext}`);
+            }));
+      } else {
+        // プレアップロードなし（交通費・自家用車等）→ 通常フロー
+        const uploadPromises = activeFiles.map((f, i) => {
+          const ext = f.mimeType.split('/')[1]?.replace('jpeg', 'jpg') || 'jpg';
+          return Drive.uploadReceiptFile(f.base64, f.mimeType, `${dateStr}_${placeStr}_${amtStr}円_${userName}_${i + 1}.${ext}`);
+        });
+        [uploadResults, expenses] = await Promise.all([Promise.all(uploadPromises), App.getExpenses()]);
+      }
       for (const { url, hash, warn } of uploadResults) {
         uploadedUrls.push(url);
         hashes.push(hash);
@@ -1351,6 +1394,17 @@ function _bindSubtypePills(el) {
       App.clearExpensesCache(); // 申請・修正後はキャッシュを破棄して一覧/集計を最新化
       App.showToast(_editId ? '修正しました' : '登録しました', 'success');
       const returnTo = _editId ? _returnAfterEdit : null;
+
+      // プレアップロード済みファイルを正式ファイル名にバックグラウンドでリネーム（電帳法対応）
+      if (_preResult && _preResult.length === activeFiles.length) {
+        _preResult.forEach(({ id }, i) => {
+          if (!id || id === 'demo') return;
+          const ext = 'jpg';
+          Drive.renameFile(id, `${dateStr}_${placeStr}_${amtStr}円_${userName}_${i + 1}.${ext}`).catch(() => {});
+        });
+      }
+      _preUploadPromise = null; _preUploadResult = null;
+
       _resetForm(el);
       _loadHistory(el);
       if (returnTo) Router.navigate(returnTo);
