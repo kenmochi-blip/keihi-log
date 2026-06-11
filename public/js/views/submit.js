@@ -360,6 +360,10 @@ const SubmitView = (() => {
     return `<div class="mb-2">
       <label class="form-label small fw-semibold">備考</label>
       <textarea class="form-control form-control-sm" id="inputNote" rows="2"></textarea>
+      <div id="entertainHint" class="d-none small mt-1 p-2 rounded" style="background:#fff3cd;">
+        <span class="fw-semibold text-warning-emphasis"><i class="bi bi-exclamation-triangle me-1"></i>交際費は参加者氏名と人数の記載が必須です</span><br>
+        <span class="text-muted">例）山田部長・鈴木様（計2名）、〇〇社との商談</span>
+      </div>
     </div>`;
   }
   function _amountSection() {
@@ -415,6 +419,12 @@ const SubmitView = (() => {
 
     // fromCache=true のとき：キャッシュ済みHTMLに正しい選択肢・選択値が含まれるため再描画不要
     if (!opts.fromCache) _populateSelects(el);
+    el.querySelectorAll('#selCategory, #selCatTransit, #selCatCar').forEach(s =>
+      s.addEventListener('change', () => _updateEntertainHint(el))
+    );
+    el.addEventListener('change', e => {
+      if (e.target.matches('.split-cat')) _updateEntertainHint(el);
+    });
     _bindAmountInputs(el);
     _bindSubtypePills(el);
     _bindFileInputs(el);
@@ -485,6 +495,23 @@ const SubmitView = (() => {
         _customFlags.map(f => `<option value="${f}">${f}</option>`).join('');
     }
     if (cfWrap) cfWrap.classList.add('d-none');
+  }
+
+  /** 交際費が選択されている場合に備考欄のヒントを表示する */
+  function _updateEntertainHint(el) {
+    el.querySelectorAll('#entertainHint').forEach(hint => {
+      const pnl = hint.closest('#receiptFields, [id^="panel-"]') || el;
+      const splitLines = pnl.querySelector('#splitLines');
+      const isSplit = splitLines && !splitLines.classList.contains('d-none');
+      let show = false;
+      if (isSplit) {
+        show = [...splitLines.querySelectorAll('.split-cat')].some(s => s.value === '交際費');
+      } else {
+        const cat = pnl.querySelector('#selCategory, #selCatTransit, #selCatCar');
+        show = cat?.value === '交際費';
+      }
+      hint.classList.toggle('d-none', !show);
+    });
   }
 
   /** 金額入力欄を自動カンマ整形する */
@@ -1127,6 +1154,7 @@ function _bindSubtypePills(el) {
         App.showToast(`源泉徴収税額 ¥${_withholdingAmount.toLocaleString()} を検出しました`, 'info');
       }
 
+      _updateEntertainHint(el);
       // 解析完了後、登録ボタンが下端に来るようスクロール
       el.querySelector('#submitUnit')?.scrollIntoView({ behavior: 'smooth', block: 'end' });
 
@@ -1491,6 +1519,19 @@ function _bindSubtypePills(el) {
     // 勘定科目は必須
     if (!category) { App.showToast('勘定科目を選択してください', 'danger'); return null; }
 
+    // 交際費は備考に参加者氏名・人数の記載が必須
+    const _isEntertain = category.split('/').some(part => part.split(':')[0] === '交際費');
+    if (_isEntertain) {
+      if (!note) {
+        App.showToast('交際費は備考に参加者氏名と人数を記載してください（例：山田様・鈴木様（計2名）、商談）', 'danger');
+        return null;
+      }
+      if (!/[0-9０-９]+\s*[名人]/.test(note)) {
+        App.showToast('交際費の備考に参加人数を記載してください（例：2名）', 'danger');
+        return null;
+      }
+    }
+
     // 領収書なしは理由が必須、かつnoteに合算
     if (_currentType === '領収書なし') {
       const reason = pnl.querySelector('#txtReason')?.value?.trim();
@@ -1815,6 +1856,7 @@ function _bindSubtypePills(el) {
       _setSubmitUnitVisible(el, true);
       const btn = el.querySelector('#btnSubmit');
       if (btn) { btn.textContent = '上書き保存'; btn.style.cssText = 'background:#cc8800;'; }
+      _updateEntertainHint(el);
       el.scrollIntoView({ behavior: 'smooth' });
     }, 100);
   }
