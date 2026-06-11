@@ -117,11 +117,11 @@ const Drive = (() => {
    * 画像を検証してからアップロードする（電帳法：解像度チェック）
    * @returns {{ url, hash, warn }} webViewLink, SHA-256ハッシュ, 解像度警告メッセージ
    */
-  async function uploadReceiptFile(base64, mimeType, filename) {
+  async function uploadReceiptFile(base64, mimeType, filename, { skipResolutionCheck = false } = {}) {
     let warn = null;
 
     if (mimeType.startsWith('image/')) {
-      warn = await _checkResolution(base64);
+      if (!skipResolutionCheck) warn = await _checkResolution(base64);
       const hash = await _sha256(base64);
       base64   = await _compressForUpload(base64);
       mimeType = 'image/jpeg';

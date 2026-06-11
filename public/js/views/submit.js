@@ -1182,7 +1182,7 @@ function _bindSubtypePills(el) {
     const ts = Date.now();
     _preUploadPromise = Promise.all(files.map((f, i) => {
       const ext = (f.mimeType || '').split('/')[1]?.replace('jpeg', 'jpg') || 'jpg';
-      return Drive.uploadReceiptFile(f.base64, f.mimeType, `PENDING_${ts}_${i + 1}.${ext}`);
+      return Drive.uploadReceiptFile(f.base64, f.mimeType, `PENDING_${ts}_${i + 1}.${ext}`, { skipResolutionCheck: _currentType !== '領収書' });
     })).then(results => {
       if (version !== _preUploadVersion) return null; // 差し替えられた場合は破棄
       _preUploadResult = results;
@@ -1282,13 +1282,13 @@ function _bindSubtypePills(el) {
           ? _preResult
           : await Promise.all(activeFiles.map((f, i) => {
               const ext = f.mimeType.split('/')[1]?.replace('jpeg', 'jpg') || 'jpg';
-              return Drive.uploadReceiptFile(f.base64, f.mimeType, `${dateStr}_${placeStr}_${amtStr}円_${userName}_${i + 1}.${ext}`);
+              return Drive.uploadReceiptFile(f.base64, f.mimeType, `${dateStr}_${placeStr}_${amtStr}円_${userName}_${i + 1}.${ext}`, { skipResolutionCheck: _currentType !== '領収書' });
             }));
       } else {
         // プレアップロードなし（交通費・自家用車等）→ 通常フロー
         const uploadPromises = activeFiles.map((f, i) => {
           const ext = f.mimeType.split('/')[1]?.replace('jpeg', 'jpg') || 'jpg';
-          return Drive.uploadReceiptFile(f.base64, f.mimeType, `${dateStr}_${placeStr}_${amtStr}円_${userName}_${i + 1}.${ext}`);
+          return Drive.uploadReceiptFile(f.base64, f.mimeType, `${dateStr}_${placeStr}_${amtStr}円_${userName}_${i + 1}.${ext}`, { skipResolutionCheck: _currentType !== '領収書' });
         });
         [uploadResults, expenses] = await Promise.all([Promise.all(uploadPromises), App.getExpenses()]);
       }
