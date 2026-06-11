@@ -127,6 +127,10 @@ const SubmitView = (() => {
       <label class="form-label small fw-semibold">理由・詳細 <span class="text-danger">*</span></label>
       <textarea class="form-control form-control-sm" id="txtReason" rows="3"
         placeholder="領収書がない理由を具体的に記入してください"></textarea>
+      <div id="entertainHint" class="d-none small mt-1 p-2 rounded" style="background:#fff3cd;">
+        <span class="fw-semibold text-warning-emphasis"><i class="bi bi-info-circle me-1"></i>交際費は参加者名の記載を推奨します</span><br>
+        <span class="text-muted">例）山田部長・鈴木様、〇〇社との商談</span>
+      </div>
     </div>
     <div class="mb-2">
       <label class="form-label small fw-semibold">参考資料（任意）</label>
