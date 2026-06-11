@@ -1563,11 +1563,9 @@ function _bindSubtypePills(el) {
   function _runAuditChecks(expenses, data, newHashes) {
     const alerts = [];
 
-    // 0. 交際費：参加者名の記載推奨
-    // 領収書なしは理由欄（必須）がnoteにマージされるため!data.noteでは判定不可 → 常にチェック
-    if (data.category.split('/').some(p => p.split(':')[0] === '交際費') &&
-        (!data.note || _currentType === '領収書なし')) {
-      alerts.push('交際費：参加者名を記載してください（理由欄または備考欄）');
+    // 0. 交際費：参加者名の記載推奨（備考・理由欄が空のときのみ）
+    if (data.category.split('/').some(p => p.split(':')[0] === '交際費') && !data.note) {
+      alerts.push('交際費は備考に参加者名を記載することを推奨します');
     }
 
     // 1. 2ヶ月以上前の日付チェック（電帳法対応）
