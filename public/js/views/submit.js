@@ -361,8 +361,8 @@ const SubmitView = (() => {
       <label class="form-label small fw-semibold">備考</label>
       <textarea class="form-control form-control-sm" id="inputNote" rows="2"></textarea>
       <div id="entertainHint" class="d-none small mt-1 p-2 rounded" style="background:#fff3cd;">
-        <span class="fw-semibold text-warning-emphasis"><i class="bi bi-exclamation-triangle me-1"></i>交際費は参加者氏名と人数の記載が必須です</span><br>
-        <span class="text-muted">例）山田部長・鈴木様（計2名）、〇〇社との商談</span>
+        <span class="fw-semibold text-warning-emphasis"><i class="bi bi-info-circle me-1"></i>交際費は参加者名の記載を推奨します</span><br>
+        <span class="text-muted">例）山田部長・鈴木様、〇〇社との商談</span>
       </div>
     </div>`;
   }
@@ -1519,19 +1519,6 @@ function _bindSubtypePills(el) {
     // 勘定科目は必須
     if (!category) { App.showToast('勘定科目を選択してください', 'danger'); return null; }
 
-    // 交際費は備考に参加者氏名・人数の記載が必須
-    const _isEntertain = category.split('/').some(part => part.split(':')[0] === '交際費');
-    if (_isEntertain) {
-      if (!note) {
-        App.showToast('交際費は備考に参加者氏名と人数を記載してください（例：山田様・鈴木様（計2名）、商談）', 'danger');
-        return null;
-      }
-      if (!/[0-9０-９]+\s*[名人]/.test(note)) {
-        App.showToast('交際費の備考に参加人数を記載してください（例：2名）', 'danger');
-        return null;
-      }
-    }
-
     // 領収書なしは理由が必須、かつnoteに合算
     if (_currentType === '領収書なし') {
       const reason = pnl.querySelector('#txtReason')?.value?.trim();
@@ -1571,6 +1558,11 @@ function _bindSubtypePills(el) {
 
   function _runAuditChecks(expenses, data, newHashes) {
     const alerts = [];
+
+    // 0. 交際費：参加者名の記載推奨
+    if (data.category.split('/').some(p => p.split(':')[0] === '交際費') && !data.note) {
+      alerts.push('交際費は備考に参加者名を記載することを推奨します');
+    }
 
     // 1. 2ヶ月以上前の日付チェック（電帳法対応）
     const expDate = new Date(data.date);
