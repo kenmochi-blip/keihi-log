@@ -1867,6 +1867,8 @@ function _bindSubtypePills(el) {
     _selectedFiles = []; _compressedFiles = []; _compressPromise = null;
     _aiAutoPromise = null; _prefetchedTime = null; ++_aiAutoVersion;
     _editId = null;
+    _existingHash = '';
+    _existingUrls = [];
     _returnAfterEdit = null;
     _withholdingAmount = 0;
 
