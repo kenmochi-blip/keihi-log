@@ -36,7 +36,8 @@
     { "source": "/app", "destination": "/app.html" },
     { "source": "/", "destination": "/index.html" },
     { "source": "/accountant", "destination": "/accountant.html" },
-    { "source": "/((?!blog/|js/|css/|img/|icons/|api/|app\\.html|login\\.html|setup\\.html|tokusho\\.html|privacy\\.html|terms\\.html|success\\.html|licenses\\.html|faq\\.html|demo\\.html|index\\.html|manifest\\.json|sw\\.js|robots\\.txt|sitemap\\.xml|favicon|accountant\\.html).+)", "destination": "/app.html" }
+    { "source": "/lp-b", "destination": "/lp-b.html" },
+    { "source": "/((?!blog/|js/|css/|img/|icons/|api/|app\\.html|login\\.html|setup\\.html|tokusho\\.html|privacy\\.html|terms\\.html|success\\.html|licenses\\.html|faq\\.html|demo\\.html|index\\.html|manifest\\.json|sw\\.js|robots\\.txt|sitemap\\.xml|favicon|accountant\\.html|lp-b\\.html).+)", "destination": "/app.html" }
   ],
   "headers": [
     {
