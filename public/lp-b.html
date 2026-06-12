@@ -3,941 +3,1012 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>経費ログ｜月の経費処理を月額330円で完全デジタル化</title>
-<meta name="description" content="AI×Googleスプレッドシートで経費精算をまるごと自動化。大手SaaSの96%オフ、月額330円〜。2週間無料・クレカ不要。">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<title>経費ログ｜月の経費処理コストを96%削減する</title>
+<meta name="description" content="月330円で経費精算を完全デジタル化。AI自動読み取り・承認フロー・電帳法対応。2週間無料・クレカ不要。">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --dark: #0b1220;
-    --dark2: #111c2e;
-    --accent: #f97316;
-    --accent2: #fb923c;
-    --blue: #3b82f6;
-    --blue2: #60a5fa;
-    --green: #22c55e;
-    --text: #e2e8f0;
-    --muted: #94a3b8;
-  }
-  * { box-sizing: border-box; }
-  body {
-    font-family: 'Noto Sans JP', sans-serif;
-    background: #fff;
-    color: #1e293b;
-    -webkit-font-smoothing: antialiased;
-    overflow-x: hidden;
-  }
-  a { -webkit-tap-highlight-color: transparent; }
-  a:focus, a:focus-visible, a.btn:focus, a.btn:focus-visible, a.btn:active, .btn:focus, .btn:active {
-    outline: none !important; box-shadow: none !important;
-  }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --ink: #0a0a0a;
+  --white: #ffffff;
+  --cream: #f5f0e8;
+  --orange: #e8450a;
+  --orange-light: #ff6b35;
+  --blue-dark: #0a1628;
+  --blue-mid: #112240;
+  --gray: #6b7280;
+  --line: rgba(0,0,0,0.12);
+}
+html { overflow-x: hidden; scroll-behavior: smooth; }
+body {
+  font-family: 'Noto Sans JP', sans-serif;
+  color: var(--ink);
+  background: var(--white);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+a { color: inherit; text-decoration: none; -webkit-tap-highlight-color: transparent; }
+button { cursor: pointer; border: none; background: none; font-family: inherit; }
 
-  /* ─── NAV ─── */
-  .nav-b {
-    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-    background: rgba(11,18,32,0.95);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    padding: 0.7rem 0;
-  }
-  .nav-b .brand { color: #fff; font-weight: 900; font-size: 1.1rem; text-decoration: none; }
-  .nav-b .brand img { width: 28px; height: 28px; border-radius: 6px; margin-right: 6px; vertical-align: -5px; }
-  .nav-b a.nav-link { color: rgba(255,255,255,0.75); font-size: 0.88rem; }
-  .nav-b a.nav-link:hover { color: #fff; }
-  .btn-nav-cta {
-    background: var(--accent); color: #fff !important; font-weight: 700;
-    padding: 0.45rem 1.2rem; border-radius: 50px; font-size: 0.85rem;
-    transition: background 0.2s;
-  }
-  .btn-nav-cta:hover { background: var(--accent2); }
+/* ━━━ STICKY NAV ━━━ */
+.nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+  height: 56px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 clamp(1rem, 4vw, 3rem);
+  background: rgba(10,10,10,0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.nav-logo { display: flex; align-items: center; gap: 8px; color: #fff; font-weight: 900; font-size: 1rem; }
+.nav-logo img { width: 26px; height: 26px; border-radius: 5px; }
+.nav-links { display: flex; align-items: center; gap: 1.5rem; }
+.nav-links a { color: rgba(255,255,255,0.65); font-size: 0.83rem; transition: color .15s; }
+.nav-links a:hover { color: #fff; }
+.nav-cta {
+  background: var(--orange); color: #fff !important; font-weight: 700;
+  padding: 0.45rem 1.2rem; border-radius: 6px; font-size: 0.83rem;
+  transition: background .15s;
+}
+.nav-cta:hover { background: var(--orange-light); }
 
-  /* ─── HERO ─── */
-  .hero-b {
-    background: linear-gradient(135deg, var(--dark) 0%, var(--dark2) 60%, #0d1f3a 100%);
-    min-height: 100vh;
-    display: flex; flex-direction: column; justify-content: center;
-    padding: 100px 0 60px;
-    position: relative; overflow: hidden;
-  }
-  .hero-b::before {
-    content: '';
-    position: absolute; top: -20%; right: -15%;
-    width: 700px; height: 700px;
-    background: radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 65%);
-    pointer-events: none;
-  }
-  .hero-b::after {
-    content: '';
-    position: absolute; bottom: -20%; left: -10%;
-    width: 500px; height: 500px;
-    background: radial-gradient(circle, rgba(249,115,22,0.08) 0%, transparent 65%);
-    pointer-events: none;
-  }
-  .hero-eyebrow {
-    display: inline-flex; align-items: center; gap: 8px;
-    background: rgba(249,115,22,0.15); border: 1px solid rgba(249,115,22,0.4);
-    color: var(--accent2); padding: 0.35rem 1rem; border-radius: 50px;
-    font-size: 0.82rem; font-weight: 700; margin-bottom: 1.5rem;
-  }
-  .hero-b h1 {
-    font-weight: 900; color: #fff;
-    font-size: clamp(2rem, 5.5vw, 3.4rem);
-    line-height: 1.2; margin-bottom: 1.2rem;
-  }
-  .hero-b h1 .hl { color: var(--accent); }
-  .hero-b .subhead {
-    color: var(--text); font-size: 1.05rem; line-height: 1.8; margin-bottom: 2rem;
-    opacity: 0.9;
-  }
-  .btn-hero-main {
-    background: var(--accent); color: #fff; font-weight: 900;
-    font-size: 1.1rem; padding: 1rem 2.2rem; border-radius: 12px;
-    border: none; display: inline-block; text-decoration: none;
-    transition: all 0.2s;
-    box-shadow: 0 8px 30px rgba(249,115,22,0.4);
-  }
-  .btn-hero-main:hover { background: var(--accent2); transform: translateY(-2px); color: #fff; box-shadow: 0 12px 36px rgba(249,115,22,0.45); }
-  .btn-hero-sub {
-    background: rgba(255,255,255,0.1); color: #fff;
-    border: 1px solid rgba(255,255,255,0.25); font-weight: 700;
-    padding: 0.9rem 1.8rem; border-radius: 12px;
-    text-decoration: none; font-size: 1rem;
-    transition: all 0.2s; display: inline-block;
-  }
-  .btn-hero-sub:hover { background: rgba(255,255,255,0.18); color: #fff; }
-  .hero-trust {
-    display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1.5rem;
-    color: rgba(255,255,255,0.65); font-size: 0.82rem;
-  }
-  .hero-trust span { display: flex; align-items: center; gap: 5px; }
-  .hero-trust i { color: var(--green); }
+/* ━━━ STICKY BOTTOM BAR (mobile) ━━━ */
+.sticky-bar {
+  display: none;
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+  background: var(--orange); color: #fff; padding: 0.9rem 1.5rem;
+  font-weight: 900; font-size: 1rem; text-align: center;
+  box-shadow: 0 -4px 20px rgba(232,69,10,0.4);
+}
+@media (max-width: 768px) { .sticky-bar { display: block; } }
 
-  /* ─── STATS STRIP ─── */
-  .stats-strip {
-    background: var(--accent);
-    padding: 1rem 0;
-  }
-  .stat-item { text-align: center; color: #fff; }
-  .stat-num { font-size: 1.6rem; font-weight: 900; line-height: 1; }
-  .stat-label { font-size: 0.75rem; opacity: 0.9; margin-top: 2px; }
-  .stat-div { width: 1px; background: rgba(255,255,255,0.3); height: 40px; }
+/* ━━━ HERO ━━━ */
+.hero {
+  min-height: 100vh;
+  background: var(--blue-dark);
+  display: grid;
+  place-items: center;
+  padding: 80px clamp(1.5rem, 6vw, 6rem) 60px;
+  position: relative;
+  overflow: hidden;
+}
+.hero-bg-num {
+  position: absolute;
+  font-size: clamp(180px, 30vw, 380px);
+  font-weight: 900;
+  color: rgba(255,255,255,0.03);
+  right: -2%;
+  bottom: -5%;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  user-select: none;
+  pointer-events: none;
+}
+.hero-inner {
+  max-width: 900px;
+  width: 100%;
+}
+.hero-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(232,69,10,0.2); border: 1px solid rgba(232,69,10,0.5);
+  color: #ff8c5a; padding: 0.3rem 0.9rem; border-radius: 4px;
+  font-size: 0.78rem; font-weight: 700; letter-spacing: 0.04em;
+  margin-bottom: 2rem;
+}
+.hero h1 {
+  color: #fff;
+  font-size: clamp(2.4rem, 6.5vw, 5rem);
+  font-weight: 900;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin-bottom: 1.8rem;
+}
+.hero h1 em {
+  font-style: normal;
+  color: var(--orange-light);
+  display: block;
+}
+.hero-sub {
+  color: rgba(255,255,255,0.6);
+  font-size: clamp(0.95rem, 1.8vw, 1.1rem);
+  line-height: 1.8;
+  max-width: 600px;
+  margin-bottom: 2.5rem;
+}
+.hero-sub strong { color: rgba(255,255,255,0.9); }
+.hero-actions { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; }
+.btn-primary-b {
+  background: var(--orange); color: #fff;
+  font-weight: 900; font-size: 1.05rem;
+  padding: 1rem 2.2rem; border-radius: 8px;
+  transition: all .2s;
+  box-shadow: 0 6px 24px rgba(232,69,10,0.45);
+  display: inline-block;
+}
+.btn-primary-b:hover { background: var(--orange-light); transform: translateY(-1px); color: #fff; }
+.btn-ghost {
+  color: rgba(255,255,255,0.6); font-size: 0.9rem;
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid rgba(255,255,255,0.2); padding: 0.9rem 1.5rem;
+  border-radius: 8px; transition: all .15s;
+}
+.btn-ghost:hover { color: #fff; border-color: rgba(255,255,255,0.5); }
+.hero-checklist {
+  margin-top: 2.5rem;
+  display: flex; flex-wrap: wrap; gap: 1.2rem;
+}
+.hero-checklist span {
+  display: flex; align-items: center; gap: 6px;
+  color: rgba(255,255,255,0.5); font-size: 0.82rem;
+}
+.hero-checklist i { color: #4ade80; font-size: 0.9rem; }
 
-  /* ─── PAIN SECTION ─── */
-  .pain-section { background: #f8fafc; padding: 5rem 0; }
-  .section-label {
-    font-size: 0.8rem; font-weight: 700; letter-spacing: 0.1em;
-    text-transform: uppercase; color: var(--accent); margin-bottom: 0.5rem;
-  }
-  .section-title-b {
-    font-size: clamp(1.6rem, 3.5vw, 2.2rem);
-    font-weight: 900; margin-bottom: 1rem; color: #0f172a;
-  }
-  .pain-card {
-    background: #fff; border-radius: 16px; padding: 1.5rem;
-    border-left: 4px solid #ef4444;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-  }
-  .pain-card h5 { font-weight: 700; color: #0f172a; margin-bottom: 0.3rem; font-size: 1rem; }
-  .pain-card p { color: #64748b; font-size: 0.88rem; margin: 0; line-height: 1.6; }
-  .pain-num { font-size: 2rem; font-weight: 900; color: #ef4444; line-height: 1; }
+/* ━━━ IMPACT STRIP ━━━ */
+.impact-strip {
+  background: var(--orange);
+  padding: 0;
+  overflow: hidden;
+}
+.impact-inner {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+.impact-cell {
+  padding: 2rem 1.5rem;
+  border-right: 1px solid rgba(255,255,255,0.2);
+  text-align: center;
+  color: #fff;
+}
+.impact-cell:last-child { border-right: none; }
+.impact-num {
+  font-size: clamp(2.2rem, 4vw, 3.2rem);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+.impact-unit { font-size: 1rem; font-weight: 400; }
+.impact-label { font-size: 0.72rem; opacity: 0.85; margin-top: 0.4rem; }
+@media (max-width: 640px) {
+  .impact-inner { grid-template-columns: repeat(2, 1fr); }
+  .impact-cell:nth-child(2) { border-right: none; }
+  .impact-cell:nth-child(3), .impact-cell:nth-child(4) { border-top: 1px solid rgba(255,255,255,0.2); }
+}
 
-  /* ─── TRANSFORM SECTION ─── */
-  .transform-section { padding: 5rem 0; background: var(--dark); }
-  .transform-section .section-title-b { color: #fff; }
-  .before-after {
-    background: rgba(255,255,255,0.05); border-radius: 20px;
-    border: 1px solid rgba(255,255,255,0.1); overflow: hidden;
-  }
-  .ba-before { background: rgba(239,68,68,0.1); border-right: 1px solid rgba(255,255,255,0.08); }
-  .ba-after { background: rgba(34,197,94,0.1); }
-  .ba-header { padding: 1rem 1.5rem; font-weight: 700; font-size: 0.85rem; }
-  .ba-before .ba-header { color: #f87171; border-bottom: 1px solid rgba(239,68,68,0.2); }
-  .ba-after .ba-header { color: #4ade80; border-bottom: 1px solid rgba(34,197,94,0.2); }
-  .ba-body { padding: 1.5rem; }
-  .ba-item { display: flex; align-items: flex-start; gap: 0.6rem; margin-bottom: 0.9rem; color: var(--text); font-size: 0.9rem; line-height: 1.5; }
-  .ba-item i { flex-shrink: 0; margin-top: 2px; }
-  .ba-item:last-child { margin-bottom: 0; }
+/* ━━━ SECTION UTILS ━━━ */
+.sec { padding: clamp(4rem, 8vw, 7rem) clamp(1.5rem, 6vw, 6rem); }
+.sec-dark { background: var(--blue-mid); color: #fff; }
+.sec-cream { background: var(--cream); }
+.sec-white { background: #fff; }
+.sec-black { background: var(--ink); color: #fff; }
 
-  /* ─── COMPARISON ─── */
-  .comparison-section { padding: 5rem 0; background: #f0f9ff; }
-  .comp-table { border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
-  .comp-table th { background: var(--dark); color: #fff; font-weight: 700; padding: 1rem 1.2rem; text-align: center; }
-  .comp-table th:first-child { text-align: left; }
-  .comp-table td { padding: 0.9rem 1.2rem; vertical-align: middle; font-size: 0.9rem; }
-  .comp-table td:not(:first-child) { text-align: center; }
-  .comp-table tbody tr:nth-child(odd) { background: #f8fafc; }
-  .comp-table tbody tr:nth-child(even) { background: #fff; }
-  .comp-hl { color: #fff; background: var(--blue) !important; font-weight: 700; }
-  .comp-price-big { font-size: 1.3rem; font-weight: 900; color: var(--blue); }
-  .comp-price-small { font-size: 0.75rem; color: #64748b; display: block; }
-  .comp-price-other { font-size: 1.1rem; font-weight: 700; color: #64748b; }
-  .badge-cheap { background: #fef2f2; color: #dc2626; font-size: 0.7rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
+.label-tag {
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--orange);
+  margin-bottom: 0.6rem;
+}
+.sec-dark .label-tag { color: #ff8c5a; }
+.sec-black .label-tag { color: #ff8c5a; }
+h2.sec-title {
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin-bottom: 1rem;
+}
+h2.sec-title-white { color: #fff; }
 
-  /* ─── FEATURES ─── */
-  .features-b { padding: 5rem 0; background: #fff; }
-  .feat-card {
-    border-radius: 16px; padding: 1.75rem;
-    background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
-    border: 1px solid #dbeafe; height: 100%;
-  }
-  .feat-icon { font-size: 2rem; margin-bottom: 0.8rem; }
-  .feat-card h4 { font-weight: 700; font-size: 1rem; color: #0f172a; margin-bottom: 0.5rem; }
-  .feat-card p { color: #475569; font-size: 0.87rem; line-height: 1.65; margin: 0; }
+/* ━━━ PAIN — SPLIT LAYOUT ━━━ */
+.pain-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  max-width: 1100px;
+  margin: 3rem auto 0;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.pain-item {
+  padding: 2rem;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  position: relative;
+}
+.pain-item:nth-child(2n) { border-right: none; }
+.pain-item:nth-child(3), .pain-item:nth-child(4) { border-bottom: none; }
+.pain-big {
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-weight: 900;
+  color: #ef4444;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  margin-bottom: 0.5rem;
+}
+.pain-item h4 { font-size: 1rem; font-weight: 700; margin-bottom: 0.4rem; }
+.pain-item p { font-size: 0.85rem; color: var(--gray); line-height: 1.65; }
+@media (max-width: 600px) {
+  .pain-grid { grid-template-columns: 1fr; }
+  .pain-item { border-right: none; border-bottom: 1px solid var(--line); }
+  .pain-item:last-child { border-bottom: none; }
+}
 
-  /* ─── TESTIMONIALS ─── */
-  .testimonials-section { padding: 5rem 0; background: var(--dark2); }
-  .testimonials-section .section-title-b { color: #fff; }
-  .testi-card {
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 16px; padding: 1.5rem;
-  }
-  .testi-stars { color: #fbbf24; font-size: 0.8rem; margin-bottom: 0.8rem; }
-  .testi-body { color: var(--text); font-size: 0.9rem; line-height: 1.7; margin-bottom: 1rem; }
-  .testi-author { color: var(--muted); font-size: 0.82rem; }
+/* ━━━ BEFORE/AFTER — FULL-WIDTH SPLIT ━━━ */
+.ba-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 480px;
+  max-width: 1200px;
+  margin: 3rem auto 0;
+}
+.ba-col { padding: clamp(2rem, 4vw, 3.5rem); }
+.ba-col-before {
+  background: #1a0a0a;
+  border-radius: 16px 0 0 16px;
+}
+.ba-col-after {
+  background: #0a1a0a;
+  border-radius: 0 16px 16px 0;
+}
+.ba-head {
+  font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; margin-bottom: 1.5rem;
+  display: flex; align-items: center; gap: 8px;
+}
+.ba-head.before { color: #f87171; }
+.ba-head.after  { color: #4ade80; }
+.ba-row {
+  display: flex; align-items: flex-start; gap: 0.75rem;
+  margin-bottom: 1.1rem; font-size: 0.9rem; line-height: 1.55;
+}
+.ba-row:last-child { margin-bottom: 0; }
+.ba-row.before { color: rgba(255,255,255,0.65); }
+.ba-row.after  { color: rgba(255,255,255,0.85); }
+.ba-row i { flex-shrink: 0; margin-top: 3px; }
+@media (max-width: 640px) {
+  .ba-split { grid-template-columns: 1fr; }
+  .ba-col-before { border-radius: 16px 16px 0 0; }
+  .ba-col-after  { border-radius: 0 0 16px 16px; }
+}
 
-  /* ─── PRICING ─── */
-  .pricing-b { padding: 5rem 0; background: #f8fafc; }
-  .price-card-b {
-    background: #fff; border-radius: 20px; padding: 2rem;
-    border: 2px solid #e2e8f0;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
-    display: flex; flex-direction: column;
-    position: relative;
-  }
-  .price-card-b.featured-b {
-    border-color: var(--blue);
-    box-shadow: 0 8px 40px rgba(59,130,246,0.2);
-  }
-  .badge-popular {
-    position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
-    background: var(--accent); color: #fff; font-size: 0.75rem; font-weight: 700;
-    padding: 0.25rem 1rem; border-radius: 50px; white-space: nowrap;
-  }
-  .price-tag { font-size: 3rem; font-weight: 900; color: #0f172a; line-height: 1; }
-  .price-tag span { font-size: 1rem; font-weight: 400; color: #64748b; }
-  .price-anchor { font-size: 0.8rem; color: #94a3b8; text-decoration: line-through; margin-left: 0.5rem; }
-  .check-b { list-style: none; padding: 0; margin: 0; }
-  .check-b li { display: flex; gap: 0.5rem; align-items: flex-start; padding: 0.35rem 0; font-size: 0.88rem; color: #334155; }
-  .check-b li i { color: var(--green); flex-shrink: 0; margin-top: 2px; }
-  .btn-plan-main {
-    background: var(--blue); color: #fff; font-weight: 700; padding: 0.9rem;
-    border-radius: 12px; text-decoration: none; text-align: center; display: block;
-    transition: background 0.2s; margin-top: auto;
-  }
-  .btn-plan-main:hover { background: #2563eb; color: #fff; }
-  .btn-plan-sub {
-    background: #f1f5f9; color: #334155; font-weight: 700; padding: 0.9rem;
-    border-radius: 12px; text-decoration: none; text-align: center; display: block;
-    transition: background 0.2s; margin-top: auto;
-  }
-  .btn-plan-sub:hover { background: #e2e8f0; color: #1e293b; }
+/* ━━━ COMPARISON — LARGE VISUAL ━━━ */
+.comp-intro {
+  max-width: 700px;
+  margin-bottom: 3rem;
+}
+.comp-row {
+  display: grid;
+  grid-template-columns: 180px 1fr 1fr 1fr;
+  gap: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  align-items: center;
+}
+.comp-row.header { border-bottom: 2px solid rgba(255,255,255,0.15); }
+.comp-cell {
+  padding: 1rem 1.2rem;
+  font-size: 0.88rem;
+  color: rgba(255,255,255,0.6);
+}
+.comp-cell.label { color: rgba(255,255,255,0.85); font-weight: 500; }
+.comp-cell.hl {
+  background: rgba(232,69,10,0.15);
+  color: #fff;
+}
+.comp-cell.header-label {
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: rgba(255,255,255,0.4);
+}
+.comp-cell.header-hl {
+  background: rgba(232,69,10,0.2);
+  font-size: 0.82rem; font-weight: 900; color: #ff8c5a;
+  letter-spacing: 0.04em;
+}
+.comp-price-big { font-size: 1.5rem; font-weight: 900; color: #ff8c5a; line-height: 1; }
+.comp-price-sub { font-size: 0.7rem; color: rgba(255,255,255,0.4); }
+.comp-minus { color: #f87171; }
+.comp-check { color: #4ade80; font-size: 1.1rem; }
+@media (max-width: 680px) {
+  .comp-row { grid-template-columns: 1fr 1fr; }
+  .comp-row.header .comp-cell:nth-child(1) { display: none; }
+  .comp-row.header .comp-cell:nth-child(3),
+  .comp-row.header .comp-cell:nth-child(4) { display: none; }
+  .comp-cell:nth-child(1),
+  .comp-cell:nth-child(3),
+  .comp-cell:nth-child(4) { display: none; }
+}
 
-  /* ─── FINAL CTA ─── */
-  .final-cta {
-    background: linear-gradient(135deg, var(--dark) 0%, #0d2145 100%);
-    padding: 6rem 0; text-align: center;
-    position: relative; overflow: hidden;
-  }
-  .final-cta::before {
-    content: '';
-    position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
-    width: 600px; height: 600px;
-    background: radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 65%);
-    pointer-events: none;
-  }
-  .final-cta h2 { color: #fff; font-weight: 900; font-size: clamp(1.6rem, 4vw, 2.5rem); }
-  .final-cta p { color: var(--text); font-size: 1rem; opacity: 0.85; }
-  .btn-final {
-    background: var(--accent); color: #fff; font-weight: 900;
-    font-size: 1.15rem; padding: 1.1rem 2.5rem; border-radius: 14px;
-    border: none; text-decoration: none; display: inline-block;
-    box-shadow: 0 8px 30px rgba(249,115,22,0.5);
-    transition: all 0.2s;
-  }
-  .btn-final:hover { background: var(--accent2); transform: translateY(-2px); color: #fff; }
-  .final-notes { color: rgba(255,255,255,0.5); font-size: 0.82rem; margin-top: 1rem; }
+/* ━━━ FEATURES — ZIG-ZAG ━━━ */
+.feat-list { max-width: 1000px; margin: 3rem auto 0; }
+.feat-item {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem;
+  align-items: center;
+  padding: 3rem 0;
+  border-bottom: 1px solid var(--line);
+}
+.feat-item:last-child { border-bottom: none; }
+.feat-item:nth-child(even) .feat-text { order: 2; }
+.feat-item:nth-child(even) .feat-visual { order: 1; }
+.feat-num {
+  font-size: clamp(5rem, 12vw, 9rem);
+  font-weight: 900;
+  color: rgba(0,0,0,0.06);
+  line-height: 1;
+  letter-spacing: -0.04em;
+  margin-bottom: -1rem;
+}
+.feat-text h3 { font-size: 1.3rem; font-weight: 900; margin-bottom: 0.7rem; }
+.feat-text p { color: var(--gray); font-size: 0.9rem; line-height: 1.75; }
+.feat-visual {
+  background: linear-gradient(135deg, #eff6ff, #f0fdf4);
+  border-radius: 20px;
+  aspect-ratio: 4/3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 4rem;
+}
+@media (max-width: 640px) {
+  .feat-item { grid-template-columns: 1fr; gap: 1.5rem; }
+  .feat-item:nth-child(even) .feat-text { order: unset; }
+  .feat-item:nth-child(even) .feat-visual { order: unset; }
+}
 
-  /* ─── FOOTER ─── */
-  .footer-b { background: var(--dark); color: var(--muted); padding: 2.5rem 0; font-size: 0.82rem; }
-  .footer-b a { color: var(--muted); }
-  .footer-b a:hover { color: #fff; }
+/* ━━━ TESTIMONIALS — BOLD QUOTES ━━━ */
+.testi-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  margin-top: 3rem;
+  background: rgba(255,255,255,0.06);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.testi-item {
+  background: rgba(255,255,255,0.04);
+  padding: 2rem 1.75rem;
+  position: relative;
+}
+.testi-quote {
+  font-size: 4rem;
+  line-height: 1;
+  color: var(--orange);
+  font-weight: 900;
+  opacity: 0.4;
+  margin-bottom: 0.5rem;
+}
+.testi-text { color: rgba(255,255,255,0.8); font-size: 0.9rem; line-height: 1.75; margin-bottom: 1.2rem; }
+.testi-meta { color: rgba(255,255,255,0.35); font-size: 0.78rem; }
+.testi-stars { color: #fbbf24; font-size: 0.75rem; margin-bottom: 0.8rem; }
+@media (max-width: 700px) {
+  .testi-grid { grid-template-columns: 1fr; }
+}
 
-  /* ─── HERO MOCKUP ─── */
-  .hero-mockup-b {
-    position: relative;
-    max-width: 340px; margin: 0 auto;
-  }
-  .phone-frame {
-    background: #1e293b;
-    border-radius: 40px;
-    padding: 12px;
-    box-shadow: 0 30px 80px rgba(0,0,0,0.5), inset 0 0 0 2px rgba(255,255,255,0.1);
-  }
-  .phone-screen {
-    background: #fff; border-radius: 30px; overflow: hidden;
-    aspect-ratio: 9/19.5;
-    display: flex; flex-direction: column;
-  }
-  .phone-bar { background: #0d6efd; padding: 12px 16px 8px; color: #fff; font-size: 0.65rem; font-weight: 700; }
-  .phone-bar .brand-mini { font-size: 0.8rem; font-weight: 900; }
-  .phone-content { padding: 12px; flex: 1; overflow: hidden; }
-  .phone-hero-zone { background: #f0f7ff; border-radius: 12px; padding: 16px; text-align: center; margin-bottom: 10px; border: 2px dashed #bfdbfe; }
-  .phone-hero-zone .camera-icon { font-size: 1.8rem; color: #0d6efd; margin-bottom: 4px; }
-  .phone-hero-zone .hero-text { font-size: 0.58rem; color: #475569; font-weight: 600; }
-  .phone-btn { background: #0d6efd; color: #fff; border-radius: 8px; padding: 8px 10px; font-size: 0.6rem; font-weight: 700; text-align: center; margin-bottom: 6px; }
-  .phone-ai-badge {
-    background: linear-gradient(135deg, #7c3aed, #4f46e5);
-    color: #fff; border-radius: 8px; padding: 6px 10px;
-    font-size: 0.58rem; font-weight: 700; display: flex; align-items: center; gap: 4px;
-    margin-bottom: 8px;
-  }
-  .phone-history { background: #f8fafc; border-radius: 8px; padding: 8px; }
-  .phone-history-label { font-size: 0.55rem; color: #94a3b8; font-weight: 700; margin-bottom: 6px; }
-  .phone-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid #f1f5f9; }
-  .phone-row:last-child { border-bottom: none; }
-  .phone-row .place { font-size: 0.58rem; color: #334155; font-weight: 600; }
-  .phone-row .amt { font-size: 0.6rem; color: #0d6efd; font-weight: 700; }
-  .phone-row .status { font-size: 0.5rem; background: #dcfce7; color: #16a34a; border-radius: 4px; padding: 1px 5px; font-weight: 600; }
-  .glow-badge {
-    position: absolute; top: -16px; right: -16px;
-    background: var(--accent); color: #fff;
-    border-radius: 50%; width: 72px; height: 72px;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    font-weight: 900; box-shadow: 0 4px 20px rgba(249,115,22,0.5);
-    font-size: 0.65rem; text-align: center; line-height: 1.2;
-  }
-  .glow-badge .big { font-size: 1.1rem; }
-  .floating-tag {
-    position: absolute; bottom: -10px; left: -20px;
-    background: #fff; border-radius: 12px; padding: 8px 14px;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.2);
-    font-size: 0.75rem; font-weight: 700; color: #0f172a;
-    display: flex; align-items: center; gap: 6px;
-    white-space: nowrap;
-  }
-  .floating-tag i { color: var(--green); font-size: 1rem; }
+/* ━━━ PRICING — ANCHOR-FIRST ━━━ */
+.pricing-anchor {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+.anchor-label {
+  font-size: 0.8rem; color: var(--gray); text-decoration: line-through; margin-bottom: 0.3rem;
+}
+.anchor-compare {
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-weight: 900;
+  color: #ef4444;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+.anchor-arrow { font-size: 2.5rem; color: var(--gray); margin: 0.5rem 0; }
+.anchor-price {
+  font-size: clamp(3.5rem, 7vw, 6rem);
+  font-weight: 900;
+  color: var(--ink);
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+.anchor-price sub { font-size: 1.2rem; font-weight: 400; color: var(--gray); vertical-align: 0; }
 
-  @media (max-width: 767px) {
-    .hero-mockup-b { max-width: 260px; }
-    .ba-before { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.08); }
-    .stat-num { font-size: 1.3rem; }
-    .stat-label { font-size: 0.7rem; }
-  }
+.plans {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  max-width: 820px;
+  margin: 0 auto;
+}
+.plan-card {
+  border: 2px solid var(--line);
+  border-radius: 16px;
+  padding: 2rem;
+  background: #fff;
+  display: flex; flex-direction: column;
+}
+.plan-card.featured-plan {
+  border-color: var(--orange);
+  position: relative;
+}
+.plan-badge {
+  position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+  background: var(--orange); color: #fff;
+  font-size: 0.72rem; font-weight: 700; padding: 0.2rem 0.9rem;
+  border-radius: 50px; white-space: nowrap;
+}
+.plan-name { font-size: 1rem; font-weight: 700; margin-bottom: 0.3rem; }
+.plan-desc { font-size: 0.8rem; color: var(--gray); margin-bottom: 1.2rem; }
+.plan-price { font-size: 2.6rem; font-weight: 900; letter-spacing: -0.03em; color: var(--ink); line-height: 1; margin-bottom: 0.3rem; }
+.plan-price span { font-size: 0.9rem; font-weight: 400; color: var(--gray); }
+.plan-savings {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: #fef2f2; color: #dc2626;
+  font-size: 0.72rem; font-weight: 700;
+  padding: 0.15rem 0.5rem; border-radius: 4px;
+  margin-bottom: 1.2rem;
+}
+.plan-features { list-style: none; flex: 1; margin-bottom: 1.5rem; }
+.plan-features li {
+  display: flex; align-items: flex-start; gap: 0.5rem;
+  padding: 0.35rem 0; font-size: 0.85rem; color: #334155;
+  border-bottom: 1px solid #f1f5f9;
+}
+.plan-features li:last-child { border-bottom: none; }
+.plan-features i { color: #22c55e; flex-shrink: 0; margin-top: 2px; }
+.btn-plan-b {
+  display: block; text-align: center;
+  background: var(--ink); color: #fff;
+  font-weight: 700; padding: 0.9rem;
+  border-radius: 10px; transition: background .15s;
+}
+.btn-plan-b:hover { background: #1e293b; color: #fff; }
+.btn-plan-b.orange-btn { background: var(--orange); }
+.btn-plan-b.orange-btn:hover { background: var(--orange-light); }
+
+.guarantee-strip {
+  max-width: 820px; margin: 2rem auto 0;
+  display: grid; grid-template-columns: repeat(3,1fr); gap: 1rem;
+}
+.guarantee-item {
+  text-align: center; padding: 1.2rem;
+  background: #f8fafc; border-radius: 12px;
+  font-size: 0.8rem; color: #475569;
+}
+.guarantee-item i { font-size: 1.4rem; color: #22c55e; display: block; margin-bottom: 0.4rem; }
+@media (max-width: 640px) {
+  .plans { grid-template-columns: 1fr; }
+  .guarantee-strip { grid-template-columns: 1fr; }
+}
+
+/* ━━━ FINAL CTA ━━━ */
+.final-sec {
+  background: var(--ink);
+  padding: clamp(5rem, 10vw, 9rem) clamp(1.5rem, 6vw, 6rem);
+  text-align: center;
+  position: relative; overflow: hidden;
+}
+.final-bg {
+  position: absolute;
+  font-size: 28vw; font-weight: 900; color: rgba(255,255,255,0.025);
+  top: 50%; left: 50%; transform: translate(-50%,-50%);
+  pointer-events: none; user-select: none; white-space: nowrap;
+  letter-spacing: -0.05em; line-height: 1;
+}
+.final-sec h2 {
+  color: #fff;
+  font-size: clamp(1.8rem, 4.5vw, 3.5rem);
+  font-weight: 900; letter-spacing: -0.03em; line-height: 1.15;
+  margin-bottom: 1rem;
+  position: relative; z-index: 1;
+}
+.final-sec p {
+  color: rgba(255,255,255,0.55);
+  font-size: 1rem; margin-bottom: 2.5rem;
+  position: relative; z-index: 1;
+}
+.btn-final-b {
+  display: inline-block;
+  background: var(--orange); color: #fff;
+  font-weight: 900; font-size: 1.15rem;
+  padding: 1.1rem 2.8rem; border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(232,69,10,0.5);
+  transition: all .2s;
+  position: relative; z-index: 1;
+}
+.btn-final-b:hover { background: var(--orange-light); transform: translateY(-2px); color: #fff; }
+.final-sub {
+  margin-top: 1.2rem;
+  color: rgba(255,255,255,0.3);
+  font-size: 0.8rem;
+  display: flex; gap: 1.5rem; justify-content: center; flex-wrap: wrap;
+  position: relative; z-index: 1;
+}
+.final-sub span { display: flex; align-items: center; gap: 4px; }
+.final-sub i { color: #4ade80; }
+.final-demo { margin-top: 1.5rem; position: relative; z-index: 1; }
+.final-demo a { color: rgba(255,255,255,0.35); font-size: 0.85rem; }
+.final-demo a:hover { color: rgba(255,255,255,0.6); }
+
+/* ━━━ FOOTER ━━━ */
+footer {
+  background: #060606; padding: 2rem clamp(1.5rem, 6vw, 6rem);
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 1rem;
+}
+.footer-brand { color: rgba(255,255,255,0.4); font-size: 0.82rem; display: flex; align-items: center; gap: 6px; }
+.footer-brand img { width: 20px; height: 20px; border-radius: 4px; opacity: 0.5; }
+.footer-links { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+.footer-links a { color: rgba(255,255,255,0.25); font-size: 0.78rem; }
+.footer-links a:hover { color: rgba(255,255,255,0.5); }
+
+/* ━━━ MODAL ━━━ */
+.modal-overlay {
+  display: none; position: fixed; inset: 0; z-index: 500;
+  background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+  align-items: center; justify-content: center; padding: 1rem;
+}
+.modal-overlay.open { display: flex; }
+.modal-box {
+  background: #fff; border-radius: 20px; padding: 2rem;
+  max-width: 420px; width: 100%;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+.modal-box h3 { font-size: 1.2rem; font-weight: 900; margin-bottom: 0.5rem; }
+.modal-box p { color: var(--gray); font-size: 0.88rem; margin-bottom: 1.2rem; }
+.modal-input {
+  width: 100%; padding: 0.75rem 1rem; border: 1.5px solid #e2e8f0;
+  border-radius: 8px; font-size: 0.95rem; margin-bottom: 0.8rem;
+  font-family: inherit; outline: none; transition: border-color .15s;
+}
+.modal-input:focus { border-color: var(--orange); }
+.modal-btn {
+  width: 100%; background: var(--orange); color: #fff;
+  font-weight: 900; font-size: 1rem; padding: 0.85rem;
+  border-radius: 8px; cursor: pointer; transition: background .15s;
+}
+.modal-btn:hover { background: var(--orange-light); }
+.modal-close {
+  float: right; background: none; border: none; cursor: pointer;
+  font-size: 1.3rem; color: var(--gray); line-height: 1; margin-bottom: 0.5rem;
+}
+.modal-msg { font-size: 0.82rem; color: #ef4444; margin-top: 0.4rem; min-height: 1.2rem; }
+.modal-done { display: none; text-align: center; padding: 1rem 0; }
+.modal-done i { font-size: 2.5rem; color: #22c55e; display: block; margin-bottom: 0.8rem; }
+.modal-done p { color: var(--ink); font-weight: 700; }
 </style>
 </head>
 <body>
 
 <!-- NAV -->
-<nav class="nav-b">
-  <div class="container d-flex align-items-center justify-content-between">
-    <a href="/" class="brand">
-      <img src="/icons/icon-192.png" alt="">経費ログ
-    </a>
-    <div class="d-flex align-items-center gap-3">
-      <a href="https://keihi-log.com/app?demo" class="nav-link d-none d-md-block">デモを見る</a>
-      <a href="#pricing" class="btn-nav-cta">2週間無料で始める</a>
-    </div>
+<nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/icons/icon-192.png" alt="">経費ログ
+  </a>
+  <div class="nav-links">
+    <a href="https://keihi-log.com/app?demo" class="d-none d-md-inline">デモを見る</a>
+    <a href="#pricing" class="nav-cta" id="navCta">2週間無料で始める</a>
   </div>
 </nav>
 
-<!-- ============================================ -->
-<!-- HERO                                         -->
-<!-- ============================================ -->
-<section class="hero-b" style="margin-top:56px;">
-  <div class="container">
-    <div class="row align-items-center g-5">
-      <div class="col-lg-6">
-        <div class="hero-eyebrow">
-          <i class="bi bi-lightning-charge-fill"></i>
-          クレジットカード不要・2週間無料トライアル
-        </div>
-        <h1>
-          月の経費処理を<br>
-          <span class="hl">大手の96%オフ</span>で<br>
-          完全デジタル化
-        </h1>
-        <p class="subhead">
-          領収書を撮るだけ。AIが自動読み取り、申請・承認・集計まで完結。<br>
-          月額<strong style="color:#fff;">330円〜</strong>で、他社SaaSに払っていたコストを削減。
-        </p>
-        <div class="d-flex flex-wrap gap-3">
-          <a href="#pricing" class="btn-hero-main" id="btnHeroB">
-            今すぐ無料で試す <i class="bi bi-arrow-right ms-1"></i>
-          </a>
-          <a href="https://keihi-log.com/app?demo" class="btn-hero-sub">
-            <i class="bi bi-play-circle me-1"></i>デモを見る
-          </a>
-        </div>
-        <div class="hero-trust">
-          <span><i class="bi bi-check-circle-fill"></i>クレカ不要</span>
-          <span><i class="bi bi-check-circle-fill"></i>自動課金なし</span>
-          <span><i class="bi bi-check-circle-fill"></i>最短15分で導入</span>
-          <span><i class="bi bi-check-circle-fill"></i>電帳法対応可能</span>
-        </div>
-      </div>
-      <div class="col-lg-6 d-flex justify-content-center">
-        <div class="hero-mockup-b">
-          <div class="phone-frame">
-            <div class="phone-screen">
-              <div class="phone-bar">
-                <div class="brand-mini">経費ログ</div>
-              </div>
-              <div class="phone-content">
-                <div class="phone-hero-zone">
-                  <div class="camera-icon"><i class="bi bi-camera-fill"></i></div>
-                  <div class="hero-text">領収書を撮影 / ファイルを選択</div>
-                </div>
-                <div class="phone-ai-badge">
-                  <i class="bi bi-stars"></i>AIで自動読み取り → 申請フォームに自動入力
-                </div>
-                <div class="phone-history">
-                  <div class="phone-history-label">直近の申請</div>
-                  <div class="phone-row">
-                    <span class="place">タクシー代</span>
-                    <span class="amt">¥1,850</span>
-                    <span class="status">承認済</span>
-                  </div>
-                  <div class="phone-row">
-                    <span class="place">会議室使用料</span>
-                    <span class="amt">¥3,300</span>
-                    <span class="status">申請中</span>
-                  </div>
-                  <div class="phone-row">
-                    <span class="place">新橋→渋谷</span>
-                    <span class="amt">¥210</span>
-                    <span class="status">承認済</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="glow-badge">
-            <span class="big">330</span>
-            <span>円/月〜</span>
-          </div>
-          <div class="floating-tag">
-            <i class="bi bi-check-circle-fill"></i>AIが自動読み取り
-          </div>
-        </div>
-      </div>
+<!-- STICKY BOTTOM BAR -->
+<div class="sticky-bar" id="stickyBar">
+  <a href="#pricing" style="color:#fff;" id="stickyBarBtn">今すぐ2週間無料で試す →</a>
+</div>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- HERO                            -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="hero">
+  <div class="hero-bg-num">330</div>
+  <div class="hero-inner">
+    <div class="hero-tag">
+      <i class="bi bi-lightning-charge-fill"></i>
+      2週間無料トライアル実施中 — クレジットカード不要
+    </div>
+    <h1>
+      月の経費処理、<br>
+      <em>まだ高いSaaSに<br>払い続けますか？</em>
+    </h1>
+    <p class="hero-sub">
+      AI自動読み取り・承認フロー・電帳法対応・Googleスプレッドシート保存。<br>
+      他社が<strong>月5,000〜15,000円</strong>で提供する機能を、<strong>月額330円〜</strong>で。
+    </p>
+    <div class="hero-actions">
+      <a href="#pricing" class="btn-primary-b" id="heroCta">
+        無料で試してみる <i class="bi bi-arrow-right ms-1"></i>
+      </a>
+      <a href="https://keihi-log.com/app?demo" class="btn-ghost">
+        <i class="bi bi-play-circle"></i>デモを見る
+      </a>
+    </div>
+    <div class="hero-checklist">
+      <span><i class="bi bi-check-circle-fill"></i>クレカ不要</span>
+      <span><i class="bi bi-check-circle-fill"></i>自動課金なし</span>
+      <span><i class="bi bi-check-circle-fill"></i>最短15分で導入</span>
+      <span><i class="bi bi-check-circle-fill"></i>いつでも解約可</span>
     </div>
   </div>
 </section>
 
-<!-- STATS STRIP -->
-<div class="stats-strip">
-  <div class="container">
-    <div class="d-flex align-items-center justify-content-center gap-4 flex-wrap py-1">
-      <div class="stat-item">
-        <div class="stat-num">96<span style="font-size:1rem">%</span></div>
-        <div class="stat-label">大手SaaS比コスト削減</div>
-      </div>
-      <div class="stat-div d-none d-sm-block"></div>
-      <div class="stat-item">
-        <div class="stat-num">15<span style="font-size:1rem">分</span></div>
-        <div class="stat-label">最短導入時間</div>
-      </div>
-      <div class="stat-div d-none d-sm-block"></div>
-      <div class="stat-item">
-        <div class="stat-num">0<span style="font-size:1rem">円</span></div>
-        <div class="stat-label">初期費用・解約手数料</div>
-      </div>
-      <div class="stat-div d-none d-sm-block"></div>
-      <div class="stat-item">
-        <div class="stat-num">100<span style="font-size:1rem">%</span></div>
-        <div class="stat-label">データはあなたのGoogleアカウントに</div>
-      </div>
+<!-- IMPACT STRIP -->
+<div class="impact-strip">
+  <div class="impact-inner">
+    <div class="impact-cell">
+      <div class="impact-num">96<span class="impact-unit">%</span></div>
+      <div class="impact-label">大手SaaS比コスト削減</div>
+    </div>
+    <div class="impact-cell">
+      <div class="impact-num">0<span class="impact-unit">円</span></div>
+      <div class="impact-label">初期費用・解約手数料</div>
+    </div>
+    <div class="impact-cell">
+      <div class="impact-num">15<span class="impact-unit">分</span></div>
+      <div class="impact-label">最短導入時間</div>
+    </div>
+    <div class="impact-cell">
+      <div class="impact-num">100<span class="impact-unit">%</span></div>
+      <div class="impact-label">データはあなたのGoogleに</div>
     </div>
   </div>
 </div>
 
-<!-- ============================================ -->
-<!-- PAIN                                         -->
-<!-- ============================================ -->
-<section class="pain-section">
-  <div class="container">
-    <div class="text-center mb-5">
-      <p class="section-label">PROBLEM</p>
-      <h2 class="section-title-b">そのコスト、本当に必要ですか？</h2>
-      <p class="text-muted" style="max-width:540px;margin:0 auto;font-size:0.95rem;">
-        月数千円の経費管理SaaSを使い続けるより、もっとシンプルな方法があります。
-      </p>
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- PAIN                            -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="sec sec-cream">
+  <p class="label-tag">PROBLEM</p>
+  <h2 class="sec-title">今の経費管理、<br>こんな無駄が潜んでいませんか</h2>
+  <div class="pain-grid">
+    <div class="pain-item">
+      <div class="pain-big">¥5,000<span style="font-size:1.2rem">/月</span></div>
+      <h4>SaaSに払い続ける費用</h4>
+      <p>大手の経費管理SaaSは月5,000〜15,000円以上。年間で6〜18万円のコストが発生し続ける。</p>
     </div>
-    <div class="row g-4">
-      <div class="col-md-6 col-lg-3">
-        <div class="pain-card">
-          <div class="pain-num mb-2">¥5,000<span style="font-size:1rem">/月</span></div>
-          <h5>SaaSに払い続けるコスト</h5>
-          <p>大手の経費管理SaaSは月額5,000〜15,000円以上。年間6〜18万円が消えていく。</p>
-        </div>
-      </div>
-      <div class="col-md-6 col-lg-3">
-        <div class="pain-card">
-          <div class="pain-num mb-2">3<span style="font-size:1rem">時間/月</span></div>
-          <h5>月末の経費処理時間</h5>
-          <p>手入力・エクセル整理・承認依頼の往復メール。月末に集中する非生産的な作業。</p>
-        </div>
-      </div>
-      <div class="col-md-6 col-lg-3">
-        <div class="pain-card">
-          <div class="pain-num mb-2">?</div>
-          <h5>電帳法に対応できているか</h5>
-          <p>紙の領収書・エクセル管理で、電子帳簿保存法に本当に準拠できているか根拠がない。</p>
-        </div>
-      </div>
-      <div class="col-md-6 col-lg-3">
-        <div class="pain-card">
-          <div class="pain-num mb-2"><i class="bi bi-lock-fill" style="font-size:1.5rem"></i></div>
-          <h5>ベンダーロックイン</h5>
-          <p>サービスが終了したらデータはどこへ？高額なエクスポート費用・移行コストの不安。</p>
-        </div>
-      </div>
+    <div class="pain-item">
+      <div class="pain-big">3<span style="font-size:1.5rem">時間</span></div>
+      <h4>月末に消える時間</h4>
+      <p>領収書の手入力、エクセル整理、承認依頼の往復メール。月末に集中する非生産的な作業。</p>
     </div>
-    <div class="text-center mt-5">
-      <div style="background:#fff;border:2px solid var(--accent);border-radius:16px;display:inline-block;padding:1rem 2rem;">
-        <p class="fw-bold mb-0" style="color:var(--accent);font-size:1.05rem;">
-          <i class="bi bi-arrow-down-circle-fill me-2"></i>経費ログがすべて解決します
-        </p>
-      </div>
+    <div class="pain-item">
+      <div class="pain-big"><i class="bi bi-lock" style="font-size:2.5rem"></i></div>
+      <h4>ベンダーロックインの不安</h4>
+      <p>サービス終了・値上げ時のデータ移行コスト。高額なエクスポート費用や、業者依存リスク。</p>
+    </div>
+    <div class="pain-item">
+      <div class="pain-big">?</div>
+      <h4>電帳法対応できているか不明</h4>
+      <p>紙の領収書・エクセル管理で電子帳簿保存法に本当に準拠できているか根拠を持って答えられない。</p>
     </div>
   </div>
 </section>
 
-<!-- ============================================ -->
-<!-- BEFORE / AFTER                               -->
-<!-- ============================================ -->
-<section class="transform-section">
-  <div class="container">
-    <div class="text-center mb-5">
-      <p class="section-label" style="color:var(--blue2);">TRANSFORMATION</p>
-      <h2 class="section-title-b">「経費ログ」導入前と後</h2>
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- BEFORE / AFTER                  -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="sec sec-black">
+  <p class="label-tag">TRANSFORMATION</p>
+  <h2 class="sec-title sec-title-white">導入前と、導入後。</h2>
+  <div class="ba-split">
+    <div class="ba-col ba-col-before">
+      <div class="ba-head before"><i class="bi bi-x-circle-fill"></i>導入前</div>
+      <div class="ba-row before"><i class="bi bi-x-circle-fill text-danger"></i>月末に領収書をエクセルへ手入力で2〜3時間</div>
+      <div class="ba-row before"><i class="bi bi-x-circle-fill text-danger"></i>メールで承認依頼→返信待ち→催促のループ</div>
+      <div class="ba-row before"><i class="bi bi-x-circle-fill text-danger"></i>「先月の領収書どこいった？」が毎月発生</div>
+      <div class="ba-row before"><i class="bi bi-x-circle-fill text-danger"></i>月額5,000〜15,000円のSaaS費用が発生</div>
+      <div class="ba-row before"><i class="bi bi-x-circle-fill text-danger"></i>電帳法対応が不十分で税務調査リスク</div>
+      <div class="ba-row before"><i class="bi bi-x-circle-fill text-danger"></i>データは業者サーバー管理・漏えいリスク</div>
     </div>
-    <div class="before-after row g-0">
-      <div class="col-md-6 ba-before">
-        <div class="ba-header"><i class="bi bi-x-circle-fill me-2"></i>導入前</div>
-        <div class="ba-body">
-          <div class="ba-item"><i class="bi bi-x-circle-fill text-danger"></i>月末に領収書をまとめてエクセルへ手入力</div>
-          <div class="ba-item"><i class="bi bi-x-circle-fill text-danger"></i>メールで上司に承認依頼→返信待ち→催促</div>
-          <div class="ba-item"><i class="bi bi-x-circle-fill text-danger"></i>「先月の領収書どこいった？」が毎月発生</div>
-          <div class="ba-item"><i class="bi bi-x-circle-fill text-danger"></i>経費管理ツールに月額5,000〜15,000円を支払い</div>
-          <div class="ba-item"><i class="bi bi-x-circle-fill text-danger"></i>電帳法対応が不十分で税務調査リスク</div>
-          <div class="ba-item"><i class="bi bi-x-circle-fill text-danger"></i>データが会社のサーバーにあり漏えいリスク</div>
-        </div>
-      </div>
-      <div class="col-md-6 ba-after">
-        <div class="ba-header"><i class="bi bi-check-circle-fill me-2"></i>経費ログ導入後</div>
-        <div class="ba-body">
-          <div class="ba-item"><i class="bi bi-check-circle-fill text-success"></i>撮影するだけ。AIが金額・日付・支払先を自動読み取り</div>
-          <div class="ba-item"><i class="bi bi-check-circle-fill text-success"></i>アプリ上でワンクリック承認。往復メール不要</div>
-          <div class="ba-item"><i class="bi bi-check-circle-fill text-success"></i>証票は自動でGoogleドライブに保存・即検索可</div>
-          <div class="ba-item"><i class="bi bi-check-circle-fill text-success"></i>月額330円〜。年間コスト最大97%削減</div>
-          <div class="ba-item"><i class="bi bi-check-circle-fill text-success"></i>タイムスタンプ・ハッシュ値で電帳法に対応可能</div>
-          <div class="ba-item"><i class="bi bi-check-circle-fill text-success"></i>データは自社のGoogleアカウントに。完全自己管理</div>
-        </div>
-      </div>
+    <div class="ba-col ba-col-after">
+      <div class="ba-head after"><i class="bi bi-check-circle-fill"></i>経費ログ導入後</div>
+      <div class="ba-row after"><i class="bi bi-check-circle-fill" style="color:#4ade80"></i>撮影するだけ。AIが金額・日付・支払先を自動入力</div>
+      <div class="ba-row after"><i class="bi bi-check-circle-fill" style="color:#4ade80"></i>アプリ上でワンクリック承認。往復メール不要</div>
+      <div class="ba-row after"><i class="bi bi-check-circle-fill" style="color:#4ade80"></i>証票は自動でGoogleドライブへ保存・即検索可</div>
+      <div class="ba-row after"><i class="bi bi-check-circle-fill" style="color:#4ade80"></i>月額330円〜。年間コスト最大97%削減</div>
+      <div class="ba-row after"><i class="bi bi-check-circle-fill" style="color:#4ade80"></i>タイムスタンプ・ハッシュ値で電帳法に対応可能</div>
+      <div class="ba-row after"><i class="bi bi-check-circle-fill" style="color:#4ade80"></i>データは自社のGoogleアカウントに。完全自己管理</div>
     </div>
   </div>
 </section>
 
-<!-- ============================================ -->
-<!-- COMPARISON                                   -->
-<!-- ============================================ -->
-<section class="comparison-section">
-  <div class="container">
-    <div class="text-center mb-5">
-      <p class="section-label">COMPARISON</p>
-      <h2 class="section-title-b">他社SaaSとのコスト比較</h2>
-      <p class="text-muted" style="max-width:540px;margin:0 auto;font-size:0.9rem;">
-        ※他社サービスは各社公開情報をもとにした参考値です（2024年時点）
-      </p>
-    </div>
-    <div class="table-responsive comp-table">
-      <table class="table mb-0 align-middle" style="border-radius:16px;overflow:hidden;">
-        <thead>
-          <tr>
-            <th style="background:var(--dark);color:#fff;padding:1rem 1.2rem;">比較項目</th>
-            <th class="comp-hl" style="background:var(--blue) !important;">経費ログ</th>
-            <th style="background:var(--dark);color:#fff;text-align:center;padding:1rem 1.2rem;">大手SaaS A社</th>
-            <th style="background:var(--dark);color:#fff;text-align:center;padding:1rem 1.2rem;">大手SaaS B社</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td class="fw-bold">月額料金（1チーム）</td>
-            <td class="comp-hl text-center">
-              <span class="comp-price-big">330円〜</span>
-              <span class="comp-price-small">825円（チーム）</span>
-            </td>
-            <td class="text-center">
-              <span class="comp-price-other">〜5,000円+</span>
-              <span class="comp-price-small">従量課金あり</span>
-            </td>
-            <td class="text-center">
-              <span class="comp-price-other">〜8,800円+</span>
-              <span class="comp-price-small">ユーザー数課金</span>
-            </td>
-          </tr>
-          <tr>
-            <td>AI領収書読み取り</td>
-            <td class="comp-hl text-center"><i class="bi bi-check-circle-fill text-success fs-5"></i></td>
-            <td class="text-center"><i class="bi bi-check-circle-fill text-success fs-5"></i></td>
-            <td class="text-center"><i class="bi bi-check-circle-fill text-success fs-5"></i></td>
-          </tr>
-          <tr>
-            <td>承認ワークフロー</td>
-            <td class="comp-hl text-center"><i class="bi bi-check-circle-fill text-success fs-5"></i></td>
-            <td class="text-center"><i class="bi bi-check-circle-fill text-success fs-5"></i></td>
-            <td class="text-center"><i class="bi bi-check-circle-fill text-success fs-5"></i></td>
-          </tr>
-          <tr>
-            <td>電帳法対応</td>
-            <td class="comp-hl text-center"><i class="bi bi-check-circle-fill text-success fs-5"></i></td>
-            <td class="text-center"><i class="bi bi-check-circle-fill text-success fs-5"></i></td>
-            <td class="text-center"><i class="bi bi-check-circle-fill text-success fs-5"></i></td>
-          </tr>
-          <tr>
-            <td>データの所有権</td>
-            <td class="comp-hl text-center"><span style="color:#fff;font-weight:700;font-size:0.85rem;">自社Googleアカウント</span></td>
-            <td class="text-center"><span class="badge-cheap">ベンダー側</span></td>
-            <td class="text-center"><span class="badge-cheap">ベンダー側</span></td>
-          </tr>
-          <tr>
-            <td>無料トライアル</td>
-            <td class="comp-hl text-center"><span style="color:#fff;font-weight:700;font-size:0.85rem;">14日・カード不要</span></td>
-            <td class="text-center text-muted" style="font-size:0.85rem;">30日（カード必要）</td>
-            <td class="text-center text-muted" style="font-size:0.85rem;">14日（カード必要）</td>
-          </tr>
-          <tr>
-            <td>初期費用</td>
-            <td class="comp-hl text-center"><span style="color:#fff;font-weight:700;">0円</span></td>
-            <td class="text-center text-muted">0円〜</td>
-            <td class="text-center text-muted">0円〜</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <p class="text-center mt-3 text-muted" style="font-size:0.78rem;">
-      ※他社比較は公開されている標準プラン料金を参照。ご利用状況により異なります。
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- COMPARISON                      -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="sec sec-dark">
+  <p class="label-tag">COMPARISON</p>
+  <div class="comp-intro">
+    <h2 class="sec-title sec-title-white">なぜ、ここまで安いのか。</h2>
+    <p style="color:rgba(255,255,255,0.5);font-size:0.9rem;line-height:1.75;margin-top:0.8rem;">
+      AI解析にはお客様自身のGoogle AI Studio無料APIキーを使用（BYOK方式）。
+      当社サーバーへのデータ保管もなし。インフラコストを極限まで削減した結果、この価格を実現しています。
     </p>
   </div>
+  <div style="max-width:900px;">
+    <div class="comp-row header">
+      <div class="comp-cell header-label">比較項目</div>
+      <div class="comp-cell header-hl">経費ログ</div>
+      <div class="comp-cell header-label" style="text-align:center;">大手SaaS A社</div>
+      <div class="comp-cell header-label" style="text-align:center;">大手SaaS B社</div>
+    </div>
+    <div class="comp-row">
+      <div class="comp-cell label">月額（1チーム）</div>
+      <div class="comp-cell hl">
+        <span class="comp-price-big">330円〜</span>
+        <span class="comp-price-sub">チームは825円</span>
+      </div>
+      <div class="comp-cell" style="text-align:center;"><span style="color:rgba(255,255,255,0.8);font-size:1.1rem;font-weight:700;">〜5,000円+</span></div>
+      <div class="comp-cell" style="text-align:center;"><span style="color:rgba(255,255,255,0.8);font-size:1.1rem;font-weight:700;">〜8,800円+</span></div>
+    </div>
+    <div class="comp-row">
+      <div class="comp-cell label">AI領収書読み取り</div>
+      <div class="comp-cell hl"><i class="comp-check bi bi-check-circle-fill"></i></div>
+      <div class="comp-cell" style="text-align:center;"><i class="comp-check bi bi-check-circle-fill"></i></div>
+      <div class="comp-cell" style="text-align:center;"><i class="comp-check bi bi-check-circle-fill"></i></div>
+    </div>
+    <div class="comp-row">
+      <div class="comp-cell label">承認ワークフロー</div>
+      <div class="comp-cell hl"><i class="comp-check bi bi-check-circle-fill"></i></div>
+      <div class="comp-cell" style="text-align:center;"><i class="comp-check bi bi-check-circle-fill"></i></div>
+      <div class="comp-cell" style="text-align:center;"><i class="comp-check bi bi-check-circle-fill"></i></div>
+    </div>
+    <div class="comp-row">
+      <div class="comp-cell label">電帳法対応</div>
+      <div class="comp-cell hl"><i class="comp-check bi bi-check-circle-fill"></i></div>
+      <div class="comp-cell" style="text-align:center;"><i class="comp-check bi bi-check-circle-fill"></i></div>
+      <div class="comp-cell" style="text-align:center;"><i class="comp-check bi bi-check-circle-fill"></i></div>
+    </div>
+    <div class="comp-row">
+      <div class="comp-cell label">データ所有権</div>
+      <div class="comp-cell hl" style="font-size:0.82rem;font-weight:700;color:#ff8c5a;">自社Googleアカウント</div>
+      <div class="comp-cell comp-minus" style="text-align:center;font-size:0.82rem;">ベンダー管理</div>
+      <div class="comp-cell comp-minus" style="text-align:center;font-size:0.82rem;">ベンダー管理</div>
+    </div>
+    <div class="comp-row">
+      <div class="comp-cell label">無料トライアル</div>
+      <div class="comp-cell hl" style="font-size:0.82rem;font-weight:700;color:#ff8c5a;">14日・カード不要</div>
+      <div class="comp-cell" style="text-align:center;font-size:0.8rem;color:rgba(255,255,255,0.45);">30日（カード必要）</div>
+      <div class="comp-cell" style="text-align:center;font-size:0.8rem;color:rgba(255,255,255,0.45);">14日（カード必要）</div>
+    </div>
+  </div>
+  <p style="margin-top:1rem;font-size:0.73rem;color:rgba(255,255,255,0.25);">※他社比較は各社公開情報をもとにした参考値（2024年時点）</p>
 </section>
 
-<!-- ============================================ -->
-<!-- FEATURES                                     -->
-<!-- ============================================ -->
-<section class="features-b">
-  <div class="container">
-    <div class="text-center mb-5">
-      <p class="section-label">FEATURES</p>
-      <h2 class="section-title-b">必要なのに、驚くほどシンプル</h2>
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- FEATURES                        -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="sec sec-white">
+  <p class="label-tag">FEATURES</p>
+  <h2 class="sec-title">必要なのに、<br>驚くほどシンプル。</h2>
+  <div class="feat-list">
+    <div class="feat-item">
+      <div class="feat-text">
+        <div class="feat-num">01</div>
+        <h3>AIが領収書を自動読み取り</h3>
+        <p>写真を1枚撮るだけ。GoogleのGemini AIが金額・日付・支払先・税区分・勘定科目をその場で自動入力。手入力ゼロを実現します。外貨の自動換算にも対応。</p>
+      </div>
+      <div class="feat-visual">📸</div>
     </div>
-    <div class="row g-4">
-      <div class="col-md-6 col-lg-4">
-        <div class="feat-card">
-          <div class="feat-icon">📸</div>
-          <h4>AI領収書自動読み取り</h4>
-          <p>写真を撮るだけ。GoogleのGemini AIが金額・日付・支払先・税区分・勘定科目をその場で自動入力。手入力ゼロを実現します。</p>
-        </div>
+    <div class="feat-item">
+      <div class="feat-text">
+        <div class="feat-num">02</div>
+        <h3>ワンタップで承認・精算</h3>
+        <p>申請→承認→精算済みのステータスをアプリ上で完結。往復メール・LINEの確認作業がなくなり、管理者は一覧から即承認できます。</p>
       </div>
-      <div class="col-md-6 col-lg-4">
-        <div class="feat-card">
-          <div class="feat-icon">✅</div>
-          <h4>ワンタップ承認フロー</h4>
-          <p>申請→管理者承認→精算済みの3ステータスをアプリ上で完結。往復メール・LINEでの確認作業がゼロになります。</p>
-        </div>
+      <div class="feat-visual">✅</div>
+    </div>
+    <div class="feat-item">
+      <div class="feat-text">
+        <div class="feat-num">03</div>
+        <h3>データはすべて自分のGoogleに</h3>
+        <p>経費データはGoogleスプレッドシートへ、証票はGoogleドライブへ自動保存。データの所有権は完全にあなたのもの。CSVでfreee・マネーフォワードへ連携可能。</p>
       </div>
-      <div class="col-md-6 col-lg-4">
-        <div class="feat-card">
-          <div class="feat-icon">📊</div>
-          <h4>リアルタイム集計・レポート</h4>
-          <p>月別・メンバー別・カテゴリ別の集計を自動生成。freee・マネーフォワードへのCSV連携も標準装備。</p>
-        </div>
+      <div class="feat-visual">🗂️</div>
+    </div>
+    <div class="feat-item">
+      <div class="feat-text">
+        <div class="feat-num">04</div>
+        <h3>電帳法に対応可能</h3>
+        <p>証票はタイムスタンプ付きで保存。SHA-256ハッシュで改ざんを検知。電子帳簿保存法の要件に対応できる証跡を自動で残します。</p>
       </div>
-      <div class="col-md-6 col-lg-4">
-        <div class="feat-card">
-          <div class="feat-icon">🔒</div>
-          <h4>電帳法対応可能</h4>
-          <p>証票はタイムスタンプ付きでGoogleドライブへ保存。SHA-256ハッシュで改ざん検知。電子帳簿保存法の要件に対応できます。</p>
-        </div>
-      </div>
-      <div class="col-md-6 col-lg-4">
-        <div class="feat-card">
-          <div class="feat-icon">🗂️</div>
-          <h4>データはあなたのGoogleに</h4>
-          <p>経費データはGoogleスプレッドシートに、証票はGoogleドライブに保存。データの所有権は完全にあなたのもの。</p>
-        </div>
-      </div>
-      <div class="col-md-6 col-lg-4">
-        <div class="feat-card">
-          <div class="feat-icon">🚃</div>
-          <h4>交通費も自動計算</h4>
-          <p>電車・バスは駅名を入れるだけで運賃を自動検索・入力。自家用車は走行距離から自動計算。領収書なし経費にも対応。</p>
-        </div>
-      </div>
+      <div class="feat-visual">🔒</div>
     </div>
   </div>
 </section>
 
-<!-- ============================================ -->
-<!-- TESTIMONIALS                                 -->
-<!-- ============================================ -->
-<section class="testimonials-section">
-  <div class="container">
-    <div class="text-center mb-5">
-      <p class="section-label" style="color:var(--blue2);">VOICE</p>
-      <h2 class="section-title-b">ご利用者の声</h2>
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- TESTIMONIALS                    -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="sec sec-dark">
+  <p class="label-tag">VOICE</p>
+  <h2 class="sec-title sec-title-white">使った人の声</h2>
+  <div class="testi-grid">
+    <div class="testi-item">
+      <div class="testi-stars">★★★★★</div>
+      <div class="testi-quote">"</div>
+      <p class="testi-text">月末に2〜3時間かけていたエクセル集計が、その場で撮影するだけになりました。月末の作業がほぼゼロです。</p>
+      <p class="testi-meta">フリーランスデザイナー / ソロプラン</p>
     </div>
-    <div class="row g-4">
-      <div class="col-md-4">
-        <div class="testi-card">
-          <div class="testi-stars">★★★★★</div>
-          <p class="testi-body">「以前は月末に2〜3時間かけてエクセルをまとめていましたが、今はその場で撮影するだけ。月末の作業がほぼゼロになりました。」</p>
-          <p class="testi-author">フリーランスデザイナー / ソロプラン</p>
-        </div>
-      </div>
-      <div class="col-md-4">
-        <div class="testi-card">
-          <div class="testi-stars">★★★★★</div>
-          <p class="testi-body">「以前の経費ソフトから乗り換えました。月に数千円のコストが825円になり、導入も15分くらいで完了。Googleスプレッドシートが使えるので社内の他ツールとの連携も楽です。」</p>
-          <p class="testi-author">ITコンサルティング会社 / チームプラン（5名）</p>
-        </div>
-      </div>
-      <div class="col-md-4">
-        <div class="testi-card">
-          <div class="testi-stars">★★★★☆</div>
-          <p class="testi-body">「電帳法のことが不安でしたが、タイムスタンプとハッシュ値で対応できると聞いて安心しました。データが自分のGoogleアカウントにあるのも信頼できます。」</p>
-          <p class="testi-author">建設会社 経理担当 / チームプラン（8名）</p>
-        </div>
-      </div>
+    <div class="testi-item">
+      <div class="testi-stars">★★★★★</div>
+      <div class="testi-quote">"</div>
+      <p class="testi-text">前の経費ソフトから乗り換えました。月に数千円のコストが825円に。導入も15分くらいで完了して驚きました。</p>
+      <p class="testi-meta">ITコンサル会社 / チームプラン（5名）</p>
+    </div>
+    <div class="testi-item">
+      <div class="testi-stars">★★★★☆</div>
+      <div class="testi-quote">"</div>
+      <p class="testi-text">電帳法のことが不安でしたが、タイムスタンプとハッシュ値で対応できると知って安心。データが自分のGoogleにあるのも信頼できます。</p>
+      <p class="testi-meta">建設会社 経理担当 / チームプラン（8名）</p>
     </div>
   </div>
 </section>
 
-<!-- ============================================ -->
-<!-- PRICING                                      -->
-<!-- ============================================ -->
-<section class="pricing-b" id="pricing">
-  <div class="container">
-    <div class="text-center mb-5">
-      <p class="section-label">PRICING</p>
-      <h2 class="section-title-b">シンプルな料金プラン</h2>
-      <p class="text-muted" style="max-width:480px;margin:0 auto;font-size:0.92rem;">
-        2週間無料・クレジットカード不要でお試しいただけます。<br>
-        継続利用の場合は設定画面からお切替えください。自動課金はありません。
-      </p>
-    </div>
-    <div class="row g-4 justify-content-center">
-      <div class="col-md-5">
-        <div class="price-card-b">
-          <h3 class="fw-bold mb-1">ソロプラン</h3>
-          <p class="text-muted small mb-3">個人事業主・フリーランス向け</p>
-          <div class="d-flex align-items-baseline gap-2 mb-4">
-            <span class="price-tag">330<span>円/月</span></span>
-            <span class="text-muted small">（税込）</span>
-            <span class="badge-cheap ms-1">大手SaaS比 -93%</span>
-          </div>
-          <ul class="check-b mb-4">
-            <li><i class="bi bi-check-circle-fill"></i>AI領収書解析（Gemini使用）</li>
-            <li><i class="bi bi-check-circle-fill"></i>交通費・自家用車経費対応</li>
-            <li><i class="bi bi-check-circle-fill"></i>Googleスプレッドシート保存</li>
-            <li><i class="bi bi-check-circle-fill"></i>集計・レポート機能</li>
-            <li><i class="bi bi-check-circle-fill"></i>会計ソフト連携CSV出力</li>
-            <li><i class="bi bi-check-circle-fill"></i>電帳法対応可能</li>
-            <li><i class="bi bi-check-circle-fill"></i>1ユーザー</li>
-          </ul>
-          <a href="https://buy.stripe.com/5kQ28r1Ps7ut2kv4io9oc08" class="btn-plan-sub">
-            2週間無料で試す
-          </a>
-        </div>
-      </div>
-      <div class="col-md-5">
-        <div class="price-card-b featured-b">
-          <span class="badge-popular">🔥 人気No.1</span>
-          <h3 class="fw-bold mb-1">チームプラン</h3>
-          <p class="text-muted small mb-3">中小企業・チーム向け（人数無制限）</p>
-          <div class="d-flex align-items-baseline gap-2 mb-4">
-            <span class="price-tag">825<span>円/月</span></span>
-            <span class="text-muted small">（税込）</span>
-            <span class="badge-cheap ms-1">大手比 -96%</span>
-          </div>
-          <ul class="check-b mb-4">
-            <li><i class="bi bi-check-circle-fill"></i>ソロプランのすべての機能</li>
-            <li><i class="bi bi-check-circle-fill"></i>チーム全員で使える（人数無制限）</li>
-            <li><i class="bi bi-check-circle-fill"></i>申請・承認・精算ワークフロー</li>
-            <li><i class="bi bi-check-circle-fill"></i>部署別・メンバー別レポート</li>
-            <li><i class="bi bi-check-circle-fill"></i>3段階の権限管理</li>
-            <li><i class="bi bi-check-circle-fill"></i>1チーム定額（追加料金なし）</li>
-          </ul>
-          <a href="https://buy.stripe.com/5kQ28r1Ps7ut2kv4io9oc08" class="btn-plan-main">
-            2週間無料で試す <i class="bi bi-arrow-right ms-1"></i>
-          </a>
-        </div>
-      </div>
-    </div>
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- PRICING                         -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="sec sec-cream" id="pricing">
+  <p class="label-tag">PRICING</p>
+  <h2 class="sec-title">シンプルな料金</h2>
 
-    <!-- Risk Reversal -->
-    <div class="row justify-content-center mt-5">
-      <div class="col-lg-8">
-        <div class="p-4 rounded-4 text-center" style="background:#fff;border:2px solid #e2e8f0;">
-          <h4 class="fw-bold mb-3" style="font-size:1.05rem;">リスクゼロで試せます</h4>
-          <div class="row g-3 text-start">
-            <div class="col-sm-4">
-              <div class="d-flex gap-2 align-items-start">
-                <i class="bi bi-shield-check-fill text-success mt-1"></i>
-                <div>
-                  <div class="fw-bold small">クレカ不要</div>
-                  <div class="text-muted" style="font-size:0.8rem;">試用期間中はカード情報の入力不要</div>
-                </div>
-              </div>
-            </div>
-            <div class="col-sm-4">
-              <div class="d-flex gap-2 align-items-start">
-                <i class="bi bi-shield-check-fill text-success mt-1"></i>
-                <div>
-                  <div class="fw-bold small">自動課金なし</div>
-                  <div class="text-muted" style="font-size:0.8rem;">継続利用は設定画面から自分で切替</div>
-                </div>
-              </div>
-            </div>
-            <div class="col-sm-4">
-              <div class="d-flex gap-2 align-items-start">
-                <i class="bi bi-shield-check-fill text-success mt-1"></i>
-                <div>
-                  <div class="fw-bold small">解約手数料なし</div>
-                  <div class="text-muted" style="font-size:0.8rem;">いつでも即時解約・データは自分のGoogleに</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+  <div class="pricing-anchor" style="margin-top:2.5rem;">
+    <div class="anchor-label">大手SaaSの相場 / 月</div>
+    <div class="anchor-compare">¥5,000〜15,000</div>
+    <div class="anchor-arrow">↓</div>
+    <div style="font-size:0.9rem;color:var(--gray);margin-bottom:0.3rem;">経費ログなら</div>
+    <div class="anchor-price">¥330<sub> / 月〜</sub></div>
+    <div style="margin-top:0.8rem;">
+      <span style="background:#fef2f2;color:#dc2626;font-size:0.85rem;font-weight:700;padding:0.3rem 0.9rem;border-radius:6px;">
+        最大97%コスト削減
+      </span>
+    </div>
+  </div>
+
+  <div class="plans" style="margin-top:3rem;">
+    <div class="plan-card">
+      <div class="plan-name">ソロプラン</div>
+      <div class="plan-desc">個人事業主・フリーランス向け</div>
+      <div class="plan-price">330<span>円/月（税込）</span></div>
+      <div class="plan-savings"><i class="bi bi-graph-down-arrow"></i>大手比 -93%</div>
+      <ul class="plan-features">
+        <li><i class="bi bi-check-circle-fill"></i>AI領収書自動読み取り</li>
+        <li><i class="bi bi-check-circle-fill"></i>交通費・自家用車対応</li>
+        <li><i class="bi bi-check-circle-fill"></i>Googleスプレッドシート保存</li>
+        <li><i class="bi bi-check-circle-fill"></i>集計・CSVエクスポート</li>
+        <li><i class="bi bi-check-circle-fill"></i>電帳法対応可能</li>
+        <li><i class="bi bi-check-circle-fill"></i>1ユーザー</li>
+      </ul>
+      <a href="https://buy.stripe.com/5kQ28r1Ps7ut2kv4io9oc08" class="btn-plan-b">2週間無料で試す</a>
+    </div>
+    <div class="plan-card featured-plan">
+      <span class="plan-badge">🔥 人気No.1</span>
+      <div class="plan-name">チームプラン</div>
+      <div class="plan-desc">中小企業・チーム（人数無制限）</div>
+      <div class="plan-price">825<span>円/月（税込）</span></div>
+      <div class="plan-savings"><i class="bi bi-graph-down-arrow"></i>大手比 -96%</div>
+      <ul class="plan-features">
+        <li><i class="bi bi-check-circle-fill"></i>ソロプランの全機能</li>
+        <li><i class="bi bi-check-circle-fill"></i>チーム全員で使える（人数無制限）</li>
+        <li><i class="bi bi-check-circle-fill"></i>申請・承認・精算ワークフロー</li>
+        <li><i class="bi bi-check-circle-fill"></i>部署別・メンバー別レポート</li>
+        <li><i class="bi bi-check-circle-fill"></i>3段階の権限管理</li>
+        <li><i class="bi bi-check-circle-fill"></i>1チーム定額（追加料金なし）</li>
+      </ul>
+      <a href="https://buy.stripe.com/5kQ28r1Ps7ut2kv4io9oc08" class="btn-plan-b orange-btn">2週間無料で試す →</a>
+    </div>
+  </div>
+
+  <div class="guarantee-strip">
+    <div class="guarantee-item">
+      <i class="bi bi-shield-check-fill"></i>
+      <strong>クレカ不要</strong><br>試用中はカード情報入力不要
+    </div>
+    <div class="guarantee-item">
+      <i class="bi bi-shield-check-fill"></i>
+      <strong>自動課金なし</strong><br>継続は自分で設定から切替
+    </div>
+    <div class="guarantee-item">
+      <i class="bi bi-shield-check-fill"></i>
+      <strong>即時解約可</strong><br>解約手数料・違約金ゼロ
     </div>
   </div>
 </section>
 
-<!-- ============================================ -->
-<!-- FINAL CTA                                    -->
-<!-- ============================================ -->
-<section class="final-cta">
-  <div class="container" style="position:relative;z-index:1;">
-    <h2 class="mb-3">今すぐ、経費処理コストを削減しませんか？</h2>
-    <p>2週間の無料トライアル。クレジットカード不要。最短15分で導入完了。</p>
-    <div class="mt-4">
-      <a href="#pricing" class="btn-final" id="btnFinalB">
-        無料トライアルを始める <i class="bi bi-arrow-right ms-2"></i>
-      </a>
-    </div>
-    <p class="final-notes mt-3">
-      <i class="bi bi-check-circle me-1"></i>クレカ不要&nbsp;&nbsp;
-      <i class="bi bi-check-circle me-1"></i>自動課金なし&nbsp;&nbsp;
-      <i class="bi bi-check-circle me-1"></i>いつでも解約可
-    </p>
-    <div class="mt-4">
-      <a href="https://keihi-log.com/app?demo" style="color:rgba(255,255,255,0.5);font-size:0.85rem;text-decoration:none;">
-        <i class="bi bi-play-circle me-1"></i>先にデモで試す（登録不要）
-      </a>
-    </div>
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- FINAL CTA                       -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="final-sec">
+  <div class="final-bg">330円</div>
+  <h2>今月から、経費処理コストを<br>削減しませんか。</h2>
+  <p>2週間の無料トライアル。クレジットカード不要。最短15分で導入完了。</p>
+  <a href="#pricing" class="btn-final-b" id="finalCta">
+    無料トライアルを始める <i class="bi bi-arrow-right ms-1"></i>
+  </a>
+  <div class="final-sub">
+    <span><i class="bi bi-check-circle-fill"></i>クレカ不要</span>
+    <span><i class="bi bi-check-circle-fill"></i>自動課金なし</span>
+    <span><i class="bi bi-check-circle-fill"></i>いつでも解約可</span>
+  </div>
+  <div class="final-demo">
+    <a href="https://keihi-log.com/app?demo">
+      <i class="bi bi-play-circle me-1"></i>先にデモで試す（登録不要）
+    </a>
   </div>
 </section>
 
 <!-- FOOTER -->
-<footer class="footer-b">
-  <div class="container">
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
-      <div>
-        <img src="/icons/icon-192.png" alt="" width="24" height="24" style="border-radius:4px;margin-right:6px;vertical-align:-4px;">
-        <strong style="color:#fff;">経費ログ</strong>
-        <span class="ms-2">by Smart&amp;Smooth</span>
-      </div>
-      <div class="d-flex gap-4 flex-wrap">
-        <a href="/terms.html">利用規約</a>
-        <a href="/privacy.html">プライバシーポリシー</a>
-        <a href="/faq.html">FAQ</a>
-        <a href="https://keihi-log.com/app?demo">デモを見る</a>
-      </div>
-    </div>
-    <p class="mt-3 mb-0" style="font-size:0.75rem;opacity:0.5;">© 2025 Smart&amp;Smooth. All rights reserved.</p>
+<footer>
+  <div class="footer-brand">
+    <img src="/icons/icon-192.png" alt="">
+    経費ログ by Smart&amp;Smooth
+  </div>
+  <div class="footer-links">
+    <a href="/terms">利用規約</a>
+    <a href="/privacy">プライバシー</a>
+    <a href="/faq">FAQ</a>
+    <a href="https://keihi-log.com/app?demo">デモ</a>
   </div>
 </footer>
 
-<!-- NOTIFY MODAL (same as index.html) -->
-<div class="modal fade" id="notifyModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content border-0 shadow-lg rounded-4">
-      <div class="modal-header border-0 pb-0">
-        <h5 class="modal-title fw-bold">🎉 申し込みページ、もうすぐ公開</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body pt-2">
-        <p class="text-muted small">公開されたらメールでお知らせします。メールアドレスをご登録ください。</p>
-        <div id="notifyForm">
-          <input type="email" class="form-control mb-2" id="notifyEmailB" placeholder="your@email.com">
-          <button class="btn btn-primary w-100 rounded-pill fw-bold" id="btnNotifyB">通知を受け取る</button>
-          <p class="mt-2 mb-0 small text-center" id="notifyMsgB"></p>
-        </div>
-        <div id="notifyDoneB" class="d-none text-center py-3">
-          <i class="bi bi-check-circle-fill text-success fs-2"></i>
-          <p class="mt-2 fw-bold">登録しました！公開時にお知らせします。</p>
-        </div>
-      </div>
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box">
+    <button class="modal-close" id="modalClose">×</button>
+    <h3>🎉 申し込みページ、もうすぐ公開</h3>
+    <p>公開されたらメールでお知らせします。アドレスをご登録ください。</p>
+    <div id="mForm">
+      <input type="email" class="modal-input" id="mEmail" placeholder="your@email.com">
+      <button class="modal-btn" id="mSubmit">通知を受け取る</button>
+      <div class="modal-msg" id="mMsg"></div>
+    </div>
+    <div class="modal-done" id="mDone">
+      <i class="bi bi-check-circle-fill"></i>
+      <p>登録しました！<br>公開時にお知らせします。</p>
     </div>
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  document.addEventListener('DOMContentLoaded', () => {
-    const modal = new bootstrap.Modal(document.getElementById('notifyModal'));
+  const overlay = document.getElementById('modalOverlay');
+  function openModal() { overlay.classList.add('open'); }
+  function closeModal() { overlay.classList.remove('open'); }
 
-    // すべてのStripeリンクとCTAをモーダルに差し替え
-    ['btnHeroB', 'btnFinalB'].forEach(id => {
-      document.getElementById(id)?.addEventListener('click', e => { e.preventDefault(); modal.show(); });
-    });
-    document.querySelectorAll('a[href*="buy.stripe.com"]').forEach(a => {
-      a.addEventListener('click', e => { e.preventDefault(); modal.show(); });
-    });
+  // すべてのCTAとStripeリンクをモーダルに
+  ['navCta','heroCta','finalCta','stickyBarBtn'].forEach(id => {
+    document.getElementById(id)?.addEventListener('click', e => { e.preventDefault(); openModal(); });
+  });
+  document.querySelectorAll('a[href*="buy.stripe.com"]').forEach(a => {
+    a.addEventListener('click', e => { e.preventDefault(); openModal(); });
+  });
+  document.getElementById('modalClose').addEventListener('click', closeModal);
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
 
-    document.getElementById('btnNotifyB').addEventListener('click', async () => {
-      const email = document.getElementById('notifyEmailB').value.trim();
-      const msg   = document.getElementById('notifyMsgB');
-      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        msg.innerHTML = '<span class="text-danger">メールアドレスを正しく入力してください</span>';
-        return;
-      }
-      const btn = document.getElementById('btnNotifyB');
-      btn.disabled = true; btn.textContent = '登録中...'; msg.textContent = '';
-      try {
-        const r = await fetch('/api/notify', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email }),
-        });
-        if (r.ok) {
-          document.getElementById('notifyForm').classList.add('d-none');
-          document.getElementById('notifyDoneB').classList.remove('d-none');
-        } else {
-          msg.innerHTML = '<span class="text-danger">登録に失敗しました。しばらく後にお試しください。</span>';
-          btn.disabled = false; btn.textContent = '通知を受け取る';
-        }
-      } catch (_) {
-        msg.innerHTML = '<span class="text-danger">ネットワークエラーが発生しました。</span>';
+  document.getElementById('mSubmit').addEventListener('click', async () => {
+    const email = document.getElementById('mEmail').value.trim();
+    const msg = document.getElementById('mMsg');
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      msg.textContent = 'メールアドレスを正しく入力してください'; return;
+    }
+    const btn = document.getElementById('mSubmit');
+    btn.disabled = true; btn.textContent = '登録中...'; msg.textContent = '';
+    try {
+      const r = await fetch('/api/notify', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      if (r.ok) {
+        document.getElementById('mForm').style.display = 'none';
+        document.getElementById('mDone').style.display = 'block';
+      } else {
+        msg.textContent = '登録に失敗しました。しばらく後にお試しください。';
         btn.disabled = false; btn.textContent = '通知を受け取る';
       }
-    });
-    document.getElementById('notifyEmailB').addEventListener('keydown', e => {
-      if (e.key === 'Enter') document.getElementById('btnNotifyB').click();
-    });
-    document.getElementById('notifyModal').addEventListener('hidden.bs.modal', () => {
-      document.getElementById('notifyEmailB').value = '';
-      document.getElementById('notifyMsgB').textContent = '';
-      document.getElementById('notifyForm').classList.remove('d-none');
-      document.getElementById('notifyDoneB').classList.add('d-none');
-      document.getElementById('btnNotifyB').disabled = false;
-      document.getElementById('btnNotifyB').textContent = '通知を受け取る';
-    });
+    } catch (_) {
+      msg.textContent = 'ネットワークエラーが発生しました。';
+      btn.disabled = false; btn.textContent = '通知を受け取る';
+    }
+  });
+  document.getElementById('mEmail').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('mSubmit').click();
   });
 </script>
 </body>
