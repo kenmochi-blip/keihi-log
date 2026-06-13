@@ -2,1014 +2,492 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>経費ログ｜月の経費処理コストを96%削減する</title>
-<meta name="description" content="月330円で経費精算を完全デジタル化。AI自動読み取り・承認フロー・電帳法対応。2週間無料・クレカ不要。">
-<link rel="icon" href="/favicon.ico" sizes="any">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>経費ログ</title>
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-:root {
-  --ink: #0a0a0a;
-  --white: #ffffff;
-  --cream: #f5f0e8;
-  --orange: #e8450a;
-  --orange-light: #ff6b35;
-  --blue-dark: #0a1628;
-  --blue-mid: #112240;
-  --gray: #6b7280;
-  --line: rgba(0,0,0,0.12);
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --ink:#0a0a0a;--paper:#fafaf8;
+  --v1:#5b21f5;--v2:#ec4899;--v3:#f97316;--v4:#10b981;
+  --v1l:#ede9fe;--v2l:#fce7f3;--v3l:#ffedd5;--v4l:#d1fae5;
 }
-html { overflow-x: hidden; scroll-behavior: smooth; }
-body {
-  font-family: 'Noto Sans JP', sans-serif;
-  color: var(--ink);
-  background: var(--white);
-  -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
-}
-a { color: inherit; text-decoration: none; -webkit-tap-highlight-color: transparent; }
-button { cursor: pointer; border: none; background: none; font-family: inherit; }
+html{scroll-behavior:smooth}
+body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Noto Sans JP',sans-serif;background:var(--ink);color:#fff;overflow-x:hidden}
+a{text-decoration:none;color:inherit}
 
-/* ━━━ STICKY NAV ━━━ */
-.nav {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
-  height: 56px;
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0 clamp(1rem, 4vw, 3rem);
-  background: rgba(10,10,10,0.92);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-}
-.nav-logo { display: flex; align-items: center; gap: 8px; color: #fff; font-weight: 900; font-size: 1rem; }
-.nav-logo img { width: 26px; height: 26px; border-radius: 5px; }
-.nav-links { display: flex; align-items: center; gap: 1.5rem; }
-.nav-links a { color: rgba(255,255,255,0.65); font-size: 0.83rem; transition: color .15s; }
-.nav-links a:hover { color: #fff; }
-.nav-cta {
-  background: var(--orange); color: #fff !important; font-weight: 700;
-  padding: 0.45rem 1.2rem; border-radius: 6px; font-size: 0.83rem;
-  transition: background .15s;
-}
-.nav-cta:hover { background: var(--orange-light); }
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:200;padding:0 6%;height:60px;display:flex;align-items:center;justify-content:space-between;background:rgba(10,10,10,.85);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,.08)}
+.logo{font-size:17px;font-weight:800;letter-spacing:-.02em;background:linear-gradient(90deg,#a78bfa,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.nav-r{display:flex;align-items:center;gap:20px}
+.nav-r a{font-size:13px;color:rgba(255,255,255,.6);transition:color .2s}
+.nav-r a:hover{color:#fff}
+.nav-btn{background:linear-gradient(135deg,var(--v1),var(--v2));color:#fff;padding:7px 16px;border-radius:6px;font-size:13px;font-weight:700;transition:opacity .2s}
+.nav-btn:hover{opacity:.85}
 
-/* ━━━ STICKY BOTTOM BAR (mobile) ━━━ */
-.sticky-bar {
-  display: none;
-  position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
-  background: var(--orange); color: #fff; padding: 0.9rem 1.5rem;
-  font-weight: 900; font-size: 1rem; text-align: center;
-  box-shadow: 0 -4px 20px rgba(232,69,10,0.4);
-}
-@media (max-width: 768px) { .sticky-bar { display: block; } }
+/* HERO */
+.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:80px 6% 60px;position:relative;overflow:hidden}
+.hero-bg{position:absolute;inset:0;z-index:0;overflow:hidden}
+.orb{position:absolute;border-radius:50%;filter:blur(80px);opacity:.35}
+.orb1{width:500px;height:500px;background:var(--v1);top:-100px;left:-100px}
+.orb2{width:400px;height:400px;background:var(--v2);top:100px;right:-80px}
+.orb3{width:350px;height:350px;background:var(--v3);bottom:-80px;left:30%}
+.hero-content{position:relative;z-index:1;max-width:820px}
+.hero-eyebrow{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:6px 14px;font-size:12px;color:rgba(255,255,255,.8);margin-bottom:32px;letter-spacing:.05em}
+.dot{width:6px;height:6px;border-radius:50%;background:#10b981;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+h1{font-size:clamp(42px,8vw,88px);font-weight:900;line-height:1;letter-spacing:-.04em;margin-bottom:28px}
+.grad1{background:linear-gradient(135deg,#fff 30%,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.grad2{background:linear-gradient(135deg,#f472b6,#fb923c);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-desc{font-size:18px;color:rgba(255,255,255,.65);line-height:1.7;margin-bottom:40px;max-width:560px;margin-left:auto;margin-right:auto}
+.hero-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:16px}
+.btn-hero{background:linear-gradient(135deg,var(--v1),var(--v2));color:#fff;padding:14px 30px;border-radius:8px;font-size:15px;font-weight:700;transition:opacity .2s;border:none;cursor:pointer}
+.btn-hero:hover{opacity:.85}
+.btn-ghost{background:rgba(255,255,255,.08);color:#fff;padding:13px 30px;border-radius:8px;font-size:15px;font-weight:600;border:1px solid rgba(255,255,255,.2);transition:background .2s}
+.btn-ghost:hover{background:rgba(255,255,255,.15)}
+.hero-fine{font-size:12px;color:rgba(255,255,255,.35)}
+.hero-price-tag{display:inline-flex;align-items:center;gap:16px;margin-top:48px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:14px 24px;font-size:14px;color:rgba(255,255,255,.7)}
+.price-pill{background:linear-gradient(135deg,var(--v3),var(--v2));color:#fff;font-weight:800;font-size:18px;padding:4px 12px;border-radius:6px}
 
-/* ━━━ HERO ━━━ */
-.hero {
-  min-height: 100vh;
-  background: var(--blue-dark);
-  display: grid;
-  place-items: center;
-  padding: 80px clamp(1.5rem, 6vw, 6rem) 60px;
-  position: relative;
-  overflow: hidden;
-}
-.hero-bg-num {
-  position: absolute;
-  font-size: clamp(180px, 30vw, 380px);
-  font-weight: 900;
-  color: rgba(255,255,255,0.03);
-  right: -2%;
-  bottom: -5%;
-  line-height: 1;
-  letter-spacing: -0.05em;
-  user-select: none;
-  pointer-events: none;
-}
-.hero-inner {
-  max-width: 900px;
-  width: 100%;
-}
-.hero-tag {
-  display: inline-flex; align-items: center; gap: 6px;
-  background: rgba(232,69,10,0.2); border: 1px solid rgba(232,69,10,0.5);
-  color: #ff8c5a; padding: 0.3rem 0.9rem; border-radius: 4px;
-  font-size: 0.78rem; font-weight: 700; letter-spacing: 0.04em;
-  margin-bottom: 2rem;
-}
-.hero h1 {
-  color: #fff;
-  font-size: clamp(2.4rem, 6.5vw, 5rem);
-  font-weight: 900;
-  line-height: 1.1;
-  letter-spacing: -0.02em;
-  margin-bottom: 1.8rem;
-}
-.hero h1 em {
-  font-style: normal;
-  color: var(--orange-light);
-  display: block;
-}
-.hero-sub {
-  color: rgba(255,255,255,0.6);
-  font-size: clamp(0.95rem, 1.8vw, 1.1rem);
-  line-height: 1.8;
-  max-width: 600px;
-  margin-bottom: 2.5rem;
-}
-.hero-sub strong { color: rgba(255,255,255,0.9); }
-.hero-actions { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; }
-.btn-primary-b {
-  background: var(--orange); color: #fff;
-  font-weight: 900; font-size: 1.05rem;
-  padding: 1rem 2.2rem; border-radius: 8px;
-  transition: all .2s;
-  box-shadow: 0 6px 24px rgba(232,69,10,0.45);
-  display: inline-block;
-}
-.btn-primary-b:hover { background: var(--orange-light); transform: translateY(-1px); color: #fff; }
-.btn-ghost {
-  color: rgba(255,255,255,0.6); font-size: 0.9rem;
-  display: inline-flex; align-items: center; gap: 6px;
-  border: 1px solid rgba(255,255,255,0.2); padding: 0.9rem 1.5rem;
-  border-radius: 8px; transition: all .15s;
-}
-.btn-ghost:hover { color: #fff; border-color: rgba(255,255,255,0.5); }
-.hero-checklist {
-  margin-top: 2.5rem;
-  display: flex; flex-wrap: wrap; gap: 1.2rem;
-}
-.hero-checklist span {
-  display: flex; align-items: center; gap: 6px;
-  color: rgba(255,255,255,0.5); font-size: 0.82rem;
-}
-.hero-checklist i { color: #4ade80; font-size: 0.9rem; }
+/* STORY SECTION */
+.story{background:var(--paper);color:var(--ink);padding:100px 6%}
+.story-inner{max-width:1000px;margin:0 auto}
+.story-label{font-size:11px;font-weight:700;letter-spacing:.15em;color:var(--v1);text-transform:uppercase;margin-bottom:16px}
+.story-heading{font-size:clamp(28px,4vw,48px);font-weight:900;letter-spacing:-.03em;line-height:1.1;margin-bottom:56px}
+.story-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px}
+.story-card{border-radius:16px;padding:32px;position:relative;overflow:hidden}
+.sc1{background:var(--v1l)}
+.sc2{background:var(--v2l)}
+.sc3{background:var(--v4l)}
+.story-num{font-size:64px;font-weight:900;opacity:.12;position:absolute;top:8px;right:16px;line-height:1;color:var(--ink)}
+.story-card h3{font-size:17px;font-weight:800;margin-bottom:10px;color:var(--ink)}
+.story-card p{font-size:14px;line-height:1.7;color:#555}
+.story-card .tag{display:inline-block;font-size:11px;font-weight:700;padding:3px 10px;border-radius:4px;margin-bottom:14px}
+.t1{background:var(--v1);color:#fff}
+.t2{background:var(--v2);color:#fff}
+.t3{background:var(--v4);color:#fff}
 
-/* ━━━ IMPACT STRIP ━━━ */
-.impact-strip {
-  background: var(--orange);
-  padding: 0;
-  overflow: hidden;
-}
-.impact-inner {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-}
-.impact-cell {
-  padding: 2rem 1.5rem;
-  border-right: 1px solid rgba(255,255,255,0.2);
-  text-align: center;
-  color: #fff;
-}
-.impact-cell:last-child { border-right: none; }
-.impact-num {
-  font-size: clamp(2.2rem, 4vw, 3.2rem);
-  font-weight: 900;
-  line-height: 1;
-  letter-spacing: -0.03em;
-}
-.impact-unit { font-size: 1rem; font-weight: 400; }
-.impact-label { font-size: 0.72rem; opacity: 0.85; margin-top: 0.4rem; }
-@media (max-width: 640px) {
-  .impact-inner { grid-template-columns: repeat(2, 1fr); }
-  .impact-cell:nth-child(2) { border-right: none; }
-  .impact-cell:nth-child(3), .impact-cell:nth-child(4) { border-top: 1px solid rgba(255,255,255,0.2); }
-}
+/* DEMO STRIP */
+.demo-strip{background:#111;padding:60px 6%;text-align:center;border-top:1px solid #1f1f1f;border-bottom:1px solid #1f1f1f}
+.demo-strip h2{font-size:clamp(22px,3.5vw,36px);font-weight:800;margin-bottom:12px;letter-spacing:-.02em}
+.demo-strip p{color:rgba(255,255,255,.5);font-size:15px;margin-bottom:28px}
+.demo-btn{display:inline-block;background:linear-gradient(135deg,var(--v1),var(--v2));color:#fff;padding:14px 32px;border-radius:8px;font-size:15px;font-weight:700;transition:opacity .2s}
+.demo-btn:hover{opacity:.85}
 
-/* ━━━ SECTION UTILS ━━━ */
-.sec { padding: clamp(4rem, 8vw, 7rem) clamp(1.5rem, 6vw, 6rem); }
-.sec-dark { background: var(--blue-mid); color: #fff; }
-.sec-cream { background: var(--cream); }
-.sec-white { background: #fff; }
-.sec-black { background: var(--ink); color: #fff; }
+/* FEATURES */
+.features{background:var(--paper);color:var(--ink);padding:100px 6%}
+.features-inner{max-width:1000px;margin:0 auto}
+.feat-label{font-size:11px;font-weight:700;letter-spacing:.15em;color:var(--v2);text-transform:uppercase;margin-bottom:16px}
+.feat-heading{font-size:clamp(28px,4vw,48px);font-weight:900;letter-spacing:-.03em;line-height:1.1;margin-bottom:56px}
+.feat-big{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}
+.feat-sm{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px}
+.fcard{border-radius:16px;padding:28px 28px 24px;}
+.fcard-accent{background:var(--ink);color:#fff;border:1px solid rgba(255,255,255,.08)}
+.fcard-plain{background:#fff;border:1.5px solid #d4d4d4}
+.fcard h3{font-size:16px;font-weight:800;margin-bottom:8px;letter-spacing:-.01em}
+.fcard p{font-size:13px;line-height:1.65;color:#666}
+.fcard-accent p{color:rgba(255,255,255,.6)}
+.fcard .ficon{font-size:28px;margin-bottom:14px;display:block}
+.badge-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.fbadge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:4px}
+.fb-purple{background:var(--v1l);color:var(--v1)}
+.fb-pink{background:var(--v2l);color:var(--v2)}
+.fb-green{background:var(--v4l);color:#059669}
+.fb-orange{background:var(--v3l);color:var(--v3)}
 
-.label-tag {
-  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em;
-  text-transform: uppercase; color: var(--orange);
-  margin-bottom: 0.6rem;
-}
-.sec-dark .label-tag { color: #ff8c5a; }
-.sec-black .label-tag { color: #ff8c5a; }
-h2.sec-title {
-  font-size: clamp(1.8rem, 4vw, 3rem);
-  font-weight: 900;
-  letter-spacing: -0.02em;
-  line-height: 1.15;
-  margin-bottom: 1rem;
-}
-h2.sec-title-white { color: #fff; }
+/* BYOK */
+.byok{background:#0a0a0a;padding:100px 6%;color:#fff}
+.byok-inner{max-width:900px;margin:0 auto}
+.byok-label{font-size:11px;font-weight:700;letter-spacing:.15em;color:var(--v3);text-transform:uppercase;margin-bottom:16px}
+.byok-heading{font-size:clamp(28px,4vw,44px);font-weight:900;letter-spacing:-.03em;line-height:1.15;margin-bottom:16px}
+.byok-sub{font-size:16px;color:rgba(255,255,255,.5);margin-bottom:56px;line-height:1.7}
+.byok-flow{display:flex;align-items:center;gap:0;margin-bottom:48px;flex-wrap:wrap;justify-content:center}
+.byok-node{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:20px 24px;text-align:center;min-width:180px}
+.byok-node .ni{font-size:28px;margin-bottom:8px}
+.byok-node h4{font-size:13px;font-weight:700;color:#fff;margin-bottom:4px}
+.byok-node p{font-size:11px;color:rgba(255,255,255,.5)}
+.byok-arr{padding:0 12px;font-size:24px;color:rgba(255,255,255,.3)}
+.byok-points{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.bpoint{background:#1e1e1e;border:1px solid #333;border-radius:10px;padding:18px 20px}
+.bpoint strong{display:block;font-size:12px;font-weight:700;margin-bottom:6px;color:#c4b5fd}
+.bpoint p{font-size:13px;color:rgba(255,255,255,.55);line-height:1.6}
 
-/* ━━━ PAIN — SPLIT LAYOUT ━━━ */
-.pain-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0;
-  max-width: 1100px;
-  margin: 3rem auto 0;
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  overflow: hidden;
-}
-.pain-item {
-  padding: 2rem;
-  border-right: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-  position: relative;
-}
-.pain-item:nth-child(2n) { border-right: none; }
-.pain-item:nth-child(3), .pain-item:nth-child(4) { border-bottom: none; }
-.pain-big {
-  font-size: clamp(2.5rem, 5vw, 4rem);
-  font-weight: 900;
-  color: #ef4444;
-  line-height: 1;
-  letter-spacing: -0.03em;
-  margin-bottom: 0.5rem;
-}
-.pain-item h4 { font-size: 1rem; font-weight: 700; margin-bottom: 0.4rem; }
-.pain-item p { font-size: 0.85rem; color: var(--gray); line-height: 1.65; }
-@media (max-width: 600px) {
-  .pain-grid { grid-template-columns: 1fr; }
-  .pain-item { border-right: none; border-bottom: 1px solid var(--line); }
-  .pain-item:last-child { border-bottom: none; }
-}
+/* WHO */
+.who{background:var(--paper);color:var(--ink);padding:100px 6%}
+.who-inner{max-width:920px;margin:0 auto}
+.who-label{font-size:11px;font-weight:700;letter-spacing:.15em;color:var(--v4);text-transform:uppercase;margin-bottom:16px}
+.who-heading{font-size:clamp(28px,4vw,44px);font-weight:900;letter-spacing:-.03em;line-height:1.1;margin-bottom:56px}
+.who-cols{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.who-box{border-radius:16px;padding:32px}
+.who-yes{background:var(--ink);color:#fff}
+.who-no{background:#f5f5f3;color:var(--ink)}
+.who-box h3{font-size:16px;font-weight:800;margin-bottom:20px;display:flex;align-items:center;gap:8px}
+.who-box ul{list-style:none;display:flex;flex-direction:column;gap:10px}
+.who-box li{font-size:14px;line-height:1.5;padding-left:22px;position:relative;color:rgba(255,255,255,.75)}
+.who-no li{color:#555}
+.who-yes li::before{content:'✓';position:absolute;left:0;color:#10b981;font-weight:900}
+.who-no li::before{content:'✗';position:absolute;left:0;color:#f87171;font-weight:900}
 
-/* ━━━ BEFORE/AFTER — FULL-WIDTH SPLIT ━━━ */
-.ba-split {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  min-height: 480px;
-  max-width: 1200px;
-  margin: 3rem auto 0;
-}
-.ba-col { padding: clamp(2rem, 4vw, 3.5rem); }
-.ba-col-before {
-  background: #1a0a0a;
-  border-radius: 16px 0 0 16px;
-}
-.ba-col-after {
-  background: #0a1a0a;
-  border-radius: 0 16px 16px 0;
-}
-.ba-head {
-  font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em;
-  text-transform: uppercase; margin-bottom: 1.5rem;
-  display: flex; align-items: center; gap: 8px;
-}
-.ba-head.before { color: #f87171; }
-.ba-head.after  { color: #4ade80; }
-.ba-row {
-  display: flex; align-items: flex-start; gap: 0.75rem;
-  margin-bottom: 1.1rem; font-size: 0.9rem; line-height: 1.55;
-}
-.ba-row:last-child { margin-bottom: 0; }
-.ba-row.before { color: rgba(255,255,255,0.65); }
-.ba-row.after  { color: rgba(255,255,255,0.85); }
-.ba-row i { flex-shrink: 0; margin-top: 3px; }
-@media (max-width: 640px) {
-  .ba-split { grid-template-columns: 1fr; }
-  .ba-col-before { border-radius: 16px 16px 0 0; }
-  .ba-col-after  { border-radius: 0 0 16px 16px; }
-}
+/* PRICING */
+.pricing{background:#0a0a0a;color:#fff;padding:100px 6%}
+.pricing-inner{max-width:800px;margin:0 auto;text-align:center}
+.pr-label{font-size:11px;font-weight:700;letter-spacing:.15em;color:var(--v2);text-transform:uppercase;margin-bottom:16px}
+.pr-heading{font-size:clamp(28px,4vw,44px);font-weight:900;letter-spacing:-.03em;margin-bottom:12px}
+.pr-sub{font-size:15px;color:rgba(255,255,255,.45);margin-bottom:56px}
+.pr-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}
+.pcard{background:#141414;border:1px solid #252525;border-radius:16px;padding:32px;text-align:left;position:relative}
+.pcard.hot{border-color:var(--v1);background:#13101f}
+.hot-badge{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:linear-gradient(90deg,var(--v1),var(--v2));color:#fff;font-size:11px;font-weight:700;padding:4px 14px;border-radius:10px;white-space:nowrap}
+.pcard-name{font-size:13px;color:rgba(255,255,255,.4);margin-bottom:4px;font-weight:600}
+.pcard-target{font-size:12px;color:rgba(255,255,255,.3);margin-bottom:20px}
+.pcard-price{font-size:48px;font-weight:900;letter-spacing:-.04em;line-height:1;margin-bottom:4px}
+.pcard-price span{font-size:15px;font-weight:400;color:rgba(255,255,255,.4)}
+.pcard-list{list-style:none;margin-top:20px;display:flex;flex-direction:column;gap:9px}
+.pcard-list li{font-size:13px;color:rgba(255,255,255,.6);display:flex;align-items:flex-start;gap:8px}
+.pcard-list li::before{content:'✓';color:var(--v4);font-weight:900;flex-shrink:0}
+.pcard-btn{display:block;text-align:center;margin-top:24px;padding:12px;border-radius:8px;font-size:14px;font-weight:700;transition:opacity .2s}
+.pb-grad{background:linear-gradient(135deg,var(--v1),var(--v2));color:#fff}
+.pb-plain{background:#252525;color:rgba(255,255,255,.8)}
+.pcard-btn:hover{opacity:.8}
+.pr-note{font-size:12px;color:rgba(255,255,255,.25);margin-top:8px}
 
-/* ━━━ COMPARISON — LARGE VISUAL ━━━ */
-.comp-intro {
-  max-width: 700px;
-  margin-bottom: 3rem;
-}
-.comp-row {
-  display: grid;
-  grid-template-columns: 180px 1fr 1fr 1fr;
-  gap: 0;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
-  align-items: center;
-}
-.comp-row.header { border-bottom: 2px solid rgba(255,255,255,0.15); }
-.comp-cell {
-  padding: 1rem 1.2rem;
-  font-size: 0.88rem;
-  color: rgba(255,255,255,0.6);
-}
-.comp-cell.label { color: rgba(255,255,255,0.85); font-weight: 500; }
-.comp-cell.hl {
-  background: rgba(232,69,10,0.15);
-  color: #fff;
-}
-.comp-cell.header-label {
-  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em;
-  text-transform: uppercase; color: rgba(255,255,255,0.4);
-}
-.comp-cell.header-hl {
-  background: rgba(232,69,10,0.2);
-  font-size: 0.82rem; font-weight: 900; color: #ff8c5a;
-  letter-spacing: 0.04em;
-}
-.comp-price-big { font-size: 1.5rem; font-weight: 900; color: #ff8c5a; line-height: 1; }
-.comp-price-sub { font-size: 0.7rem; color: rgba(255,255,255,0.4); }
-.comp-minus { color: #f87171; }
-.comp-check { color: #4ade80; font-size: 1.1rem; }
-@media (max-width: 680px) {
-  .comp-row { grid-template-columns: 1fr 1fr; }
-  .comp-row.header .comp-cell:nth-child(1) { display: none; }
-  .comp-row.header .comp-cell:nth-child(3),
-  .comp-row.header .comp-cell:nth-child(4) { display: none; }
-  .comp-cell:nth-child(1),
-  .comp-cell:nth-child(3),
-  .comp-cell:nth-child(4) { display: none; }
-}
+/* FAQ */
+.faq{background:var(--paper);color:var(--ink);padding:100px 6%}
+.faq-inner{max-width:720px;margin:0 auto}
+.fq-label{font-size:11px;font-weight:700;letter-spacing:.15em;color:var(--v1);text-transform:uppercase;margin-bottom:16px}
+.fq-heading{font-size:clamp(24px,3.5vw,40px);font-weight:900;letter-spacing:-.03em;margin-bottom:48px}
+.fq-item{border-bottom:1px solid rgba(0,0,0,.08);padding:20px 0}
+.fq-q{font-size:15px;font-weight:700;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:16px;letter-spacing:-.01em}
+.fq-toggle{width:24px;height:24px;border-radius:50%;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;transition:transform .2s}
+.fq-item.open .fq-toggle{transform:rotate(45deg)}
+.fq-a{font-size:14px;color:#555;line-height:1.75;padding-top:12px;display:none}
+.fq-item.open .fq-a{display:block}
 
-/* ━━━ FEATURES — ZIG-ZAG ━━━ */
-.feat-list { max-width: 1000px; margin: 3rem auto 0; }
-.feat-item {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 3rem;
-  align-items: center;
-  padding: 3rem 0;
-  border-bottom: 1px solid var(--line);
-}
-.feat-item:last-child { border-bottom: none; }
-.feat-item:nth-child(even) .feat-text { order: 2; }
-.feat-item:nth-child(even) .feat-visual { order: 1; }
-.feat-num {
-  font-size: clamp(5rem, 12vw, 9rem);
-  font-weight: 900;
-  color: rgba(0,0,0,0.06);
-  line-height: 1;
-  letter-spacing: -0.04em;
-  margin-bottom: -1rem;
-}
-.feat-text h3 { font-size: 1.3rem; font-weight: 900; margin-bottom: 0.7rem; }
-.feat-text p { color: var(--gray); font-size: 0.9rem; line-height: 1.75; }
-.feat-visual {
-  background: linear-gradient(135deg, #eff6ff, #f0fdf4);
-  border-radius: 20px;
-  aspect-ratio: 4/3;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 4rem;
-}
-@media (max-width: 640px) {
-  .feat-item { grid-template-columns: 1fr; gap: 1.5rem; }
-  .feat-item:nth-child(even) .feat-text { order: unset; }
-  .feat-item:nth-child(even) .feat-visual { order: unset; }
-}
+/* FINAL CTA */
+.final{background:var(--ink);padding:120px 6%;text-align:center;position:relative;overflow:hidden}
+.final-bg{position:absolute;inset:0;overflow:hidden}
+.final-orb1{position:absolute;width:600px;height:600px;background:var(--v1);border-radius:50%;filter:blur(100px);opacity:.2;top:-200px;left:-100px}
+.final-orb2{position:absolute;width:500px;height:500px;background:var(--v2);border-radius:50%;filter:blur(100px);opacity:.2;bottom:-150px;right:-50px}
+.final-content{position:relative;z-index:1;max-width:700px;margin:0 auto}
+.final h2{font-size:clamp(32px,6vw,64px);font-weight:900;letter-spacing:-.04em;line-height:1.05;margin-bottom:20px}
+.final p{font-size:17px;color:rgba(255,255,255,.55);margin-bottom:40px;line-height:1.7}
+.final-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:20px}
+.final-note{font-size:12px;color:rgba(255,255,255,.25)}
 
-/* ━━━ TESTIMONIALS — BOLD QUOTES ━━━ */
-.testi-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 2px;
-  margin-top: 3rem;
-  background: rgba(255,255,255,0.06);
-  border-radius: 16px;
-  overflow: hidden;
-}
-.testi-item {
-  background: rgba(255,255,255,0.04);
-  padding: 2rem 1.75rem;
-  position: relative;
-}
-.testi-quote {
-  font-size: 4rem;
-  line-height: 1;
-  color: var(--orange);
-  font-weight: 900;
-  opacity: 0.4;
-  margin-bottom: 0.5rem;
-}
-.testi-text { color: rgba(255,255,255,0.8); font-size: 0.9rem; line-height: 1.75; margin-bottom: 1.2rem; }
-.testi-meta { color: rgba(255,255,255,0.35); font-size: 0.78rem; }
-.testi-stars { color: #fbbf24; font-size: 0.75rem; margin-bottom: 0.8rem; }
-@media (max-width: 700px) {
-  .testi-grid { grid-template-columns: 1fr; }
-}
+/* FOOTER */
+footer{background:#060606;padding:32px 6%;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;font-size:12px;color:rgba(255,255,255,.2);border-top:1px solid #111}
+.footer-links{display:flex;gap:20px}
+.footer-links a:hover{color:rgba(255,255,255,.6)}
 
-/* ━━━ PRICING — ANCHOR-FIRST ━━━ */
-.pricing-anchor {
-  text-align: center;
-  margin-bottom: 3rem;
+@media(max-width:700px){
+  .story-grid,.feat-big,.feat-sm,.byok-points,.who-cols,.pr-grid{grid-template-columns:1fr}
+  .byok-flow{flex-direction:column}
+  .byok-arr{transform:rotate(90deg)}
+  nav .nav-r a:not(.nav-btn){display:none}
+  h1{font-size:52px}
 }
-.anchor-label {
-  font-size: 0.8rem; color: var(--gray); text-decoration: line-through; margin-bottom: 0.3rem;
-}
-.anchor-compare {
-  font-size: clamp(2.5rem, 5vw, 4rem);
-  font-weight: 900;
-  color: #ef4444;
-  letter-spacing: -0.03em;
-  line-height: 1;
-}
-.anchor-arrow { font-size: 2.5rem; color: var(--gray); margin: 0.5rem 0; }
-.anchor-price {
-  font-size: clamp(3.5rem, 7vw, 6rem);
-  font-weight: 900;
-  color: var(--ink);
-  letter-spacing: -0.04em;
-  line-height: 1;
-}
-.anchor-price sub { font-size: 1.2rem; font-weight: 400; color: var(--gray); vertical-align: 0; }
-
-.plans {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
-  max-width: 820px;
-  margin: 0 auto;
-}
-.plan-card {
-  border: 2px solid var(--line);
-  border-radius: 16px;
-  padding: 2rem;
-  background: #fff;
-  display: flex; flex-direction: column;
-}
-.plan-card.featured-plan {
-  border-color: var(--orange);
-  position: relative;
-}
-.plan-badge {
-  position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
-  background: var(--orange); color: #fff;
-  font-size: 0.72rem; font-weight: 700; padding: 0.2rem 0.9rem;
-  border-radius: 50px; white-space: nowrap;
-}
-.plan-name { font-size: 1rem; font-weight: 700; margin-bottom: 0.3rem; }
-.plan-desc { font-size: 0.8rem; color: var(--gray); margin-bottom: 1.2rem; }
-.plan-price { font-size: 2.6rem; font-weight: 900; letter-spacing: -0.03em; color: var(--ink); line-height: 1; margin-bottom: 0.3rem; }
-.plan-price span { font-size: 0.9rem; font-weight: 400; color: var(--gray); }
-.plan-savings {
-  display: inline-flex; align-items: center; gap: 4px;
-  background: #fef2f2; color: #dc2626;
-  font-size: 0.72rem; font-weight: 700;
-  padding: 0.15rem 0.5rem; border-radius: 4px;
-  margin-bottom: 1.2rem;
-}
-.plan-features { list-style: none; flex: 1; margin-bottom: 1.5rem; }
-.plan-features li {
-  display: flex; align-items: flex-start; gap: 0.5rem;
-  padding: 0.35rem 0; font-size: 0.85rem; color: #334155;
-  border-bottom: 1px solid #f1f5f9;
-}
-.plan-features li:last-child { border-bottom: none; }
-.plan-features i { color: #22c55e; flex-shrink: 0; margin-top: 2px; }
-.btn-plan-b {
-  display: block; text-align: center;
-  background: var(--ink); color: #fff;
-  font-weight: 700; padding: 0.9rem;
-  border-radius: 10px; transition: background .15s;
-}
-.btn-plan-b:hover { background: #1e293b; color: #fff; }
-.btn-plan-b.orange-btn { background: var(--orange); }
-.btn-plan-b.orange-btn:hover { background: var(--orange-light); }
-
-.guarantee-strip {
-  max-width: 820px; margin: 2rem auto 0;
-  display: grid; grid-template-columns: repeat(3,1fr); gap: 1rem;
-}
-.guarantee-item {
-  text-align: center; padding: 1.2rem;
-  background: #f8fafc; border-radius: 12px;
-  font-size: 0.8rem; color: #475569;
-}
-.guarantee-item i { font-size: 1.4rem; color: #22c55e; display: block; margin-bottom: 0.4rem; }
-@media (max-width: 640px) {
-  .plans { grid-template-columns: 1fr; }
-  .guarantee-strip { grid-template-columns: 1fr; }
-}
-
-/* ━━━ FINAL CTA ━━━ */
-.final-sec {
-  background: var(--ink);
-  padding: clamp(5rem, 10vw, 9rem) clamp(1.5rem, 6vw, 6rem);
-  text-align: center;
-  position: relative; overflow: hidden;
-}
-.final-bg {
-  position: absolute;
-  font-size: 28vw; font-weight: 900; color: rgba(255,255,255,0.025);
-  top: 50%; left: 50%; transform: translate(-50%,-50%);
-  pointer-events: none; user-select: none; white-space: nowrap;
-  letter-spacing: -0.05em; line-height: 1;
-}
-.final-sec h2 {
-  color: #fff;
-  font-size: clamp(1.8rem, 4.5vw, 3.5rem);
-  font-weight: 900; letter-spacing: -0.03em; line-height: 1.15;
-  margin-bottom: 1rem;
-  position: relative; z-index: 1;
-}
-.final-sec p {
-  color: rgba(255,255,255,0.55);
-  font-size: 1rem; margin-bottom: 2.5rem;
-  position: relative; z-index: 1;
-}
-.btn-final-b {
-  display: inline-block;
-  background: var(--orange); color: #fff;
-  font-weight: 900; font-size: 1.15rem;
-  padding: 1.1rem 2.8rem; border-radius: 10px;
-  box-shadow: 0 8px 32px rgba(232,69,10,0.5);
-  transition: all .2s;
-  position: relative; z-index: 1;
-}
-.btn-final-b:hover { background: var(--orange-light); transform: translateY(-2px); color: #fff; }
-.final-sub {
-  margin-top: 1.2rem;
-  color: rgba(255,255,255,0.3);
-  font-size: 0.8rem;
-  display: flex; gap: 1.5rem; justify-content: center; flex-wrap: wrap;
-  position: relative; z-index: 1;
-}
-.final-sub span { display: flex; align-items: center; gap: 4px; }
-.final-sub i { color: #4ade80; }
-.final-demo { margin-top: 1.5rem; position: relative; z-index: 1; }
-.final-demo a { color: rgba(255,255,255,0.35); font-size: 0.85rem; }
-.final-demo a:hover { color: rgba(255,255,255,0.6); }
-
-/* ━━━ FOOTER ━━━ */
-footer {
-  background: #060606; padding: 2rem clamp(1.5rem, 6vw, 6rem);
-  display: flex; align-items: center; justify-content: space-between;
-  flex-wrap: wrap; gap: 1rem;
-}
-.footer-brand { color: rgba(255,255,255,0.4); font-size: 0.82rem; display: flex; align-items: center; gap: 6px; }
-.footer-brand img { width: 20px; height: 20px; border-radius: 4px; opacity: 0.5; }
-.footer-links { display: flex; gap: 1.5rem; flex-wrap: wrap; }
-.footer-links a { color: rgba(255,255,255,0.25); font-size: 0.78rem; }
-.footer-links a:hover { color: rgba(255,255,255,0.5); }
-
-/* ━━━ MODAL ━━━ */
-.modal-overlay {
-  display: none; position: fixed; inset: 0; z-index: 500;
-  background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
-  align-items: center; justify-content: center; padding: 1rem;
-}
-.modal-overlay.open { display: flex; }
-.modal-box {
-  background: #fff; border-radius: 20px; padding: 2rem;
-  max-width: 420px; width: 100%;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-}
-.modal-box h3 { font-size: 1.2rem; font-weight: 900; margin-bottom: 0.5rem; }
-.modal-box p { color: var(--gray); font-size: 0.88rem; margin-bottom: 1.2rem; }
-.modal-input {
-  width: 100%; padding: 0.75rem 1rem; border: 1.5px solid #e2e8f0;
-  border-radius: 8px; font-size: 0.95rem; margin-bottom: 0.8rem;
-  font-family: inherit; outline: none; transition: border-color .15s;
-}
-.modal-input:focus { border-color: var(--orange); }
-.modal-btn {
-  width: 100%; background: var(--orange); color: #fff;
-  font-weight: 900; font-size: 1rem; padding: 0.85rem;
-  border-radius: 8px; cursor: pointer; transition: background .15s;
-}
-.modal-btn:hover { background: var(--orange-light); }
-.modal-close {
-  float: right; background: none; border: none; cursor: pointer;
-  font-size: 1.3rem; color: var(--gray); line-height: 1; margin-bottom: 0.5rem;
-}
-.modal-msg { font-size: 0.82rem; color: #ef4444; margin-top: 0.4rem; min-height: 1.2rem; }
-.modal-done { display: none; text-align: center; padding: 1rem 0; }
-.modal-done i { font-size: 2.5rem; color: #22c55e; display: block; margin-bottom: 0.8rem; }
-.modal-done p { color: var(--ink); font-weight: 700; }
 </style>
 </head>
 <body>
 
-<!-- NAV -->
-<nav class="nav">
-  <a href="/" class="nav-logo">
-    <img src="/icons/icon-192.png" alt="">経費ログ
-  </a>
-  <div class="nav-links">
-    <a href="https://keihi-log.com/app?demo" class="d-none d-md-inline">デモを見る</a>
-    <a href="#pricing" class="nav-cta" id="navCta">2週間無料で始める</a>
+<nav>
+  <div class="logo">経費ログ</div>
+  <div class="nav-r">
+    <a href="#features">機能</a>
+    <a href="#pricing">料金</a>
+    <a href="#faq">FAQ</a>
+    <a class="nav-btn" href="#pricing">無料で試す</a>
   </div>
 </nav>
 
-<!-- STICKY BOTTOM BAR -->
-<div class="sticky-bar" id="stickyBar">
-  <a href="#pricing" style="color:#fff;" id="stickyBarBtn">今すぐ2週間無料で試す →</a>
-</div>
-
-<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
-<!-- HERO                            -->
-<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- HERO -->
 <section class="hero">
-  <div class="hero-bg-num">330</div>
-  <div class="hero-inner">
-    <div class="hero-tag">
-      <i class="bi bi-lightning-charge-fill"></i>
-      2週間無料トライアル実施中 — クレジットカード不要
-    </div>
+  <div class="hero-bg">
+    <div class="orb orb1"></div>
+    <div class="orb orb2"></div>
+    <div class="orb orb3"></div>
+  </div>
+  <div class="hero-content">
+    <div class="hero-eyebrow"><span class="dot"></span>公認会計士が設計 · 2週間無料トライアル（カード登録不要）</div>
     <h1>
-      月の経費処理、<br>
-      <em>まだ高いSaaSに<br>払い続けますか？</em>
+      <span class="grad1">領収書は<br>撮るだけ。</span><br>
+      <span class="grad2">あとはAIに<br>任せた。</span>
     </h1>
-    <p class="hero-sub">
-      AI自動読み取り・承認フロー・電帳法対応・Googleスプレッドシート保存。<br>
-      他社が<strong>月5,000〜15,000円</strong>で提供する機能を、<strong>月額330円〜</strong>で。
-    </p>
+    <p class="hero-desc">申請・承認・集計・電帳法対応まで、ブラウザで完結。データはあなたのGoogleスプレッドシートへ。</p>
     <div class="hero-actions">
-      <a href="#pricing" class="btn-primary-b" id="heroCta">
-        無料で試してみる <i class="bi bi-arrow-right ms-1"></i>
-      </a>
-      <a href="https://keihi-log.com/app?demo" class="btn-ghost">
-        <i class="bi bi-play-circle"></i>デモを見る
-      </a>
+      <a class="btn-hero" href="#pricing">無料トライアルを始める</a>
+      <a class="btn-ghost" href="https://keihi-log.com/app?demo">デモを触ってみる</a>
     </div>
-    <div class="hero-checklist">
-      <span><i class="bi bi-check-circle-fill"></i>クレカ不要</span>
-      <span><i class="bi bi-check-circle-fill"></i>自動課金なし</span>
-      <span><i class="bi bi-check-circle-fill"></i>最短15分で導入</span>
-      <span><i class="bi bi-check-circle-fill"></i>いつでも解約可</span>
+    <p class="hero-fine">トライアル期間中はカード登録不要・同意なく自動課金されることは一切ありません</p>
+    <div class="hero-price-tag">
+      <span>月額</span>
+      <span class="price-pill">330円〜</span>
+      <span>税込・大手SaaSの10分の1以下</span>
     </div>
   </div>
 </section>
 
-<!-- IMPACT STRIP -->
-<div class="impact-strip">
-  <div class="impact-inner">
-    <div class="impact-cell">
-      <div class="impact-num">96<span class="impact-unit">%</span></div>
-      <div class="impact-label">大手SaaS比コスト削減</div>
-    </div>
-    <div class="impact-cell">
-      <div class="impact-num">0<span class="impact-unit">円</span></div>
-      <div class="impact-label">初期費用・解約手数料</div>
-    </div>
-    <div class="impact-cell">
-      <div class="impact-num">15<span class="impact-unit">分</span></div>
-      <div class="impact-label">最短導入時間</div>
-    </div>
-    <div class="impact-cell">
-      <div class="impact-num">100<span class="impact-unit">%</span></div>
-      <div class="impact-label">データはあなたのGoogleに</div>
+<!-- STORY -->
+<section class="story">
+  <div class="story-inner">
+    <p class="story-label">Story</p>
+    <h2 class="story-heading">「また月末になってしまった」<br>から、もう卒業しよう。</h2>
+    <p style="font-size:15px;color:#555;line-height:1.75;width:100%;margin-bottom:48px;margin-top:-32px;padding:20px 28px;background:#f5f3ff;border-left:3px solid var(--v1);border-radius:0 8px 8px 0">公認会計士として数多くの企業の財務を見てきた経験から、「本当に必要な機能だけ」を絞り込んで作りました。複雑すぎず、でも証跡としてちゃんと機能する経費管理ツールです。</p>
+    <div class="story-grid">
+      <div class="story-card sc1">
+        <div class="story-num">01</div>
+        <span class="tag t1">Before</span>
+        <h3>領収書の山と毎月格闘</h3>
+        <p>領収書はとりあえずポケットへ。月末になると机の引き出しから紙が溢れ、Excelに1枚ずつ手入力。金額を打ち間違えて、また最初から…。</p>
+      </div>
+      <div class="story-card sc2">
+        <div class="story-num">02</div>
+        <span class="tag t2">Problem</span>
+        <h3>SaaSは高いし、Excelは限界</h3>
+        <p>大手の経費精算ツールは月数千円。個人や小さなチームには重すぎる。かといってExcelのバージョン管理や電帳法対応には不安が残る。</p>
+      </div>
+      <div class="story-card sc3">
+        <div class="story-num">03</div>
+        <span class="tag t3">After</span>
+        <h3>撮って、送って、終わり。</h3>
+        <p>経費ログなら、領収書を撮ってアップするだけ。AIが金額・日付・科目を読み取り、Googleスプレッドシートへ自動保存。月330円で、ずっとラクに。</p>
+      </div>
     </div>
   </div>
+</section>
+
+<!-- DEMO -->
+<div class="demo-strip">
+  <h2>まず触ってみてください。</h2>
+  <p>登録なし・カード不要。本番と同じ画面でAI解析まで体験できます。</p>
+  <a class="demo-btn" href="https://keihi-log.com/app?demo">デモ画面を見る（無料・登録不要）</a>
 </div>
 
-<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
-<!-- PAIN                            -->
-<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
-<section class="sec sec-cream">
-  <p class="label-tag">PROBLEM</p>
-  <h2 class="sec-title">今の経費管理、<br>こんな無駄が潜んでいませんか</h2>
-  <div class="pain-grid">
-    <div class="pain-item">
-      <div class="pain-big">¥5,000<span style="font-size:1.2rem">/月</span></div>
-      <h4>SaaSに払い続ける費用</h4>
-      <p>大手の経費管理SaaSは月5,000〜15,000円以上。年間で6〜18万円のコストが発生し続ける。</p>
-    </div>
-    <div class="pain-item">
-      <div class="pain-big">3<span style="font-size:1.5rem">時間</span></div>
-      <h4>月末に消える時間</h4>
-      <p>領収書の手入力、エクセル整理、承認依頼の往復メール。月末に集中する非生産的な作業。</p>
-    </div>
-    <div class="pain-item">
-      <div class="pain-big"><i class="bi bi-lock" style="font-size:2.5rem"></i></div>
-      <h4>ベンダーロックインの不安</h4>
-      <p>サービス終了・値上げ時のデータ移行コスト。高額なエクスポート費用や、業者依存リスク。</p>
-    </div>
-    <div class="pain-item">
-      <div class="pain-big">?</div>
-      <h4>電帳法対応できているか不明</h4>
-      <p>紙の領収書・エクセル管理で電子帳簿保存法に本当に準拠できているか根拠を持って答えられない。</p>
-    </div>
-  </div>
-</section>
-
-<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
-<!-- BEFORE / AFTER                  -->
-<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
-<section class="sec sec-black">
-  <p class="label-tag">TRANSFORMATION</p>
-  <h2 class="sec-title sec-title-white">導入前と、導入後。</h2>
-  <div class="ba-split">
-    <div class="ba-col ba-col-before">
-      <div class="ba-head before"><i class="bi bi-x-circle-fill"></i>導入前</div>
-      <div class="ba-row before"><i class="bi bi-x-circle-fill text-danger"></i>月末に領収書をエクセルへ手入力で2〜3時間</div>
-      <div class="ba-row before"><i class="bi bi-x-circle-fill text-danger"></i>メールで承認依頼→返信待ち→催促のループ</div>
-      <div class="ba-row before"><i class="bi bi-x-circle-fill text-danger"></i>「先月の領収書どこいった？」が毎月発生</div>
-      <div class="ba-row before"><i class="bi bi-x-circle-fill text-danger"></i>月額5,000〜15,000円のSaaS費用が発生</div>
-      <div class="ba-row before"><i class="bi bi-x-circle-fill text-danger"></i>電帳法対応が不十分で税務調査リスク</div>
-      <div class="ba-row before"><i class="bi bi-x-circle-fill text-danger"></i>データは業者サーバー管理・漏えいリスク</div>
-    </div>
-    <div class="ba-col ba-col-after">
-      <div class="ba-head after"><i class="bi bi-check-circle-fill"></i>経費ログ導入後</div>
-      <div class="ba-row after"><i class="bi bi-check-circle-fill" style="color:#4ade80"></i>撮影するだけ。AIが金額・日付・支払先を自動入力</div>
-      <div class="ba-row after"><i class="bi bi-check-circle-fill" style="color:#4ade80"></i>アプリ上でワンクリック承認。往復メール不要</div>
-      <div class="ba-row after"><i class="bi bi-check-circle-fill" style="color:#4ade80"></i>証票は自動でGoogleドライブへ保存・即検索可</div>
-      <div class="ba-row after"><i class="bi bi-check-circle-fill" style="color:#4ade80"></i>月額330円〜。年間コスト最大97%削減</div>
-      <div class="ba-row after"><i class="bi bi-check-circle-fill" style="color:#4ade80"></i>タイムスタンプ・ハッシュ値で電帳法に対応可能</div>
-      <div class="ba-row after"><i class="bi bi-check-circle-fill" style="color:#4ade80"></i>データは自社のGoogleアカウントに。完全自己管理</div>
-    </div>
-  </div>
-</section>
-
-<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
-<!-- COMPARISON                      -->
-<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
-<section class="sec sec-dark">
-  <p class="label-tag">COMPARISON</p>
-  <div class="comp-intro">
-    <h2 class="sec-title sec-title-white">なぜ、ここまで安いのか。</h2>
-    <p style="color:rgba(255,255,255,0.5);font-size:0.9rem;line-height:1.75;margin-top:0.8rem;">
-      AI解析にはお客様自身のGoogle AI Studio無料APIキーを使用（BYOK方式）。
-      当社サーバーへのデータ保管もなし。インフラコストを極限まで削減した結果、この価格を実現しています。
-    </p>
-  </div>
-  <div style="max-width:900px;">
-    <div class="comp-row header">
-      <div class="comp-cell header-label">比較項目</div>
-      <div class="comp-cell header-hl">経費ログ</div>
-      <div class="comp-cell header-label" style="text-align:center;">大手SaaS A社</div>
-      <div class="comp-cell header-label" style="text-align:center;">大手SaaS B社</div>
-    </div>
-    <div class="comp-row">
-      <div class="comp-cell label">月額（1チーム）</div>
-      <div class="comp-cell hl">
-        <span class="comp-price-big">330円〜</span>
-        <span class="comp-price-sub">チームは825円</span>
+<!-- FEATURES -->
+<section class="features" id="features">
+  <div class="features-inner">
+    <p class="feat-label">Features</p>
+    <h2 class="feat-heading">必要なものだけ、<br>全部入っている。</h2>
+    <div class="feat-big">
+      <div class="fcard fcard-accent">
+        <span class="ficon">🤖</span>
+        <h3>AI領収書解析</h3>
+        <p>GeminiのAIが金額・支払先・日付・税区分・勘定科目を自動読み取り。手入力ゼロ。撮って送るだけで申請完了。</p>
+        <div class="badge-row">
+          <span class="fbadge fb-purple">Gemini AI</span>
+          <span class="fbadge fb-green">インボイス番号自動抽出</span>
+        </div>
       </div>
-      <div class="comp-cell" style="text-align:center;"><span style="color:rgba(255,255,255,0.8);font-size:1.1rem;font-weight:700;">〜5,000円+</span></div>
-      <div class="comp-cell" style="text-align:center;"><span style="color:rgba(255,255,255,0.8);font-size:1.1rem;font-weight:700;">〜8,800円+</span></div>
-    </div>
-    <div class="comp-row">
-      <div class="comp-cell label">AI領収書読み取り</div>
-      <div class="comp-cell hl"><i class="comp-check bi bi-check-circle-fill"></i></div>
-      <div class="comp-cell" style="text-align:center;"><i class="comp-check bi bi-check-circle-fill"></i></div>
-      <div class="comp-cell" style="text-align:center;"><i class="comp-check bi bi-check-circle-fill"></i></div>
-    </div>
-    <div class="comp-row">
-      <div class="comp-cell label">承認ワークフロー</div>
-      <div class="comp-cell hl"><i class="comp-check bi bi-check-circle-fill"></i></div>
-      <div class="comp-cell" style="text-align:center;"><i class="comp-check bi bi-check-circle-fill"></i></div>
-      <div class="comp-cell" style="text-align:center;"><i class="comp-check bi bi-check-circle-fill"></i></div>
-    </div>
-    <div class="comp-row">
-      <div class="comp-cell label">電帳法対応</div>
-      <div class="comp-cell hl"><i class="comp-check bi bi-check-circle-fill"></i></div>
-      <div class="comp-cell" style="text-align:center;"><i class="comp-check bi bi-check-circle-fill"></i></div>
-      <div class="comp-cell" style="text-align:center;"><i class="comp-check bi bi-check-circle-fill"></i></div>
-    </div>
-    <div class="comp-row">
-      <div class="comp-cell label">データ所有権</div>
-      <div class="comp-cell hl" style="font-size:0.82rem;font-weight:700;color:#ff8c5a;">自社Googleアカウント</div>
-      <div class="comp-cell comp-minus" style="text-align:center;font-size:0.82rem;">ベンダー管理</div>
-      <div class="comp-cell comp-minus" style="text-align:center;font-size:0.82rem;">ベンダー管理</div>
-    </div>
-    <div class="comp-row">
-      <div class="comp-cell label">無料トライアル</div>
-      <div class="comp-cell hl" style="font-size:0.82rem;font-weight:700;color:#ff8c5a;">14日・カード不要</div>
-      <div class="comp-cell" style="text-align:center;font-size:0.8rem;color:rgba(255,255,255,0.45);">30日（カード必要）</div>
-      <div class="comp-cell" style="text-align:center;font-size:0.8rem;color:rgba(255,255,255,0.45);">14日（カード必要）</div>
-    </div>
-  </div>
-  <p style="margin-top:1rem;font-size:0.73rem;color:rgba(255,255,255,0.25);">※他社比較は各社公開情報をもとにした参考値（2024年時点）</p>
-</section>
-
-<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
-<!-- FEATURES                        -->
-<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
-<section class="sec sec-white">
-  <p class="label-tag">FEATURES</p>
-  <h2 class="sec-title">必要なのに、<br>驚くほどシンプル。</h2>
-  <div class="feat-list">
-    <div class="feat-item">
-      <div class="feat-text">
-        <div class="feat-num">01</div>
-        <h3>AIが領収書を自動読み取り</h3>
-        <p>写真を1枚撮るだけ。GoogleのGemini AIが金額・日付・支払先・税区分・勘定科目をその場で自動入力。手入力ゼロを実現します。外貨の自動換算にも対応。</p>
+      <div class="fcard fcard-plain">
+        <span class="ficon">📋</span>
+        <h3>データはあなたのGoogleスプレッドシートへ</h3>
+        <p>経費明細はスプレッドシートに、領収書はGoogleドライブに。当社サーバーにデータは一切保存しません。ベンダーロックインなし。</p>
+        <div class="badge-row">
+          <span class="fbadge fb-green">データ完全所有</span>
+          <span class="fbadge fb-orange">解約後もデータ残存</span>
+        </div>
       </div>
-      <div class="feat-visual">📸</div>
     </div>
-    <div class="feat-item">
-      <div class="feat-text">
-        <div class="feat-num">02</div>
-        <h3>ワンタップで承認・精算</h3>
-        <p>申請→承認→精算済みのステータスをアプリ上で完結。往復メール・LINEの確認作業がなくなり、管理者は一覧から即承認できます。</p>
+    <div class="feat-sm">
+      <div class="fcard fcard-plain">
+        <span class="ficon">⚖️</span>
+        <h3>電帳法対応可能</h3>
+        <p>サーバー時刻記録・ハッシュ値改ざん検知・検索機能確保。標準搭載。</p>
       </div>
-      <div class="feat-visual">✅</div>
-    </div>
-    <div class="feat-item">
-      <div class="feat-text">
-        <div class="feat-num">03</div>
-        <h3>データはすべて自分のGoogleに</h3>
-        <p>経費データはGoogleスプレッドシートへ、証票はGoogleドライブへ自動保存。データの所有権は完全にあなたのもの。CSVでfreee・マネーフォワードへ連携可能。</p>
+      <div class="fcard fcard-plain">
+        <span class="ficon">🚃</span>
+        <h3>交通費も自動計算</h3>
+        <p>駅名を入れるだけで運賃を自動検索。自家用車の距離精算にも対応。</p>
       </div>
-      <div class="feat-visual">🗂️</div>
-    </div>
-    <div class="feat-item">
-      <div class="feat-text">
-        <div class="feat-num">04</div>
-        <h3>電帳法に対応可能</h3>
-        <p>証票はタイムスタンプ付きで保存。SHA-256ハッシュで改ざんを検知。電子帳簿保存法の要件に対応できる証跡を自動で残します。</p>
+      <div class="fcard fcard-plain">
+        <span class="ficon">📤</span>
+        <h3>会計ソフト連携CSV</h3>
+        <p>freee・弥生・MFクラウドの形式に対応。月次仕訳の手入力を激減。</p>
       </div>
-      <div class="feat-visual">🔒</div>
     </div>
   </div>
 </section>
 
-<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
-<!-- TESTIMONIALS                    -->
-<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
-<section class="sec sec-dark">
-  <p class="label-tag">VOICE</p>
-  <h2 class="sec-title sec-title-white">使った人の声</h2>
-  <div class="testi-grid">
-    <div class="testi-item">
-      <div class="testi-stars">★★★★★</div>
-      <div class="testi-quote">"</div>
-      <p class="testi-text">月末に2〜3時間かけていたエクセル集計が、その場で撮影するだけになりました。月末の作業がほぼゼロです。</p>
-      <p class="testi-meta">フリーランスデザイナー / ソロプラン</p>
+<!-- BYOK -->
+<section class="byok">
+  <div class="byok-inner">
+    <p class="byok-label">Why so cheap?</p>
+    <h2 class="byok-heading">月330円の理由は、<br>設計思想にある。</h2>
+    <p class="byok-sub">データベースサーバーを持たない。AIコストをユーザーに転嫁しない。<br>この2つが、大手の10分の1の価格を実現しました。</p>
+    <div class="byok-flow">
+      <div class="byok-node">
+        <div class="ni">📷</div>
+        <h4>領収書撮影</h4>
+        <p>スマホで1枚</p>
+      </div>
+      <div class="byok-arr">→</div>
+      <div class="byok-node">
+        <div class="ni">🔑</div>
+        <h4>あなたのAPIキー</h4>
+        <p>Google AI Studio 無料枠</p>
+      </div>
+      <div class="byok-arr">→</div>
+      <div class="byok-node">
+        <div class="ni">🤖</div>
+        <h4>AI自動解析</h4>
+        <p>金額・科目・日付</p>
+      </div>
+      <div class="byok-arr">→</div>
+      <div class="byok-node">
+        <div class="ni">📋</div>
+        <h4>あなたのスプレッドシート</h4>
+        <p>データはあなたのもの</p>
+      </div>
     </div>
-    <div class="testi-item">
-      <div class="testi-stars">★★★★★</div>
-      <div class="testi-quote">"</div>
-      <p class="testi-text">前の経費ソフトから乗り換えました。月に数千円のコストが825円に。導入も15分くらいで完了して驚きました。</p>
-      <p class="testi-meta">ITコンサル会社 / チームプラン（5名）</p>
-    </div>
-    <div class="testi-item">
-      <div class="testi-stars">★★★★☆</div>
-      <div class="testi-quote">"</div>
-      <p class="testi-text">電帳法のことが不安でしたが、タイムスタンプとハッシュ値で対応できると知って安心。データが自分のGoogleにあるのも信頼できます。</p>
-      <p class="testi-meta">建設会社 経理担当 / チームプラン（8名）</p>
-    </div>
-  </div>
-</section>
-
-<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
-<!-- PRICING                         -->
-<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
-<section class="sec sec-cream" id="pricing">
-  <p class="label-tag">PRICING</p>
-  <h2 class="sec-title">シンプルな料金</h2>
-
-  <div class="pricing-anchor" style="margin-top:2.5rem;">
-    <div class="anchor-label">大手SaaSの相場 / 月</div>
-    <div class="anchor-compare">¥5,000〜15,000</div>
-    <div class="anchor-arrow">↓</div>
-    <div style="font-size:0.9rem;color:var(--gray);margin-bottom:0.3rem;">経費ログなら</div>
-    <div class="anchor-price">¥330<sub> / 月〜</sub></div>
-    <div style="margin-top:0.8rem;">
-      <span style="background:#fef2f2;color:#dc2626;font-size:0.85rem;font-weight:700;padding:0.3rem 0.9rem;border-radius:6px;">
-        最大97%コスト削減
-      </span>
-    </div>
-  </div>
-
-  <div class="plans" style="margin-top:3rem;">
-    <div class="plan-card">
-      <div class="plan-name">ソロプラン</div>
-      <div class="plan-desc">個人事業主・フリーランス向け</div>
-      <div class="plan-price">330<span>円/月（税込）</span></div>
-      <div class="plan-savings"><i class="bi bi-graph-down-arrow"></i>大手比 -93%</div>
-      <ul class="plan-features">
-        <li><i class="bi bi-check-circle-fill"></i>AI領収書自動読み取り</li>
-        <li><i class="bi bi-check-circle-fill"></i>交通費・自家用車対応</li>
-        <li><i class="bi bi-check-circle-fill"></i>Googleスプレッドシート保存</li>
-        <li><i class="bi bi-check-circle-fill"></i>集計・CSVエクスポート</li>
-        <li><i class="bi bi-check-circle-fill"></i>電帳法対応可能</li>
-        <li><i class="bi bi-check-circle-fill"></i>1ユーザー</li>
-      </ul>
-      <a href="https://buy.stripe.com/5kQ28r1Ps7ut2kv4io9oc08" class="btn-plan-b">2週間無料で試す</a>
-    </div>
-    <div class="plan-card featured-plan">
-      <span class="plan-badge">🔥 人気No.1</span>
-      <div class="plan-name">チームプラン</div>
-      <div class="plan-desc">中小企業・チーム（人数無制限）</div>
-      <div class="plan-price">825<span>円/月（税込）</span></div>
-      <div class="plan-savings"><i class="bi bi-graph-down-arrow"></i>大手比 -96%</div>
-      <ul class="plan-features">
-        <li><i class="bi bi-check-circle-fill"></i>ソロプランの全機能</li>
-        <li><i class="bi bi-check-circle-fill"></i>チーム全員で使える（人数無制限）</li>
-        <li><i class="bi bi-check-circle-fill"></i>申請・承認・精算ワークフロー</li>
-        <li><i class="bi bi-check-circle-fill"></i>部署別・メンバー別レポート</li>
-        <li><i class="bi bi-check-circle-fill"></i>3段階の権限管理</li>
-        <li><i class="bi bi-check-circle-fill"></i>1チーム定額（追加料金なし）</li>
-      </ul>
-      <a href="https://buy.stripe.com/5kQ28r1Ps7ut2kv4io9oc08" class="btn-plan-b orange-btn">2週間無料で試す →</a>
-    </div>
-  </div>
-
-  <div class="guarantee-strip">
-    <div class="guarantee-item">
-      <i class="bi bi-shield-check-fill"></i>
-      <strong>クレカ不要</strong><br>試用中はカード情報入力不要
-    </div>
-    <div class="guarantee-item">
-      <i class="bi bi-shield-check-fill"></i>
-      <strong>自動課金なし</strong><br>継続は自分で設定から切替
-    </div>
-    <div class="guarantee-item">
-      <i class="bi bi-shield-check-fill"></i>
-      <strong>即時解約可</strong><br>解約手数料・違約金ゼロ
+    <div class="byok-points">
+      <div class="bpoint">
+        <strong>BYOK（Bring Your Own Key）方式</strong>
+        <p>お客様自身のAPIキーを使うため、当社にAIコストが発生しません。無料枠は1日500リクエスト。通常業務なら追加費用ゼロ。</p>
+      </div>
+      <div class="bpoint">
+        <strong>DBサーバーを持たない設計</strong>
+        <p>データはお客様のGoogleスプレッドシートへ直接保存。当社がデータベースを運営するコストがないため、その分を価格に還元。</p>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
-<!-- FINAL CTA                       -->
-<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
-<section class="final-sec">
-  <div class="final-bg">330円</div>
-  <h2>今月から、経費処理コストを<br>削減しませんか。</h2>
-  <p>2週間の無料トライアル。クレジットカード不要。最短15分で導入完了。</p>
-  <a href="#pricing" class="btn-final-b" id="finalCta">
-    無料トライアルを始める <i class="bi bi-arrow-right ms-1"></i>
-  </a>
-  <div class="final-sub">
-    <span><i class="bi bi-check-circle-fill"></i>クレカ不要</span>
-    <span><i class="bi bi-check-circle-fill"></i>自動課金なし</span>
-    <span><i class="bi bi-check-circle-fill"></i>いつでも解約可</span>
-  </div>
-  <div class="final-demo">
-    <a href="https://keihi-log.com/app?demo">
-      <i class="bi bi-play-circle me-1"></i>先にデモで試す（登録不要）
-    </a>
+<!-- WHO -->
+<section class="who">
+  <div class="who-inner">
+    <p class="who-label">For who?</p>
+    <h2 class="who-heading">正直に言います。<br>向いている人と、<br>向いていない人がいます。</h2>
+    <div class="who-cols">
+      <div class="who-box who-yes">
+        <h3>✅ こんな方に最適です</h3>
+        <ul>
+          <li>領収書をその場で撮影・完結させたい</li>
+          <li>月末に領収書の山と格闘するのをやめたい</li>
+          <li>Excelの自作フォーマットを卒業したい</li>
+          <li>高額SaaSを入れるほどでもないと感じている</li>
+          <li>経費データを外部DBに預けたくない</li>
+          <li>freee・弥生などと組み合わせて使いたい</li>
+        </ul>
+      </div>
+      <div class="who-box who-no">
+        <h3>✗ こんな方には向きません</h3>
+        <ul>
+          <li>銀行口座・カード明細を自動取得したい</li>
+          <li>仕訳・確定申告まで一括でやりたい</li>
+          <li>会計ソフトそのものを置き換えたい</li>
+          <li>大企業並みのセキュリティレベルが必要</li>
+          <li>社内ポリシーでGoogleが制限されている</li>
+        </ul>
+      </div>
+    </div>
   </div>
 </section>
 
-<!-- FOOTER -->
+<!-- PRICING -->
+<section class="pricing" id="pricing">
+  <div class="pricing-inner">
+    <p class="pr-label">Pricing</p>
+    <h2 class="pr-heading">シンプルな料金。<br>隠れた費用はない。</h2>
+    <p class="pr-sub">2週間無料トライアル・クレジットカード不要</p>
+    <div class="pr-grid">
+      <div class="pcard">
+        <p class="pcard-name">ソロプラン</p>
+        <p class="pcard-target">個人事業主・フリーランス向け</p>
+        <div class="pcard-price">330<span>円/月（税込）</span></div>
+        <ul class="pcard-list">
+          <li>AI領収書解析</li>
+          <li>交通費・自家用車経費対応</li>
+          <li>Googleスプレッドシート保存</li>
+          <li>集計・レポート機能</li>
+          <li>会計ソフト連携CSV出力</li>
+          <li>電帳法対応可能</li>
+          <li>1ユーザー</li>
+        </ul>
+        <a class="pcard-btn pb-plain" href="https://keihi-log.com/app?demo">2週間無料で試す</a>
+      </div>
+      <div class="pcard hot">
+        <div class="hot-badge">人気 No.1</div>
+        <p class="pcard-name">チームプラン</p>
+        <p class="pcard-target">中小企業・チーム向け</p>
+        <div class="pcard-price">825<span>円/月（税込）</span></div>
+        <ul class="pcard-list">
+          <li>ソロプランのすべての機能</li>
+          <li>チーム全員定額・人数無制限</li>
+          <li>申請・承認・精算ステータス管理</li>
+          <li>部署別・メンバー別レポート</li>
+          <li>3段階の権限管理</li>
+        </ul>
+        <a class="pcard-btn pb-grad" href="https://keihi-log.com/app?demo">2週間無料で試す</a>
+      </div>
+    </div>
+    <p class="pr-note">※ AI解析リクエストはお客様のGoogle AI Studioアカウントの上限に準じます</p>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="faq" id="faq">
+  <div class="faq-inner">
+    <p class="fq-label">FAQ</p>
+    <h2 class="fq-heading">よくある質問</h2>
+    <div class="fq-item">
+      <div class="fq-q">APIキーの設定は難しいですか？<div class="fq-toggle">+</div></div>
+      <div class="fq-a">Google AI Studioにアクセスし「APIキーを作成」を押してコピーするだけ。約3分で完了します。無料アカウントで1日500リクエストまで使えます。</div>
+    </div>
+    <div class="fq-item">
+      <div class="fq-q">運営側にデータを見られますか？<div class="fq-toggle">+</div></div>
+      <div class="fq-a">経費データと領収書画像はお客様自身のGoogleスプレッドシート・Googleドライブに保存されます。当社のデータベースに保存・蓄積することは一切ありません。申請処理時に当社サーバーを一時経由しますが、内容を保存・記録することはありません。</div>
+    </div>
+    <div class="fq-item">
+      <div class="fq-q">電子帳簿保存法に対応していますか？<div class="fq-toggle">+</div></div>
+      <div class="fq-a">サーバー時刻記録・ハッシュ値改ざん検知・インボイス番号自動抽出・検索機能確保など主要要件に対応可能な仕組みを標準搭載しています。ただし完全対応の可否は運用方法・社内規程によっても異なるため、顧問税理士にご確認ください。</div>
+    </div>
+    <div class="fq-item">
+      <div class="fq-q">解約後、データはどうなりますか？<div class="fq-toggle">+</div></div>
+      <div class="fq-a">解約後もデータはお客様自身のGoogleドライブに残り続けます。ベンダーロックインなし、過去の記録を失う心配はありません。</div>
+    </div>
+    <div class="fq-item">
+      <div class="fq-q">チームプランは何人まで使えますか？<div class="fq-toggle">+</div></div>
+      <div class="fq-a">メンバー数に関わらず月額825円（税込）の定額です。同じメールアドレスで最大3組織分まで申し込みいただけます。</div>
+    </div>
+    <div class="fq-item">
+      <div class="fq-q">freee・マネーフォワードと一緒に使えますか？<div class="fq-toggle">+</div></div>
+      <div class="fq-a">はい。freee・弥生・MFクラウドの取り込み形式に対応したCSVを出力できます。経費ログで申請・承認・集計し、月次でCSVを会計ソフトに取り込むフローが最もシンプルです。</div>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="final">
+  <div class="final-bg">
+    <div class="final-orb1"></div>
+    <div class="final-orb2"></div>
+  </div>
+  <div class="final-content">
+    <h2>今月の領収書、<br>もう迷わない。</h2>
+    <p>まずデモで触ってみてください。登録なし、カード不要。本番と同じ画面でAI解析まで体験できます。</p>
+    <div class="final-btns">
+      <a class="btn-hero" href="https://keihi-log.com/app?demo">デモ画面を見る（無料・登録不要）</a>
+      <a class="btn-ghost" href="#pricing">料金を確認する</a>
+    </div>
+    <p class="final-note">2週間無料・クレジットカード不要・同意なく自動課金されることは一切ありません</p>
+  </div>
+</section>
+
 <footer>
-  <div class="footer-brand">
-    <img src="/icons/icon-192.png" alt="">
-    経費ログ by Smart&amp;Smooth
-  </div>
+  <div>© 2026 合同会社Smart&amp;Smooth. All rights reserved.</div>
   <div class="footer-links">
-    <a href="/terms">利用規約</a>
-    <a href="/privacy">プライバシー</a>
-    <a href="/faq">FAQ</a>
-    <a href="https://keihi-log.com/app?demo">デモ</a>
+    <a href="https://keihi-log.com/privacy">プライバシーポリシー</a>
+    <a href="https://keihi-log.com/terms">利用規約</a>
+    <a href="https://keihi-log.com/tokusho">特定商取引法</a>
+    <a href="https://smartandsmooth.com">運営会社</a>
   </div>
 </footer>
 
-<!-- MODAL -->
-<div class="modal-overlay" id="modalOverlay">
-  <div class="modal-box">
-    <button class="modal-close" id="modalClose">×</button>
-    <h3>🎉 申し込みページ、もうすぐ公開</h3>
-    <p>公開されたらメールでお知らせします。アドレスをご登録ください。</p>
-    <div id="mForm">
-      <input type="email" class="modal-input" id="mEmail" placeholder="your@email.com">
-      <button class="modal-btn" id="mSubmit">通知を受け取る</button>
-      <div class="modal-msg" id="mMsg"></div>
-    </div>
-    <div class="modal-done" id="mDone">
-      <i class="bi bi-check-circle-fill"></i>
-      <p>登録しました！<br>公開時にお知らせします。</p>
-    </div>
-  </div>
-</div>
-
 <script>
-  const overlay = document.getElementById('modalOverlay');
-  function openModal() { overlay.classList.add('open'); }
-  function closeModal() { overlay.classList.remove('open'); }
-
-  // すべてのCTAとStripeリンクをモーダルに
-  ['navCta','heroCta','finalCta','stickyBarBtn'].forEach(id => {
-    document.getElementById(id)?.addEventListener('click', e => { e.preventDefault(); openModal(); });
+document.querySelectorAll('.fq-item').forEach(item=>{
+  item.querySelector('.fq-q').addEventListener('click',()=>{
+    item.classList.toggle('open');
   });
-  document.querySelectorAll('a[href*="buy.stripe.com"]').forEach(a => {
-    a.addEventListener('click', e => { e.preventDefault(); openModal(); });
-  });
-  document.getElementById('modalClose').addEventListener('click', closeModal);
-  overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
-
-  document.getElementById('mSubmit').addEventListener('click', async () => {
-    const email = document.getElementById('mEmail').value.trim();
-    const msg = document.getElementById('mMsg');
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      msg.textContent = 'メールアドレスを正しく入力してください'; return;
-    }
-    const btn = document.getElementById('mSubmit');
-    btn.disabled = true; btn.textContent = '登録中...'; msg.textContent = '';
-    try {
-      const r = await fetch('/api/notify', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-      if (r.ok) {
-        document.getElementById('mForm').style.display = 'none';
-        document.getElementById('mDone').style.display = 'block';
-      } else {
-        msg.textContent = '登録に失敗しました。しばらく後にお試しください。';
-        btn.disabled = false; btn.textContent = '通知を受け取る';
-      }
-    } catch (_) {
-      msg.textContent = 'ネットワークエラーが発生しました。';
-      btn.disabled = false; btn.textContent = '通知を受け取る';
-    }
-  });
-  document.getElementById('mEmail').addEventListener('keydown', e => {
-    if (e.key === 'Enter') document.getElementById('mSubmit').click();
-  });
+});
 </script>
 </body>
 </html>
