@@ -243,7 +243,13 @@ const Auth = (() => {
         signal:  ctrl.signal,
       });
       const tokens = await resp.json();
-      if (tokens.error) throw new Error(tokens.error_description || tokens.error);
+      if (tokens.error) {
+        if (tokens.error === 'invalid_grant') {
+          _forceRelogin();
+          throw new Error('invalid_grant');
+        }
+        throw new Error(tokens.error_description || tokens.error);
+      }
       tokens.refresh_token = tokens.refresh_token || saved.refresh_token;
       await _storeTokens(tokens);
     } finally {
