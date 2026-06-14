@@ -201,38 +201,47 @@ const Drive = (() => {
     });
   }
 
-  /**
-   * PDFファイルを各ページのJPEG画像({base64,mimeType,name}[])に変換する
-   * PDF.jsを初回呼び出し時にlazy-loadする
-   */
-  async function pdfToImages(file) {
-    if (!window.pdfjsLib) {
-      await new Promise((resolve, reject) => {
-        const s = document.createElement('script');
-        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-        s.onload = resolve; s.onerror = reject;
-        document.head.appendChild(s);
-      });
-      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
-        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    }
-    const buf = await file.arrayBuffer();
-    const pdf = await window.pdfjsLib.getDocument({ data: buf }).promise;
+  async function _ensurePdfJs() {
+    if (window.pdfjsLib) return;
+    await new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+      s.onload = resolve; s.onerror = reject;
+      document.head.appendChild(s);
+    });
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+
+  async function _renderPdfPages(data, baseName) {
+    const pdf = await window.pdfjsLib.getDocument({ data }).promise;
     const images = [];
-    const baseName = file.name.replace(/\.pdf$/i, '');
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
       const vp = page.getViewport({ scale: 2.0 });
       const canvas = document.createElement('canvas');
       canvas.width = vp.width; canvas.height = vp.height;
       await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
-      images.push({
-        base64: canvas.toDataURL('image/jpeg', 0.85),
-        mimeType: 'image/jpeg',
-        name: `${baseName}_p${i}.jpg`,
-      });
+      images.push({ base64: canvas.toDataURL('image/jpeg', 0.85), mimeType: 'image/jpeg', name: `${baseName}_p${i}.jpg` });
     }
     return images;
+  }
+
+  /** PDFファイル(File)を各ページJPEG({base64,mimeType,name}[])に変換 */
+  async function pdfToImages(file) {
+    await _ensurePdfJs();
+    const buf = await file.arrayBuffer();
+    return _renderPdfPages(buf, file.name.replace(/\.pdf$/i, ''));
+  }
+
+  /** PDFのbase64 data URLを各ページJPEG({base64,mimeType,name}[])に変換（AI解析用） */
+  async function pdfBase64ToImages(base64, name) {
+    await _ensurePdfJs();
+    const b64 = base64.replace(/^data:[^;]+;base64,/, '');
+    const bin = atob(b64);
+    const buf = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+    return _renderPdfPages(buf.buffer, (name || 'document').replace(/\.pdf$/i, ''));
   }
 
   async function moveToFolder(fileId, folderId) {
@@ -282,5 +291,5 @@ const Drive = (() => {
     );
   }
 
-  return { createSpreadsheetInFolder, createFolder, moveToFolder, uploadFile, uploadReceiptFile, renameFile, fileToBase64, pdfToImages, grantEditorAccess, revokeAccess };
+  return { createSpreadsheetInFolder, createFolder, moveToFolder, uploadFile, uploadReceiptFile, renameFile, fileToBase64, pdfToImages, pdfBase64ToImages, grantEditorAccess, revokeAccess };
 })();

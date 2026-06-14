@@ -56,11 +56,20 @@ const Gemini = (() => {
    * @param {Array<{base64: string, mimeType: string, name: string}>} files
    */
   async function precompress(files) {
-    return Promise.all(files.map(async f => ({
-      ...f,
-      base64: await _compressImage(f.base64, f.mimeType, 2000, 0.85),
-      mimeType: f.mimeType.startsWith('image/') ? 'image/jpeg' : f.mimeType,
-    })));
+    const result = [];
+    for (const f of files) {
+      if (!f) continue;
+      if (f.mimeType === 'application/pdf') {
+        // PDFはAI解析用にJPEGページへ展開（Drive保存は元のPDFを使う）
+        const pages = await Drive.pdfBase64ToImages(f.base64, f.name);
+        for (const p of pages) {
+          result.push({ ...p, base64: await _compressImage(p.base64, p.mimeType, 2000, 0.85), mimeType: 'image/jpeg' });
+        }
+      } else {
+        result.push({ ...f, base64: await _compressImage(f.base64, f.mimeType, 2000, 0.85), mimeType: f.mimeType.startsWith('image/') ? 'image/jpeg' : f.mimeType });
+      }
+    }
+    return result;
   }
 
   /** 呼び出し経路を選択して fetch を1回実行する */
