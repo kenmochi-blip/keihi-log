@@ -603,7 +603,7 @@ function _bindSubtypePills(el) {
         _compressPromise.then(compressed => {
           _compressedFiles = compressed;
           if (version !== _aiAutoVersion) return; // 別の写真に差し替えられた場合は破棄
-          _aiAutoPromise = Gemini.analyzeReceipt(compressed, _cats, false).catch(() => null);
+          _aiAutoPromise = Gemini.analyzeReceipt(compressed, _cats, true).catch(() => null);
         });
 
         // 申請時刻をプリフェッチ（申請ボタン押下時の待ちをゼロにする）
