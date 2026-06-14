@@ -639,7 +639,9 @@ const ListView = (() => {
     if (!ok) return;
     App.showLoading('承認中...');
     try {
-      if (Sheets.useProxy && Sheets.useProxy()) {
+      if (typeof Demo !== 'undefined' && Demo.isActive()) {
+        await new Promise(r => setTimeout(r, 400));
+      } else if (Sheets.useProxy && Sheets.useProxy()) {
         await Sheets.approveExpense(id);
       } else {
         const rowNum = await Sheets.findRowById(id);
