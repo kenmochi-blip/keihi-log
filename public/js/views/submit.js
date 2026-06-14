@@ -578,6 +578,19 @@ function _bindSubtypePills(el) {
 
       for (const file of files) {
         if (file.size > 10 * 1024 * 1024) { App.showToast(`${file.name} は10MBを超えています`, 'warning'); continue; }
+        if (file.type === 'application/pdf') {
+          try {
+            App.showToast('PDFを画像に変換中...', 'info');
+            const images = await Drive.pdfToImages(file);
+            for (const img of images) {
+              _selectedFiles.push(img);
+              _addPreviewItem(el, type, img.base64, img.mimeType, _selectedFiles.length - 1);
+            }
+          } catch (e) {
+            App.showToast(`PDF変換に失敗しました: ${file.name}`, 'warning');
+          }
+          continue;
+        }
         const base64 = await Drive.fileToBase64(file);
         _selectedFiles.push({ base64, mimeType: file.type, name: file.name });
         _addPreviewItem(el, type, base64, file.type, _selectedFiles.length - 1);

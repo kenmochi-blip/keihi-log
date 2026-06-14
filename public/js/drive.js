@@ -201,6 +201,40 @@ const Drive = (() => {
     });
   }
 
+  /**
+   * PDFファイルを各ページのJPEG画像({base64,mimeType,name}[])に変換する
+   * PDF.jsを初回呼び出し時にlazy-loadする
+   */
+  async function pdfToImages(file) {
+    if (!window.pdfjsLib) {
+      await new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+        s.onload = resolve; s.onerror = reject;
+        document.head.appendChild(s);
+      });
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+    const buf = await file.arrayBuffer();
+    const pdf = await window.pdfjsLib.getDocument({ data: buf }).promise;
+    const images = [];
+    const baseName = file.name.replace(/\.pdf$/i, '');
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const vp = page.getViewport({ scale: 2.0 });
+      const canvas = document.createElement('canvas');
+      canvas.width = vp.width; canvas.height = vp.height;
+      await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+      images.push({
+        base64: canvas.toDataURL('image/jpeg', 0.85),
+        mimeType: 'image/jpeg',
+        name: `${baseName}_p${i}.jpg`,
+      });
+    }
+    return images;
+  }
+
   async function moveToFolder(fileId, folderId) {
     if (!fileId || !folderId) return;
     const resp = await Auth.authFetch(
@@ -248,5 +282,5 @@ const Drive = (() => {
     );
   }
 
-  return { createSpreadsheetInFolder, createFolder, moveToFolder, uploadFile, uploadReceiptFile, renameFile, fileToBase64, grantEditorAccess, revokeAccess };
+  return { createSpreadsheetInFolder, createFolder, moveToFolder, uploadFile, uploadReceiptFile, renameFile, fileToBase64, pdfToImages, grantEditorAccess, revokeAccess };
 })();
