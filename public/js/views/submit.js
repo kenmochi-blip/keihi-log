@@ -749,23 +749,27 @@ function _bindSubtypePills(el) {
     ['非課税',  '非課税'],
     ['不課税',  '不課税'],
   ];
+  const _SPLIT_TAX_OPTIONS = [
+    ['課税10%', '10%'],
+    ['課税8%',  '8%軽'],
+    ['非課税',  '非課税'],
+    ['不課税',  '不課税'],
+  ];
 
   function _addSplitRowTo(container, pnl) {
     if (!container) return;
     const row = document.createElement('div');
     row.className = 'split-row py-2 border-bottom border-light-subtle';
     row.innerHTML = `
-      <div class="row g-1 align-items-center mb-1">
-        <div class="col"><input type="text" inputmode="numeric" class="form-control form-control-sm split-amount amount-input" placeholder="金額"></div>
-        <div class="col-auto"><button class="btn btn-outline-danger btn-sm btn-del-row"><i class="bi bi-x"></i></button></div>
-      </div>
-      <div class="row g-1">
-        <div class="col-7"><select class="form-select form-select-sm split-cat">
+      <div class="row g-1 align-items-center">
+        <div class="col-3"><input type="text" inputmode="numeric" class="form-control form-control-sm split-amount amount-input" placeholder="金額"></div>
+        <div class="col"><select class="form-select form-select-sm split-cat">
           ${_cats.map(c => `<option value="${c}">${c}</option>`).join('')}
         </select></div>
-        <div class="col-5"><select class="form-select form-select-sm split-tax">
-          ${_TAX_OPTIONS.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}
+        <div class="col-auto"><select class="form-select form-select-sm split-tax" style="font-size:0.75rem;padding-left:0.4rem;padding-right:1.4rem;min-width:4.5rem;">
+          ${_SPLIT_TAX_OPTIONS.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}
         </select></div>
+        <div class="col-auto"><button class="btn btn-outline-danger btn-sm btn-del-row px-1"><i class="bi bi-x"></i></button></div>
       </div>`;
     row.querySelector('.btn-del-row').addEventListener('click', () => {
       row.remove();
