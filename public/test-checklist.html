@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>テストチェックリスト｜経費ログ</title>
+  <style>
+    :root {
+      --ok:   #16a34a;
+      --ng:   #dc2626;
+      --warn: #d97706;
+      --mute: #6b7280;
+      --bg:   #f9fafb;
+      --card: #ffffff;
+      --border: #e5e7eb;
+      --accent: #2563eb;
+      --irr: #fff7ed;
+      --irr-border: #fed7aa;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: #111827; font-size: 14px; }
+    header { background: var(--accent); color: #fff; padding: 14px 20px; position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    header h1 { font-size: 1rem; font-weight: 700; }
+    #progressBar { background: rgba(255,255,255,0.25); border-radius: 99px; height: 8px; flex: 1; max-width: 200px; overflow: hidden; }
+    #progressFill { height: 100%; background: #fff; border-radius: 99px; width: 0%; transition: width 0.3s; }
+    #progressText { font-size: 0.8rem; white-space: nowrap; }
+    main { max-width: 800px; margin: 0 auto; padding: 16px; }
+    .legend { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; display: flex; flex-wrap: wrap; gap: 12px; font-size: 0.82rem; color: var(--mute); }
+    .legend span { display: flex; align-items: center; gap: 4px; }
+    section { margin-bottom: 20px; }
+    h2 { font-size: 0.95rem; font-weight: 700; color: var(--accent); border-left: 3px solid var(--accent); padding-left: 8px; margin-bottom: 10px; }
+    h3 { font-size: 0.82rem; font-weight: 600; color: var(--mute); text-transform: uppercase; letter-spacing: .04em; margin: 12px 0 6px; }
+    h3.irr { color: #92400e; }
+    .item { background: var(--card); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; transition: background 0.15s; }
+    .item.irr { background: var(--irr); border-color: var(--irr-border); }
+    .item.done-ok  { background: #f0fdf4; border-color: #bbf7d0; }
+    .item.done-ng  { background: #fef2f2; border-color: #fecaca; }
+    .item.done-warn{ background: #fffbeb; border-color: #fde68a; }
+    .num { font-size: 0.75rem; color: var(--mute); min-width: 22px; padding-top: 1px; font-variant-numeric: tabular-nums; }
+    .content { flex: 1; min-width: 0; }
+    .op { font-weight: 500; margin-bottom: 3px; line-height: 1.4; }
+    .op code { background: #f3f4f6; padding: 1px 4px; border-radius: 4px; font-size: 0.82em; }
+    .expect { font-size: 0.8rem; color: #4b5563; line-height: 1.4; }
+    .controls { display: flex; gap: 6px; flex-shrink: 0; align-items: flex-start; padding-top: 1px; }
+    button.btn { border: none; border-radius: 6px; cursor: pointer; font-size: 1.1rem; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: opacity 0.15s, transform 0.1s; opacity: 0.45; background: transparent; }
+    button.btn:hover { opacity: 1; transform: scale(1.1); }
+    button.btn.active { opacity: 1; }
+    button.btn-ok   { color: var(--ok); }
+    button.btn-ng   { color: var(--ng); }
+    button.btn-warn { color: var(--warn); }
+    .memo-wrap { margin-top: 6px; display: none; }
+    .memo-wrap.open { display: block; }
+    .memo { width: 100%; border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; font-size: 0.8rem; resize: vertical; min-height: 48px; font-family: inherit; color: #374151; }
+    .memo:focus { outline: none; border-color: var(--accent); }
+    .btn-memo { font-size: 0.75rem; color: var(--mute); background: none; border: none; cursor: pointer; padding: 2px 0; text-decoration: underline; }
+    .reset-btn { font-size: 0.78rem; color: var(--mute); background: none; border: none; cursor: pointer; text-decoration: underline; margin-left: 8px; }
+    .section-stat { font-size: 0.75rem; color: var(--mute); margin-left: 8px; font-weight: normal; }
+    @media (max-width: 480px) {
+      button.btn { width: 28px; height: 28px; font-size: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🗒 テストチェックリスト</h1>
+  <div id="progressBar"><div id="progressFill"></div></div>
+  <span id="progressText">0 / 83</span>
+</header>
+
+<main>
+  <div class="legend">
+    <span>凡例：</span>
+    <span>✅ 正常動作</span>
+    <span>❌ バグあり</span>
+    <span>⚠️ 要確認</span>
+    <span>（未操作 = 白）</span>
+    <span style="margin-left:auto;"><button class="reset-btn" onclick="resetAll()">全リセット</button></span>
+  </div>
+
+  <div id="sections"></div>
+</main>
+
+<script>
+const DATA = [
+  { section: '1. 認証・ログイン', groups: [
+    { label: 'ハッピーパス', irr: false, items: [
+      [1, 'keihi-log.com を開く', 'ログインページへリダイレクト'],
+      [2, 'Googleアカウントでログイン', 'アプリ画面（登録タブ）が表示される'],
+      [3, '再訪問（セッションあり）', 'ログインなしでアプリが開く'],
+      [4, 'ログアウトボタン', 'ログインページへ戻る'],
+    ]},
+    { label: 'イレギュラー', irr: true, items: [
+      [5, 'ログアウト状態で <code>/app.html</code> を直打ち', 'ログインページへリダイレクト（アプリ画面は出ない）'],
+      [6, '別ブラウザで別アカウントとして同時ログイン', '互いに独立して動作、データが混入しない'],
+      [7, 'セッション期限切れ状態（1時間放置後に申請ボタン）', '「セッションが切れました」表示またはログインへ自動遷移'],
+      [8, 'チームに登録されていないGoogleアカウントでログイン', 'アクセス拒否またはセットアップ案内が表示される'],
+    ]},
+  ]},
+  { section: '2. 申請フォーム（登録タブ）', groups: [
+    { label: 'ハッピーパス — 領収書タイプ', irr: false, items: [
+      [9,  '写真を選択してAIで読み取る', '日付・金額・支払先・税区分が自動入力される'],
+      [10, 'AI読み取り後に金額を手修正して登録', '修正後の値でシートに保存される'],
+      [11, 'PDF領収書をアップロードしてAI読み取り', 'ページがJPEGに変換されAI解析される'],
+      [12, '2枚目の画像を追加', 'プレビューが2枚になり両方保存される'],
+      [13, '明細分割（消耗品費＋交通費など）', 'items分割で登録、合計金額が正しい'],
+      [14, '源泉徴収ありの請求書を読み取る', 'withholding_amount が入力される'],
+    ]},
+    { label: 'ハッピーパス — 電車/バス・自家用車', irr: false, items: [
+      [15, '電車/バスで出発・到着・金額を入力して登録', '「◯◯ ↔ ◯◯」形式でシートに保存、税区分＝課税10%'],
+      [16, '自家用車でルート・距離入力', '距離×規程単価が自動計算される'],
+      [17, '領収書なしで理由を記入して登録', '理由が備考欄に保存される'],
+    ]},
+    { label: 'イレギュラー', irr: true, items: [
+      [18, '金額欄に 0 を入力して登録', 'エラーまたはバリデーション警告が出る'],
+      [19, '金額欄に漢字・ひらがなを入力', '数字以外は無視されるか入力できない'],
+      [20, '金額に 99,999,999 円（超高額）を入力', '10万円超の確認ダイアログが出て、登録は通る'],
+      [21, '日付を1年以上前の日付で登録', '「2ヶ月を超える申請」AI監査警告が出る'],
+      [22, '日付を未来日で登録', '特にエラーは出ず登録される（または警告）'],
+      [23, '支払先名に <code>&lt; &gt; " \' /</code> などの特殊文字', 'XSSにならずそのまま文字列として保存・表示される'],
+      [24, '備考欄に1000文字以上入力', '保存できる・シートに全文入る'],
+      [25, '10MB超のファイルを選択', '「10MBを超えています」とトースト警告、登録ブロック'],
+      [26, 'PDFではないファイル（Wordなど）を選択', 'エラーメッセージが表示されるか無視される'],
+      [27, 'AI読み取り中にアプリをバックグラウンドに切り替える', '戻ってきたとき結果が反映されている'],
+      [28, '同じ領収書画像を2回登録しようとする', '「同一画像が登録済み」AI監査警告が出る'],
+      [29, 'AI読み取りで判定できない画像（白紙など）を渡す', 'エラートーストが出て入力欄は空のまま（クラッシュしない）'],
+      [30, '選択した画像を×で削除してから登録ボタン', '画像なしで登録できる（または警告）'],
+      [31, '明細分割で合計金額と明細合計が一致しない', '不一致の場合に警告またはブロック'],
+      [32, '明細分割で金額0の行を追加したまま登録', 'エラーまたは0行が無視される'],
+      [33, '登録中（ローディング中）に二重タップで登録ボタン', '二重登録されない'],
+    ]},
+  ]},
+  { section: '3. 一覧タブ', groups: [
+    { label: 'ハッピーパス', irr: false, items: [
+      [34, '一覧タブを開く', '申請データが一覧表示される'],
+      [35, '月フィルターを切り替える', '対象月のデータのみ表示される'],
+      [36, '申請を編集して保存', '変更が反映される・修正履歴シートに記録される'],
+      [37, '申請を削除', '一覧から消える・削除一覧シートに移動する'],
+      [38, '証票ボタンで画像を開く', '画像が新タブで開く'],
+      [39, '承認（admin）', '「登録済」バッジに変わる'],
+      [40, '精算（admin）', '精算日付きバッジに変わる'],
+    ]},
+    { label: 'イレギュラー', irr: true, items: [
+      [41, 'フィルターで0件になる条件を選択', '「該当データなし」が表示される（クラッシュしない）'],
+      [42, '登録済み（承認済み）のデータを編集しようとする', '編集ボタンが非表示か、操作が無効化されている'],
+      [43, '精算済みのデータを削除しようとする', '削除ボタンが非表示か、エラーメッセージが出る'],
+      [44, '証票URLが期限切れになっている（24h経過後）', 'エラーにならず自動で新URLで開く、またはリロード促す'],
+      [45, '一覧を表示したまま別タブで申請を追加', '一覧を更新したとき新件が反映される'],
+      [46, '一般メンバーとして他人の申請を表示しようとする', '自分のデータのみが見える'],
+      [47, '一覧をスクロール中にタブ切り替えして戻る', 'スクロール位置がリセットされる（許容範囲）'],
+    ]},
+  ]},
+  { section: '4. 集計タブ', groups: [
+    { label: 'ハッピーパス', irr: false, items: [
+      [48, '集計タブを開く', '月別グラフと勘定科目別集計が表示される'],
+      [49, '月フィルターを変更', 'グラフ・集計が切り替わる'],
+      [50, '勘定科目をタップしてドリルダウン', 'その科目の明細一覧が表示される'],
+      [51, '精算ボタンで一括精算（admin）', '選択した申請が精算済みに変わる'],
+    ]},
+    { label: 'イレギュラー', irr: true, items: [
+      [52, 'データが0件の月を表示', '空グラフが表示される（クラッシュしない）'],
+      [53, '1件だけのデータで集計', 'グラフが正常に描画される'],
+      [54, '分割明細（消耗品費＋交通費）の集計', '各科目に正しく振り分けられている'],
+    ]},
+  ]},
+  { section: '5. 設定タブ', groups: [
+    { label: 'ハッピーパス', irr: false, items: [
+      [55, '勘定科目を追加して保存', '登録フォームの科目ドロップダウンに反映される'],
+      [56, 'メンバーを追加して保存', '新メンバーがアプリを使えるようになる'],
+      [57, 'Gemini APIキーを設定', 'AI読み取りが使えるようになる'],
+    ]},
+    { label: 'イレギュラー', irr: true, items: [
+      [58, '無効なGemini APIキーを入れてAI読み取り', '「APIキーが無効」エラーが表示される（クラッシュしない）'],
+      [59, 'Gemini APIキーを空にして保存', '保存できないかエラーメッセージ'],
+      [60, '自分自身をメンバーから削除しようとする', '警告またはブロック'],
+      [61, '管理者が最後の1人の状態でadmin権限を外そうとする', '警告またはブロック（管理者0人は不可）'],
+      [62, '勘定科目を全削除して保存', 'エラーまたは最低1件必須の警告'],
+    ]},
+  ]},
+  { section: '6. デモモード（?demo）', groups: [
+    { label: '', irr: false, items: [
+      [63, '<code>keihi-log.com/app?demo</code> でアクセス', 'サンプルデータが表示される'],
+      [64, 'デモモードで申請を登録', 'シートに書き込まれず画面内のみ反映'],
+      [65, 'デモモードで申請を承認', 'エラーにならず「登録済」になる'],
+      [66, 'デモモードでAI読み取りを実行', 'デモ用モックデータが返る'],
+      [67, 'デモモードで削除・編集', '実データが変更されない'],
+    ]},
+  ]},
+  { section: '7. ネットワーク・環境', groups: [
+    { label: '', irr: false, items: [
+      [68, '申請送信中にネットを切断', 'エラートーストが出てデータは保存されない'],
+      [69, 'Gemini API呼び出し中にネットを切断', '「通信エラー」メッセージが出る'],
+      [70, 'ページを長時間（30分以上）放置後に操作', 'バックグラウンド更新が走り最新データが表示される'],
+      [71, '低速回線（throttling 3G）でアプリを開く', 'スピナーが出て、完了後に正常表示される'],
+      [72, 'iOSのSafariで使う', 'PCと同様に動作する（特にカメラ・ファイル選択）'],
+      [73, 'Androidのブラウザで使う', 'PCと同様に動作する'],
+      [74, 'PCブラウザ（Chrome/Safari）で使う', 'SP向けレイアウトが480px幅で正常表示'],
+    ]},
+  ]},
+  { section: '8. セキュリティ・権限', groups: [
+    { label: '', irr: true, items: [
+      [75, '一般メンバーで承認APIを直接叩く（<code>POST /api/data/expenses/approve</code>）', '403 admin_only が返る'],
+      [76, '一般メンバーで他人の申請を削除しようとする', '403が返りUIにエラー表示'],
+      [77, '別チームのシートIDをAPIに指定する', '403 not_a_member が返る'],
+      [78, '有効期限切れのIDトークンでAPIを叩く', '401 unauthorized が返り再ログイン促す'],
+    ]},
+  ]},
+  { section: '9. データの整合性', groups: [
+    { label: '', irr: false, items: [
+      [79, '申請 → 承認 → 一覧で確認', '「登録済」ステータスが正しく表示'],
+      [80, '申請 → 編集 → 再度編集', '修正履歴シートに2件の記録がある'],
+      [81, '申請 → 削除 → 削除一覧シートを確認', '削除一覧に記録が残っている'],
+      [82, '申請 → 精算 → 精算解除（admin）', '精算日が消えて「登録済」に戻る'],
+      [83, 'スマホとPCで同時に別の申請を登録', '両方正しく保存される・データが上書きされない'],
+    ]},
+  ]},
+];
+
+const TOTAL = 83;
+let state = {}; // { id: 'ok'|'ng'|'warn'|null, memo: '' }
+
+function load() {
+  try { state = JSON.parse(localStorage.getItem('keihi_test_state') || '{}'); } catch(_) { state = {}; }
+}
+function save() {
+  localStorage.setItem('keihi_test_state', JSON.stringify(state));
+}
+function resetAll() {
+  if (!confirm('全チェックをリセットしますか？')) return;
+  state = {};
+  save();
+  render();
+}
+
+function setResult(id, val) {
+  if (!state[id]) state[id] = {};
+  if (state[id].result === val) {
+    state[id].result = null;
+  } else {
+    state[id].result = val;
+  }
+  save();
+  updateItem(id);
+  updateProgress();
+}
+
+function setMemo(id, val) {
+  if (!state[id]) state[id] = {};
+  state[id].memo = val;
+  save();
+}
+
+function toggleMemo(id) {
+  const w = document.getElementById(`memo-wrap-${id}`);
+  w.classList.toggle('open');
+}
+
+function updateItem(id) {
+  const el = document.getElementById(`item-${id}`);
+  if (!el) return;
+  const r = state[id]?.result || null;
+  el.className = 'item' + (el.dataset.irr === '1' ? ' irr' : '') + (r ? ` done-${r}` : '');
+  ['ok','ng','warn'].forEach(v => {
+    const btn = document.getElementById(`btn-${v}-${id}`);
+    if (btn) btn.classList.toggle('active', r === v);
+  });
+}
+
+function updateProgress() {
+  const done = Object.values(state).filter(s => s.result).length;
+  const pct = Math.round(done / TOTAL * 100);
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressText').textContent = `${done} / ${TOTAL}`;
+  // section stats
+  DATA.forEach(sec => {
+    const ids = sec.groups.flatMap(g => g.items.map(i => i[0]));
+    const sdone = ids.filter(id => state[id]?.result).length;
+    const el = document.getElementById(`stat-${sec.section}`);
+    if (el) el.textContent = `${sdone}/${ids.length}`;
+  });
+}
+
+function render() {
+  const root = document.getElementById('sections');
+  root.innerHTML = '';
+  DATA.forEach(sec => {
+    const ids = sec.groups.flatMap(g => g.items.map(i => i[0]));
+    const section = document.createElement('section');
+    section.innerHTML = `<h2>${sec.section} <span class="section-stat" id="stat-${CSS.escape(sec.section)}"></span></h2>`;
+    sec.groups.forEach(grp => {
+      if (grp.label) {
+        const h3 = document.createElement('h3');
+        h3.className = grp.irr ? 'irr' : '';
+        h3.textContent = (grp.irr ? '⚡ ' : '') + grp.label;
+        section.appendChild(h3);
+      }
+      grp.items.forEach(([id, op, exp]) => {
+        const r = state[id]?.result || null;
+        const memo = state[id]?.memo || '';
+        const div = document.createElement('div');
+        div.id = `item-${id}`;
+        div.dataset.irr = grp.irr ? '1' : '0';
+        div.className = 'item' + (grp.irr ? ' irr' : '') + (r ? ` done-${r}` : '');
+        div.innerHTML = `
+          <span class="num">${id}</span>
+          <div class="content">
+            <div class="op">${op}</div>
+            <div class="expect">期待：${exp}</div>
+            <div class="memo-wrap${memo ? ' open' : ''}" id="memo-wrap-${id}">
+              <textarea class="memo" placeholder="メモ（バグ内容・再現手順など）" oninput="setMemo(${id},this.value)">${memo}</textarea>
+            </div>
+            <button class="btn-memo" onclick="toggleMemo(${id})">メモ</button>
+          </div>
+          <div class="controls">
+            <button class="btn btn-ok${r==='ok'?' active':''}" id="btn-ok-${id}" title="正常動作" onclick="setResult(${id},'ok')">✅</button>
+            <button class="btn btn-ng${r==='ng'?' active':''}" id="btn-ng-${id}" title="バグあり" onclick="setResult(${id},'ng')">❌</button>
+            <button class="btn btn-warn${r==='warn'?' active':''}" id="btn-warn-${id}" title="要確認" onclick="setResult(${id},'warn')">⚠️</button>
+          </div>`;
+        section.appendChild(div);
+      });
+    });
+    root.appendChild(section);
+  });
+  updateProgress();
+}
+
+load();
+render();
+</script>
+</body>
+</html>
