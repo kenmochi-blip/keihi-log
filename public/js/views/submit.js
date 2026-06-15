@@ -749,12 +749,6 @@ function _bindSubtypePills(el) {
     ['非課税',  '非課税'],
     ['不課税',  '不課税'],
   ];
-  const _SPLIT_TAX_OPTIONS = [
-    ['課税10%', '10%'],
-    ['課税8%',  '8%軽'],
-    ['非課税',  '非課税'],
-    ['不課税',  '不課税'],
-  ];
 
   function _addSplitRowTo(container, pnl) {
     if (!container) return;
@@ -767,7 +761,7 @@ function _bindSubtypePills(el) {
           ${_cats.map(c => `<option value="${c}">${c}</option>`).join('')}
         </select></div>
         <div class="col-auto"><select class="form-select form-select-sm split-tax" style="font-size:0.75rem;padding-left:0.4rem;padding-right:1.4rem;min-width:4.5rem;">
-          ${_SPLIT_TAX_OPTIONS.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}
+          ${_TAX_OPTIONS.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}
         </select></div>
         <div class="col-auto"><button class="btn btn-outline-danger btn-sm btn-del-row px-1"><i class="bi bi-x"></i></button></div>
       </div>`;
