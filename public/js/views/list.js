@@ -507,7 +507,7 @@ const ListView = (() => {
         </td>
         <td class="list-type-cell">${_escape(e.type)}</td>
         <td class="text-end list-amount">¥${e.amount.toLocaleString()}</td>
-        <td class="list-cat">${_escape(App.categoryLabel(e.category))}${e.taxRate && e.taxRate !== '課税10%' ? `<br><span class="badge text-bg-light border" style="font-size:0.65rem;font-weight:normal;">${_escape(e.taxRate)}</span>` : ''}</td>
+        <td class="list-cat">${_escape(App.categoryLabel(e.category))}${_effectiveTaxRate(e) !== '課税10%' ? `<br><span class="badge text-bg-light border" style="font-size:0.65rem;font-weight:normal;">${_escape(_effectiveTaxRate(e))}</span>` : ''}</td>
         <td class="list-note-cell text-muted${e.note ? ' expandable' : ''}">${e.note ? `<span class="note-text">${_escape(e.note)}</span><i class="bi bi-chevron-down note-expand-chevron"></i>` : ''}</td>
         <td class="text-center"><div class="d-flex flex-wrap gap-1 justify-content-center">${receiptBtns}</div></td>
         <td>${statusBadge}</td>
@@ -538,7 +538,7 @@ const ListView = (() => {
             <div class="d-flex align-items-center gap-1 flex-wrap" style="min-width:0;">
               ${statusBadge}
               <span class="list-sp-cat">${_escape(App.categoryLabel(e.category))}</span>
-              ${e.taxRate && e.taxRate !== '課税10%' ? `<span class="badge text-bg-light border" style="font-size:0.65rem;font-weight:normal;">${_escape(e.taxRate)}</span>` : ''}
+              ${_effectiveTaxRate(e) !== '課税10%' ? `<span class="badge text-bg-light border" style="font-size:0.65rem;font-weight:normal;">${_escape(_effectiveTaxRate(e))}</span>` : ''}
               ${e.note ? `<span class="list-sp-note-wrap expandable"><span class="list-sp-note">${_escape(e.note)}</span><i class="bi bi-chevron-down chevron"></i></span>` : ''}
             </div>
             <div class="no-print flex-shrink-0">${ops}</div>
@@ -705,7 +705,7 @@ const ListView = (() => {
         App.categoryLabel(e.category),
         e.note, e.imageLinks.split(',')[0]?.trim() || '',
         _getStatus(e), e.invoice, e.email, e.id,
-        e.settlementDate || '', e.taxRate || '課税10%', paySource,
+        e.settlementDate || '', _effectiveTaxRate(e), paySource,
         e.withholding || 0, e.customFlag || ''
       ];
     });
@@ -776,6 +776,12 @@ const ListView = (() => {
     return m ? m[1] : '';
   }
 
+  // 電車/バス・自家用車は旧データでも常に課税10%として扱う
+  function _effectiveTaxRate(e) {
+    if (e.type === '電車/バス' || e.type === '自家用車') return '課税10%';
+    return e.taxRate || '課税10%';
+  }
+
   // taxRate に応じた消費税額と各会計ソフト用の税区分文字列を返す
   function _taxInfo(amount, taxRate) {
     const r = taxRate || '課税10%';
@@ -799,12 +805,12 @@ const ListView = (() => {
       const isSplit = splitParts.length > 1 && splitParts.every(p => p.amount !== null);
       if (isSplit) {
         splitParts.forEach(p => {
-          const { tax, freeeKbn } = _taxInfo(p.amount, p.taxRate || e.taxRate);
+          const { tax, freeeKbn } = _taxInfo(p.amount, p.taxRate || _effectiveTaxRate(e));
           rows.push([_isoToSlash(e.date), p.cat, freeeKbn, p.amount, tax,
             e.place, payMethod, App.getMemberName(e.email, e.name), e.note]);
         });
       } else {
-        const { tax, freeeKbn } = _taxInfo(totalAmt, e.taxRate);
+        const { tax, freeeKbn } = _taxInfo(totalAmt, _effectiveTaxRate(e));
         rows.push([_isoToSlash(e.date), App.categoryLabel(e.category), freeeKbn, totalAmt, tax,
           e.place, payMethod, App.getMemberName(e.email, e.name), e.note]);
       }
@@ -837,7 +843,7 @@ const ListView = (() => {
       const isSplit = splitParts.length > 1 && splitParts.every(p => p.amount !== null);
       if (isSplit) {
         splitParts.forEach((p, i) => {
-          const { tax, yayoiKbn } = _taxInfo(p.amount, p.taxRate || e.taxRate);
+          const { tax, yayoiKbn } = _taxInfo(p.amount, p.taxRate || _effectiveTaxRate(e));
           const payAmt = i === 0 && wh > 0 ? p.amount - wh : p.amount;
           rows.push([slipNo, '', _isoToSlash(e.date),
             p.cat, '', yayoiKbn, p.amount, tax,
@@ -847,7 +853,7 @@ const ListView = (() => {
         if (wh > 0) rows.push([slipNo, '', _isoToSlash(e.date), '', '', '', '', '',
           '預り金', '源泉徴収', '', wh, '', `${e.place}（源泉徴収）`, e.id]);
       } else {
-        const { tax, yayoiKbn } = _taxInfo(totalAmt, e.taxRate);
+        const { tax, yayoiKbn } = _taxInfo(totalAmt, _effectiveTaxRate(e));
         if (wh > 0) {
           const payAmt = totalAmt - wh;
           rows.push([slipNo, '', _isoToSlash(e.date),
@@ -883,7 +889,7 @@ const ListView = (() => {
       const isSplit = splitParts.length > 1 && splitParts.every(p => p.amount !== null);
       if (isSplit) {
         splitParts.forEach((p, i) => {
-          const { mfcKbn } = _taxInfo(p.amount, p.taxRate || e.taxRate);
+          const { mfcKbn } = _taxInfo(p.amount, p.taxRate || _effectiveTaxRate(e));
           const payAmt = i === 0 && wh > 0 ? p.amount - wh : p.amount;
           rows.push([_isoToSlash(e.date),
             p.cat, '', mfcKbn, p.amount,
@@ -895,7 +901,7 @@ const ListView = (() => {
           '預り金', '源泉徴収', '', wh,
           `${e.place}（源泉徴収）`, e.id]);
       } else {
-        const { mfcKbn } = _taxInfo(totalAmt, e.taxRate);
+        const { mfcKbn } = _taxInfo(totalAmt, _effectiveTaxRate(e));
         if (wh > 0) {
           const payAmt = totalAmt - wh;
           rows.push([_isoToSlash(e.date),
