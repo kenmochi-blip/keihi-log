@@ -208,8 +208,9 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 .list-table th { font-size: 0.75rem; white-space: nowrap; }
 .list-table td { font-size: 0.8rem; vertical-align: middle; }
 .list-amount { font-weight: 600; white-space: nowrap; }
-.list-date  { white-space: nowrap; }
-.list-cat   { white-space: nowrap; }
+.list-date   { white-space: nowrap; }
+.list-member { white-space: nowrap; font-size: 0.75rem; color: #6c757d; }
+.list-cat    { white-space: nowrap; }
 .list-note-cell { font-size: 0.75rem; max-width: 220px; }
 .list-note-cell .note-text { display: inline-block; max-width: calc(100% - 18px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
 .list-note-cell .note-expand-chevron { font-size: 0.6rem; opacity: 0.55; vertical-align: middle; margin-left: 2px; transition: transform 0.15s; }

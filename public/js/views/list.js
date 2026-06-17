@@ -120,6 +120,7 @@ const ListView = (() => {
       <thead class="table-light">
         <tr>
           <th class="text-center">日付</th>
+          <th class="text-center">申請者</th>
           <th class="text-center">支払先</th>
           <th class="text-center">タイプ</th>
           <th class="text-center">金額</th>
@@ -132,7 +133,7 @@ const ListView = (() => {
         </tr>
       </thead>
       <tbody id="listTbodyPc">
-        <tr><td colspan="10" class="text-center text-muted py-3">読み込み中...</td></tr>
+        <tr><td colspan="11" class="text-center text-muted py-3">読み込み中...</td></tr>
       </tbody>
     </table>
   </div>
@@ -187,7 +188,7 @@ const ListView = (() => {
     } catch (err) {
       if (!opts.fromCache) {
         const msg = App.friendlyError(err, 'load');
-        el.querySelector('#listTbodyPc').innerHTML = `<tr><td colspan="10" class="text-danger text-center">${msg}</td></tr>`;
+        el.querySelector('#listTbodyPc').innerHTML = `<tr><td colspan="11" class="text-danger text-center">${msg}</td></tr>`;
         el.querySelector('#listCardsSp').innerHTML = `<div class="text-danger text-center py-3">${msg}</div>`;
       }
       return;
@@ -464,7 +465,7 @@ const ListView = (() => {
     const visible  = filtered.slice(0, _shownCount);
 
     if (filtered.length === 0) {
-      tbodyPc.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-3">該当する申請がありません</td></tr>';
+      tbodyPc.innerHTML = '<tr><td colspan="11" class="text-center text-muted py-3">該当する申請がありません</td></tr>';
       cardsSp.innerHTML = '<div class="text-center text-muted py-3">該当する申請がありません</div>';
       loadMore?.classList.add('d-none');
       return;
@@ -516,13 +517,11 @@ const ListView = (() => {
          </button>`
       ).join('');
 
-      // PC行（9列）
+      // PC行（10列）
       rowsPc.push(`<tr>
         <td class="list-date">${e.date}</td>
-        <td class="list-place">
-          <div>${e.settlementDate?.startsWith('会社払い') ? '🏢 ' : ''}${_escape(e.place)}</div>
-          <div class="text-muted" style="font-size:0.7rem;">${_escape(App.getMemberName(e.email, e.name))}</div>
-        </td>
+        <td class="list-member">${_escape(App.getMemberName(e.email, e.name))}</td>
+        <td class="list-place">${e.settlementDate?.startsWith('会社払い') ? '🏢 ' : ''}${_escape(e.place)}</td>
         <td class="list-type-cell">${_escape(e.type)}</td>
         <td class="text-end list-amount">¥${e.amount.toLocaleString()}</td>
         <td class="list-cat">${_escape(App.categoryLabel(e.category))}${_effectiveTaxRate(e) !== '課税10%' ? `<br><span class="badge text-bg-light border" style="font-size:0.65rem;font-weight:normal;">${_escape(_effectiveTaxRate(e))}</span>` : ''}</td>
