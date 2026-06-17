@@ -874,7 +874,7 @@
           データはあなたのGoogleスプレッドシートに安全保管
         </p>
         <div class="mb-3">
-          <a href="https://buy.stripe.com/5kQ28r1Ps7ut2kv4io9oc08" id="btnHeroSignup" class="btn btn-cta btn-lg px-5">
+          <a href="#" data-bs-toggle="modal" data-bs-target="#notifyModal" id="btnHeroSignup" class="btn btn-cta btn-lg px-5">
             今すぐ使ってみる <i class="bi bi-arrow-right ms-1"></i>
           </a>
         </div>
@@ -1199,7 +1199,7 @@
             <li><i class="bi bi-check-circle-fill"></i>電帳法対応可能</li>
             <li><i class="bi bi-check-circle-fill"></i>1ユーザー</li>
           </ul>
-          <a href="https://buy.stripe.com/5kQ28r1Ps7ut2kv4io9oc08" class="btn btn-primary w-100 rounded-pill mt-auto">
+          <a href="#" data-bs-toggle="modal" data-bs-target="#notifyModal" class="btn btn-primary w-100 rounded-pill mt-auto">
             使ってみる（２週間は無料トライアル）
           </a>
         </div>
@@ -1240,7 +1240,7 @@
             <li><i class="bi bi-check-circle-fill"></i>3段階の権限管理（管理者・閲覧者・一般）</li>
             <li><i class="bi bi-check-circle-fill"></i>Googleスプレッドシートをすでに業務で使っているチームに最適</li>
           </ul>
-          <a href="https://buy.stripe.com/5kQ28r1Ps7ut2kv4io9oc08" class="btn btn-primary w-100 rounded-pill mt-auto">
+          <a href="#" data-bs-toggle="modal" data-bs-target="#notifyModal" class="btn btn-primary w-100 rounded-pill mt-auto">
             使ってみる（２週間は無料トライアル）
           </a>
         </div>
@@ -2006,7 +2006,7 @@
     <div class="modal-content text-center p-1">
       <div class="modal-body py-4 px-4">
         <div style="font-size:2.2rem;">🚀</div>
-        <h5 class="fw-bold mt-2 mb-1">2026年6月中旬リリース予定</h5>
+        <h5 class="fw-bold mt-2 mb-1">6月下旬リリース予定</h5>
         <p class="text-muted mb-3" style="font-size:0.88rem;">
           現在鋭意開発中です。<br>リリース時にメールでお知らせします。<br>
           デモ画面は今すぐお試しいただけます。
@@ -2069,6 +2069,31 @@
       document.querySelectorAll('a.btn, button').forEach(function(el) { el.blur(); });
       if (document.activeElement) document.activeElement.blur();
     }, 0);
+  });
+
+  // ── リリース通知メール登録 ──────────────────────────────
+  document.getElementById('btnNotifySubmit').addEventListener('click', async function() {
+    var email = document.getElementById('notifyEmail').value.trim();
+    var msg = document.getElementById('notifyMsg');
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      msg.innerHTML = '<span style="color:#dc2626;">有効なメールアドレスを入力してください</span>';
+      return;
+    }
+    this.disabled = true;
+    msg.innerHTML = '';
+    try {
+      var resp = await fetch('/api/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email })
+      });
+      if (!resp.ok) throw new Error('failed');
+      document.getElementById('notifyForm').classList.add('d-none');
+      document.getElementById('notifyDone').classList.remove('d-none');
+    } catch (e) {
+      msg.innerHTML = '<span style="color:#dc2626;">エラーが発生しました。再度お試しください。</span>';
+      this.disabled = false;
+    }
   });
 </script>
 </body>
