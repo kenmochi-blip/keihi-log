@@ -169,6 +169,12 @@ const App = (() => {
           return m;
         });
 
+    // Stripeポータルからの帰還時（plan_updated=1）はライセンスキャッシュをクリアして再取得
+    if (new URLSearchParams(location.search).get('plan_updated') === '1') {
+      License.clearCache();
+      history.replaceState(null, '', location.pathname);
+    }
+
     const [licResult, masterResult, cfgResult] = await Promise.allSettled([
       License.verify(licKey),
       masterPromise,
