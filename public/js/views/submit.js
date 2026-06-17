@@ -1849,6 +1849,17 @@ function _bindSubtypePills(el) {
         if (routeInput) routeInput.value = e.place || '';
         const selC = el.querySelector('#selCatCar');
         if (selC) [...selC.options].forEach(o => o.selected = o.value === e.category);
+        const kmInput   = el.querySelector('#numCarKm');
+        const rateInput = el.querySelector('#numCarRate');
+        if (kmInput && e.amount > 0) {
+          const rate = Number(rateInput?.value) || 20;
+          kmInput.value = rate > 0 ? Math.round(e.amount / rate * 10) / 10 : '';
+        }
+        // キロ数復元後に合計表示を更新
+        const km   = Number(el.querySelector('#numCarKm')?.value) || 0;
+        const rate = Number(el.querySelector('#numCarRate')?.value) || 20;
+        const totalLbl = el.querySelector('#lblCarTotal');
+        if (totalLbl) totalLbl.textContent = Math.ceil(km * rate).toLocaleString() + '円';
       }
 
       // 会社払いセグメントの状態を復元
