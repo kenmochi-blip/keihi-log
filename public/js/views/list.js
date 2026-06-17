@@ -492,10 +492,11 @@ const ListView = (() => {
 
       // 証票リンク（複数対応）
       const imgUrls = e.imageLinks ? e.imageLinks.split(',').map(s => s.trim()).filter(Boolean) : [];
+      const urlsJson = imgUrls.length ? _escape(JSON.stringify(imgUrls)) : '';
       const receiptBtns = imgUrls.map((url, i) =>
-        `<a href="${url}" target="_blank" class="btn btn-outline-primary btn-sm py-0 px-2">
+        `<button type="button" class="btn btn-outline-primary btn-sm py-0 px-2 btn-receipt-view" data-urls="${urlsJson}" data-idx="${i}">
            <i class="bi bi-image me-1"></i>${imgUrls.length > 1 ? `証票${i + 1}` : '証票'}
-         </a>`
+         </button>`
       ).join('');
 
       // PC行（9列）
@@ -960,6 +961,60 @@ const ListView = (() => {
     }
     _expenses = _expenses.filter(x => x.id !== id);
   }
+
+  // ── 証票ビューア ──────────────────────────────────────────────────────────────
+  (function _initReceiptViewer() {
+    const viewer   = document.getElementById('receiptViewer');
+    const img      = document.getElementById('receiptViewerImg');
+    const pdfWrap  = document.getElementById('receiptViewerPdf');
+    const pdfLink  = document.getElementById('receiptViewerPdfLink');
+    const closeBtn = document.getElementById('receiptViewerClose');
+    const navBar   = document.getElementById('receiptViewerNav');
+    const prevBtn  = document.getElementById('receiptViewerPrev');
+    const nextBtn  = document.getElementById('receiptViewerNext');
+    const pageEl   = document.getElementById('receiptViewerPage');
+    if (!viewer) return;
+
+    let _urls = [], _cur = 0;
+
+    function _show(urls, idx) {
+      _urls = urls; _cur = idx;
+      const url = urls[_cur];
+      const isPdf = url.toLowerCase().includes('pdf') || url.includes('application%2Fpdf');
+      img.style.display = isPdf ? 'none' : 'block';
+      pdfWrap.style.display = isPdf ? 'block' : 'none';
+      if (isPdf) { pdfLink.href = url; }
+      else { img.src = url; }
+      navBar.style.display = urls.length > 1 ? 'block' : 'none';
+      if (pageEl) pageEl.textContent = `${_cur + 1} / ${urls.length}`;
+      viewer.style.display = 'block';
+      document.body.style.overflow = 'hidden';
+    }
+
+    function _close() {
+      viewer.style.display = 'none';
+      img.src = '';
+      document.body.style.overflow = '';
+    }
+
+    closeBtn?.addEventListener('click', _close);
+    viewer.addEventListener('click', e => { if (e.target === viewer) _close(); });
+    prevBtn?.addEventListener('click', () => _show(_urls, (_cur - 1 + _urls.length) % _urls.length));
+    nextBtn?.addEventListener('click', () => _show(_urls, (_cur + 1) % _urls.length));
+    document.addEventListener('keydown', e => { if (viewer.style.display !== 'none' && e.key === 'Escape') _close(); });
+
+    // 証票ボタンへのイベント委任（動的に生成される行に対応）
+    document.addEventListener('click', e => {
+      const btn = e.target.closest('.btn-receipt-view');
+      if (!btn) return;
+      e.preventDefault();
+      try {
+        const urls = JSON.parse(btn.dataset.urls || '[]');
+        const idx  = parseInt(btn.dataset.idx || '0', 10);
+        if (urls.length) _show(urls, idx);
+      } catch (_) {}
+    });
+  })();
 
   return { render, bindEvents, approveExpense, deleteExpense };
 })();
