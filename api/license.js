@@ -109,7 +109,7 @@ export default async function handler(req, res) {
       valid: true,
       company:      data.company      || '',
       customerName: data.customerName || '',
-      plan:         data.plan         || 'standard',
+      plan:         isTrial ? 'team' : (data.plan || 'solo'),
       expiresAt:    data.expiresAt    || null,
       ownerEmail:   (data.email       || '').toLowerCase(),
       trial:        isTrial,

@@ -1202,8 +1202,8 @@ const SettingsView = (() => {
   function _applyMemberPlanRestriction(el) {
     const isDemo = typeof Demo !== 'undefined' && Demo.isActive();
     const result = _getCachedLicenseResult();
-    // トライアル中は全機能（チーム機能含む）を解放 → ソロ制限はかけない
-    const isSolo = !isDemo && result?.plan === 'solo' && result?.trial !== true;
+    // APIがトライアル中は plan:'team' を返すため、単純に plan === 'solo' で判定する
+    const isSolo = !isDemo && result?.plan === 'solo';
     const btn  = el.querySelector('#btnAddMember');
     const hint = el.querySelector('#memberPlanHint');
     if (!btn) return;
