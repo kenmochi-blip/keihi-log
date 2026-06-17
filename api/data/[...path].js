@@ -107,10 +107,11 @@ async function _authorize(req, res) {
     return null;
   }
   const isAdmin = master.admins.includes(me.email);
-  const isMember = isAdmin || master.members.some(m => m.email === me.email);
+  const isViewer = master.viewers?.includes(me.email);
+  const isMember = isAdmin || isViewer || master.members.some(m => m.email === me.email);
   if (!isMember) { res.status(403).json({ error: 'not_a_member' }); return null; }
 
-  return { me, isAdmin, master, sheetId };
+  return { me, isAdmin, isViewer, master, sheetId };
 }
 
 /**
@@ -234,14 +235,15 @@ async function expensesGet(req, res) {
     cached = false;
   }
 
-  const rows = isAdmin ? all : all.filter(e => (e.email || '').toLowerCase() === me.email);
+  const canViewAll = isAdmin || isViewer;
+  const rows = canViewAll ? all : all.filter(e => (e.email || '').toLowerCase() === me.email);
   // 証票リンク（Drive URL）を署名付きプロキシURLへ書き換える。
   // 署名は「このメンバーが閲覧できる経費」にのみ発行されるため、他人の証票URLは取得できない。
   // キャッシュ済みオブジェクトは変更せずシャローコピーで返す（署名はリクエスト毎に再発行）。
   const signed = rows.map(e => e.imageLinks ? { ...e, imageLinks: _signImageLinks(e.imageLinks) } : e);
   return res.status(200).json({
     expenses: signed,
-    role: isAdmin ? 'admin' : 'member',
+    role: isAdmin ? 'admin' : isViewer ? 'viewer' : 'member',
     cached,
   });
 }
