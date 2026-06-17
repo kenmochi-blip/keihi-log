@@ -1591,13 +1591,7 @@ function _bindSubtypePills(el) {
       alerts.push('交際費は備考に参加者名を記載することを推奨します');
     }
 
-    // 1. 2ヶ月以上前の日付チェック（電帳法対応）
-    const expDate = new Date(data.date);
-    const twoMonthsAgo = new Date();
-    twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
-    if (expDate < twoMonthsAgo) {
-      alerts.push(`2ヶ月以上前の日付 (${data.date})`);
-    }
+    // 1. 2ヶ月以上前チェックは_handleSubmitで先行実施済みのためここでは省略
 
     // 2. インボイス番号＋金額の重複チェック（最優先・確実な重複）
     if (data.invoice && data.invoice.trim()) {
