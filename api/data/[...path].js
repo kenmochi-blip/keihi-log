@@ -213,7 +213,7 @@ async function expenses(req, res) {
 async function expensesGet(req, res) {
   const authz = await _authorize(req, res);
   if (!authz) return;
-  const { me, isAdmin, sheetId } = authz;
+  const { me, isAdmin, isViewer, sheetId } = authz;
   const refresh = _query(req).get('refresh') === '1';
 
   // キャッシュ（全件）→ レスポンス時にロール別フィルタ

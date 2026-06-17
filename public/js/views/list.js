@@ -948,8 +948,6 @@ const ListView = (() => {
 
   // summary.js のドリルダウンから呼び出せる承認関数（UI更新なし）
   async function approveExpense(id) {
-    const e = _expenses.find(x => x.id === id);
-    if (!e) throw new Error('レコードが見つかりません');
     if (Sheets.useProxy && Sheets.useProxy()) {
       await Sheets.approveExpense(id);
     } else {
@@ -957,16 +955,17 @@ const ListView = (() => {
       if (rowNum < 0) throw new Error('行が見つかりません');
       await Sheets.update(`経費一覧!J${rowNum}`, [[true]]);
     }
-    e.confirmed = true;
+    const e = _expenses.find(x => x.id === id);
+    if (e) e.confirmed = true;
   }
 
   // summary.js のドリルダウンから呼び出せる削除関数（UI更新なし）
   async function deleteExpense(id) {
-    const e = _expenses.find(x => x.id === id);
-    if (!e) throw new Error('レコードが見つかりません');
     if (Sheets.useProxy && Sheets.useProxy()) {
       await Sheets.deleteExpense(id);
     } else {
+      const e = _expenses.find(x => x.id === id);
+      if (!e) throw new Error('レコードが見つかりません');
       const ssId = localStorage.getItem('keihi_sheet_id');
       const timeResp = await fetch('/api/time');
       const deletedAt = timeResp.ok
@@ -996,6 +995,7 @@ const ListView = (() => {
 
     function _show(urls, idx) {
       _urls = urls; _cur = idx;
+      _pzReset();
       const url = urls[_cur];
       const isPdf = url.toLowerCase().includes('pdf') || url.includes('application%2Fpdf');
       img.style.display = isPdf ? 'none' : 'block';
@@ -1009,6 +1009,7 @@ const ListView = (() => {
     }
 
     function _close() {
+      _pzReset();
       viewer.style.display = 'none';
       img.src = '';
       document.body.style.overflow = '';
@@ -1019,6 +1020,31 @@ const ListView = (() => {
     prevBtn?.addEventListener('click', () => _show(_urls, (_cur - 1 + _urls.length) % _urls.length));
     nextBtn?.addEventListener('click', () => _show(_urls, (_cur + 1) % _urls.length));
     document.addEventListener('keydown', e => { if (viewer.style.display !== 'none' && e.key === 'Escape') _close(); });
+
+    // ピンチズーム（タッチデバイス向け）
+    let _pz = { scale: 1, baseSc: 1, dist: 0 };
+    function _pzReset() { _pz.scale = 1; img.style.transform = ''; img.style.transformOrigin = ''; }
+    const innerEl = document.getElementById('receiptViewerInner');
+    if (innerEl) {
+      innerEl.addEventListener('touchstart', e => {
+        if (e.touches.length !== 2) return;
+        e.preventDefault();
+        _pz.dist   = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        _pz.baseSc = _pz.scale;
+        const mx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        const my = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        const rect = img.getBoundingClientRect();
+        img.style.transformOrigin = `${((mx - rect.left) / rect.width * 100).toFixed(1)}% ${((my - rect.top) / rect.height * 100).toFixed(1)}%`;
+      }, { passive: false });
+      innerEl.addEventListener('touchmove', e => {
+        if (e.touches.length !== 2) return;
+        e.preventDefault();
+        const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        _pz.scale = Math.max(1, Math.min(6, _pz.baseSc * d / _pz.dist));
+        img.style.transform = `scale(${_pz.scale})`;
+      }, { passive: false });
+      innerEl.addEventListener('touchend', () => { if (_pz.scale < 1.05) _pzReset(); }, { passive: true });
+    }
 
     // 証票ボタンへのイベント委任（動的に生成される行に対応）
     document.addEventListener('click', e => {

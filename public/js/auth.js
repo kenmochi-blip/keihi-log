@@ -319,6 +319,7 @@ const Auth = (() => {
     _tokenExpiry = 0;
     localStorage.removeItem(SESSION_KEY);
     localStorage.removeItem('keihi_user_email');
+    localStorage.removeItem('keihi_master_cache');
     _setGapiToken(null);
     window.location.href = 'login.html';
   }
