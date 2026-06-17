@@ -1519,6 +1519,8 @@ function _bindSubtypePills(el) {
       category = el.querySelector('#selCatCar')?.value || '';
       note     = pnl.querySelector('#inputNote')?.value?.trim() || '';
       if (km === 0) { App.showToast('距離（km）を入力してください', 'danger'); return null; }
+      // キロ数と単価を備考に自動記録（編集時に復元するため）
+      note = [note, `（${km}km × ${rate}円/km）`].filter(Boolean).join('\n');
     } else {
       const isSplit = !pnl.querySelector('#splitLines')?.classList.contains('d-none');
       if (isSplit) {
@@ -1777,7 +1779,9 @@ function _bindSubtypePills(el) {
       const dateInput = pnl.querySelector('#inputDate');
       if (dateInput) dateInput.value = e.date;
       const noteInput = pnl.querySelector('#inputNote');
-      if (noteInput) noteInput.value = e.note || '';
+      // 自家用車: 末尾のkm注記を除いた備考を表示（km注記は別途フィールドへ復元）
+      const _kmNoteRe = /\n?（\d+\.?\d*km × \d+円\/km）/;
+      if (noteInput) noteInput.value = (e.note || '').replace(_kmNoteRe, '').trim();
 
       // タイプ別フィールド（keep exact same logic as original)
       if (e.type === '領収書' || e.type === '領収書なし') {
@@ -1834,6 +1838,12 @@ function _bindSubtypePills(el) {
         if (taxSel && e.taxRate) taxSel.value = e.taxRate;
         const cfSel = el.querySelector('#selCustomFlag');
         if (cfSel && e.customFlag) cfSel.value = e.customFlag;
+        // 領収書なし: 保存時に理由+備考が合算されているため全文を理由欄に復元し備考欄は空に
+        if (e.type === '領収書なし') {
+          const reasonInput = pnl.querySelector('#txtReason');
+          if (reasonInput) reasonInput.value = e.note || '';
+          if (noteInput) noteInput.value = '';
+        }
       } else if (e.type === '電車/バス') {
         const parts = (e.place || '').split(/ [→↔] /);
         const fromInput = el.querySelector('#txtFrom');
@@ -1849,13 +1859,11 @@ function _bindSubtypePills(el) {
         if (routeInput) routeInput.value = e.place || '';
         const selC = el.querySelector('#selCatCar');
         if (selC) [...selC.options].forEach(o => o.selected = o.value === e.category);
-        const kmInput   = el.querySelector('#numCarKm');
-        const rateInput = el.querySelector('#numCarRate');
-        if (kmInput && e.amount > 0) {
-          const rate = Number(rateInput?.value) || 20;
-          kmInput.value = rate > 0 ? Math.round(e.amount / rate * 10) / 10 : '';
-        }
-        // キロ数復元後に合計表示を更新
+        // 備考のkm注記からキロ数を復元
+        const kmMatch = (e.note || '').match(/（(\d+\.?\d*)km × \d+円\/km）/);
+        const kmInput = el.querySelector('#numCarKm');
+        if (kmMatch && kmInput) kmInput.value = kmMatch[1];
+        // 合計表示を更新
         const km   = Number(el.querySelector('#numCarKm')?.value) || 0;
         const rate = Number(el.querySelector('#numCarRate')?.value) || 20;
         const totalLbl = el.querySelector('#lblCarTotal');
