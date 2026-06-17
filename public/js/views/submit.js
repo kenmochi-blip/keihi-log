@@ -1852,13 +1852,17 @@ function _bindSubtypePills(el) {
       }
 
       // 会社払いセグメントの状態を復元
-      if (e.corpPay) {
+      // settlementDate は "会社払い（支払元名）" 形式で保存されている
+      const isCorpPay = typeof e.settlementDate === 'string' && e.settlementDate.startsWith('会社払い');
+      if (isCorpPay) {
         el.querySelector('#chkCorpPay') && (el.querySelector('#chkCorpPay').checked = true);
         el.querySelector('#btnPaySelf')?.classList.remove('active');
         el.querySelector('#btnPayCorp')?.classList.add('active');
         el.querySelector('#corpPayDetails')?.classList.remove('d-none');
         const sel = el.querySelector('#selPaySource');
-        if (sel && e.paySource) sel.value = e.paySource;
+        const paySourceMatch = e.settlementDate.match(/^会社払い（(.+)）$/);
+        const paySource = paySourceMatch ? paySourceMatch[1] : '';
+        if (sel && paySource) sel.value = paySource;
       }
 
       _renderExistingUrlPreviews(el, e.type);
