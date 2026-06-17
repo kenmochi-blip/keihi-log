@@ -595,6 +595,7 @@ const SettingsView = (() => {
         App.showToast('会社名を保存しました', 'success');
         const titleEl = document.getElementById('navAppTitle');
         if (titleEl) titleEl.textContent = name ? `経費ログ - ${name}` : '経費ログ';
+        document.title = name ? `経費ログ | ${name}` : '経費ログ';
       } catch (err) {
         msg.innerHTML = `<span class="text-danger">${App.friendlyError(err)}</span>`;
       }
@@ -1089,6 +1090,7 @@ const SettingsView = (() => {
 
     App.clearMasterCache();
     _master = await App.getMaster();
+    await App.reloadMaster(); // 自分のロール変更を検知して設定タブ表示を再評価
     _renderMembers(el);
     _renderCategoryList(el);
     _renderSimpleList(el, 'paySourceList',  _master.paySources,        'paySource');

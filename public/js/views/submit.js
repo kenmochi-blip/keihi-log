@@ -83,6 +83,9 @@ const SubmitView = (() => {
           <i class="bi bi-plus me-1"></i>追加
         </button>
       </div>
+      <div id="heroDrop2" class="text-center text-muted small py-2 mt-1 rounded-2" style="border:1.5px dashed #ced4da;cursor:pointer;">
+        <i class="bi bi-cloud-upload me-1"></i>ここにファイルをドロップして追加
+      </div>
     </div>
   </div>
 
@@ -660,6 +663,28 @@ function _bindSubtypePills(el) {
     });
 
     el.querySelector('#btnAnalyze')?.addEventListener('click', () => _runAiAnalysis(el));
+
+    // 2枚目以降のドロップゾーン（#heroPreview 表示中に追加ファイルをドロップできる）
+    const heroDrop2 = el.querySelector('#heroDrop2');
+    if (heroDrop2) {
+      heroDrop2.addEventListener('click', () => el.querySelector('#fileInput-領収書')?.click());
+      heroDrop2.addEventListener('dragover', e => {
+        e.preventDefault();
+        heroDrop2.style.borderColor = '#0d6efd';
+        heroDrop2.style.background = '#f0f5ff';
+      });
+      heroDrop2.addEventListener('dragleave', () => {
+        heroDrop2.style.borderColor = '#ced4da';
+        heroDrop2.style.background = '';
+      });
+      heroDrop2.addEventListener('drop', e => {
+        e.preventDefault();
+        heroDrop2.style.borderColor = '#ced4da';
+        heroDrop2.style.background = '';
+        const files = Array.from(e.dataTransfer.files);
+        if (files.length) processFiles(el, '領収書', files);
+      });
+    }
   }
 
   function _addPreviewItem(el, type, base64, mimeType, idx) {

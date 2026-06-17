@@ -81,20 +81,26 @@ const Drive = (() => {
     for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
     const blob = new Blob([bytes], { type: mimeType });
 
-    const meta = JSON.stringify({
-      name: filename,
-      mimeType,
-      ...(folderId ? { parents: [folderId] } : {})
-    });
+    const _doUpload = async (parentId) => {
+      const meta = JSON.stringify({
+        name: filename,
+        mimeType,
+        ...(parentId ? { parents: [parentId] } : {})
+      });
+      const form = new FormData();
+      form.append('metadata', new Blob([meta], { type: 'application/json' }));
+      form.append('file', blob);
+      return Auth.authFetch(
+        `${BASE}upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink`,
+        { method: 'POST', body: form }
+      );
+    };
 
-    const form = new FormData();
-    form.append('metadata', new Blob([meta], { type: 'application/json' }));
-    form.append('file', blob);
-
-    const resp = await Auth.authFetch(
-      `${BASE}upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink`,
-      { method: 'POST', body: form }
-    );
+    let resp = await _doUpload(folderId);
+    // フォルダIDが無効（404）の場合はルートにフォールバック
+    if (!resp.ok && resp.status === 404 && folderId) {
+      resp = await _doUpload('');
+    }
     if (!resp.ok) throw new Error(`Drive upload error: ${resp.status}`);
     const data = await resp.json(); // { id, webViewLink }
 

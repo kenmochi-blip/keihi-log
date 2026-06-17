@@ -814,6 +814,7 @@ const App = (() => {
       _userRole = 'member';
     }
     _isAdmin = _userRole === 'admin';
+    _applyAdminVisibility();
   }
 
   function isAdmin() { return _isAdmin; }
