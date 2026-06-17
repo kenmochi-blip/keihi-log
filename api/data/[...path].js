@@ -390,9 +390,15 @@ async function expensesSettle(req, res) {
   const date = body?.date;
   if (!Array.isArray(ids) || !ids.length || !date) return res.status(400).json({ error: 'invalid_request' });
 
-  const rowNums = await _rowNumsByIds(authz.sheetId, ids);
-  const data = rowNums.map(n => ({ range: `経費一覧!L${n}`, values: [[String(date)]] }));
-  if (data.length) await batchUpdateValuesViaSA(authz.sheetId, data);
+  let rowNums, data;
+  try {
+    rowNums = await _rowNumsByIds(authz.sheetId, ids);
+    data = rowNums.map(n => ({ range: `経費一覧!L${n}`, values: [[String(date)]] }));
+    if (data.length) await batchUpdateValuesViaSA(authz.sheetId, data);
+  } catch (e) {
+    console.error('expensesSettle sheet error:', e.message, { sheetId: authz.sheetId, ids });
+    return res.status(500).json({ error: 'sheet_write_failed', message: e.message });
+  }
   _inProcDel(`data:exp:${authz.sheetId}`); await kv.del(`data:exp:${authz.sheetId}`).catch(() => {});
 
   return res.status(200).json({ ok: true, updated: data.length });

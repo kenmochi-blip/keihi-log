@@ -294,10 +294,10 @@ const SummaryView = (() => {
     App.showLoading('精算処理中...');
     try {
       await Sheets.batchSettle(ids, today);
-      _expenses = await Sheets.readExpenses();
-      if (el) _renderAll(el);
       App.showToast(`${ids.length}件を精算済みにしました`, 'success');
       if (onDone) onDone();
+      // 精算後に最新データを再取得（失敗しても精算自体は成功なので無視）
+      Sheets.readExpenses().then(data => { _expenses = data; if (el) _renderAll(el); }).catch(() => {});
     } catch (err) {
       App.showToast('精算処理に失敗しました。' + App.friendlyError(err), 'danger');
     } finally {

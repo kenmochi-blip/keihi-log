@@ -1431,8 +1431,11 @@ function _bindSubtypePills(el) {
       });
 
       // 7. 編集の場合は修正履歴に旧データを保存してから更新
+      const _isDemo = typeof Demo !== 'undefined' && Demo.isActive();
       if (_editId) {
-        if (Sheets.useProxy && Sheets.useProxy()) {
+        if (_isDemo) {
+          await new Promise(r => setTimeout(r, 400));
+        } else if (Sheets.useProxy && Sheets.useProxy()) {
           // B'プロキシ：旧データ保存・認可・更新をサーバーが一括で行う
           await Sheets.editExpense(_editId, row);
         } else {
@@ -1463,7 +1466,11 @@ function _bindSubtypePills(el) {
       }
 
       App.clearExpensesCache(); // 申請・修正後はキャッシュを破棄して一覧/集計を最新化
-      App.showToast(_editId ? '修正しました' : '登録しました', 'success');
+      if (_isDemo) {
+        App.showToast((_editId ? '修正' : '登録') + 'しました（デモモードのため実際には保存されません）', 'info');
+      } else {
+        App.showToast(_editId ? '修正しました' : '登録しました', 'success');
+      }
       const returnTo = _editId ? _returnAfterEdit : null;
 
       // プレアップロード済みファイルを正式ファイル名にバックグラウンドでリネーム（電帳法対応）
