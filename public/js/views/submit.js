@@ -1267,6 +1267,16 @@ function _bindSubtypePills(el) {
     const data = _collectFormData(el);
     if (!data) return; // バリデーション失敗
 
+    // 領収書タイプの編集時に画像を全削除した場合は警告
+    if (_editId && _currentType === '領収書') {
+      const hasNewFiles   = _selectedFiles.filter(Boolean).length > 0;
+      const hasExisting   = _existingUrls.filter(Boolean).length > 0;
+      if (!hasNewFiles && !hasExisting) {
+        const ok = await App.confirm('証票画像がありません。このまま保存しますか？');
+        if (!ok) return;
+      }
+    }
+
     // 2ヶ月以上前の日付チェック（電帳法対応）
     const dateVal = new Date(data.date);
     const twoMonthsAgo = new Date();

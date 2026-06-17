@@ -163,14 +163,19 @@ const SummaryView = (() => {
       });
     });
 
-    el.querySelector('#inputFrom')?.addEventListener('change', () => {
-      _saveRange(el.querySelector('#inputFrom').value, el.querySelector('#inputTo').value, 0);
+    const _onRangeChange = () => {
+      const from = el.querySelector('#inputFrom').value;
+      const to   = el.querySelector('#inputTo').value;
+      if (from && to && from > to) {
+        App.showToast('終了年月は開始年月より後に設定してください', 'warning');
+        el.querySelector('#inputTo').value = from;
+        return;
+      }
+      _saveRange(from, to, 0);
       update();
-    });
-    el.querySelector('#inputTo')?.addEventListener('change', () => {
-      _saveRange(el.querySelector('#inputFrom').value, el.querySelector('#inputTo').value, 0);
-      update();
-    });
+    };
+    el.querySelector('#inputFrom')?.addEventListener('change', _onRangeChange);
+    el.querySelector('#inputTo')?.addEventListener('change', _onRangeChange);
 
     el.querySelector('#btnPrintSummary')?.addEventListener('click', () => window.print());
 

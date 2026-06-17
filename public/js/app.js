@@ -903,6 +903,10 @@ const App = (() => {
     const m = String(err?.message || '');
     if (m.includes('admin_only'))
       return 'この操作には管理者権限が必要です（マスタ表のD列にadminが設定されていない可能性があります）';
+    if (m.startsWith('proxy') && m.includes('503'))
+      return 'サーバーがスプレッドシートにアクセスできません。管理者にサービスアカウントの共有設定を確認するよう依頼してください。';
+    if (m.startsWith('proxy') && m.includes('403'))
+      return 'メンバーとして認識されていません。設定でメールアドレスの権限を確認し、ページを再読み込みしてください。';
     if (m.includes('403') || m.includes('permission') || m.includes('PERMISSION_DENIED'))
       return `アクセス権がありません。管理者に共有設定を依頼してください。<a href="/faq#q801" class="alert-link ms-1">詳細</a>`;
     if (m.includes('401') || m.toLowerCase().includes('unauthorized') || m.includes('token'))

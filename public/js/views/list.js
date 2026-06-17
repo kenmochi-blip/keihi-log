@@ -196,6 +196,14 @@ const ListView = (() => {
     // fromCache=true のとき：スワイプ由来でキャッシュ済みHTMLが表示されているため
     // テーブル再レンダリングをスキップ（チカチカ防止）
     if (opts.fromCache) {
+      // ロールが変わった場合（init完了後にviewerに変わった等）は再レンダリング
+      const _freshRole = App.getUserRole();
+      if (_freshRole !== _userRole) {
+        _userRole = _freshRole;
+        _isAdmin  = _freshRole === 'admin';
+        _showAll  = _freshRole === 'admin' || _freshRole === 'viewer';
+        _renderTable(el);
+      }
       // イベントハンドラのみ再バインドして早期リターン
       el.querySelector('#btnRefreshList')?.addEventListener('click', async () => {
         try {
@@ -280,7 +288,16 @@ const ListView = (() => {
         _shownCount = 50; _renderTable(el);
       });
     });
-    const _reset = () => { _shownCount = 50; _renderTable(el); };
+    const _reset = () => {
+      const from = el.querySelector('#filterMonthFrom')?.value;
+      const to   = el.querySelector('#filterMonthTo')?.value;
+      if (from && to && from > to) {
+        App.showToast('終了年月は開始年月より後に設定してください', 'warning');
+        el.querySelector('#filterMonthTo').value = from;
+        return;
+      }
+      _shownCount = 50; _renderTable(el);
+    };
     el.querySelector('#filterMonthFrom')?.addEventListener('change', _reset);
     el.querySelector('#filterMonthTo')?.addEventListener('change', _reset);
 

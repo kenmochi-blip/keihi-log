@@ -185,14 +185,14 @@ const Sheets = (() => {
     if (typeof Demo !== 'undefined' && Demo.isActive()) return [...Demo.EXPENSES];
     ssId = ssId || _ssId();
 
-    // B' プロキシ経由（オプトイン）。失敗時は従来の直接アクセスにフォールバックする。
+    // B' プロキシ経由（オプトイン）。4xx/5xx はフォールバックせず再throw
+    // （B'ユーザーは spreadsheets スコープを持たないため直接アクセスも同様に失敗する）
     if (_useProxy()) {
       try {
-        // refresh=1 でサーバーの60秒KVキャッシュをバイパス（明示的な「更新」操作用）
         const data = await _proxyGet('expenses', ssId, refresh ? '&refresh=1' : '');
         return data.expenses || [];
       } catch (e) {
-        console.warn('[proxy] readExpenses → 直接アクセスにフォールバック', e);
+        throw e; // プロキシのエラーをそのまま上位へ
       }
     }
 
@@ -392,14 +392,10 @@ const Sheets = (() => {
     if (typeof Demo !== 'undefined' && Demo.isActive()) return Demo.MASTER;
     ssId = ssId || _ssId();
 
-    // B' プロキシ経由（オプトイン）。失敗時は従来の直接アクセスにフォールバック。
+    // B' プロキシ経由（オプトイン）。失敗時は再throw（スコープ不足でフォールバック不可）
     if (_useProxy()) {
-      try {
-        const data = await _proxyGet('masters', ssId);
-        if (data.master) return data.master;
-      } catch (e) {
-        console.warn('[proxy] readMaster → 直接アクセスにフォールバック', e);
-      }
+      const data = await _proxyGet('masters', ssId);
+      if (data.master) return data.master;
     }
 
     const rows = await read('マスタ表!A2:H', ssId);
