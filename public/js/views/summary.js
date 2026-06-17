@@ -455,11 +455,11 @@ const SummaryView = (() => {
       // アコーディオンは備考・証票・各種ボタンのいずれかがある場合に表示
       const hasExtra = !!(e.note || imgUrls.length > 0 || canEdit || (isAdmin && status === '申請済'));
 
+      const _urlsJson = imgUrls.length ? _escape(JSON.stringify(imgUrls)) : '';
       const receiptBtns = imgUrls.map((url, j) =>
-        `<a href="${_escape(url)}" target="_blank" rel="noopener"
-            class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size:0.75rem;">
+        `<button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2 btn-receipt-view" data-urls="${_urlsJson}" data-idx="${j}" style="font-size:0.75rem;">
            <i class="bi bi-image me-1"></i>証票${imgUrls.length > 1 ? j + 1 : ''}
-         </a>`
+         </button>`
       ).join('');
       const approveBtn = isAdmin && status === '申請済'
         ? `<button class="btn btn-outline-success btn-sm py-0 px-1 drill-approve-btn" data-id="${_escape(e.id)}" title="登録済にする"><i class="bi bi-check-lg"></i></button>` : '';

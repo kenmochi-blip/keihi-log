@@ -1708,10 +1708,11 @@ function _bindSubtypePills(el) {
       : e.confirmed ? '登録済'
       : e.aiAudit?.startsWith('⛔') ? '要確認' : '申請済';
 
-    const imageBtn = e.imageLinks
-      ? `<a href="${e.imageLinks.split(',')[0].trim()}" target="_blank" class="btn btn-sm btn-outline-primary">
+    const _imgUrls = e.imageLinks ? e.imageLinks.split(',').map(s => s.trim()).filter(Boolean) : [];
+    const imageBtn = _imgUrls.length
+      ? `<button type="button" class="btn btn-sm btn-outline-primary btn-receipt-view" data-urls="${_escape(JSON.stringify(_imgUrls))}" data-idx="0">
            <i class="bi bi-image me-1"></i>証票
-         </a>`
+         </button>`
       : '';
     const isAdmin = App.isAdmin();
     const isSettled = !!e.settlementDate && !String(e.settlementDate).startsWith('会社払い');
