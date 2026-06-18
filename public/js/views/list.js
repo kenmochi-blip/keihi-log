@@ -983,11 +983,13 @@ const ListView = (() => {
     const img      = document.getElementById('receiptViewerImg');
     const pdfWrap  = document.getElementById('receiptViewerPdf');
     const pdfLink  = document.getElementById('receiptViewerPdfLink');
-    const closeBtn = document.getElementById('receiptViewerClose');
-    const navBar   = document.getElementById('receiptViewerNav');
-    const prevBtn  = document.getElementById('receiptViewerPrev');
-    const nextBtn  = document.getElementById('receiptViewerNext');
-    const pageEl   = document.getElementById('receiptViewerPage');
+    const closeBtn  = document.getElementById('receiptViewerClose');
+    const navBar    = document.getElementById('receiptViewerNav');
+    const prevBtn   = document.getElementById('receiptViewerPrev');
+    const nextBtn   = document.getElementById('receiptViewerNext');
+    const pageEl    = document.getElementById('receiptViewerPage');
+    const errWrap   = document.getElementById('receiptViewerError');
+    const errLink   = document.getElementById('receiptViewerErrorLink');
     if (!viewer) return;
 
     let _urls = [], _cur = 0;
@@ -999,6 +1001,7 @@ const ListView = (() => {
       const isPdf = url.toLowerCase().includes('pdf') || url.includes('application%2Fpdf');
       img.style.display = isPdf ? 'none' : 'block';
       pdfWrap.style.display = isPdf ? 'block' : 'none';
+      if (errWrap) errWrap.style.display = 'none';
       if (isPdf) { pdfLink.href = url; }
       else { img.src = url; }
       navBar.style.display = urls.length > 1 ? 'block' : 'none';
@@ -1011,8 +1014,18 @@ const ListView = (() => {
       _pzReset();
       viewer.style.display = 'none';
       img.src = '';
+      if (errWrap) errWrap.style.display = 'none';
       document.body.style.overflow = '';
     }
+
+    img.addEventListener('error', () => {
+      if (viewer.style.display === 'none') return;
+      img.style.display = 'none';
+      if (errWrap) {
+        errWrap.style.display = 'block';
+        if (errLink) errLink.href = _urls[_cur] || '#';
+      }
+    });
 
     closeBtn?.addEventListener('click', _close);
     viewer.addEventListener('click', e => { if (e.target === viewer) _close(); });
