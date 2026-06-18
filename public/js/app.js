@@ -296,7 +296,9 @@ const App = (() => {
       // email 不一致時は必ずサーバーから再取得される（セキュリティはサーバー側で担保）。
       const master    = masterRaw || { members: [], categories: [], paySources: [], admins: [], viewers: [] };
       const isOwner = !!(licCache?.result?.ownerEmail && licCache.result.ownerEmail === email);
-      _masterCache  = master;
+      // キャッシュがある場合のみ _masterCache にセット。
+      // ない場合は null のままにして getMaster() にサーバーから取得させる（空スタブを返すと勘定科目が空になる）
+      if (masterRaw) _masterCache = master;
       const myEntry = master.members?.find(m => m.email?.toLowerCase() === email);
       const explicitNonAdmin = myEntry && ['member', 'viewer'].includes((myEntry.role || '').toLowerCase());
       const hasMasterCache = masterRaw !== null;
