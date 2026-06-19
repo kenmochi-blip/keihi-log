@@ -440,7 +440,11 @@ const SummaryView = (() => {
   // ─── ドリルダウンモーダル ──────────────────────────────────
   function _showDrill(title, expenses, settleCallback = null, showName = true) {
     const total = expenses.reduce((s, e) => s + e.amount, 0);
-    const sorted = expenses.slice().sort((a, b) => a.date.localeCompare(b.date));
+    const sorted = expenses.slice().sort((a, b) => {
+      const dateCmp = a.date.localeCompare(b.date);
+      if (dateCmp !== 0) return dateCmp;
+      return (a.appliedAt || '').localeCompare(b.appliedAt || '');
+    });
     const isAdmin = App.getUserRole() === 'admin';
     const myEmail = Auth.getUserEmail();
     // 列数：日付・支払先・金額・状態 (4) + 申請者 (showName時+1)
