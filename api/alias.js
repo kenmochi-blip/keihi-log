@@ -12,6 +12,20 @@
 
 import { kv } from '@vercel/kv';
 import { rateLimit } from './_rateLimit.js';
+import { sheetsClient } from './_sa.js';
+
+/** シートの設定B2（会社名）をSAで直接読む。失敗時は空文字を返す。 */
+async function _readCompanyNameFromSheet(sheetId) {
+  try {
+    const sheets = sheetsClient();
+    const r = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId, range: '設定!B2',
+    });
+    return String(r.data.values?.[0]?.[0] || '');
+  } catch (_) {
+    return '';
+  }
+}
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
@@ -40,8 +54,20 @@ export default async function handler(req, res) {
     }
     const sheetId = await kv.get(`alias:${code}`).catch(() => null);
     if (sheetId) {
-      const aliasLic     = await kv.get(`alias_lic:${code}`).catch(() => null);
-      const companyName  = await kv.get(`alias_company:${code}`).catch(() => null);
+      const aliasLic = await kv.get(`alias_lic:${code}`).catch(() => null);
+      let companyName = await kv.get(`alias_company:${code}`).catch(() => null);
+
+      // alias_company が未設定の場合は SA でシートの B2 を直接読んでキャッシュ
+      if (!companyName) {
+        companyName = await _readCompanyNameFromSheet(sheetId);
+        if (companyName) {
+          // fire-and-forget: 次回以降は KV から高速返却
+          kv.set(`alias_company:${code}`, companyName).catch(() => {});
+          // 逆引きインデックスも補完
+          kv.set(`alias_by_sheet:${sheetId}`, code).catch(() => {});
+        }
+      }
+
       return res.status(200).json({
         sheetId,
         ...(aliasLic    ? { licenseKey: aliasLic }     : {}),

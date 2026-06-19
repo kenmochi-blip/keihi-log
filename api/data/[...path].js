@@ -570,9 +570,18 @@ async function settingsWrite(req, res) {
   }
   // 会社名（B2）更新時は OGP 用の alias_company も KV に同期
   if (cell === 'B2' && value) {
-    kv.get(`alias_by_sheet:${authz.sheetId}`).then(code => {
+    (async () => {
+      let code = await kv.get(`alias_by_sheet:${authz.sheetId}`).catch(() => null);
+      if (!code) {
+        // alias_by_sheet が未設定の場合はライセンスキー経由で逆引き
+        const settKey = `cfg:settings:${authz.sheetId}`;
+        const sett = _inProcGet(settKey) || await kv.get(settKey).catch(() => null);
+        const licKey = sett?.settings?.B3;
+        if (licKey) code = await kv.get(`license_alias:${licKey}`).catch(() => null);
+        if (code) kv.set(`alias_by_sheet:${authz.sheetId}`, code).catch(() => {}); // インデックス補完
+      }
       if (code) kv.set(`alias_company:${code}`, String(value)).catch(() => {});
-    }).catch(() => {});
+    })().catch(() => {});
   }
   return res.status(200).json({ ok: true });
 }
