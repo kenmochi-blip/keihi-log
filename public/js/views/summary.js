@@ -443,7 +443,7 @@ const SummaryView = (() => {
     const sorted = expenses.slice().sort((a, b) => {
       const dateCmp = a.date.localeCompare(b.date);
       if (dateCmp !== 0) return dateCmp;
-      return (a.appliedAt || '').localeCompare(b.appliedAt || '');
+      return String(a.appliedAt || '').localeCompare(String(b.appliedAt || ''));
     });
     const isAdmin = App.getUserRole() === 'admin';
     const myEmail = Auth.getUserEmail();
