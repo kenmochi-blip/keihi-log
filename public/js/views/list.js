@@ -1023,7 +1023,11 @@ const ListView = (() => {
       img.style.display = 'none';
       if (errWrap) {
         errWrap.style.display = 'block';
-        if (errLink) errLink.href = _urls[_cur] || '#';
+        if (errLink) {
+          const u = _urls[_cur] || '';
+          const m = u.match(/[?&]fileId=([a-zA-Z0-9_-]+)/);
+          errLink.href = m ? `https://drive.google.com/file/d/${m[1]}/view` : u || '#';
+        }
       }
     });
 

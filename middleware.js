@@ -4,9 +4,12 @@
  * LINE / Facebook 等のクローラーがチームの共有 URL（例: /h4jircd83m）を
  * アクセスした際、グループ名を含む OGP HTML を返す。
  * 通常ユーザーはそのまま通過させ app.html のルーティングに委ねる。
+ *
+ * KV には Edge Runtime から直接アクセスせず、既存の /api/alias エンドポイントを
+ * 内部呼び出しすることで Node.js 互換の @vercel/kv を利用する。
  */
 
-const BOT_UA = /facebookexternalhit|Twitterbot|Slackbot|Discordbot|TelegramBot|WhatsApp|LinkedInBot|Line\/|LINESEARCHBOT|Googlebot|bingbot|Baiduspider|DuckDuckBot|Applebot|Pinterestbot/i;
+const BOT_UA = /facebookexternalhit|Twitterbot|Slackbot|Discordbot|TelegramBot|WhatsApp|LinkedInBot|Line\/|LINESEARCHBOT|LineCrawler|Googlebot|bingbot|Baiduspider|DuckDuckBot|Applebot|Pinterestbot/i;
 
 const RESERVED = new Set([
   '', 'app', 'login', 'setup', 'faq', 'guide', 'demo', 'privacy', 'terms',
@@ -15,39 +18,32 @@ const RESERVED = new Set([
 
 const SITE_URL = 'https://keihi-log.com';
 
-async function kvGet(key) {
-  const url = process.env.KV_REST_API_URL;
-  const token = process.env.KV_REST_API_TOKEN;
-  if (!url || !token) return null;
-  try {
-    const r = await fetch(`${url}/get/${encodeURIComponent(key)}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!r.ok) return null;
-    const json = await r.json();
-    return json.result ?? null;
-  } catch {
-    return null;
-  }
-}
-
 export default async function middleware(request) {
   const ua = request.headers.get('user-agent') || '';
   if (!BOT_UA.test(ua)) return; // 通常ユーザーはスルー
 
-  const { pathname } = new URL(request.url);
-  // 最初のパスセグメントを取得（例: "/h4jircd83m" → "h4jircd83m"）
+  const { pathname, origin } = new URL(request.url);
   const seg = pathname.replace(/^\//, '').split('/')[0];
 
   // 予約済みパスや静的アセットはスルー
   if (RESERVED.has(seg)) return;
   if (!/^[a-zA-Z0-9_-]{3,}$/.test(seg)) return;
 
-  // KV からエイリアス情報を並列取得
-  const [sheetId, companyName] = await Promise.all([
-    kvGet(`alias:${seg}`),
-    kvGet(`alias_company:${seg}`),
-  ]);
+  // /api/alias エンドポイントで KV からエイリアス情報を取得（Node.js @vercel/kv を使用）
+  let sheetId = null;
+  let companyName = null;
+  try {
+    const r = await fetch(`${origin}/api/alias?code=${encodeURIComponent(seg)}`, {
+      headers: { 'user-agent': 'vercel-middleware-ogp/1.0' },
+    });
+    if (r.ok) {
+      const data = await r.json();
+      sheetId = data.sheetId || null;
+      companyName = data.companyName || null;
+    }
+  } catch {
+    return; // ネットワークエラーはスルー
+  }
 
   // 有効なエイリアスでなければスルー
   if (!sheetId) return;

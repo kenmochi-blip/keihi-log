@@ -568,6 +568,12 @@ async function settingsWrite(req, res) {
     _inProcDel(`gemini:key:${authz.sheetId}`);
     kv.del(`gemini:key:${authz.sheetId}`).catch(() => {});
   }
+  // 会社名（B2）更新時は OGP 用の alias_company も KV に同期
+  if (cell === 'B2' && value) {
+    kv.get(`alias_by_sheet:${authz.sheetId}`).then(code => {
+      if (code) kv.set(`alias_company:${code}`, String(value)).catch(() => {});
+    }).catch(() => {});
+  }
   return res.status(200).json({ ok: true });
 }
 
@@ -750,7 +756,7 @@ async function gemini(req, res) {
 
 /** カンマ区切りの証票URL群を署名付きプロキシURLへ書き換える。抽出不能URLは原文維持。 */
 function _signImageLinks(links) {
-  const exp = Date.now() + 24 * 3600 * 1000;
+  const exp = Date.now() + 7 * 24 * 3600 * 1000;
   return String(links).split(',').map(s => s.trim()).filter(Boolean).map(url => {
     const id = _driveFileId(url);
     if (!id) return url;
