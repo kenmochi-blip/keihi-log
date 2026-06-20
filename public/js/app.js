@@ -763,17 +763,9 @@ const App = (() => {
   function _saveExpensesLocal(rows) {
     try {
       const sheetId = localStorage.getItem('keihi_sheet_id') || '';
-      // 署名付きプロキシURL（24h有効）をDrive永続URLに戻してからキャッシュ保存。
-      // そのままだと再読み込み後に期限切れURLがレンダリングされる。
-      const sanitized = rows.map(e => {
-        if (!e.imageLinks || !e.imageLinks.includes('/api/data/receipt')) return e;
-        const normalized = e.imageLinks.replace(/\/api\/data\/receipt\?[^,\s]*/g, m => {
-          const id = m.match(/[?&]fileId=([a-zA-Z0-9_-]+)/)?.[1] || '';
-          return id ? `https://drive.google.com/file/d/${id}/view` : m;
-        });
-        return { ...e, imageLinks: normalized };
-      });
-      localStorage.setItem('keihi_expenses_cache', JSON.stringify({ data: sanitized, sheetId, email: _curEmail() }));
+      // 署名URLは7日TTLなので正規化せずそのまま保存。
+      // 復元時に有効な署名URLがそのまま使われ、画像が即表示される。
+      localStorage.setItem('keihi_expenses_cache', JSON.stringify({ data: rows, sheetId, email: _curEmail() }));
     } catch (_) {} // quota 超過は無視
   }
 
