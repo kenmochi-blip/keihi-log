@@ -993,6 +993,7 @@ const ListView = (() => {
     if (!viewer) return;
 
     let _urls = [], _cur = 0;
+    let _historyPushed = false;
 
     function _show(urls, idx) {
       _urls = urls; _cur = idx;
@@ -1008,6 +1009,11 @@ const ListView = (() => {
       if (pageEl) pageEl.textContent = `${_cur + 1} / ${urls.length}`;
       viewer.style.display = 'block';
       document.body.style.overflow = 'hidden';
+      // Androidバックジェスチャーでポップアップを閉じるためのダミー履歴エントリ
+      if (!_historyPushed) {
+        history.pushState({ receiptViewer: true }, '');
+        _historyPushed = true;
+      }
     }
 
     function _close() {
@@ -1016,7 +1022,24 @@ const ListView = (() => {
       img.src = '';
       if (errWrap) errWrap.style.display = 'none';
       document.body.style.overflow = '';
+      // ダミー履歴エントリを除去（バックで閉じた場合は既にpopstateで除去済みなのでスキップ）
+      if (_historyPushed) {
+        _historyPushed = false;
+        history.back();
+      }
     }
+
+    // Androidバックジェスチャー / ブラウザ戻るボタン → ポップアップを閉じる
+    window.addEventListener('popstate', e => {
+      if (viewer.style.display !== 'none') {
+        _historyPushed = false;
+        _pzReset();
+        viewer.style.display = 'none';
+        img.src = '';
+        if (errWrap) errWrap.style.display = 'none';
+        document.body.style.overflow = '';
+      }
+    });
 
     img.addEventListener('error', () => {
       if (viewer.style.display === 'none') return;
