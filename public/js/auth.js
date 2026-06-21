@@ -13,8 +13,12 @@ const Auth = (() => {
   var _tokenExpiry = 0;
   var _userInfo    = null;
 
+  // 領収書の保存・読み取りに必須のスコープ。granular consent でユーザーが
+  // このチェックを外したまま「続行」した場合、トークンには含まれないため検知して再同意を促す。
+  const REQUIRED_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+
   const SCOPES = [
-    'https://www.googleapis.com/auth/drive.file',
+    REQUIRED_SCOPE,
     'openid',
     'email',
     'profile',
@@ -161,7 +165,21 @@ const Auth = (() => {
     }
     if (tokens.error) throw new Error(tokens.error_description || tokens.error);
 
+    // granular consent でユーザーが「ドライブ上の特定のファイル」のチェックを
+    // 入れずに進んだ場合、付与スコープに drive.file が含まれない。
+    // そのまま続行すると後続のシート/領収書操作が全て失敗するため、ここで検知して
+    // consent 付き再ログインを促す（壊れた状態でアプリに入らせない）。
+    const _granted = String(tokens.scope || '').split(/\s+/);
+    if (!_granted.includes(REQUIRED_SCOPE)) {
+      localStorage.setItem('keihi_force_consent', '1');
+      localStorage.removeItem('keihi_pkce_verifier');
+      localStorage.removeItem('keihi_oauth_state');
+      throw new Error('insufficient_scope');
+    }
+
     await _storeTokens(tokens);
+    // 再同意フローを抜けたのでフラグをクリア（成功時のみ）
+    localStorage.removeItem('keihi_force_consent');
     localStorage.removeItem('keihi_pkce_verifier');
     localStorage.removeItem('keihi_oauth_state');
 
@@ -375,7 +393,10 @@ async function initLogin() {
     const dest = overrideReturnUrl || _returnUrl;
     document.getElementById('signInBtn').onclick = () => {
       document.getElementById('loginError').classList.add('d-none');
-      Auth.initiateLogin(dest, forceConsent);
+      // フラグはクリック時に再読込（insufficient_scope 検知でコールバック中に
+      // セットされた場合も確実に consent 付き再ログインになるようにする）
+      const fc = localStorage.getItem('keihi_force_consent') === '1';
+      Auth.initiateLogin(dest, fc);
     };
   };
 
@@ -401,6 +422,8 @@ async function initLogin() {
       }
       const msg = err.message === 'state_mismatch'
         ? 'ページの再読み込みや複数タブが原因でログインに失敗しました。もう一度「Googleでログイン」を押してください。'
+        : err.message === 'insufficient_scope'
+        ? '領収書の保存・読み取りに必要な許可が不足しています。次の画面で「ドライブ上の特定のファイル」のチェックを必ずオンにして「続行」を押してください。'
         : err.message === 'access_denied'
         ? 'Googleアカウントへのアクセスが拒否されました。もう一度お試しください。'
         : 'ログインに失敗しました: ' + err.message;
@@ -424,9 +447,10 @@ async function initLogin() {
   } catch (_) {}
 
   // ログインボタンを表示
-  // keihi_force_consent が立っている場合は consent でリフレッシュトークンを強制取得
+  // keihi_force_consent が立っている場合は consent でリフレッシュトークンを強制取得。
+  // フラグの解除は handleCallback の成功時に行う（onclick はクリック時に再読込するため、
+  // ここで消すと再ログインが consent 無しになってしまう）。
   if (forceConsent) {
-    localStorage.removeItem('keihi_force_consent');
     _showLoginBtn('セッションの有効期限が切れました。もう一度ログインしてください。');
   } else {
     _showLoginBtn(null);

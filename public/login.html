@@ -43,6 +43,11 @@
             <button id="signInBtn" class="btn btn-outline-primary w-100">
               <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" class="me-2">Googleでログイン
             </button>
+            <p class="text-muted text-center mt-2 mb-0" style="font-size:0.72rem; line-height:1.6;">
+              <i class="bi bi-info-circle me-1"></i>次の画面で表示される
+              <strong>「ドライブ上の特定のファイル」のチェック</strong>を必ずオンにして続行してください。
+              領収書の保存・読み取りに必要です。
+            </p>
             <div id="loginError" class="alert alert-danger small mt-2 d-none"></div>
           </div>
           <div id="loadingArea" class="d-none text-center py-2">
@@ -63,7 +68,7 @@
   </div>
 
   <script src="js/config.js"></script>
-  <script src="js/auth.js?v=20260611"></script>
+  <script src="js/auth.js?v=20260621"></script>
   <script>document.addEventListener('DOMContentLoaded', initLogin);</script>
   <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});</script>
   <!-- sw.js は自己解除スタブ。既存クライアントのSW・キャッシュを掃除するためだけに登録している -->
