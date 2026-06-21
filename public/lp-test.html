@@ -1,0 +1,2168 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XCNC24BTGP"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-XCNC24BTGP');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>経費ログ｜領収書を撮影して自動記録・経費精算をまるごとデジタル化</title>
+<meta name="description" content="領収書を撮影するだけでAIが金額・日付・支払先を自動記録。経費申請・承認・集計をブラウザで完結。データはGoogleスプレッドシートに保存されるため安全・低コスト。電帳法対応可能。月額330円〜。">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="経費ログ">
+<meta property="og:title" content="経費ログ｜領収書を撮影して自動記録・経費精算をまるごとデジタル化">
+<meta property="og:description" content="領収書を撮影するだけでAIが金額・日付・支払先を自動記録。経費申請・承認・集計をブラウザで完結。データはGoogleスプレッドシートに保存。電帳法対応可能。月額330円〜。">
+<meta property="og:url" content="https://keihi-log.com/">
+<meta property="og:image" content="https://keihi-log.com/icons/icon-512.png">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="経費ログ｜領収書を撮影して自動記録">
+<meta name="twitter:description" content="領収書を撮るだけでAIが自動記録。経費精算をまるごとデジタル化。月額330円〜。">
+<meta name="twitter:image" content="https://keihi-log.com/icons/icon-512.png">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<link rel="canonical" href="https://keihi-log.com/" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+<style>
+/* ===================================================
+   DESIGN TOKENS
+   =================================================== */
+:root {
+  --clr-dark:    #0B1120;
+  --clr-dark2:   #111827;
+  --clr-dark3:   #1e293b;
+  --clr-blue:    #2563EB;
+  --clr-blue-lt: #3B82F6;
+  --clr-accent:  #60A5FA;
+  --clr-green:   #10B981;
+  --clr-text:    #1e293b;
+  --clr-muted:   #64748b;
+  --clr-border:  #e2e8f0;
+  --clr-bg:      #F8FAFF;
+  --radius-lg:   16px;
+  --radius-xl:   24px;
+  --shadow-sm:   0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+  --shadow-md:   0 4px 16px rgba(0,0,0,.10);
+  --shadow-lg:   0 12px 40px rgba(0,0,0,.14);
+  --shadow-blue: 0 8px 28px rgba(37,99,235,.25);
+}
+
+/* ===================================================
+   BASE
+   =================================================== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; overflow-x: hidden; }
+body {
+  font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 1rem;
+  color: var(--clr-text);
+  background: #fff;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  max-width: 100%;
+}
+img { max-width: 100%; display: block; }
+a { color: inherit; text-decoration: none; }
+
+.container {
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+}
+@media (min-width: 768px) { .container { padding: 0 2rem; } }
+
+/* ===================================================
+   SCROLL ANIMATIONS
+   =================================================== */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity .6s ease, transform .6s ease;
+}
+.reveal.visible {
+  opacity: 1;
+  transform: none;
+}
+.reveal-delay-1 { transition-delay: .1s; }
+.reveal-delay-2 { transition-delay: .2s; }
+.reveal-delay-3 { transition-delay: .3s; }
+.reveal-delay-4 { transition-delay: .4s; }
+
+/* ===================================================
+   NAVBAR
+   =================================================== */
+.nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 900;
+  background: rgba(11,17,32,.92);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  transition: background .3s;
+}
+.nav.scrolled {
+  background: rgba(11,17,32,.98);
+}
+.nav-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 60px;
+}
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  color: #fff;
+  font-weight: 900;
+  font-size: 1.15rem;
+  letter-spacing: -.01em;
+}
+.nav-brand img {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+}
+.nav-links {
+  display: none;
+  align-items: center;
+  gap: 1.75rem;
+  list-style: none;
+}
+@media (min-width: 768px) { .nav-links { display: flex; } }
+.nav-links a {
+  color: rgba(255,255,255,.7);
+  font-size: .9rem;
+  font-weight: 500;
+  transition: color .2s;
+}
+.nav-links a:hover { color: #fff; }
+.nav-cta {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+}
+.btn-nav-demo {
+  color: rgba(255,255,255,.75);
+  font-size: .88rem;
+  font-weight: 500;
+  padding: .45rem .9rem;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 8px;
+  transition: all .2s;
+}
+.btn-nav-demo:hover {
+  color: #fff;
+  border-color: rgba(255,255,255,.45);
+}
+.btn-nav-signup {
+  background: var(--clr-blue);
+  color: #fff;
+  font-size: .88rem;
+  font-weight: 700;
+  padding: .45rem 1.1rem;
+  border-radius: 8px;
+  transition: background .2s, box-shadow .2s;
+}
+.btn-nav-signup:hover {
+  background: #1d4ed8;
+  box-shadow: var(--shadow-blue);
+}
+
+/* Mobile menu */
+.nav-hamburger {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 24px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+}
+@media (min-width: 768px) { .nav-hamburger { display: none; } }
+.nav-hamburger span {
+  display: block;
+  height: 2px;
+  background: rgba(255,255,255,.8);
+  border-radius: 2px;
+  transition: all .25s;
+}
+.nav-mobile {
+  display: none;
+  padding: .75rem 1.25rem 1rem;
+  border-top: 1px solid rgba(255,255,255,.06);
+}
+.nav-mobile.open { display: block; }
+.nav-mobile a {
+  display: block;
+  color: rgba(255,255,255,.8);
+  font-size: .95rem;
+  padding: .6rem 0;
+  border-bottom: 1px solid rgba(255,255,255,.05);
+}
+.nav-mobile .btn-signup-mobile {
+  display: block;
+  margin-top: .75rem;
+  background: var(--clr-blue);
+  color: #fff;
+  font-weight: 700;
+  text-align: center;
+  padding: .7rem 1rem;
+  border-radius: 8px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ===================================================
+   HERO
+   =================================================== */
+.hero {
+  background: var(--clr-dark);
+  padding: 120px 0 80px;
+  position: relative;
+  overflow: hidden;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+}
+/* Mesh gradient blobs */
+.hero-blob1, .hero-blob2 {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+}
+.hero-blob1 {
+  width: 600px; height: 600px;
+  top: -100px; right: -150px;
+  background: radial-gradient(circle, rgba(37,99,235,.25) 0%, transparent 70%);
+}
+.hero-blob2 {
+  width: 400px; height: 400px;
+  bottom: -100px; left: -80px;
+  background: radial-gradient(circle, rgba(16,185,129,.12) 0%, transparent 70%);
+}
+/* Subtle grid */
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+.hero-content {
+  position: relative;
+  z-index: 1;
+}
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 3rem;
+  align-items: center;
+}
+@media (min-width: 900px) {
+  .hero-grid { grid-template-columns: 1fr 1fr; gap: 4rem; }
+}
+.hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  background: rgba(37,99,235,.15);
+  border: 1px solid rgba(37,99,235,.35);
+  color: var(--clr-accent);
+  font-size: .82rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  padding: .35rem .9rem;
+  border-radius: 50px;
+  margin-bottom: 1.5rem;
+}
+.hero h1 {
+  color: #fff;
+  font-size: clamp(2rem, 5.5vw, 3.5rem);
+  font-weight: 900;
+  line-height: 1.2;
+  letter-spacing: -.02em;
+  margin-bottom: 1.25rem;
+}
+.hero h1 em {
+  font-style: normal;
+  background: linear-gradient(120deg, var(--clr-accent), #818cf8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.hero-lead {
+  color: rgba(255,255,255,.65);
+  font-size: 1.05rem;
+  line-height: 1.75;
+  margin-bottom: 2rem;
+  font-weight: 400;
+}
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem;
+  margin-bottom: 2rem;
+}
+.btn-hero-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  background: var(--clr-blue);
+  color: #fff;
+  font-weight: 700;
+  font-size: 1rem;
+  padding: .85rem 2rem;
+  border-radius: 10px;
+  box-shadow: var(--shadow-blue);
+  transition: all .2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-hero-primary:hover {
+  background: #1d4ed8;
+  transform: translateY(-2px);
+  box-shadow: 0 14px 40px rgba(37,99,235,.4);
+}
+.btn-hero-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  background: rgba(255,255,255,.07);
+  border: 1px solid rgba(255,255,255,.15);
+  color: rgba(255,255,255,.85);
+  font-weight: 600;
+  font-size: 1rem;
+  padding: .85rem 1.5rem;
+  border-radius: 10px;
+  transition: all .2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-hero-secondary:hover {
+  background: rgba(255,255,255,.12);
+  color: #fff;
+}
+.hero-trust {
+  display: flex;
+  flex-direction: column;
+  gap: .4rem;
+}
+.hero-trust-item {
+  color: rgba(255,255,255,.55);
+  font-size: .85rem;
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+}
+.hero-trust-item i { color: var(--clr-green); }
+
+/* Hero screenshot */
+.hero-visual {
+  position: relative;
+}
+.hero-screen-wrap {
+  background: #1e2d45;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 32px 80px rgba(0,0,0,.5);
+}
+.hero-screen-bar {
+  background: #151e2e;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  gap: 6px;
+  border-bottom: 1px solid rgba(255,255,255,.05);
+}
+.hero-screen-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+}
+.hero-screen-dot.r { background: #ff5f57; }
+.hero-screen-dot.y { background: #febc2e; }
+.hero-screen-dot.g { background: #28c840; }
+.hero-url-bar {
+  flex: 1;
+  margin-left: 12px;
+  background: rgba(255,255,255,.06);
+  border-radius: 4px;
+  height: 20px;
+  max-width: 240px;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+}
+.hero-url-bar span {
+  color: rgba(255,255,255,.35);
+  font-size: 10px;
+}
+.hero-carousel {
+  position: relative;
+  overflow: hidden;
+}
+.hero-slides {
+  display: flex;
+  transition: transform .5s cubic-bezier(.4,0,.2,1);
+}
+.hero-slide {
+  min-width: 100%;
+}
+.hero-slide img {
+  width: 100%;
+  height: 320px;
+  object-fit: contain;
+  object-position: top;
+  background: #fff;
+}
+@media (min-width: 900px) {
+  .hero-slide img { height: 380px; }
+}
+.hero-slide-label {
+  text-align: center;
+  color: rgba(255,255,255,.4);
+  font-size: .78rem;
+  padding: .5rem 0 .75rem;
+}
+.hero-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  padding-bottom: .5rem;
+}
+.hero-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.25);
+  cursor: pointer;
+  transition: background .25s;
+  border: none;
+  padding: 0;
+}
+.hero-dot.active { background: var(--clr-accent); }
+
+/* Floating badge */
+.hero-float-badge {
+  position: absolute;
+  bottom: -16px;
+  left: -20px;
+  background: rgba(16,185,129,.12);
+  border: 1px solid rgba(16,185,129,.3);
+  border-radius: 12px;
+  padding: .65rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  backdrop-filter: blur(8px);
+  animation: floatBadge 3.5s ease-in-out infinite;
+}
+@keyframes floatBadge {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.hero-float-icon {
+  width: 32px; height: 32px;
+  background: var(--clr-green);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+.hero-float-text {
+  font-size: .78rem;
+  color: rgba(255,255,255,.85);
+  font-weight: 600;
+}
+.hero-float-text small {
+  display: block;
+  color: var(--clr-green);
+  font-weight: 700;
+  font-size: .78rem;
+}
+
+/* ===================================================
+   STATS BAND
+   =================================================== */
+.stats-band {
+  background: var(--clr-dark2);
+  border-top: 1px solid rgba(255,255,255,.05);
+  border-bottom: 1px solid rgba(255,255,255,.05);
+  padding: 2.5rem 0;
+}
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+@media (min-width: 640px) { .stats-grid { grid-template-columns: repeat(4, 1fr); } }
+.stat-item {
+  text-align: center;
+  padding: 1rem;
+  border-right: 1px solid rgba(255,255,255,.06);
+}
+.stat-item:last-child { border-right: none; }
+.stat-num {
+  font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: -.03em;
+  line-height: 1;
+}
+.stat-num span {
+  color: var(--clr-accent);
+}
+.stat-label {
+  color: rgba(255,255,255,.45);
+  font-size: .8rem;
+  margin-top: .35rem;
+  font-weight: 500;
+}
+
+/* ===================================================
+   SECTION COMMONS
+   =================================================== */
+.section {
+  padding: 6rem 0;
+}
+.section-alt { background: var(--clr-bg); }
+.section-dark {
+  background: var(--clr-dark);
+  color: #fff;
+}
+.section-eyebrow {
+  display: inline-block;
+  font-size: .78rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--clr-blue);
+  margin-bottom: .75rem;
+}
+.section-dark .section-eyebrow { color: var(--clr-accent); }
+.section-title {
+  font-size: clamp(1.65rem, 4vw, 2.5rem);
+  font-weight: 900;
+  letter-spacing: -.025em;
+  line-height: 1.25;
+  margin-bottom: .75rem;
+}
+.section-lead {
+  font-size: 1.05rem;
+  color: var(--clr-muted);
+  line-height: 1.7;
+}
+.section-dark .section-lead { color: rgba(255,255,255,.55); }
+.section-header {
+  margin-bottom: 3rem;
+}
+.section-header.center { text-align: center; }
+
+/* ===================================================
+   PROBLEM
+   =================================================== */
+.problem-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+@media (min-width: 768px) { .problem-grid { grid-template-columns: repeat(4, 1fr); gap: 1.25rem; } }
+.problem-card {
+  background: #fff;
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius-lg);
+  padding: 1.75rem 1.5rem;
+  text-align: center;
+  transition: box-shadow .25s, transform .25s;
+}
+.problem-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-3px);
+}
+.problem-icon {
+  width: 56px; height: 56px;
+  border-radius: 14px;
+  background: #FEF2F2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  margin: 0 auto 1rem;
+  color: #EF4444;
+}
+.problem-card h5 {
+  font-size: .95rem;
+  font-weight: 700;
+  margin-bottom: .5rem;
+  color: var(--clr-text);
+}
+.problem-card p {
+  font-size: .82rem;
+  color: var(--clr-muted);
+  line-height: 1.65;
+}
+.problem-arrow {
+  text-align: center;
+  margin-top: 2.5rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--clr-border);
+}
+.problem-arrow p {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--clr-blue);
+}
+
+/* ===================================================
+   FEATURES
+   =================================================== */
+.features-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+@media (min-width: 640px) { .features-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1024px) { .features-grid { grid-template-columns: repeat(3, 1fr); } }
+.feature-card {
+  background: #fff;
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+  transition: box-shadow .25s, border-color .25s, transform .25s;
+  display: flex;
+  flex-direction: column;
+}
+.feature-card:hover {
+  box-shadow: 0 12px 32px rgba(37,99,235,.1);
+  border-color: rgba(37,99,235,.3);
+  transform: translateY(-3px);
+}
+.feature-icon {
+  width: 48px; height: 48px;
+  border-radius: 12px;
+  background: #EFF6FF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  color: var(--clr-blue);
+  margin-bottom: 1.25rem;
+  flex-shrink: 0;
+}
+.feature-card h4 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: .6rem;
+  color: var(--clr-text);
+}
+.feature-card p {
+  font-size: .88rem;
+  color: var(--clr-muted);
+  line-height: 1.7;
+  flex: 1;
+}
+
+/* ===================================================
+   BYOK
+   =================================================== */
+.byok-wrap {
+  background: #fff;
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.byok-inner {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 768px) {
+  .byok-inner { grid-template-columns: 1fr 1fr; }
+}
+.byok-left {
+  background: linear-gradient(135deg, #0d1b35 0%, #1a2d52 100%);
+  padding: 3rem 2.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+}
+.byok-left .section-eyebrow { color: var(--clr-accent); }
+.byok-left .section-title { color: #fff; font-size: clamp(1.4rem, 3vw, 2rem); }
+.byok-left .section-lead { color: rgba(255,255,255,.55); margin-bottom: 0; }
+.byok-right {
+  padding: 2.5rem;
+}
+.byok-reason {
+  display: flex;
+  gap: 1rem;
+  padding: 1.25rem 0;
+  border-bottom: 1px solid var(--clr-border);
+}
+.byok-reason:last-child { border-bottom: none; }
+.byok-reason-num {
+  width: 32px; height: 32px;
+  background: var(--clr-blue);
+  color: #fff;
+  border-radius: 8px;
+  font-size: .8rem;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: .1rem;
+}
+.byok-reason h5 {
+  font-size: .95rem;
+  font-weight: 700;
+  margin-bottom: .3rem;
+  color: var(--clr-text);
+}
+.byok-reason p {
+  font-size: .82rem;
+  color: var(--clr-muted);
+  line-height: 1.65;
+  margin: 0;
+}
+
+/* ===================================================
+   DENCHOU
+   =================================================== */
+.denchou-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 3rem;
+  align-items: center;
+}
+@media (min-width: 768px) { .denchou-grid { grid-template-columns: 1fr 1fr; } }
+.denchou-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  background: #ECFDF5;
+  color: var(--clr-green);
+  border: 1px solid rgba(16,185,129,.25);
+  font-size: .82rem;
+  font-weight: 700;
+  padding: .35rem .9rem;
+  border-radius: 50px;
+  margin-bottom: 1rem;
+}
+.denchou-grid h2 {
+  font-size: clamp(1.5rem, 3.5vw, 2.25rem);
+  font-weight: 900;
+  letter-spacing: -.025em;
+  line-height: 1.3;
+  margin-bottom: 1rem;
+  color: var(--clr-text);
+}
+.denchou-grid p { color: var(--clr-muted); line-height: 1.75; }
+.check-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: .9rem;
+}
+.check-item {
+  display: flex;
+  align-items: flex-start;
+  gap: .75rem;
+}
+.check-item-icon {
+  width: 22px; height: 22px;
+  background: var(--clr-green);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: .15rem;
+}
+.check-item-icon i { font-size: .7rem; color: #fff; }
+.check-item h6 {
+  font-size: .95rem;
+  font-weight: 700;
+  margin-bottom: .2rem;
+  color: var(--clr-text);
+}
+.check-item p {
+  font-size: .82rem;
+  color: var(--clr-muted);
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* ===================================================
+   STEPS
+   =================================================== */
+.steps-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+  position: relative;
+}
+@media (min-width: 640px) {
+  .steps-grid {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0;
+  }
+}
+.step-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 1.5rem 1rem;
+  position: relative;
+}
+@media (min-width: 640px) {
+  .step-item::after {
+    content: '';
+    position: absolute;
+    top: 2.35rem;
+    right: 0;
+    width: 50%;
+    height: 1px;
+    background: linear-gradient(to right, var(--clr-border), var(--clr-border));
+    transform: translateX(50%);
+    z-index: 0;
+  }
+  .step-item:last-child::after { display: none; }
+}
+.step-num {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: var(--clr-blue);
+  color: #fff;
+  font-weight: 900;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+  position: relative;
+  z-index: 1;
+  box-shadow: var(--shadow-blue);
+  flex-shrink: 0;
+}
+.step-item h5 {
+  font-size: .92rem;
+  font-weight: 700;
+  margin-bottom: .4rem;
+  color: var(--clr-text);
+}
+.step-item p {
+  font-size: .8rem;
+  color: var(--clr-muted);
+  line-height: 1.6;
+}
+
+/* ===================================================
+   PRICING
+   =================================================== */
+.pricing-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+@media (min-width: 640px) { .pricing-grid { grid-template-columns: repeat(2, 1fr); max-width: 680px; margin-left: auto; margin-right: auto; } }
+.price-card {
+  background: #fff;
+  border: 1.5px solid var(--clr-border);
+  border-radius: var(--radius-xl);
+  padding: 2.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  transition: box-shadow .25s, transform .25s;
+  position: relative;
+}
+.price-card:hover { box-shadow: var(--shadow-md); transform: translateY(-3px); }
+.price-card.featured {
+  border-color: var(--clr-blue);
+  box-shadow: 0 0 0 1px var(--clr-blue), var(--shadow-blue);
+}
+.price-popular {
+  position: absolute;
+  top: -13px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--clr-blue);
+  color: #fff;
+  font-size: .78rem;
+  font-weight: 700;
+  padding: .3rem .9rem;
+  border-radius: 50px;
+  white-space: nowrap;
+}
+.price-card h3 {
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: var(--clr-text);
+  margin-bottom: .25rem;
+}
+.price-sub {
+  font-size: .82rem;
+  color: var(--clr-muted);
+  margin-bottom: 1.5rem;
+}
+.price-amount-row {
+  display: flex;
+  align-items: baseline;
+  gap: .25rem;
+  margin-bottom: 1.5rem;
+}
+.price-amount {
+  font-size: 3rem;
+  font-weight: 900;
+  letter-spacing: -.04em;
+  color: var(--clr-blue);
+  line-height: 1;
+}
+.price-unit {
+  font-size: .9rem;
+  color: var(--clr-muted);
+}
+.price-features {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+  margin-bottom: 2rem;
+  flex: 1;
+}
+.price-features li {
+  display: flex;
+  align-items: flex-start;
+  gap: .5rem;
+  font-size: .88rem;
+  color: var(--clr-text);
+}
+.price-features li i {
+  color: var(--clr-green);
+  font-size: .85rem;
+  margin-top: .2rem;
+  flex-shrink: 0;
+}
+.btn-price {
+  display: block;
+  text-align: center;
+  background: var(--clr-blue);
+  color: #fff;
+  font-weight: 700;
+  font-size: .95rem;
+  padding: .85rem 1rem;
+  border-radius: 10px;
+  transition: background .2s, box-shadow .2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-price:hover { background: #1d4ed8; box-shadow: var(--shadow-blue); }
+.btn-price-outline {
+  display: block;
+  text-align: center;
+  border: 1.5px solid var(--clr-blue);
+  color: var(--clr-blue);
+  font-weight: 700;
+  font-size: .95rem;
+  padding: .85rem 1rem;
+  border-radius: 10px;
+  transition: all .2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-price-outline:hover { background: #EFF6FF; }
+.pricing-note {
+  text-align: center;
+  font-size: .82rem;
+  color: var(--clr-muted);
+  margin-top: .75rem;
+}
+
+/* Comparison table */
+.compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .88rem;
+}
+.compare-table thead th {
+  background: var(--clr-dark);
+  color: #fff;
+  padding: 1rem;
+  text-align: center;
+  font-weight: 700;
+}
+.compare-table thead th:first-child { text-align: left; }
+.compare-table tbody td {
+  padding: .9rem 1rem;
+  border-bottom: 1px solid var(--clr-border);
+  color: var(--clr-text);
+  text-align: center;
+}
+.compare-table tbody td:first-child { text-align: left; font-weight: 500; }
+.compare-table tbody tr:last-child td { border-bottom: none; }
+.compare-table tbody tr:hover td { background: var(--clr-bg); }
+.compare-wrap {
+  background: #fff;
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+/* ===================================================
+   FIT SECTION
+   =================================================== */
+.fit-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+}
+@media (min-width: 640px) { .fit-grid { grid-template-columns: 1fr 1fr; } }
+.fit-card {
+  background: #fff;
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+  box-shadow: var(--shadow-sm);
+}
+.fit-card-header {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  margin-bottom: 1.25rem;
+}
+.fit-icon {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+.fit-icon.ok { background: #D1FAE5; color: #059669; }
+.fit-icon.ng { background: #FEE2E2; color: #DC2626; }
+.fit-card h3 { font-size: 1rem; font-weight: 700; }
+.fit-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: .65rem;
+}
+.fit-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: .5rem;
+  font-size: .88rem;
+  color: var(--clr-text);
+  line-height: 1.55;
+}
+.fit-list li i { font-size: .9rem; flex-shrink: 0; margin-top: .15rem; }
+.fit-list li i.ok { color: #059669; }
+.fit-list li i.ng { color: #DC2626; }
+.fit-flow {
+  margin-top: 2rem;
+  background: #EFF6FF;
+  border: 1px solid rgba(37,99,235,.15);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  text-align: center;
+}
+.fit-flow-label {
+  font-size: .82rem;
+  font-weight: 700;
+  color: var(--clr-blue);
+  margin-bottom: 1rem;
+}
+.fit-flow-steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+.fit-flow-step {
+  background: #fff;
+  border: 1px solid rgba(37,99,235,.2);
+  color: #1e40af;
+  font-size: .82rem;
+  font-weight: 600;
+  padding: .5rem .9rem;
+  border-radius: 8px;
+}
+.fit-flow-arrow { color: var(--clr-blue); font-size: .9rem; }
+
+/* ===================================================
+   SECURITY
+   =================================================== */
+.security-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+}
+@media (min-width: 640px) { .security-grid { grid-template-columns: repeat(3, 1fr); } }
+.security-card {
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: var(--radius-lg);
+  padding: 2rem 1.5rem;
+  text-align: center;
+  transition: background .25s, border-color .25s;
+}
+.security-card:hover {
+  background: rgba(255,255,255,.08);
+  border-color: rgba(255,255,255,.18);
+}
+.security-icon {
+  width: 56px; height: 56px;
+  border-radius: 14px;
+  background: rgba(59,130,246,.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  color: var(--clr-accent);
+  margin: 0 auto 1.25rem;
+}
+.security-card h5 {
+  font-size: .95rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: .5rem;
+}
+.security-card p {
+  font-size: .82rem;
+  color: rgba(255,255,255,.5);
+  line-height: 1.65;
+}
+
+/* ===================================================
+   FAQ
+   =================================================== */
+.faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+.faq-item {
+  background: #fff;
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: border-color .2s;
+}
+.faq-item.open { border-color: var(--clr-blue); }
+.faq-question {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.15rem 1.5rem;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.faq-q-text {
+  font-size: .95rem;
+  font-weight: 600;
+  color: var(--clr-text);
+  line-height: 1.5;
+}
+.faq-toggle {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--clr-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background .2s, transform .3s;
+  font-size: .85rem;
+  color: var(--clr-muted);
+}
+.faq-item.open .faq-toggle {
+  background: var(--clr-blue);
+  color: #fff;
+  transform: rotate(45deg);
+}
+.faq-answer {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height .35s ease;
+}
+.faq-answer-inner {
+  padding: 0 1.5rem 1.25rem;
+  font-size: .88rem;
+  color: var(--clr-muted);
+  line-height: 1.75;
+}
+
+/* ===================================================
+   CTA BAND
+   =================================================== */
+.cta-band {
+  background: linear-gradient(135deg, #1a2d52 0%, #0f1729 100%);
+  padding: 5rem 0;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.cta-band::before {
+  content: '';
+  position: absolute;
+  top: -60%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 700px; height: 700px;
+  background: radial-gradient(circle, rgba(37,99,235,.2) 0%, transparent 65%);
+  pointer-events: none;
+}
+.cta-band h2 {
+  color: #fff;
+  font-size: clamp(1.6rem, 4vw, 2.5rem);
+  font-weight: 900;
+  letter-spacing: -.025em;
+  margin-bottom: 1rem;
+  position: relative;
+}
+.cta-band p {
+  color: rgba(255,255,255,.6);
+  font-size: 1rem;
+  margin-bottom: 2rem;
+  position: relative;
+}
+.cta-band-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: .75rem;
+  position: relative;
+}
+.btn-cta-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  background: var(--clr-blue);
+  color: #fff;
+  font-weight: 700;
+  font-size: 1rem;
+  padding: .9rem 2.25rem;
+  border-radius: 10px;
+  box-shadow: var(--shadow-blue);
+  transition: all .2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-cta-primary:hover { background: #1d4ed8; transform: translateY(-2px); }
+.btn-cta-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  color: rgba(255,255,255,.7);
+  font-weight: 600;
+  font-size: 1rem;
+  padding: .9rem 1.5rem;
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 10px;
+  transition: all .2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-cta-ghost:hover { color: #fff; border-color: rgba(255,255,255,.45); }
+.cta-band-note {
+  color: rgba(255,255,255,.4);
+  font-size: .82rem;
+  margin-top: 1rem;
+  position: relative;
+}
+
+/* Demo inline CTA */
+.demo-cta {
+  background: var(--clr-blue);
+  padding: 3rem 0;
+  text-align: center;
+}
+.demo-cta h3 { color: #fff; font-size: 1.15rem; font-weight: 700; margin-bottom: .5rem; }
+.demo-cta p { color: rgba(255,255,255,.75); font-size: .9rem; margin-bottom: 1.25rem; }
+.btn-demo-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  background: #fff;
+  color: var(--clr-blue);
+  font-weight: 700;
+  font-size: .95rem;
+  padding: .75rem 1.75rem;
+  border-radius: 10px;
+  transition: all .2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-demo-cta:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(0,0,0,.2); }
+
+/* ===================================================
+   FOOTER
+   =================================================== */
+.footer {
+  background: #090e1a;
+  padding: 3.5rem 0 1.5rem;
+  border-top: 1px solid rgba(255,255,255,.04);
+}
+.footer-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-bottom: 2.5rem;
+}
+@media (min-width: 640px) { .footer-grid { grid-template-columns: 2fr 1fr 1fr; } }
+.footer-brand { grid-column: 1 / -1; }
+@media (min-width: 640px) { .footer-brand { grid-column: auto; } }
+.footer-brand-name {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  color: #fff;
+  font-weight: 900;
+  font-size: 1.05rem;
+  margin-bottom: .75rem;
+}
+.footer-brand-name img { width: 28px; height: 28px; border-radius: 6px; }
+.footer-desc {
+  color: rgba(255,255,255,.35);
+  font-size: .82rem;
+  line-height: 1.7;
+}
+.footer-col h5 {
+  color: rgba(255,255,255,.5);
+  font-size: .75rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+}
+.footer-links {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: .55rem;
+}
+.footer-links a {
+  color: rgba(255,255,255,.35);
+  font-size: .82rem;
+  transition: color .2s;
+}
+.footer-links a:hover { color: rgba(255,255,255,.7); }
+.footer-bottom {
+  border-top: 1px solid rgba(255,255,255,.05);
+  padding-top: 1.5rem;
+  text-align: center;
+  color: rgba(255,255,255,.2);
+  font-size: .78rem;
+}
+
+/* ===================================================
+   RESPONSIVE HELPERS
+   =================================================== */
+@media (max-width: 639px) {
+  .section { padding: 4rem 0; }
+  .hero { min-height: auto; padding: 90px 0 60px; }
+  .stat-item { border-right: none; border-bottom: 1px solid rgba(255,255,255,.06); }
+  .stat-item:last-child { border-bottom: none; }
+  .compare-table { font-size: .78rem; }
+  .compare-table thead th, .compare-table tbody td { padding: .65rem .75rem; }
+}
+
+/* Tap highlight removal */
+a, button { -webkit-tap-highlight-color: transparent; }
+</style>
+</head>
+<body>
+
+<!-- ===================================================
+     NAVBAR
+     =================================================== -->
+<nav class="nav" id="mainNav">
+  <div class="container">
+    <div class="nav-inner">
+      <a class="nav-brand" href="/lp-test">
+        <img src="/icons/icon-192.png" alt="経費ログ">
+        経費ログ
+      </a>
+      <ul class="nav-links">
+        <li><a href="#features">機能</a></li>
+        <li><a href="#pricing">料金</a></li>
+        <li><a href="#byok">低価格の理由</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ul>
+      <div class="nav-cta">
+        <a class="btn-nav-demo" href="/app?demo">デモを見る</a>
+        <a class="btn-nav-signup" href="https://buy.stripe.com/5kQ28r1Ps7ut2kv4io9oc08">無料で試す</a>
+      </div>
+      <button class="nav-hamburger" id="hamburger" aria-label="メニューを開く">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+    <div class="nav-mobile" id="navMobile">
+      <a href="#features">機能</a>
+      <a href="#pricing">料金</a>
+      <a href="#byok">低価格の理由</a>
+      <a href="#faq">FAQ</a>
+      <a href="/app?demo">デモを見る（無料・登録不要）</a>
+      <a class="btn-signup-mobile" href="https://buy.stripe.com/5kQ28r1Ps7ut2kv4io9oc08">2週間無料で試す（カード不要）</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ===================================================
+     HERO
+     =================================================== -->
+<header class="hero">
+  <div class="hero-blob1"></div>
+  <div class="hero-blob2"></div>
+  <div class="container hero-content">
+    <div class="hero-grid">
+      <!-- Text -->
+      <div>
+        <span class="hero-eyebrow">
+          <i class="bi bi-stars"></i>
+          公認会計士が設計 · カード登録不要で2週間無料
+        </span>
+        <h1>
+          領収書を撮って<br>
+          <em>AIが自動記録。</em><br>
+          経費精算が変わる。
+        </h1>
+        <p class="hero-lead">
+          申請・承認・集計をブラウザで一気通貫。<br>
+          データはあなた自身のGoogleスプレッドシートに安全保管。<br>
+          月額330円から使える、小規模チーム向け経費管理ツール。
+        </p>
+        <div class="hero-actions">
+          <a class="btn-hero-primary" href="https://buy.stripe.com/5kQ28r1Ps7ut2kv4io9oc08">
+            2週間無料で試す <i class="bi bi-arrow-right"></i>
+          </a>
+          <a class="btn-hero-secondary" href="/app?demo">
+            <i class="bi bi-play-circle"></i> デモを見る
+          </a>
+        </div>
+        <div class="hero-trust">
+          <span class="hero-trust-item"><i class="bi bi-check-circle-fill"></i>クレジットカード登録不要</span>
+          <span class="hero-trust-item"><i class="bi bi-check-circle-fill"></i>同意なく自動課金されることは一切なし</span>
+          <span class="hero-trust-item"><i class="bi bi-check-circle-fill"></i>2週間後も継続はユーザーが自発的に選ぶ</span>
+        </div>
+      </div>
+
+      <!-- Visual -->
+      <div class="hero-visual">
+        <div class="hero-screen-wrap">
+          <div class="hero-screen-bar">
+            <div class="hero-screen-dot r"></div>
+            <div class="hero-screen-dot y"></div>
+            <div class="hero-screen-dot g"></div>
+            <div class="hero-url-bar"><span>keihi-log.com/app</span></div>
+          </div>
+          <div class="hero-carousel" id="heroCarousel">
+            <div class="hero-slides" id="heroSlides">
+              <div class="hero-slide">
+                <img src="/img/demo-submit.png" alt="スタート画面" fetchpriority="high">
+                <p class="hero-slide-label">スタート画面</p>
+              </div>
+              <div class="hero-slide">
+                <img src="/img/demo-form.png" alt="入力フォーム" loading="lazy">
+                <p class="hero-slide-label">入力フォーム</p>
+              </div>
+              <div class="hero-slide">
+                <img src="/img/demo-list.png" alt="一覧表" loading="lazy">
+                <p class="hero-slide-label">一覧表</p>
+              </div>
+              <div class="hero-slide">
+                <img src="/img/demo-summary.png" alt="集計表" loading="lazy">
+                <p class="hero-slide-label">集計表</p>
+              </div>
+            </div>
+          </div>
+          <div class="hero-dots" id="heroDots">
+            <button class="hero-dot active" data-idx="0"></button>
+            <button class="hero-dot" data-idx="1"></button>
+            <button class="hero-dot" data-idx="2"></button>
+            <button class="hero-dot" data-idx="3"></button>
+          </div>
+        </div>
+        <div class="hero-float-badge">
+          <div class="hero-float-icon">✓</div>
+          <div class="hero-float-text">
+            <small>AI解析 完了</small>
+            ¥2,640 · 接待交際費
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ===================================================
+     STATS BAND
+     =================================================== -->
+<div class="stats-band">
+  <div class="container">
+    <div class="stats-grid">
+      <div class="stat-item reveal">
+        <div class="stat-num"><span>330</span>円〜</div>
+        <div class="stat-label">月額（税込）</div>
+      </div>
+      <div class="stat-item reveal reveal-delay-1">
+        <div class="stat-num"><span>15</span>分</div>
+        <div class="stat-label">初期設定の目安時間</div>
+      </div>
+      <div class="stat-item reveal reveal-delay-2">
+        <div class="stat-num"><span>500</span>件</div>
+        <div class="stat-label">AI解析・無料枠（1日）</div>
+      </div>
+      <div class="stat-item reveal reveal-delay-3">
+        <div class="stat-num"><span>0</span>円</div>
+        <div class="stat-label">2週間トライアル費用</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================================================
+     PROBLEM
+     =================================================== -->
+<section class="section section-alt" id="problem">
+  <div class="container">
+    <div class="section-header center">
+      <span class="section-eyebrow">PROBLEM</span>
+      <h2 class="section-title reveal">経費精算、こんな悩みありませんか？</h2>
+    </div>
+    <div class="problem-grid">
+      <div class="problem-card reveal">
+        <div class="problem-icon"><i class="bi bi-file-earmark-text"></i></div>
+        <h5>領収書の手入力が面倒</h5>
+        <p>月末にまとめて手入力。金額や日付の打ち間違いも多発…。</p>
+      </div>
+      <div class="problem-card reveal reveal-delay-1">
+        <div class="problem-icon"><i class="bi bi-files"></i></div>
+        <h5>Excelが煩雑</h5>
+        <p>テンプレートが乱立。誰の最新ファイルかわからなくなる。</p>
+      </div>
+      <div class="problem-card reveal reveal-delay-2">
+        <div class="problem-icon"><i class="bi bi-currency-yen"></i></div>
+        <h5>SaaSは高い</h5>
+        <p>数千円/月のサービスが多く、小規模チームには負担が大きい。</p>
+      </div>
+      <div class="problem-card reveal reveal-delay-3">
+        <div class="problem-icon"><i class="bi bi-shield-exclamation"></i></div>
+        <h5>電帳法が不安</h5>
+        <p>電子帳簿保存法に対応できているか、根拠を持って答えられない。</p>
+      </div>
+    </div>
+    <div class="problem-arrow reveal">
+      <p><i class="bi bi-arrow-down-circle-fill" style="margin-right:.5rem;"></i>「経費ログ」がすべて解決します</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================
+     FEATURES
+     =================================================== -->
+<section class="section" id="features">
+  <div class="container">
+    <div class="section-header center">
+      <span class="section-eyebrow">FEATURES</span>
+      <h2 class="section-title reveal">経費管理に必要なすべてが、ここに</h2>
+      <p class="section-lead reveal">領収書の撮影から申請・承認・集計まで、ひとつのツールで完結します</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card reveal">
+        <div class="feature-icon"><i class="bi bi-camera-fill"></i></div>
+        <h4>AI領収書解析</h4>
+        <p>スマホで撮影するだけ。GeminiのAIが金額・支払先・日付・税区分・勘定科目を自動読み取り、申請フォームに自動入力します。手入力ゼロを実現。</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-1">
+        <div class="feature-icon"><i class="bi bi-cloud-check-fill"></i></div>
+        <h4>データは自分のGoogleアカウントへ</h4>
+        <p>経費明細はGoogleスプレッドシートに、証憑画像はGoogleドライブに保存。当社サーバーにデータは保管されません。ベンダーロックインなし。</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-2">
+        <div class="feature-icon"><i class="bi bi-bar-chart-fill"></i></div>
+        <h4>集計・レポート</h4>
+        <p>勘定科目別・部署別・月次の集計を自動生成。リアルタイムで支出状況を確認できます。</p>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon"><i class="bi bi-shield-fill-check"></i></div>
+        <h4>電帳法対応可能</h4>
+        <p>サーバー時刻記録・ハッシュ管理・インボイス番号の自動抽出に対応。電子帳簿保存法の要件を満たした運用が可能な仕組みを標準搭載。</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-1">
+        <div class="feature-icon"><i class="bi bi-train-front-fill"></i></div>
+        <h4>交通費・各種経費に対応</h4>
+        <p>出発駅・到着駅を入力するだけで運賃を自動検索。自家用車（距離精算）や立替にも対応。あらゆる経費を一元管理。</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-2">
+        <div class="feature-icon"><i class="bi bi-file-earmark-arrow-down-fill"></i></div>
+        <h4>会計ソフト連携CSV出力</h4>
+        <p>freee・弥生・MFクラウド会計の取り込み形式に対応したCSVを出力可能。月次の仕訳入力作業を大幅に削減できます。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Demo CTA -->
+<div class="demo-cta">
+  <div class="container">
+    <h3><i class="bi bi-play-circle-fill" style="margin-right:.5rem;"></i>実際の操作感をデモで確認</h3>
+    <p>登録なし・カード不要。本番と同じ画面でAI解析も体験できます。</p>
+    <a class="btn-demo-cta" href="/app?demo">
+      <i class="bi bi-arrow-right-circle-fill"></i>デモ画面を見る（無料・登録不要）
+    </a>
+  </div>
+</div>
+
+<!-- ===================================================
+     WHY CHEAP (BYOK)
+     =================================================== -->
+<section class="section section-alt" id="byok">
+  <div class="container">
+    <div class="section-header center reveal">
+      <span class="section-eyebrow">PRICING REASON</span>
+      <h2 class="section-title">なぜ月額330円を実現できるのか？</h2>
+    </div>
+    <div class="byok-wrap reveal">
+      <div class="byok-inner">
+        <div class="byok-left">
+          <span class="section-eyebrow">2つの仕組み</span>
+          <h2 class="section-title" style="color:#fff;font-size:clamp(1.35rem,2.5vw,1.85rem);">業界の常識を覆す<br>コスト構造</h2>
+          <p class="section-lead" style="color:rgba(255,255,255,.5);margin-top:.75rem;">AIコストを当社が負担せず、データベースも持たない。その分をまるごと価格に還元しています。</p>
+        </div>
+        <div class="byok-right">
+          <div class="byok-reason">
+            <div class="byok-reason-num">①</div>
+            <div>
+              <h5>BYOK（Bring Your Own Key）方式</h5>
+              <p>お客様自身のGoogle AI Studio APIキーを設定してAI解析を利用する仕組みです。無料枠は1日500リクエスト。領収書1枚につき1回なので、通常業務なら追加費用はゼロ。無料アカウントのまま利用でき、超過しても課金されません。</p>
+            </div>
+          </div>
+          <div class="byok-reason">
+            <div class="byok-reason-num">②</div>
+            <div>
+              <h5>データはお客様のGoogleスプレッドシートへ</h5>
+              <p>当社はデータベースサーバーを運営しません。経費データはお客様のGoogleスプレッドシートに直接保存されます。データベース運営コストがゼロになる分、価格に還元できています。解約後もデータはそのまま残ります。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================
+     電帳法
+     =================================================== -->
+<section class="section" id="denchou">
+  <div class="container">
+    <div class="denchou-grid">
+      <div class="reveal">
+        <div class="denchou-badge"><i class="bi bi-shield-fill-check"></i>電子帳簿保存法対応</div>
+        <h2>電帳法対応可能な仕組みを、<br>標準搭載。</h2>
+        <p style="color:var(--clr-muted);line-height:1.75;margin-top:.75rem;">2024年1月から本格運用となった電子帳簿保存法。経費ログなら、対応に必要な要件を標準機能で網羅しています。</p>
+      </div>
+      <ul class="check-list reveal reveal-delay-1">
+        <li class="check-item">
+          <div class="check-item-icon"><i class="bi bi-check-lg"></i></div>
+          <div>
+            <h6>サーバー時刻による申請日時記録</h6>
+            <p>クライアント時刻ではなくサーバー時刻を使用し、申請日時の改ざんを防止</p>
+          </div>
+        </li>
+        <li class="check-item">
+          <div class="check-item-icon"><i class="bi bi-check-lg"></i></div>
+          <div>
+            <h6>ハッシュ値による改ざん検知</h6>
+            <p>ファイルごとにハッシュ値を記録し、改ざんを検知</p>
+          </div>
+        </li>
+        <li class="check-item">
+          <div class="check-item-icon"><i class="bi bi-check-lg"></i></div>
+          <div>
+            <h6>インボイス番号の自動抽出</h6>
+            <p>適格請求書発行事業者の登録番号をAIが自動で抽出・記録</p>
+          </div>
+        </li>
+        <li class="check-item">
+          <div class="check-item-icon"><i class="bi bi-check-lg"></i></div>
+          <div>
+            <h6>検索機能の確保</h6>
+            <p>取引年月日・取引金額・取引先での検索が可能</p>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================
+     STEPS
+     =================================================== -->
+<section class="section section-alt" id="steps">
+  <div class="container">
+    <div class="section-header center">
+      <span class="section-eyebrow">HOW TO START</span>
+      <h2 class="section-title reveal">最短15分で使い始められる</h2>
+      <p class="section-lead reveal">かんたん5ステップで経費申請がスタートできます</p>
+    </div>
+    <div class="steps-grid">
+      <div class="step-item reveal">
+        <div class="step-num">1</div>
+        <h5>Googleでログイン</h5>
+        <p>普段お使いのGoogleアカウントでサインイン。新規登録は不要です。</p>
+      </div>
+      <div class="step-item reveal reveal-delay-1">
+        <div class="step-num">2</div>
+        <h5>APIキーを取得</h5>
+        <p>Google AI Studioで無料のAPIキーを発行。数クリックで完了します。</p>
+      </div>
+      <div class="step-item reveal reveal-delay-2">
+        <div class="step-num">3</div>
+        <h5>シート＆フォルダを自動作成</h5>
+        <p>スプレッドシートとDriveフォルダをワンクリックで自動生成。</p>
+      </div>
+      <div class="step-item reveal reveal-delay-3">
+        <div class="step-num">4</div>
+        <h5>メンバーを招待</h5>
+        <p>チームプランの場合のみ。メールアドレスを登録して専用URLを共有。</p>
+      </div>
+      <div class="step-item reveal reveal-delay-4">
+        <div class="step-num">5</div>
+        <h5>申請スタート</h5>
+        <p>領収書を撮影してアップロード。AIが自動入力し、申請完了。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================
+     PRICING
+     =================================================== -->
+<section class="section" id="pricing">
+  <div class="container">
+    <div class="section-header center">
+      <span class="section-eyebrow">PRICING</span>
+      <h2 class="section-title reveal">シンプルな2プランのみ</h2>
+      <p class="section-lead reveal">人数ごとの課金なし・定額でご利用いただけます</p>
+    </div>
+    <div class="pricing-grid">
+      <div class="price-card reveal">
+        <h3>ソロプラン</h3>
+        <p class="price-sub">個人事業主・フリーランス向け</p>
+        <div class="price-amount-row">
+          <span class="price-amount">330</span>
+          <span class="price-unit">円 / 月（税込）</span>
+        </div>
+        <ul class="price-features">
+          <li><i class="bi bi-check-circle-fill"></i>AI領収書解析</li>
+          <li><i class="bi bi-check-circle-fill"></i>交通費・自家用車経費対応</li>
+          <li><i class="bi bi-check-circle-fill"></i>Googleスプレッドシート保存</li>
+          <li><i class="bi bi-check-circle-fill"></i>集計・レポート機能</li>
+          <li><i class="bi bi-check-circle-fill"></i>会計ソフト連携CSV出力</li>
+          <li><i class="bi bi-check-circle-fill"></i>電帳法対応可能</li>
+          <li><i class="bi bi-check-circle-fill"></i>1ユーザー</li>
+        </ul>
+        <a class="btn-price-outline" href="https://buy.stripe.com/5kQ28r1Ps7ut2kv4io9oc08">2週間無料で試す</a>
+        <p class="pricing-note">カード登録不要・自動課金なし</p>
+      </div>
+      <div class="price-card featured reveal reveal-delay-1">
+        <span class="price-popular"><i class="bi bi-star-fill" style="margin-right:.3rem;"></i>人気No.1</span>
+        <h3>チームプラン</h3>
+        <p class="price-sub">中小企業・チーム向け</p>
+        <div class="price-amount-row">
+          <span class="price-amount">825</span>
+          <span class="price-unit">円 / 月（税込）</span>
+        </div>
+        <ul class="price-features">
+          <li><i class="bi bi-check-circle-fill"></i>ソロプランのすべての機能</li>
+          <li><i class="bi bi-check-circle-fill"></i>チーム全員で使える（定額）</li>
+          <li><i class="bi bi-check-circle-fill"></i>申請・承認・精算済みステータス管理</li>
+          <li><i class="bi bi-check-circle-fill"></i>部署別・メンバー別レポート</li>
+          <li><i class="bi bi-check-circle-fill"></i>3段階の権限管理（管理者・閲覧者・一般）</li>
+          <li><i class="bi bi-check-circle-fill"></i>Googleスプレッドシートを業務で使うチームに最適</li>
+        </ul>
+        <a class="btn-price" href="https://buy.stripe.com/5kQ28r1Ps7ut2kv4io9oc08">2週間無料で試す</a>
+        <p class="pricing-note">カード登録不要・自動課金なし</p>
+      </div>
+    </div>
+
+    <div class="compare-wrap reveal" style="margin-top:1rem;">
+      <div style="padding:1.25rem 1.5rem;border-bottom:1px solid var(--clr-border);">
+        <h3 style="font-size:1rem;font-weight:700;color:var(--clr-text);">プラン比較表</h3>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="compare-table">
+          <thead>
+            <tr>
+              <th>機能</th>
+              <th>ソロ</th>
+              <th>チーム</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>月額（税込）</td><td><strong>330円</strong></td><td><strong>825円</strong></td></tr>
+            <tr><td>AI領収書解析</td><td><i class="bi bi-check-circle-fill" style="color:#10B981;"></i></td><td><i class="bi bi-check-circle-fill" style="color:#10B981;"></i></td></tr>
+            <tr><td>Googleスプレッドシート保存</td><td><i class="bi bi-check-circle-fill" style="color:#10B981;"></i></td><td><i class="bi bi-check-circle-fill" style="color:#10B981;"></i></td></tr>
+            <tr><td>集計・レポート</td><td><i class="bi bi-check-circle-fill" style="color:#10B981;"></i></td><td><i class="bi bi-check-circle-fill" style="color:#10B981;"></i></td></tr>
+            <tr><td>会計ソフト連携CSV出力</td><td><i class="bi bi-check-circle-fill" style="color:#10B981;"></i></td><td><i class="bi bi-check-circle-fill" style="color:#10B981;"></i></td></tr>
+            <tr><td>電帳法対応可能</td><td><i class="bi bi-check-circle-fill" style="color:#10B981;"></i></td><td><i class="bi bi-check-circle-fill" style="color:#10B981;"></i></td></tr>
+            <tr><td>ユーザー数</td><td>1名</td><td>チーム全員</td></tr>
+            <tr><td>申請・承認ワークフロー</td><td><i class="bi bi-dash" style="color:#94a3b8;"></i></td><td><i class="bi bi-check-circle-fill" style="color:#10B981;"></i></td></tr>
+            <tr><td>権限管理（3段階）</td><td><i class="bi bi-dash" style="color:#94a3b8;"></i></td><td><i class="bi bi-check-circle-fill" style="color:#10B981;"></i></td></tr>
+            <tr><td>2週間無料トライアル</td><td><i class="bi bi-check-circle-fill" style="color:#10B981;"></i></td><td><i class="bi bi-check-circle-fill" style="color:#10B981;"></i></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <p style="text-align:center;font-size:.78rem;color:var(--clr-muted);margin-top:1rem;">
+      🌽 売上金の10％を一般社団法人日本文化コンテンツ推進委員会の運営基金に拠出しております。
+    </p>
+  </div>
+</section>
+
+<!-- ===================================================
+     FIT
+     =================================================== -->
+<section class="section section-alt" id="fit">
+  <div class="container">
+    <div class="section-header center">
+      <span class="section-eyebrow">FOR WHO</span>
+      <h2 class="section-title reveal">こんな方に向いています</h2>
+      <p class="section-lead reveal">経費ログは「社内の経費申請フローをデジタル化するツール」です。<br>会計ソフトや家計簿アプリとは役割が異なります。</p>
+    </div>
+    <div class="fit-grid">
+      <div class="fit-card reveal">
+        <div class="fit-card-header">
+          <div class="fit-icon ok"><i class="bi bi-check-lg"></i></div>
+          <h3>向いている方</h3>
+        </div>
+        <ul class="fit-list">
+          <li><i class="bi bi-check-circle-fill ok"></i>領収書はスマホ撮影して、その場で記録・保管したい</li>
+          <li><i class="bi bi-check-circle-fill ok"></i>確定申告前に「1年分の領収書の山」と格闘するのをやめたい</li>
+          <li><i class="bi bi-check-circle-fill ok"></i>領収書収集・精算申請を簡素なシステムに置き換えたい</li>
+          <li><i class="bi bi-check-circle-fill ok"></i>でも高額SaaSを入れるほどでもないと感じている</li>
+          <li><i class="bi bi-check-circle-fill ok"></i>経費データは外部DBに預けたくない</li>
+        </ul>
+      </div>
+      <div class="fit-card reveal reveal-delay-1">
+        <div class="fit-card-header">
+          <div class="fit-icon ng"><i class="bi bi-x-lg"></i></div>
+          <h3>向いていない方</h3>
+        </div>
+        <ul class="fit-list">
+          <li><i class="bi bi-x-circle-fill ng"></i>銀行口座・クレジットカードの明細を自動取得したい</li>
+          <li><i class="bi bi-x-circle-fill ng"></i>借入金・売上・給与などの帳簿管理をしたい</li>
+          <li><i class="bi bi-x-circle-fill ng"></i>仕訳や確定申告まで一括でやりたい</li>
+          <li><i class="bi bi-x-circle-fill ng"></i>会計ソフトそのものを置き換えたい</li>
+          <li><i class="bi bi-x-circle-fill ng"></i>社内ポリシーでGoogleサービスの利用が制限されている</li>
+        </ul>
+        <p style="font-size:.78rem;color:#94a3b8;border-top:1px solid var(--clr-border);margin-top:1rem;padding-top:.75rem;">
+          <i class="bi bi-info-circle" style="margin-right:.3rem;"></i>帳簿管理・確定申告には freee・マネーフォワードなどの会計ソフトをご利用ください。経費ログはCSVエクスポートでこれらと連携できます。
+        </p>
+      </div>
+    </div>
+    <div class="fit-flow reveal">
+      <p class="fit-flow-label">freee・マネーフォワードと一緒に使うイメージ</p>
+      <div class="fit-flow-steps">
+        <span class="fit-flow-step"><i class="bi bi-camera" style="margin-right:.3rem;"></i>メンバーが領収書を撮影・申請</span>
+        <span class="fit-flow-arrow">→</span>
+        <span class="fit-flow-step"><i class="bi bi-check2-circle" style="margin-right:.3rem;"></i>管理者が承認・精算</span>
+        <span class="fit-flow-arrow">→</span>
+        <span class="fit-flow-step"><i class="bi bi-download" style="margin-right:.3rem;"></i>CSVで会計ソフトへ</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================
+     SECURITY
+     =================================================== -->
+<section class="section section-dark" id="security">
+  <div class="container">
+    <div class="section-header center">
+      <span class="section-eyebrow">SECURITY</span>
+      <h2 class="section-title reveal" style="color:#fff;">あなたのデータは、あなたのもの。</h2>
+      <p class="section-lead reveal">経費ログはデータを持たない設計で、プライバシーとセキュリティを根本から保護します。</p>
+    </div>
+    <div class="security-grid">
+      <div class="security-card reveal">
+        <div class="security-icon"><i class="bi bi-cloud-arrow-up-fill"></i></div>
+        <h5>データはすべてあなたのGoogleへ</h5>
+        <p>経費明細はGoogleスプレッドシートに、証憑画像はGoogleドライブに保存。当社サーバーには一切保管しません。</p>
+      </div>
+      <div class="security-card reveal reveal-delay-1">
+        <div class="security-icon"><i class="bi bi-unlock-fill"></i></div>
+        <h5>ベンダーロックインなし</h5>
+        <p>解約後もデータはあなたのGoogleドライブに残り続けます。乗り換えやエクスポートも自由自在。</p>
+      </div>
+      <div class="security-card reveal reveal-delay-2">
+        <div class="security-icon"><i class="bi bi-google"></i></div>
+        <h5>Googleの堅牢な認証基盤</h5>
+        <p>ログインはGoogleアカウント認証。2段階認証など、Googleのセキュリティ機能をそのまま活用できます。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================
+     FAQ
+     =================================================== -->
+<section class="section" id="faq">
+  <div class="container">
+    <div class="section-header center">
+      <span class="section-eyebrow">FAQ</span>
+      <h2 class="section-title reveal">よくあるご質問</h2>
+    </div>
+    <div class="faq-list" id="faqList">
+      <div class="faq-item reveal">
+        <div class="faq-question">
+          <span class="faq-q-text">Googleアカウントは必須ですか？</span>
+          <div class="faq-toggle"><i class="bi bi-plus"></i></div>
+        </div>
+        <div class="faq-answer">
+          <div class="faq-answer-inner">はい、管理者だけでなく<strong>利用するメンバー全員がGoogleアカウント（GmailまたはGoogle Workspace）を持っている必要があります</strong>。各メンバーが自分のGoogleアカウントでサインインすることで、誰が申請したかを識別しています。個人用Gmailアカウント、Google Workspaceアカウントどちらでもご利用いただけます。</div>
+        </div>
+      </div>
+      <div class="faq-item reveal">
+        <div class="faq-question">
+          <span class="faq-q-text">データの保存先はどこですか？</span>
+          <div class="faq-toggle"><i class="bi bi-plus"></i></div>
+        </div>
+        <div class="faq-answer">
+          <div class="faq-answer-inner">すべてのデータは、お客様自身のGoogleドライブ内のGoogleスプレッドシートに保存されます。当社サーバーには経費明細データを保管しません。お客様がデータの完全な所有権を持ち続けることができます。</div>
+        </div>
+      </div>
+      <div class="faq-item reveal">
+        <div class="faq-question">
+          <span class="faq-q-text">Google AI StudioのAPIキーの設定は難しくないですか？</span>
+          <div class="faq-toggle"><i class="bi bi-plus"></i></div>
+        </div>
+        <div class="faq-answer">
+          <div class="faq-answer-inner">ご安心ください。Google AI Studioにアクセスし、「APIキーを作成」ボタンを押してコピーするだけです。所要時間は約3分。アプリの設定画面に貼り付ければ完了です。無料アカウントで1日500リクエストまで使えます。</div>
+        </div>
+      </div>
+      <div class="faq-item reveal">
+        <div class="faq-question">
+          <span class="faq-q-text">無料トライアル中にクレジットカード登録は必要ですか？</span>
+          <div class="faq-toggle"><i class="bi bi-plus"></i></div>
+        </div>
+        <div class="faq-answer">
+          <div class="faq-answer-inner">いいえ、クレジットカードは不要です。2週間は無料でお使いいただけます。試用期間が終了しても自動的に課金されることは一切ありません。継続してご利用いただく場合は、アプリ内の設定画面から有料プランへ切り替えてください。</div>
+        </div>
+      </div>
+      <div class="faq-item reveal">
+        <div class="faq-question">
+          <span class="faq-q-text">解約はいつでもできますか？</span>
+          <div class="faq-toggle"><i class="bi bi-plus"></i></div>
+        </div>
+        <div class="faq-answer">
+          <div class="faq-answer-inner">はい、いつでもStripeカスタマーポータルから解約手続きが可能です。解約後は当月末までご利用いただけます。解約後もデータはお客様自身のGoogleドライブに残り続けますので、過去の経費記録を失う心配はありません。</div>
+        </div>
+      </div>
+      <div class="faq-item reveal">
+        <div class="faq-question">
+          <span class="faq-q-text">チームプランで何名まで利用できますか？</span>
+          <div class="faq-toggle"><i class="bi bi-plus"></i></div>
+        </div>
+        <div class="faq-answer">
+          <div class="faq-answer-inner">メンバー数に関わらず月額825円（税込）の定額です。小〜中規模のチームでの利用に適しており、大規模な組織向け経費管理システムとは設計思想が異なる点をご了承ください。</div>
+        </div>
+      </div>
+      <div class="faq-item reveal">
+        <div class="faq-question">
+          <span class="faq-q-text">複数の組織でそれぞれ使いたい場合はどうすればよいですか？</span>
+          <div class="faq-toggle"><i class="bi bi-plus"></i></div>
+        </div>
+        <div class="faq-answer">
+          <div class="faq-answer-inner">同じメールアドレスで最大3組織分までお申し込みいただけます。ライセンスは申し込みごとに個別に発行されるため、それぞれ別のチームURLが生成されます。</div>
+        </div>
+      </div>
+      <div class="faq-item reveal">
+        <div class="faq-question">
+          <span class="faq-q-text">電子帳簿保存法には完全対応していますか？</span>
+          <div class="faq-toggle"><i class="bi bi-plus"></i></div>
+        </div>
+        <div class="faq-answer">
+          <div class="faq-answer-inner">サーバー時刻による申請日時記録・ハッシュ値による改ざん検知・インボイス番号の自動抽出など、電子帳簿保存法の主要な要件に対応可能な仕組みを標準搭載しています。ただし「完全対応」の可否は運用方法・社内規程によっても異なるため、自社の顧問税理士にご確認ください。</div>
+        </div>
+      </div>
+      <div class="faq-item reveal">
+        <div class="faq-question">
+          <span class="faq-q-text">運営側（開発者）はユーザーのデータを見られますか？</span>
+          <div class="faq-toggle"><i class="bi bi-plus"></i></div>
+        </div>
+        <div class="faq-answer">
+          <div class="faq-answer-inner">
+            <p style="margin-bottom:.75rem;">経費データと領収書画像は、<strong>お客様自身のGoogleスプレッドシート・Googleドライブに保存</strong>されます。当社のデータベースに保存・蓄積することは一切ありません。</p>
+            <p style="margin:0;">メンバーが安全にデータをやり取りできるようにするため、<strong>申請・閲覧などの処理時にデータは当社のサーバーを一時的に経由します</strong>。これは通信を仲介するためのもので、内容を保存・記録・閲覧することはありません。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p style="text-align:center;margin-top:1.5rem;font-size:.85rem;color:var(--clr-muted);">
+      <a href="/faq" style="color:var(--clr-blue);">その他のよくある質問はこちら →</a>
+    </p>
+  </div>
+</section>
+
+<!-- ===================================================
+     FINAL CTA
+     =================================================== -->
+<div class="cta-band">
+  <div class="container">
+    <h2>今すぐ、経費精算をラクにしませんか？</h2>
+    <p>まずはデモ画面で実際の操作を確認してみてください。</p>
+    <div class="cta-band-actions">
+      <a class="btn-cta-primary" href="https://buy.stripe.com/5kQ28r1Ps7ut2kv4io9oc08">
+        2週間無料で試す <i class="bi bi-arrow-right"></i>
+      </a>
+      <a class="btn-cta-ghost" href="/app?demo">
+        <i class="bi bi-play-circle"></i> デモを見る
+      </a>
+    </div>
+    <p class="cta-band-note">
+      <i class="bi bi-shield-check" style="margin-right:.35rem;"></i>クレジットカード不要 · 自動課金なし · いつでも解約可能
+    </p>
+  </div>
+</div>
+
+<!-- ===================================================
+     FOOTER
+     =================================================== -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <div class="footer-brand-name">
+          <img src="/icons/icon-192.png" alt="経費ログ">
+          経費ログ
+        </div>
+        <p class="footer-desc">AI領収書解析・経費申請・承認・集計をブラウザで完結。<br>データはあなたのGoogleスプレッドシートへ。</p>
+      </div>
+      <div class="footer-col">
+        <h5>サービス</h5>
+        <ul class="footer-links">
+          <li><a href="#features">機能</a></li>
+          <li><a href="#byok">低価格の理由</a></li>
+          <li><a href="#pricing">料金プラン</a></li>
+          <li><a href="#faq">FAQ</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>運営会社</h5>
+        <ul class="footer-links">
+          <li><a href="#">合同会社Smart&amp;Smooth</a></li>
+          <li><a href="/privacy">プライバシーポリシー</a></li>
+          <li><a href="/terms">利用規約</a></li>
+          <li><a href="/tokusho">特定商取引法に基づく表記</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      &copy; 2026 合同会社Smart&amp;Smooth. All rights reserved.
+    </div>
+  </div>
+</footer>
+
+<script>
+// ── Navbar scroll ──────────────────────────────────────────────
+var nav = document.getElementById('mainNav');
+window.addEventListener('scroll', function() {
+  nav.classList.toggle('scrolled', window.scrollY > 60);
+}, { passive: true });
+
+// ── Mobile menu ────────────────────────────────────────────────
+var hamburger = document.getElementById('hamburger');
+var navMobile = document.getElementById('navMobile');
+hamburger.addEventListener('click', function() {
+  navMobile.classList.toggle('open');
+});
+navMobile.querySelectorAll('a').forEach(function(a) {
+  a.addEventListener('click', function() { navMobile.classList.remove('open'); });
+});
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('nav')) navMobile.classList.remove('open');
+}, { passive: true });
+
+// ── Hero carousel ──────────────────────────────────────────────
+var slides = document.getElementById('heroSlides');
+var dots = document.querySelectorAll('.hero-dot');
+var current = 0;
+var total = dots.length;
+var timer;
+
+function goTo(idx) {
+  current = (idx + total) % total;
+  slides.style.transform = 'translateX(-' + (current * 100) + '%)';
+  dots.forEach(function(d, i) { d.classList.toggle('active', i === current); });
+}
+function next() { goTo(current + 1); }
+
+dots.forEach(function(d) {
+  d.addEventListener('click', function() {
+    clearInterval(timer);
+    goTo(parseInt(d.dataset.idx));
+    timer = setInterval(next, 3500);
+  });
+});
+timer = setInterval(next, 3500);
+
+// ── Scroll reveal ──────────────────────────────────────────────
+var reveals = document.querySelectorAll('.reveal');
+var observer = new IntersectionObserver(function(entries) {
+  entries.forEach(function(e) {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      observer.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+reveals.forEach(function(el) { observer.observe(el); });
+
+// ── FAQ accordion ──────────────────────────────────────────────
+document.querySelectorAll('.faq-question').forEach(function(q) {
+  q.addEventListener('click', function() {
+    var item = q.closest('.faq-item');
+    var answer = item.querySelector('.faq-answer');
+    var isOpen = item.classList.contains('open');
+
+    // close all
+    document.querySelectorAll('.faq-item.open').forEach(function(open) {
+      open.classList.remove('open');
+      open.querySelector('.faq-answer').style.maxHeight = '0';
+    });
+
+    if (!isOpen) {
+      item.classList.add('open');
+      answer.style.maxHeight = answer.querySelector('.faq-answer-inner').scrollHeight + 'px';
+    }
+  });
+});
+
+// ── bfcache blur ───────────────────────────────────────────────
+window.addEventListener('pagehide', function() {
+  document.querySelectorAll('a, button').forEach(function(el) { el.blur(); });
+});
+</script>
+</body>
+</html>
