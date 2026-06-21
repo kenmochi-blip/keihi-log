@@ -724,12 +724,14 @@ const App = (() => {
 
   /**
    * ロールを決定する単一ヘルパー（クライアント・サーバー共通ルール）。
-   * admin = D列='admin' OR ライセンスオーナー（isOwner）。
-   * admins.length===0 フォールバックは廃止（owner昇格で初回セットアップも成立）。
+   * admin = D列='admin'。D列に admin が一人もいない時のみ owner を admin にフォールバック昇格。
+   * これにより「購入者が D列で別の人に admin を譲って自分は降りる」が成立し、
+   * 全 admin 消滅時は owner が自動復帰してロックアウトを防ぐ。
    */
   function _computeRole(master, email, isOwner) {
     const e = (email || '').toLowerCase();
-    if (isOwner || (master.admins || []).includes(e)) return 'admin';
+    const admins = master.admins || [];
+    if (admins.includes(e) || (isOwner && admins.length === 0)) return 'admin';
     if ((master.viewers || []).includes(e)) return 'viewer';
     return 'member';
   }

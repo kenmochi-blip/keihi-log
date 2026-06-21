@@ -106,9 +106,11 @@ async function _authorize(req, res) {
     res.status(503).json({ error: 'sa_sheet_access_failed', message: e.message || 'SA cannot read sheet' });
     return null;
   }
-  // admin = D列='admin' OR ライセンスオーナー（購入メール＝ログインメールの場合）
-  // NOTE: 購入メールとGoogleログインメールが異なる場合はオーナー昇格が効かないため D列='admin' が必要（仕様）
-  const ownerEmail = await resolveOwnerEmail(sheetId).catch(() => '');
+  // admin = D列='admin'。D列に admin が一人もいない時のみライセンスオーナーをフォールバック昇格。
+  // これにより「購入者が D列で admin を別の人に譲って自分は降りる」が成立する。
+  // 全 admin 消滅時は owner が自動復帰しロックアウトを防ぐ。
+  // NOTE: 購入メールとGoogleログインメールが異なる場合はオーナー昇格が効かないため D列='admin' が必要（仕様）。
+  const ownerEmail = master.admins.length === 0 ? await resolveOwnerEmail(sheetId).catch(() => '') : '';
   const isAdmin = master.admins.includes(me.email) || (!!ownerEmail && me.email === ownerEmail);
   const isViewer = master.viewers?.includes(me.email);
   const isMember = isAdmin || isViewer || master.members.some(m => m.email === me.email);
