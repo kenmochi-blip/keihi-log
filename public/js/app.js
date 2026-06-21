@@ -151,7 +151,7 @@ const App = (() => {
 
     // ④ ライセンス検証・マスターデータ・設定シートを一斉並列実行
     const _userEmail = Auth.getUserEmail().toLowerCase();
-    const _licCache  = (() => { try { return JSON.parse(localStorage.getItem('keihi_license_cache') || 'null'); } catch (_) { return null; } })();
+    const _licCache  = (() => { try { return JSON.parse(localStorage.getItem('keihi_license_cache_v2') || 'null'); } catch (_) { return null; } })();
     const _isOwner   = !!(_licCache?.result?.ownerEmail && _licCache.result.ownerEmail === _userEmail);
 
     const _cachedMaster = (() => {
@@ -201,9 +201,11 @@ const App = (() => {
     }
 
     // マスターデータ処理
+    // owner判定はキャッシュ（_isOwner）より検証直後の lic.ownerEmail を優先（初回ロードでも正確に）
+    const _isOwnerFresh = (lic.valid && lic.ownerEmail) ? (lic.ownerEmail === _userEmail) : _isOwner;
     if (masterResult.status === 'fulfilled') {
       _masterCache = masterResult.value;
-      _userRole = _computeRole(_masterCache, _userEmail, _isOwner);
+      _userRole = _computeRole(_masterCache, _userEmail, _isOwnerFresh);
       _isAdmin = _userRole === 'admin';
       if (_userRole !== 'admin' && _masterCache.members.length > 0 && !_masterCache.members.some(m => m.email.toLowerCase() === _userEmail)) {
         _showAccessDeniedError(_userEmail);
@@ -214,7 +216,7 @@ const App = (() => {
       if (err?.message?.includes('403')) { _showSheetAccessDeniedError(); return; }
       if (!_quickStarted) {
         _masterCache = { members: [], categories: [], paySources: [], admins: [], viewers: [] };
-        if (_isOwner) { _userRole = 'admin'; _isAdmin = true; }
+        if (_isOwnerFresh) { _userRole = 'admin'; _isAdmin = true; }
       }
     }
 
@@ -279,7 +281,7 @@ const App = (() => {
       const email   = (session.userInfo?.email || localStorage.getItem('keihi_user_email') || '').toLowerCase();
 
       // ライセンス・マスターはキャッシュがあれば期限切れでも使用（バックグラウンドで更新）
-      const licCache  = JSON.parse(localStorage.getItem('keihi_license_cache') || 'null');
+      const licCache  = JSON.parse(localStorage.getItem('keihi_license_cache_v2') || 'null');
       const masterRaw = JSON.parse(localStorage.getItem('keihi_master_cache') || 'null');
       // マスタキャッシュはチーム全員で共通（admins/membersリストは同一）。
       // 別アカウントが取得したキャッシュでも現ユーザーのロール判定（admins/members照合）に使用可能。
@@ -786,8 +788,8 @@ const App = (() => {
       _masterCache = { members: [], categories: [], paySources: [], admins: [], viewers: [] };
     }
     const email = Auth.getUserEmail().toLowerCase();
-    const licCache2 = (() => { try { return JSON.parse(localStorage.getItem('keihi_license_cache') || 'null'); } catch (_) { return null; } })();
-    const isOwner2 = !!(licCache2?.result?.ownerEmail && licCache2.result.ownerEmail.toLowerCase() === email);
+    const licCache2 = (() => { try { return JSON.parse(localStorage.getItem('keihi_license_cache_v2') || 'null'); } catch (_) { return null; } })();
+    const isOwner2 = !!(licCache2?.result?.ownerEmail && licCache2.result.ownerEmail === email);
     _userRole = _computeRole(_masterCache, email, isOwner2);
     _isAdmin = _userRole === 'admin';
     _applyAdminVisibility();
