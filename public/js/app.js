@@ -203,16 +203,7 @@ const App = (() => {
     // マスターデータ処理
     if (masterResult.status === 'fulfilled') {
       _masterCache = masterResult.value;
-      // 明示的に member/viewer 権限で登録されている場合は admins 空配列フォールバックを適用しない
-      const _myEntry = _masterCache.members.find(m => m.email?.toLowerCase() === _userEmail);
-      const _explicitNonAdmin = _myEntry && ['member', 'viewer'].includes((_myEntry.role || '').toLowerCase());
-      if (_isOwner || (!_explicitNonAdmin && _masterCache.admins.length === 0) || _masterCache.admins.includes(_userEmail)) {
-        _userRole = 'admin';
-      } else if (_masterCache.viewers && _masterCache.viewers.includes(_userEmail)) {
-        _userRole = 'viewer';
-      } else {
-        _userRole = 'member';
-      }
+      _userRole = _computeRole(_masterCache, _userEmail, _isOwner);
       _isAdmin = _userRole === 'admin';
       if (_userRole !== 'admin' && _masterCache.members.length > 0 && !_masterCache.members.some(m => m.email.toLowerCase() === _userEmail)) {
         _showAccessDeniedError(_userEmail);
@@ -299,20 +290,7 @@ const App = (() => {
       // キャッシュがある場合のみ _masterCache にセット。
       // ない場合は null のままにして getMaster() にサーバーから取得させる（空スタブを返すと勘定科目が空になる）
       if (masterRaw) _masterCache = master;
-      const myEntry = master.members?.find(m => m.email?.toLowerCase() === email);
-      const explicitNonAdmin = myEntry && ['member', 'viewer'].includes((myEntry.role || '').toLowerCase());
-      const hasMasterCache = masterRaw !== null;
-      // admins.length===0 フォールバック（マスタ未設定の初回セットアップ向け）は
-      // 自分のキャッシュ（email一致）の場合のみ適用。
-      // 別アカウントのキャッシュで admins=[] だった場合に誤って昇格しないよう制限する。
-      const emailMatchesCache = !!(masterRaw && masterRaw._email === email);
-      if (isOwner || (emailMatchesCache && !explicitNonAdmin && master.admins.length === 0) || master.admins.includes(email)) {
-        _userRole = 'admin';
-      } else if (master.viewers?.includes(email)) {
-        _userRole = 'viewer';
-      } else {
-        _userRole = 'member';
-      }
+      _userRole = _computeRole(master, email, isOwner);
       _isAdmin = _userRole === 'admin';
 
       // 経費データを localStorage から先読み（bindEvents で getExpenses() が即返すよう）
@@ -655,14 +633,10 @@ const App = (() => {
     if (_masterCache) return _masterCache;
     _masterCache = await Sheets.readMaster();
     const email = Auth.getUserEmail().toLowerCase();
-    if (_masterCache.admins.includes(email)) {
-      _userRole = 'admin';
-    } else if (_masterCache.viewers && _masterCache.viewers.includes(email)) {
-      _userRole = 'viewer';
-    } else {
-      _userRole = 'member';
-    }
-    _isAdmin = _userRole === 'admin';
+    // getMaster はライセンス情報を持たないため isOwner=false。
+    // init/reloadMaster で確定済みの _isAdmin は上書きしない。
+    const role = _computeRole(_masterCache, email, false);
+    if (role !== _userRole) { _userRole = role; _isAdmin = role === 'admin'; }
     return _masterCache;
   }
 
@@ -748,6 +722,18 @@ const App = (() => {
     }
   }
 
+  /**
+   * ロールを決定する単一ヘルパー（クライアント・サーバー共通ルール）。
+   * admin = D列='admin' OR ライセンスオーナー（isOwner）。
+   * admins.length===0 フォールバックは廃止（owner昇格で初回セットアップも成立）。
+   */
+  function _computeRole(master, email, isOwner) {
+    const e = (email || '').toLowerCase();
+    if (isOwner || (master.admins || []).includes(e)) return 'admin';
+    if ((master.viewers || []).includes(e)) return 'viewer';
+    return 'member';
+  }
+
   /** 現在ログイン中のユーザーemail（小文字）。同一端末でのアカウント切替検出に使う。 */
   function _curEmail() {
     try {
@@ -798,15 +784,9 @@ const App = (() => {
       _masterCache = { members: [], categories: [], paySources: [], admins: [], viewers: [] };
     }
     const email = Auth.getUserEmail().toLowerCase();
-    const myEntry2 = _masterCache.members?.find(m => m.email?.toLowerCase() === email);
-    const explicitNonAdmin2 = myEntry2 && ['member', 'viewer'].includes((myEntry2.role || '').toLowerCase());
-    if ((!explicitNonAdmin2 && _masterCache.admins.length === 0) || _masterCache.admins.includes(email)) {
-      _userRole = 'admin';
-    } else if (_masterCache.viewers?.includes(email)) {
-      _userRole = 'viewer';
-    } else {
-      _userRole = 'member';
-    }
+    const licCache2 = (() => { try { return JSON.parse(localStorage.getItem('keihi_license_cache') || 'null'); } catch (_) { return null; } })();
+    const isOwner2 = !!(licCache2?.result?.ownerEmail && licCache2.result.ownerEmail.toLowerCase() === email);
+    _userRole = _computeRole(_masterCache, email, isOwner2);
     _isAdmin = _userRole === 'admin';
     _applyAdminVisibility();
   }
@@ -896,7 +876,7 @@ const App = (() => {
   function friendlyError(err, context) {
     const m = String(err?.message || '');
     if (m.includes('admin_only'))
-      return 'この操作には管理者権限が必要です（マスタ表のD列にadminが設定されていない可能性があります）';
+      return 'この操作には管理者権限が必要です（マスタ表のD列にadminが設定されていないか、ライセンス購入メールとログインメールが異なる可能性があります）';
     if (m.startsWith('proxy') && m.includes('503'))
       return 'サーバーがスプレッドシートにアクセスできません。管理者にサービスアカウントの共有設定を確認するよう依頼してください。';
     if (m.startsWith('proxy') && m.includes('403'))

@@ -106,12 +106,15 @@ async function _authorize(req, res) {
     res.status(503).json({ error: 'sa_sheet_access_failed', message: e.message || 'SA cannot read sheet' });
     return null;
   }
-  const isAdmin = master.admins.includes(me.email);
+  // admin = D列='admin' OR ライセンスオーナー（購入メール＝ログインメールの場合）
+  // NOTE: 購入メールとGoogleログインメールが異なる場合はオーナー昇格が効かないため D列='admin' が必要（仕様）
+  const ownerEmail = await resolveOwnerEmail(sheetId).catch(() => '');
+  const isAdmin = master.admins.includes(me.email) || (!!ownerEmail && me.email === ownerEmail);
   const isViewer = master.viewers?.includes(me.email);
   const isMember = isAdmin || isViewer || master.members.some(m => m.email === me.email);
   if (!isMember) { res.status(403).json({ error: 'not_a_member' }); return null; }
 
-  return { me, isAdmin, isViewer, master, sheetId };
+  return { me, isAdmin, isViewer, master, sheetId, ownerEmail };
 }
 
 /**
@@ -1006,6 +1009,43 @@ async function accountantSummary(req, res) {
  *  2nd: Vercel KV（別インスタンスとの共有、~20-50ms）
  *  3rd: Sheets API（フォールバック、~200ms）
  *  アプリ経由のマスタ書き込み（mastersWrite）は両キャッシュを即削除するため遅延なし。 */
+/**
+ * シートのライセンスオーナーメール（小文字）を返す。
+ * 設定B3 → license:{key}.email の順で解決し、in-proc(55s)+KV(60s)キャッシュで往復を抑える。
+ * 解決できない場合は空文字を返す（失敗は auth 拒否ではなく admin 昇格スキップ）。
+ */
+async function resolveOwnerEmail(sheetId) {
+  const cacheKey = `acct:owner:${sheetId}`;
+  const inProc = _inProcGet(cacheKey);
+  if (inProc !== null) return inProc; // '' も有効キャッシュとして扱う
+
+  const fromKv = await kv.get(cacheKey).catch(() => undefined);
+  if (fromKv !== undefined && fromKv !== null) {
+    _inProcSet(cacheKey, fromKv, 55_000);
+    return fromKv;
+  }
+
+  // settings キャッシュから B3（ライセンスキー）を取得
+  const settKey = `cfg:settings:${sheetId}`;
+  let licKey = (_inProcGet(settKey) || await kv.get(settKey).catch(() => null))?.settings?.B3 || '';
+  if (!licKey) {
+    // KV未キャッシュ時は SA でシートを直読み（設定エンドポイントと同様）
+    try {
+      const sheets = sheetsClient();
+      const r = await sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range: '設定!B3' });
+      licKey = r.data.values?.[0]?.[0] || '';
+    } catch (_) {}
+  }
+
+  const ownerEmail = licKey
+    ? ((await kv.get(`license:${licKey}`).catch(() => null))?.email || '').toLowerCase()
+    : '';
+
+  _inProcSet(cacheKey, ownerEmail, 55_000);
+  kv.set(cacheKey, ownerEmail, { ex: 60 }).catch(() => {});
+  return ownerEmail;
+}
+
 async function readMasterCached(sheetId) {
   const key = `acct:master:${sheetId}`;
   // 1st: in-process
