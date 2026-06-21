@@ -201,6 +201,47 @@
         </div>
       </div>
 
+      <!-- ファネル分析（登録→活性化→有料） -->
+      <div id="funnelSection" style="margin-bottom:1rem;">
+        <div class="panel">
+          <div class="panel-header" style="justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:0.5rem;">
+              <i class="bi bi-funnel-fill" style="color:#0ea5e9;"></i>
+              <span class="title">ファネル分析（登録→活性化→有料）</span>
+              <span id="funnelPeriod" style="font-size:0.7rem;color:var(--text-mute);"></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:0.5rem;">
+              <select id="funnelDays" class="filter-select" style="font-size:0.75rem;padding:0.2rem 0.5rem;">
+                <option value="30">30日間</option>
+                <option value="90" selected>90日間</option>
+                <option value="180">180日間</option>
+                <option value="365">365日間</option>
+                <option value="3650">全期間</option>
+              </select>
+              <button class="btn-ghost" id="btnFunnelRefresh" style="font-size:0.75rem;padding:0.25rem 0.6rem;">
+                <i class="bi bi-arrow-clockwise"></i>更新
+              </button>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div id="funnelBody" style="font-size:0.85rem;color:var(--text-mute);">読み込み中...</div>
+            <div style="display:flex;flex-wrap:wrap;align-items:center;gap:0.5rem;margin-top:0.9rem;padding-top:0.75rem;border-top:1px solid var(--border,#eee);font-size:0.75rem;color:var(--text-sub);">
+              <span><i class="bi bi-bullseye me-1"></i>目標値</span>
+              <label>活性化 <input id="tgtActivation" type="number" min="0" max="100" step="1" style="width:54px;font-size:0.75rem;padding:0.15rem 0.3rem;text-align:right;">%</label>
+              <label>有料転換 <input id="tgtConversion" type="number" min="0" max="100" step="1" style="width:54px;font-size:0.75rem;padding:0.15rem 0.3rem;text-align:right;">%</label>
+              <label>クリック→登録 <input id="tgtRegRate" type="number" min="0" max="100" step="0.1" style="width:54px;font-size:0.75rem;padding:0.15rem 0.3rem;text-align:right;">%</label>
+              <button class="btn-ghost" id="btnFunnelSaveTargets" style="font-size:0.72rem;padding:0.2rem 0.55rem;">保存</button>
+              <span id="funnelTargetMsg" style="color:#16a34a;"></span>
+            </div>
+            <div style="font-size:0.7rem;color:var(--text-mute);margin-top:0.6rem;line-height:1.7;">
+              <i class="bi bi-info-circle me-1"></i>登録＝トライアル発のライセンス／活性化＝経費を1件以上記録（usage&gt;0）／有料＝有料転換済み。
+              <strong>クリック→登録</strong>の実績は広告クリック数が必要なため
+              <a href="https://analytics.google.com/" target="_blank" rel="noopener" style="color:var(--accent);">GA4</a>・Google広告側で確認してください（KVには未保持）。
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- アプリログ -->
       <div id="appLogSection" style="margin-bottom:1rem;">
         <div class="panel">
@@ -559,6 +600,9 @@
     document.getElementById('btnSentryRefresh').addEventListener('click', () => loadSentry());
     document.getElementById('btnCfRefresh').addEventListener('click', () => loadCloudflare());
     document.getElementById('cfDays').addEventListener('change', () => loadCloudflare());
+    document.getElementById('btnFunnelRefresh').addEventListener('click', () => loadFunnel());
+    document.getElementById('funnelDays').addEventListener('change', () => loadFunnel());
+    document.getElementById('btnFunnelSaveTargets').addEventListener('click', () => saveFunnelTargets());
     document.getElementById('btnAppLogRefresh').addEventListener('click', () => loadAppLogs());
     document.getElementById('btnAppLogAnalyze').addEventListener('click', () => analyzeAppLogs());
     document.getElementById('btnAppLogClear').addEventListener('click', () => clearAppLogs());
@@ -1016,6 +1060,85 @@
       loadFeedback();
       if (_hasCfKey) loadCloudflare();
       if (_sentryToken) loadSentry();
+      loadFunnel();
+    }
+
+    // ── ファネル分析（登録→活性化→有料） ─────────────────────
+    let _funnelTargets = { regRate: 0.03, activation: 0.6, conversion: 0.2 };
+    function _pct(v) { return v == null ? '—' : (v * 100).toFixed(1) + '%'; }
+
+    async function loadFunnel() {
+      const body = document.getElementById('funnelBody');
+      const days = document.getElementById('funnelDays').value;
+      body.innerHTML = '<span style="color:var(--text-mute);">読み込み中...</span>';
+      try {
+        const resp = await fetch(`/api/admin-licenses?funnel=1&days=${days}`);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const d = await resp.json();
+        _funnelTargets = d.targets || _funnelTargets;
+        document.getElementById('funnelPeriod').textContent = `${d.period.from} 〜 ${d.period.to}`;
+        // 目標入力欄に現在値を反映（フォーカス中は上書きしない）
+        const setIf = (id, val) => { const el = document.getElementById(id); if (el && document.activeElement !== el) el.value = (val * 100).toFixed(id === 'tgtRegRate' ? 1 : 0); };
+        setIf('tgtActivation', _funnelTargets.activation);
+        setIf('tgtConversion', _funnelTargets.conversion);
+        setIf('tgtRegRate',    _funnelTargets.regRate);
+
+        const row = (label, count, actualRate, targetRate, sub) => {
+          const ok = actualRate != null && targetRate != null && actualRate >= targetRate;
+          const barColor = actualRate == null ? '#cbd5e1' : ok ? '#16a34a' : '#f59e0b';
+          const w = actualRate == null ? 0 : Math.min(100, Math.round(actualRate * 100));
+          const tgtPos = targetRate == null ? null : Math.min(100, Math.round(targetRate * 100));
+          return `<div style="margin-bottom:0.85rem;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:0.5rem;">
+              <span style="font-weight:600;color:var(--text);">${label}</span>
+              <span style="font-size:0.8rem;color:var(--text-sub);">
+                <strong style="color:var(--text);font-size:0.95rem;">${count}</strong>件
+                ${actualRate != null ? `／ 実績 <strong style="color:${ok ? '#16a34a' : '#d97706'};">${_pct(actualRate)}</strong>` : ''}
+                ${targetRate != null ? `<span style="color:var(--text-mute);"> 目標 ${_pct(targetRate)}</span>` : ''}
+              </span>
+            </div>
+            ${actualRate != null ? `<div style="position:relative;height:8px;background:#f1f5f9;border-radius:4px;margin-top:0.3rem;">
+              <div style="height:100%;width:${w}%;background:${barColor};border-radius:4px;"></div>
+              ${tgtPos != null ? `<div title="目標 ${_pct(targetRate)}" style="position:absolute;top:-2px;bottom:-2px;left:${tgtPos}%;width:2px;background:#334155;"></div>` : ''}
+            </div>` : ''}
+            ${sub ? `<div style="font-size:0.72rem;color:var(--text-mute);margin-top:0.25rem;">${sub}</div>` : ''}
+          </div>`;
+        };
+
+        body.innerHTML =
+          row('① 登録（トライアル）', d.registrations, null, null,
+              'この期間に発生したトライアル登録数。クリック→登録率の実績は GA4／Google広告で確認') +
+          row('② 登録 → 活性化', d.activated, d.rates.activation, _funnelTargets.activation,
+              '活性化＝経費を1件以上記録（usage&gt;0）。ここを内製のLP/オンボーディング改善で引き上げるのが最優先') +
+          row('③ 登録 → 有料転換', d.converted, d.rates.conversion, _funnelTargets.conversion,
+              `本当のCAC段。活性化→有料は ${_pct(d.rates.convFromActivated)}`);
+      } catch (err) {
+        body.innerHTML = `<span style="color:#dc2626;">読み込み失敗: ${esc(err.message)}</span>`;
+      }
+    }
+
+    async function saveFunnelTargets() {
+      const msg = document.getElementById('funnelTargetMsg');
+      const toFrac = id => {
+        const v = parseFloat(document.getElementById(id).value);
+        return Number.isFinite(v) ? Math.min(1, Math.max(0, v / 100)) : undefined;
+      };
+      try {
+        const resp = await fetch(`/api/admin-licenses?funnel=1`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ activation: toFrac('tgtActivation'), conversion: toFrac('tgtConversion'), regRate: toFrac('tgtRegRate') }),
+        });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const d = await resp.json();
+        _funnelTargets = d.targets;
+        msg.textContent = '✓ 保存しました';
+        setTimeout(() => { msg.textContent = ''; }, 2500);
+        loadFunnel();
+      } catch (err) {
+        msg.style.color = '#dc2626';
+        msg.textContent = '保存失敗: ' + err.message;
+      }
     }
 
     async function loadNotifyList() {

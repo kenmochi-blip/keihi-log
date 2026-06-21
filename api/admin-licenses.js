@@ -303,6 +303,86 @@ export default async function handler(req, res) {
     }
   }
 
+  // ファネル分析（登録→活性化→有料）
+  // 登録 = トライアル発のライセンス（trial===true もしくは convertedAt/upgradedAt あり）。
+  // 活性化 = usage:key:YM が1以上（＝経費を1件以上記録した）。
+  // 有料 = convertedAt もしくは upgradedAt あり。
+  // 目標値は kv:funnel_targets（割合）に保存。
+  if (req.query.funnel != null) {
+    const DEFAULT_TARGETS = { regRate: 0.03, activation: 0.6, conversion: 0.2 };
+
+    if (req.method === 'POST') {
+      const cur = (await kv.get('funnel_targets').catch(() => null)) || DEFAULT_TARGETS;
+      const num = (v, d) => {
+        const n = Number(v);
+        return Number.isFinite(n) && n >= 0 && n <= 1 ? n : d;
+      };
+      const next = {
+        regRate:    num(req.body?.regRate,    cur.regRate),
+        activation: num(req.body?.activation, cur.activation),
+        conversion: num(req.body?.conversion, cur.conversion),
+      };
+      await kv.set('funnel_targets', next);
+      return res.status(200).json({ targets: next });
+    }
+
+    const days = Math.min(Math.max(parseInt(req.query.days || '90', 10), 1), 3650);
+    const to   = new Date();
+    const from = new Date(); from.setDate(from.getDate() - days);
+
+    // 全ライセンス取得
+    const keys = [];
+    let cursor = 0;
+    do {
+      const [nextCursor, batch] = await kv.scan(cursor, { match: 'license:*', count: 100 });
+      keys.push(...batch);
+      cursor = Number(nextCursor);
+    } while (cursor !== 0);
+    const datas = await Promise.all(
+      keys.map(async k => ({ key: k.replace('license:', ''), d: await kv.get(k).catch(() => null) }))
+    );
+
+    const wasTrial = d => !!d && (d.trial === true || !!d.convertedAt || !!d.upgradedAt);
+    const cohort = datas.filter(({ d }) =>
+      d && d.createdAt && wasTrial(d) &&
+      new Date(d.createdAt) >= from && new Date(d.createdAt) <= to
+    );
+
+    // createdAt〜現在の月バケット（最大36ヶ月）で usage>0 を確認＝活性化
+    const monthBuckets = (start) => {
+      const out = [];
+      const s = new Date(start.getFullYear(), start.getMonth(), 1);
+      const now = new Date();
+      const e = new Date(now.getFullYear(), now.getMonth(), 1);
+      for (let dt = new Date(s); dt <= e && out.length < 36; dt.setMonth(dt.getMonth() + 1)) {
+        out.push(dt.toISOString().slice(0, 7));
+      }
+      return out;
+    };
+    let activated = 0, converted = 0;
+    await Promise.all(cohort.map(async ({ key, d }) => {
+      const yms = monthBuckets(new Date(d.createdAt));
+      const us  = await Promise.all(yms.map(ym => kv.get(`usage:${key}:${ym}`).catch(() => 0)));
+      if (us.some(v => (Number(v) || 0) > 0)) activated++;
+      if (d.convertedAt || d.upgradedAt) converted++;
+    }));
+
+    const R = cohort.length;
+    const targets = (await kv.get('funnel_targets').catch(() => null)) || DEFAULT_TARGETS;
+    return res.status(200).json({
+      period: { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10), days },
+      registrations: R,
+      activated,
+      converted,
+      rates: {
+        activation:        R ? activated / R : null,
+        conversion:        R ? converted / R : null,
+        convFromActivated: activated ? converted / activated : null,
+      },
+      targets,
+    });
+  }
+
   // アプリログ管理
   if (req.query.app_logs) {
     const action = req.query.app_logs;
