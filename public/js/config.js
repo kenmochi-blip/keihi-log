@@ -11,6 +11,15 @@ window.APP_CONFIG = {
   // 本番: '' (同一オリジン)
   apiBase: '',
 
+  // Google広告コンバージョン計測（任意）。
+  //   Google広告でコンバージョンアクション（トライアル登録）を作成し、発行される
+  //   「AW-XXXXXXXXX」を conversionId に、コンバージョンラベルを trialConversionLabel に設定すると、
+  //   success.html のトライアル確定時に自動送信される。未設定ならGA4の trial_start のみ記録。
+  googleAds: {
+    conversionId: '',          // 例: 'AW-1234567890'
+    trialConversionLabel: '',  // 例: 'AbC-D_efGhIjKlmNoP'
+  },
+
   // Stripe Payment Link
   //   方針：トライアルは1本（全機能=チーム機能まで解放）。課金に進む時にソロ/チームを選ぶ。
   //         ライセンスキーは終始不変で、プランは同じキーに付け替わる（webhookが更新）。

@@ -53,6 +53,19 @@
         if (data.trial) {
           const titleEl = document.getElementById('pageTitle');
           if (titleEl) titleEl.textContent = '無料トライアルお申し込みありがとうございます';
+          // トライアル登録のコンバージョン計測（1セッション1回・GA4＋任意でGoogle広告）
+          // セッション単位の重複発火を防止（リロード対策）
+          if (typeof gtag === 'function' && !sessionStorage.getItem('kl_trial_conv')) {
+            sessionStorage.setItem('kl_trial_conv', '1');
+            // GA4 イベント（GA4管理画面で「キーイベント」に指定するとコンバージョン化）
+            try { gtag('event', 'trial_start', { plan: data.plan || '', currency: 'JPY', value: 0 }); } catch (_) {}
+            // Google広告コンバージョン（config.js の googleAds が設定されていれば送信）
+            const ga = (window.APP_CONFIG && window.APP_CONFIG.googleAds) || {};
+            if (ga.conversionId && ga.trialConversionLabel) {
+              try { gtag('config', ga.conversionId); } catch (_) {}
+              try { gtag('event', 'conversion', { send_to: `${ga.conversionId}/${ga.trialConversionLabel}` }); } catch (_) {}
+            }
+          }
         }
 
         el.innerHTML = `

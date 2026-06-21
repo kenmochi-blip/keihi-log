@@ -14,7 +14,7 @@
 import { kv } from '@vercel/kv';
 import crypto from 'crypto';
 import { rateLimit } from './_rateLimit.js';
-import { sheetsClient } from './_sa.js';
+import { sheetsClient, getSaAuth, isSaConfigured } from './_sa.js';
 
 export default async function handler(req, res) {
   const { ok } = await rateLimit(req, { prefix: 'rl:admin', limit: 120, window: 60 });
@@ -300,6 +300,62 @@ export default async function handler(req, res) {
     } catch (err) {
       await _logToKV('cloudflare', 'error', err.message);
       return res.status(502).json({ error: err.message });
+    }
+  }
+
+  // GA4 Data API（広告セッション・trial_startイベント・ブログPV）
+  // SA を GA4 プロパティに「閲覧者」で共有し、analytics.readonly スコープで読み取る。
+  // 未設定（SA未共有・プロパティID未設定）なら 503 を返し、UI 側は従来の「GA4参照」表示にフォールバック。
+  if (req.query.ga4 != null) {
+    if (!isSaConfigured()) return res.status(503).json({ error: 'sa_not_configured' });
+    const propId = process.env.GA4_PROPERTY_ID || '540386365'; // /licenses のGA4リンク a372782440p540386365 由来
+    const days = Math.min(Math.max(parseInt(req.query.days || '90', 10), 1), 365);
+    const startDate = `${days}daysAgo`;
+    try {
+      const client = await getSaAuth().getClient();
+      const token  = (await client.getAccessToken())?.token;
+      if (!token) throw new Error('no_access_token');
+      const runReport = async (requestBody) => {
+        const r = await fetch(`https://analyticsdata.googleapis.com/v1beta/properties/${propId}:runReport`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody),
+        });
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.error?.message || `GA4 ${r.status}`);
+        return j;
+      };
+
+      // チャネル別セッション
+      const sess = await runReport({
+        dateRanges: [{ startDate, endDate: 'today' }],
+        dimensions: [{ name: 'sessionDefaultChannelGroup' }],
+        metrics: [{ name: 'sessions' }],
+      });
+      let totalSessions = 0, paidSessions = 0;
+      for (const row of (sess.rows || [])) {
+        const ch = row.dimensionValues?.[0]?.value || '';
+        const n  = Number(row.metricValues?.[0]?.value || 0);
+        totalSessions += n;
+        if (/Paid|Cross-network/i.test(ch)) paidSessions += n;
+      }
+
+      // trial_start イベント数（GA4にイベントが届いていれば）
+      let trialStarts = 0;
+      try {
+        const ev = await runReport({
+          dateRanges: [{ startDate, endDate: 'today' }],
+          dimensions: [{ name: 'eventName' }],
+          metrics: [{ name: 'eventCount' }],
+          dimensionFilter: { filter: { fieldName: 'eventName', stringFilter: { value: 'trial_start' } } },
+        });
+        trialStarts = Number(ev.rows?.[0]?.metricValues?.[0]?.value || 0);
+      } catch (_) {}
+
+      return res.status(200).json({ propId, days, totalSessions, paidSessions, trialStarts });
+    } catch (err) {
+      await _logToKV('ga4', 'error', err.message);
+      return res.status(502).json({ error: 'ga4_failed', message: err.message });
     }
   }
 

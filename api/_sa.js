@@ -31,6 +31,8 @@ export function getSaAuth() {
     scopes: [
       'https://www.googleapis.com/auth/spreadsheets',
       'https://www.googleapis.com/auth/drive',
+      // GA4 Data API（/licenses のファネル分析・ブログPV取得用・読み取り専用）
+      'https://www.googleapis.com/auth/analytics.readonly',
     ],
   });
   return _auth;

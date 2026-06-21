@@ -1072,9 +1072,14 @@
       const days = document.getElementById('funnelDays').value;
       body.innerHTML = '<span style="color:var(--text-mute);">読み込み中...</span>';
       try {
-        const resp = await fetch(`/api/admin-licenses?funnel=1&days=${days}`);
+        // ファネル（KV）とGA4（広告セッション）を並列取得。GA4未設定でもファネルは表示する。
+        const [resp, ga4resp] = await Promise.all([
+          fetch(`/api/admin-licenses?funnel=1&days=${days}`),
+          fetch(`/api/admin-licenses?ga4=1&days=${days}`).catch(() => null),
+        ]);
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const d = await resp.json();
+        const ga4 = ga4resp && ga4resp.ok ? await ga4resp.json().catch(() => null) : null;
         _funnelTargets = d.targets || _funnelTargets;
         document.getElementById('funnelPeriod').textContent = `${d.period.from} 〜 ${d.period.to}`;
         // 目標入力欄に現在値を反映（フォーカス中は上書きしない）
@@ -1105,9 +1110,22 @@
           </div>`;
         };
 
+        // ⓪ 広告セッション→登録（GA4が設定済みのときのみ）
+        let stage0 = '';
+        if (ga4 && ga4.paidSessions != null) {
+          const ps = ga4.paidSessions;
+          const clickReg = ps > 0 ? d.registrations / ps : null;
+          stage0 = row('⓪ 広告セッション → 登録', ps, clickReg, _funnelTargets.regRate,
+            `広告(Paid)セッション ${ps.toLocaleString('ja-JP')}／全セッション ${Number(ga4.totalSessions||0).toLocaleString('ja-JP')}` +
+            (ga4.trialStarts ? `／GA4 trial_start ${ga4.trialStarts}件` : '') +
+            `。正確なCPAはGoogle広告のコンバージョン計測で確認`);
+        }
+
         body.innerHTML =
+          stage0 +
           row('① 登録（トライアル）', d.registrations, null, null,
-              'この期間に発生したトライアル登録数。クリック→登録率の実績は GA4／Google広告で確認') +
+              ga4 ? 'この期間に発生したトライアル登録数（KV基準）'
+                  : 'この期間に発生したトライアル登録数。クリック→登録率の実績は GA4／Google広告で確認') +
           row('② 登録 → 活性化', d.activated, d.rates.activation, _funnelTargets.activation,
               '活性化＝経費を1件以上記録（usage&gt;0）。ここを内製のLP/オンボーディング改善で引き上げるのが最優先') +
           row('③ 登録 → 有料転換', d.converted, d.rates.conversion, _funnelTargets.conversion,
