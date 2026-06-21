@@ -161,9 +161,12 @@ async function _issueNewLicense(session) {
     return;
   }
 
-  // ── 同一メールアドレスで手動発行ライセンスがある場合はアップグレード扱い ──
+  // ── 同一メールで手動発行ライセンスがある場合の有料アップグレード扱い ──
+  // ※トライアル申込み（trialEnd あり＝カード無し）は対象外。トライアルは課金ではないため
+  //   既存ライセンスに吸収せず、新規ライセンス（最大3つ）として作成する。
+  //   これをしないと、手動発行済みメールでのトライアルが trial:false / plan:solo に化ける。
   const existingKey = await kv.get(`email_to_license:${customerEmail}`);
-  if (existingKey) {
+  if (!trialEnd && existingKey) {
     const existingData = await kv.get(`license:${existingKey}`);
     if (existingData && !existingData.suspended && !existingData.stripeSessionId) {
       await _upgradeLicense(existingKey, existingData, session, customerEmail, customerName, plan, interval);
