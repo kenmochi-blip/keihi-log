@@ -45,7 +45,7 @@ const Sheets = (() => {
     const resp = await fetch(`/api/data/${resource}?sheetId=${encodeURIComponent(ssId)}${extraQuery}`, opts);
     if (!resp.ok) {
       const e = await resp.json().catch(() => ({}));
-      throw new Error(`[${resp.status}] ${e.error || e.message || resp.status}`);
+      throw new Error(`[${resp.status}] ${e.error || resp.status}${e.message ? ': ' + e.message : ''}`);
     }
     return resp.json().catch(() => ({ ok: true }));
   }

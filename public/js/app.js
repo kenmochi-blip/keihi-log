@@ -907,10 +907,12 @@ const App = (() => {
     const m = String(err?.message || '');
     if (m.includes('admin_only'))
       return 'この操作には管理者権限が必要です（マスタ表のD列にadminが設定されていないか、ライセンス購入メールとログインメールが異なる可能性があります）';
-    if (m.startsWith('proxy') && m.includes('503'))
+    if (m.includes('sa_sheet_access_failed'))
       return 'サーバーがスプレッドシートにアクセスできません。管理者にサービスアカウントの共有設定を確認するよう依頼してください。';
-    if (m.startsWith('proxy') && m.includes('403'))
+    if (m.includes('not_a_member'))
       return 'メンバーとして認識されていません。設定でメールアドレスの権限を確認し、ページを再読み込みしてください。';
+    if (m.includes('sheet_write_failed'))
+      return 'スプレッドシートへの書き込みに失敗しました。サービスアカウントにエディタ権限が付与されているか確認してください。';
     if (m.includes('403') || m.includes('permission') || m.includes('PERMISSION_DENIED'))
       return `アクセス権がありません。管理者に共有設定を依頼してください。<a href="/faq#q801" class="alert-link ms-1">詳細</a>`;
     if (m.includes('401') || m.toLowerCase().includes('unauthorized') || m.includes('token'))
