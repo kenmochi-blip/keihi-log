@@ -64,6 +64,12 @@ export default async function handler(req, res) {
         return await health(req, res);
       case 'expenses':
         return await expenses(req, res);
+      case 'approve':
+        return await expensesApprove(req, res);
+      case 'settle':
+        return await expensesSettle(req, res);
+      case 'unsettle':
+        return await expensesUnsettle(req, res);
       case 'masters':
         return await masters(req, res);
       case 'settings':

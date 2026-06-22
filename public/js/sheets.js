@@ -61,7 +61,7 @@ const Sheets = (() => {
   }
   /** 申請を登録済にする（admin専用・サーバー認可）。 */
   function approveExpense(id, ssId) {
-    return _proxyWrite('expenses/approve', ssId || _ssId(), 'POST', { ids: [id] });
+    return _proxyWrite('approve', ssId || _ssId(), 'POST', { ids: [id] });
   }
 
   /** 一時的なサーバーエラー時に指数バックオフでリトライする fetch ラッパー。 */
@@ -541,7 +541,7 @@ const Sheets = (() => {
 
     // B' プロキシ経由（オプトイン）。admin専用・サーバー認可。書き込みのためフォールバックなし。
     if (_useProxy()) {
-      return _proxyWrite('expenses/settle', ssId, 'POST', { ids, date: dateStr });
+      return _proxyWrite('settle', ssId, 'POST', { ids, date: dateStr });
     }
 
     const qRows = await read('経費一覧!Q2:Q', ssId);
@@ -567,7 +567,7 @@ const Sheets = (() => {
 
     // B' プロキシ経由（オプトイン）。admin専用・サーバー認可。書き込みのためフォールバックなし。
     if (_useProxy()) {
-      return _proxyWrite('expenses/unsettle', ssId, 'POST', { ids });
+      return _proxyWrite('unsettle', ssId, 'POST', { ids });
     }
 
     const qRows = await read('経費一覧!Q2:Q', ssId);
