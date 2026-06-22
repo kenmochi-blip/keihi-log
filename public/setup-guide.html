@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>セットアップガイド（Android）｜経費ログ</title>
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
+      background: #f0f2f5;
+      color: #1a1a2e;
+      min-height: 100dvh;
+    }
+
+    /* ── ヘッダー ── */
+    .sg-header {
+      background: linear-gradient(135deg, #0d6efd, #3d8bfd);
+      color: #fff;
+      padding: 20px 16px 16px;
+      text-align: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 12px rgba(13,110,253,0.3);
+    }
+    .sg-header-logo {
+      display: flex; align-items: center; justify-content: center;
+      gap: 8px; margin-bottom: 4px;
+    }
+    .sg-header-logo img { width: 28px; height: 28px; border-radius: 6px; }
+    .sg-header-logo span { font-size: 1.1rem; font-weight: 700; }
+    .sg-header-sub { font-size: 0.78rem; opacity: 0.85; margin-bottom: 12px; }
+
+    /* 進捗バー */
+    .sg-progress-bar {
+      background: rgba(255,255,255,0.25);
+      border-radius: 4px; height: 4px; margin: 0 8px;
+    }
+    .sg-progress-fill {
+      background: #fff;
+      height: 100%; border-radius: 4px;
+      transition: width 0.4s ease;
+    }
+    .sg-progress-text {
+      font-size: 0.72rem; opacity: 0.9; margin-top: 5px;
+      letter-spacing: 0.03em;
+    }
+
+    /* ── タブ（OS切替・将来用） ── */
+    .sg-tabs {
+      display: flex; gap: 0;
+      background: #fff;
+      border-bottom: 1px solid #e0e4ea;
+      justify-content: center;
+    }
+    .sg-tab {
+      flex: 1; max-width: 160px;
+      padding: 10px 8px;
+      font-size: 0.82rem; font-weight: 600;
+      text-align: center; cursor: pointer;
+      border: none; background: none;
+      color: #6c757d;
+      border-bottom: 3px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .sg-tab.active { color: #0d6efd; border-bottom-color: #0d6efd; }
+    .sg-tab:disabled { cursor: default; opacity: 0.45; }
+
+    /* ── ステップカード ── */
+    .sg-body { max-width: 540px; margin: 0 auto; padding: 16px 12px 100px; }
+
+    .sg-card {
+      background: #fff;
+      border-radius: 18px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+      overflow: hidden;
+      margin-bottom: 0;
+    }
+
+    .sg-step-badge {
+      display: flex; align-items: center; gap: 10px;
+      padding: 16px 18px 10px;
+    }
+    .sg-step-num {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: #0d6efd; color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.85rem; font-weight: 700; flex-shrink: 0;
+    }
+    .sg-step-title {
+      font-size: 1.05rem; font-weight: 700; color: #1a1a2e;
+      line-height: 1.3;
+    }
+
+    /* スクリーンショット */
+    .sg-screenshot-wrap {
+      padding: 0 18px;
+      display: flex; justify-content: center;
+    }
+    .sg-screenshot-wrap img {
+      width: 100%;
+      max-width: 300px;
+      border-radius: 12px;
+      border: 1px solid #e8ecf0;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+      display: block;
+    }
+
+    /* 説明文 */
+    .sg-desc {
+      padding: 14px 18px 18px;
+    }
+    .sg-desc p {
+      font-size: 0.92rem; line-height: 1.7; color: #3d3d3d;
+      margin-bottom: 6px;
+    }
+    .sg-desc p:last-child { margin-bottom: 0; }
+    .sg-tip {
+      background: #f0f7ff;
+      border-left: 3px solid #0d6efd;
+      border-radius: 0 8px 8px 0;
+      padding: 9px 12px;
+      font-size: 0.83rem; color: #1557b0; line-height: 1.6;
+      margin-top: 10px;
+    }
+    .sg-warn {
+      background: #fff8e6;
+      border-left: 3px solid #ffc107;
+      border-radius: 0 8px 8px 0;
+      padding: 9px 12px;
+      font-size: 0.83rem; color: #7a5c00; line-height: 1.6;
+      margin-top: 10px;
+    }
+
+    /* 操作ポイント（赤枠の説明） */
+    .sg-action {
+      display: flex; align-items: flex-start; gap: 8px;
+      background: #fff0f0; border-radius: 10px;
+      padding: 10px 12px; margin-top: 10px;
+      font-size: 0.85rem; color: #c0392b; line-height: 1.5;
+    }
+    .sg-action::before {
+      content: "👆";
+      font-size: 1rem; flex-shrink: 0; margin-top: 1px;
+    }
+
+    /* ── ナビゲーション ── */
+    .sg-nav {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: #fff;
+      border-top: 1px solid #e0e4ea;
+      padding: 10px 16px 16px;
+      display: flex; gap: 10px;
+      max-width: 540px; margin: 0 auto;
+      z-index: 100;
+    }
+    /* fixed + max-width の組み合わせ対策 */
+    .sg-nav-outer {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: #fff;
+      border-top: 1px solid #e0e4ea;
+      z-index: 100;
+    }
+    .sg-nav-inner {
+      display: flex; gap: 10px;
+      max-width: 540px; margin: 0 auto;
+      padding: 10px 16px max(16px, env(safe-area-inset-bottom));
+    }
+    .sg-btn {
+      flex: 1; padding: 13px 8px;
+      border: none; border-radius: 12px;
+      font-size: 0.95rem; font-weight: 700;
+      cursor: pointer; transition: opacity 0.15s, transform 0.1s;
+    }
+    .sg-btn:active { transform: scale(0.97); }
+    .sg-btn-prev {
+      background: #f0f2f5; color: #6c757d;
+      flex: 0.6;
+    }
+    .sg-btn-prev:disabled { opacity: 0.3; cursor: default; }
+    .sg-btn-next {
+      background: #0d6efd; color: #fff;
+      flex: 1;
+    }
+    .sg-btn-next:disabled { background: #b0c4ef; cursor: default; }
+    .sg-btn-done {
+      background: #198754; color: #fff;
+    }
+
+    /* 完了画面 */
+    .sg-complete {
+      text-align: center; padding: 40px 20px;
+    }
+    .sg-complete-icon { font-size: 3.5rem; margin-bottom: 16px; }
+    .sg-complete h2 { font-size: 1.4rem; font-weight: 800; margin-bottom: 8px; }
+    .sg-complete p { font-size: 0.92rem; color: #6c757d; line-height: 1.7; }
+    .sg-complete-link {
+      display: inline-block; margin-top: 24px;
+      background: #0d6efd; color: #fff;
+      padding: 14px 32px; border-radius: 12px;
+      text-decoration: none; font-weight: 700; font-size: 0.95rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ヘッダー -->
+  <div class="sg-header">
+    <div class="sg-header-logo">
+      <img src="/icons/icon-192.png" alt="">
+      <span>経費ログ</span>
+    </div>
+    <div class="sg-header-sub">セットアップガイド</div>
+    <div class="sg-progress-bar">
+      <div class="sg-progress-fill" id="progressFill" style="width:6.67%"></div>
+    </div>
+    <div class="sg-progress-text" id="progressText">ステップ 1 / 15</div>
+  </div>
+
+  <!-- OS タブ（将来のiPhone・PC用） -->
+  <div class="sg-tabs">
+    <button class="sg-tab active">📱 Android</button>
+    <button class="sg-tab" disabled>🍎 iPhone（準備中）</button>
+    <button class="sg-tab" disabled>💻 PC（準備中）</button>
+  </div>
+
+  <!-- 本文 -->
+  <div class="sg-body">
+    <div class="sg-card" id="stepCard">
+      <!-- JS で差し替え -->
+    </div>
+  </div>
+
+  <!-- ナビゲーション -->
+  <div class="sg-nav-outer">
+    <div class="sg-nav-inner">
+      <button class="sg-btn sg-btn-prev" id="btnPrev" onclick="navigate(-1)">← 前へ</button>
+      <button class="sg-btn sg-btn-next" id="btnNext" onclick="navigate(1)">次へ →</button>
+    </div>
+  </div>
+
+<script>
+const STEPS = [
+  {
+    title: 'メールの青いボタンをタップ',
+    img: '/img/setup-guide/step01.png',
+    desc: `<p>申し込み後に届いたメールを開き、<strong>「経費ログを開いてセットアップする」</strong>の青いボタンをタップしてください。</p>
+           <div class="sg-action">赤枠のボタンをタップしてセットアップページを開く</div>
+           <div class="sg-tip">💡 ボタンが見つからない場合は「noreply@keihi-log.com」から届いたメールを探してください。</div>`,
+  },
+  {
+    title: 'ライセンスキーを入力する',
+    img: '/img/setup-guide/step02.png',
+    desc: `<p>メールに記載されている<strong>ライセンスキー（KL-〜〜〜〜）</strong>を入力してください。</p>
+           <p>コピー＆ペーストで貼り付けるのが確実です。</p>
+           <div class="sg-action">キーを入力したら「確認して次へ」をタップ</div>`,
+  },
+  {
+    title: '会社名・チーム名を入力する',
+    img: '/img/setup-guide/step03.png',
+    desc: `<p>アプリ内に表示される<strong>会社名またはチーム名</strong>を入力してください。</p>
+           <p>後から設定画面で変更できます。</p>
+           <div class="sg-action">赤枠の入力欄に会社名・チーム名を入力</div>
+           <div class="sg-tip">💡 チームURLは任意です。英数字で入力すると「https://keihi-log.com/〇〇」のURLになります。空白でも自動生成されます。</div>`,
+  },
+  {
+    title: 'チームURLを確認する',
+    img: '/img/setup-guide/step04.png',
+    desc: `<p>チームURLを入力しない場合、この確認画面が表示されます。</p>
+           <p>URLは<strong>後から変更できません</strong>ので、設定する場合は「URLを入力する」を選んでください。</p>
+           <div class="sg-action">どちらかのボタンをタップして次へ進む</div>
+           <div class="sg-warn">⚠️ 「設定後変更不可」と書かれているのはチームURLのみです。会社名は後で変更できます。</div>`,
+  },
+  {
+    title: 'Gemini APIキーをセットアップに貼り付ける',
+    img: '/img/setup-guide/step05.png',
+    desc: `<p>AI領収書解析に使う<strong>Google Gemini APIキー</strong>を入力します。</p>
+           <p>次のステップ（ステップ6〜8）でキーを取得してからここに貼り付けます。</p>
+           <div class="sg-action">APIキー入力後「次へ」をタップ</div>
+           <div class="sg-tip">💡 キーの取得方法は次のステップで説明します。一度ブラウザを別タブで開いて作業してください。</div>`,
+  },
+  {
+    title: 'Google AI Studioを開いて「APIキーを作成」',
+    img: '/img/setup-guide/step06.png',
+    desc: `<p>ブラウザで <strong>aistudio.google.com</strong> を開き（Googleアカウントでログイン）、右上の<strong>「APIキーを作成」</strong>をタップします。</p>
+           <div class="sg-action">右上の「APIキーを作成」をタップ</div>
+           <div class="sg-tip">💡 Google AI Studioへは <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" style="color:#0d6efd;">こちら</a> からアクセスできます。</div>`,
+  },
+  {
+    title: '「キーを作成」をタップ',
+    img: '/img/setup-guide/step07.png',
+    desc: `<p>ダイアログが表示されたら、キー名はそのままで<strong>「キーを作成」</strong>をタップしてください。</p>
+           <div class="sg-action">右下の「キーを作成」をタップ</div>`,
+  },
+  {
+    title: 'APIキーをコピーする',
+    img: '/img/setup-guide/step08.png',
+    desc: `<p>作成されたAPIキーの横にある<strong>コピーアイコン</strong>をタップして、キーをコピーします。</p>
+           <div class="sg-action">APIキーの右のコピーアイコンをタップ</div>
+           <div class="sg-warn">⚠️ このキーは他の人に見せないでください。コピーしたらすぐにブラウザの別タブ（経費ログ）に戻ってください。</div>`,
+  },
+  {
+    title: '電帳法対応（スキップ可）',
+    img: '/img/setup-guide/step09.png',
+    desc: `<p>電子帳簿保存法に対応した社内規程を自動作成する機能です。<strong>必須ではありません。</strong></p>
+           <p>後から設定画面でいつでも設定できます。</p>
+           <div class="sg-action">今は「スキップして後で設定する」をタップしてOK</div>`,
+  },
+  {
+    title: '「セットアップ開始」をタップ',
+    img: '/img/setup-guide/step10.png',
+    desc: `<p>入力内容を確認して、<strong>「セットアップ開始」</strong>をタップします。</p>
+           <p>スプレッドシートと証票フォルダが自動で作成されます（10〜30秒ほどかかります）。</p>
+           <div class="sg-action">ロケットアイコンの「セットアップ開始」をタップ</div>`,
+  },
+  {
+    title: 'セットアップ完了！チームURLを共有',
+    img: '/img/setup-guide/step11.png',
+    desc: `<p>セットアップが完了しました！🎉</p>
+           <p>表示されている<strong>チームURL</strong>をメンバーに共有してください。メンバーはこのURLを開いてGoogleログインするだけで使い始められます。</p>
+           <div class="sg-action">URLをコピーしてSlack・メール等でメンバーに送る</div>
+           <div class="sg-tip">💡 QRコードをスクリーンショットして共有することもできます。</div>`,
+  },
+  {
+    title: 'アプリが使えるようになりました',
+    img: '/img/setup-guide/step12.png',
+    desc: `<p>「アプリを開く」をタップするとアプリのトップ画面が表示されます。</p>
+           <p>「カメラで領収書を撮影」から早速試してみてください。</p>
+           <div class="sg-tip">💡 次のステップでホーム画面に追加すると、アプリのように素早く開けます。</div>`,
+  },
+  {
+    title: 'ホーム画面への追加① メニューを開く',
+    img: '/img/setup-guide/step13.png',
+    desc: `<p>Chromeブラウザの<strong>右上の「⋮」メニュー</strong>をタップして、「ホーム画面に追加」を選んでください。</p>
+           <div class="sg-action">「ホーム画面に追加」をタップ</div>
+           <div class="sg-tip">💡 ホーム画面に追加すると、アイコンから素早くアプリを開けます（任意）。</div>`,
+  },
+  {
+    title: 'ホーム画面への追加② インストールを選択',
+    img: '/img/setup-guide/step14.png',
+    desc: `<p>「ホーム画面に追加」の選択肢が表示されます。<strong>「インストール」</strong>をタップしてください。</p>
+           <div class="sg-action">「インストール」をタップ</div>`,
+  },
+  {
+    title: 'ホーム画面への追加③ 追加を確認',
+    img: '/img/setup-guide/step15.png',
+    desc: `<p>「ショートカットを作成」の確認ダイアログが表示されます。<strong>「追加」</strong>をタップしてください。</p>
+           <div class="sg-action">右下の「追加」をタップ</div>
+           <div class="sg-tip">💡 ホーム画面に「経費ログ」のアイコンが追加されます。次回からはアイコンをタップするだけで開けます！</div>`,
+  },
+];
+
+let current = 0;
+
+function render() {
+  const s = STEPS[current];
+  const total = STEPS.length;
+  const pct = ((current + 1) / total * 100).toFixed(2);
+
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressText').textContent = `ステップ ${current + 1} / ${total}`;
+
+  document.getElementById('stepCard').innerHTML = `
+    <div class="sg-step-badge">
+      <div class="sg-step-num">${current + 1}</div>
+      <div class="sg-step-title">${s.title}</div>
+    </div>
+    <div class="sg-screenshot-wrap">
+      <img src="${s.img}" alt="ステップ${current + 1}のスクリーンショット" loading="lazy">
+    </div>
+    <div class="sg-desc">${s.desc}</div>
+  `;
+
+  document.getElementById('btnPrev').disabled = current === 0;
+
+  const btnNext = document.getElementById('btnNext');
+  if (current === total - 1) {
+    btnNext.textContent = '完了 ✓';
+    btnNext.className = 'sg-btn sg-btn-done';
+    btnNext.onclick = () => {
+      document.getElementById('stepCard').innerHTML = `
+        <div class="sg-complete">
+          <div class="sg-complete-icon">🎉</div>
+          <h2>セットアップ完了！</h2>
+          <p>お疲れ様でした。<br>これで経費ログが使えるようになりました。<br><br>領収書を撮影して、AI解析を試してみてください！</p>
+          <a class="sg-complete-link" href="https://keihi-log.com" target="_blank" rel="noopener">アプリを開く</a>
+        </div>
+      `;
+      document.getElementById('btnPrev').style.display = 'none';
+      btnNext.style.display = 'none';
+    };
+  } else {
+    btnNext.textContent = '次へ →';
+    btnNext.className = 'sg-btn sg-btn-next';
+    btnNext.onclick = () => navigate(1);
+  }
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function navigate(dir) {
+  const next = current + dir;
+  if (next < 0 || next >= STEPS.length) return;
+  current = next;
+  render();
+}
+
+render();
+</script>
+</body>
+</html>

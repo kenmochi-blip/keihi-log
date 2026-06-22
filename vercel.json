@@ -38,7 +38,8 @@
     { "source": "/accountant", "destination": "/accountant.html" },
     { "source": "/lp-b", "destination": "/lp-b.html" },
     { "source": "/lp-test", "destination": "/lp-test.html" },
-    { "source": "/((?!blog/|js/|css/|img/|icons/|api/|app\\.html|login\\.html|setup\\.html|tokusho\\.html|privacy\\.html|terms\\.html|success\\.html|licenses\\.html|faq\\.html|demo\\.html|index\\.html|manifest\\.json|sw\\.js|robots\\.txt|sitemap\\.xml|favicon|accountant\\.html|lp-b\\.html|lp-b$|lp-test\\.html|lp-test$).+)", "destination": "/app.html" }
+    { "source": "/setup-guide", "destination": "/setup-guide.html" },
+    { "source": "/((?!blog/|js/|css/|img/|icons/|api/|app\\.html|login\\.html|setup\\.html|setup-guide\\.html|setup-guide$|tokusho\\.html|privacy\\.html|terms\\.html|success\\.html|licenses\\.html|faq\\.html|demo\\.html|index\\.html|manifest\\.json|sw\\.js|robots\\.txt|sitemap\\.xml|favicon|accountant\\.html|lp-b\\.html|lp-b$|lp-test\\.html|lp-test$).+)", "destination": "/app.html" }
   ],
   "headers": [
     {
