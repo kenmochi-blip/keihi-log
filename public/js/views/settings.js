@@ -1276,8 +1276,7 @@ const SettingsView = (() => {
         </div>
       </div>
       `;
-    section.querySelector('#btnNewContract')?.addEventListener('click', () => _newContract(section));
-    section.querySelector('#btnCustomerPortal')?.addEventListener('click', _openStripePortal);
+    // クリックは bindEvents の委譲リスナーで処理（innerHTML 再描画後もリスナーが確実に機能する）
   }
 
   // トライアル中（または期限切れ）の管理者に「有料プランに登録する」ボタンを表示
@@ -1439,6 +1438,17 @@ const SettingsView = (() => {
 ${reg.orgName}
 代表者：${reg.repName}`;
   }
+
+  // ポータル・新規契約ボタンは innerHTML で動的に生成されるため、
+  // addEventListener では再描画後にリスナーが失われる。el への委譲で常に確実に動作させる。
+  el.addEventListener('click', e => {
+    if (e.target.closest('#btnCustomerPortal')) {
+      _openStripePortal();
+    } else if (e.target.closest('#btnNewContract')) {
+      const portalSection = el.querySelector('#portalSection');
+      _newContract(portalSection);
+    }
+  });
 
   // バックグラウンドinitがライセンス検証を完了した後に呼ばれる
   // キャッシュなしの最新結果でライセンス表示・メンバー制限を再適用する
