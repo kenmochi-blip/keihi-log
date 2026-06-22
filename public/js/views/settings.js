@@ -812,6 +812,17 @@ const SettingsView = (() => {
       App.showToast('ヘッダーカラーを変更しました', 'success');
       setTimeout(() => { msg.innerHTML = ''; }, 3000);
     });
+
+    // ポータル・新規契約ボタンは innerHTML で動的に生成されるため、
+    // addEventListener では再描画後にリスナーが失われる。el への委譲で常に確実に動作させる。
+    el.addEventListener('click', e => {
+      if (e.target.closest('#btnCustomerPortal')) {
+        _openStripePortal();
+      } else if (e.target.closest('#btnNewContract')) {
+        const portalSection = el.querySelector('#portalSection');
+        _newContract(portalSection);
+      }
+    });
   }
 
   function _navColorKey() {
@@ -1438,17 +1449,6 @@ const SettingsView = (() => {
 ${reg.orgName}
 代表者：${reg.repName}`;
   }
-
-  // ポータル・新規契約ボタンは innerHTML で動的に生成されるため、
-  // addEventListener では再描画後にリスナーが失われる。el への委譲で常に確実に動作させる。
-  el.addEventListener('click', e => {
-    if (e.target.closest('#btnCustomerPortal')) {
-      _openStripePortal();
-    } else if (e.target.closest('#btnNewContract')) {
-      const portalSection = el.querySelector('#portalSection');
-      _newContract(portalSection);
-    }
-  });
 
   // バックグラウンドinitがライセンス検証を完了した後に呼ばれる
   // キャッシュなしの最新結果でライセンス表示・メンバー制限を再適用する
