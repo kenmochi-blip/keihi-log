@@ -299,7 +299,7 @@ const SummaryView = (() => {
       // 精算後に最新データを再取得（失敗しても精算自体は成功なので無視）
       Sheets.readExpenses().then(data => { _expenses = data; if (el) _renderAll(el); }).catch(() => {});
     } catch (err) {
-      App.showToast('精算処理に失敗しました。' + App.friendlyError(err), 'danger');
+      App.showToast('精算に失敗しました。' + App.friendlyError(err) + (err?.message ? `（${err.message}）` : ''), 'danger');
     } finally {
       App.hideLoading();
     }
