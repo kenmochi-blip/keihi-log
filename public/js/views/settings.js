@@ -1213,14 +1213,15 @@ const SettingsView = (() => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key }),
       });
-      const { url, error } = await res.json();
-      if (!url) throw new Error(error || 'portal_error');
+      const json = await res.json();
+      const { url, error, message: serverMsg } = json;
+      if (!url) throw Object.assign(new Error(error || 'portal_error'), { serverMsg });
       window.location.href = url;
     } catch (err) {
       const msg = err.message === 'trial_user'
         ? 'トライアル中はポータルを利用できません。有料プランへ切り替えてからご利用ください。'
-        : err.message === 'stripe_error'
-          ? 'カスタマーポータルを開けませんでした。support@keihi-log.com までお問い合わせください。'
+        : err.serverMsg
+          ? `ポータルエラー: ${err.serverMsg}`
           : 'ポータルを開けませんでした: ' + err.message;
       App.showToast(msg, 'danger');
     } finally {
