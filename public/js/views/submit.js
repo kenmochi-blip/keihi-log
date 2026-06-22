@@ -938,6 +938,10 @@ function _bindSubtypePills(el) {
         if (sheetRate && !isNaN(Number(sheetRate)) && Number(sheetRate) >= 1) {
           rateInput.value = Number(sheetRate);
           localStorage.setItem(CAR_RATE_KEY, sheetRate);
+        } else if (!localStorage.getItem(CAR_RATE_KEY)) {
+          // B7未設定・localStorage未設定の場合はデフォルト20を確定値として保存
+          rateInput.value = 20;
+          localStorage.setItem(CAR_RATE_KEY, '20');
         }
       } catch (_) {}
     }

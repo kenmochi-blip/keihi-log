@@ -557,7 +557,7 @@ const SettingsView = (() => {
     const _applySettingsToUI = (companyName, geminiKey, carRate, folderId) => {
       if (companyName) { const inp = el.querySelector('#inputCompanyName'); if (inp) inp.value = companyName; }
       if (geminiKey)   { const inp = el.querySelector('#inputGeminiKey');   if (inp) inp.value = geminiKey; }
-      if (carRate)     { const inp = el.querySelector('#inputCarRate');      if (inp) inp.value = carRate; }
+      { const inp = el.querySelector('#inputCarRate'); if (inp) inp.value = carRate || '20'; }
       if (folderId)    { _cfgB4 = folderId; }
     };
     _applySettingsToUI(
@@ -666,7 +666,22 @@ const SettingsView = (() => {
       });
     });
     el.querySelector('#btnAddMember')?.addEventListener('click', () => _showMemberForm(el, null));
-    el.querySelector('#btnUpgradePlan')?.addEventListener('click', () => _openStripePortal());
+    el.querySelector('#btnUpgradePlan')?.addEventListener('click', () => {
+      const key   = localStorage.getItem('keihi_license_key');
+      const email = (typeof Auth !== 'undefined' && Auth.getUserEmail?.()) || '';
+      const planButtons = App.buildPlanChoiceButtons(key, email);
+      if (!planButtons) { App.showToast('プランリンクが設定されていません', 'danger'); return; }
+      const hint = el.querySelector('#memberPlanHint');
+      if (hint && !hint.querySelector('#upgradePlanChoice')) {
+        hint.insertAdjacentHTML('beforeend', `
+          <div id="upgradePlanChoice" class="mt-2 p-2 border rounded bg-light w-100">
+            <div class="small text-muted mb-2">
+              <i class="bi bi-info-circle me-1"></i>既存ライセンスを引き継いでプランを変更します（即時課金）。
+            </div>
+            ${planButtons}
+          </div>`);
+      }
+    });
     el.querySelector('#btnAddCategory')?.addEventListener('click', () => _showInlineAdd(el, 'category'));
     el.querySelector('#btnAddPaySource')?.addEventListener('click', () => _showInlineAdd(el, 'paySource'));
     el.querySelector('#btnAddCustomFlag')?.addEventListener('click', () => _showInlineAdd(el, 'customFlag'));
