@@ -573,8 +573,9 @@ ${logText}
     }
 
     if (action === 'mark_trial') {
-      const { trial } = req.body;
+      const { trial, expiresAt: customExpiry } = req.body;
       const updated = { ...data, trial: trial !== false };
+      if (customExpiry) updated.expiresAt = new Date(customExpiry).toISOString().split('T')[0];
       await kv.set(`license:${key}`, updated);
       return res.status(200).json({ ok: true, ...updated });
     }
