@@ -381,19 +381,25 @@ const App = (() => {
   }
 
   /** 有料登録のソロ/チーム2択ボタンHTMLを返す（キーは継続・支払い時にプラン確定）。
+   *  currentPlan ('solo'|'team') と一致するボタンはグレーアウト（現在のプランを示す）。
    *  どちらのリンクも設定が無ければ空文字を返す。 */
-  function buildPlanChoiceButtons(licenseKey, email) {
+  function buildPlanChoiceButtons(licenseKey, email, currentPlan) {
     const solo = buildUpgradeUrl('solo', licenseKey, email);
     const team = buildUpgradeUrl('team', licenseKey, email);
     if (!solo && !team) return '';
-    const card = (url, name, price, desc, primary) => !url ? '' : `
-      <a href="${url}" target="_blank" rel="noopener" class="btn ${primary ? 'btn-primary' : 'btn-outline-primary'} d-block text-start rounded-3 px-3 py-2 mb-2">
-        <span class="fw-bold">${name}</span> <span class="ms-1" style="font-size:0.85rem;">${price}</span>
-        <span class="d-block text-muted-light" style="font-size:0.74rem;opacity:0.85;">${desc}</span>
-      </a>`;
+    const card = (url, name, price, desc, primary, isCurrent) => !url ? '' :
+      isCurrent
+        ? `<div class="btn btn-secondary d-block text-start rounded-3 px-3 py-2 mb-2 opacity-50" style="cursor:default;" aria-disabled="true">
+             <span class="fw-bold">${name}</span> <span class="ms-1" style="font-size:0.85rem;">${price}</span>
+             <span class="d-block" style="font-size:0.74rem;opacity:0.85;">現在のプラン</span>
+           </div>`
+        : `<a href="${url}" target="_blank" rel="noopener" class="btn ${primary ? 'btn-primary' : 'btn-outline-primary'} d-block text-start rounded-3 px-3 py-2 mb-2">
+             <span class="fw-bold">${name}</span> <span class="ms-1" style="font-size:0.85rem;">${price}</span>
+             <span class="d-block text-muted-light" style="font-size:0.74rem;opacity:0.85;">${desc}</span>
+           </a>`;
     return `<div class="mx-auto" style="max-width:340px;">
-      ${card(solo, 'ソロプラン', '月330円（税込）', '1人で使う', false)}
-      ${card(team, 'チームプラン', '月825円（税込）', 'チームで使う', true)}
+      ${card(solo, 'ソロプラン', '月330円（税込）', '1人で使う', false, currentPlan === 'solo')}
+      ${card(team, 'チームプラン', '月825円（税込）', 'チームで使う', true, currentPlan === 'team')}
     </div>`;
   }
 

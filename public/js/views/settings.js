@@ -669,7 +669,8 @@ const SettingsView = (() => {
     el.querySelector('#btnUpgradePlan')?.addEventListener('click', () => {
       const key   = localStorage.getItem('keihi_license_key');
       const email = (typeof Auth !== 'undefined' && Auth.getUserEmail?.()) || '';
-      const planButtons = App.buildPlanChoiceButtons(key, email);
+      const currentPlan = (() => { try { return JSON.parse(localStorage.getItem('keihi_license_cache_v2') || 'null')?.result?.plan || ''; } catch (_) { return ''; } })();
+      const planButtons = App.buildPlanChoiceButtons(key, email, currentPlan);
       if (!planButtons) { App.showToast('プランリンクが設定されていません', 'danger'); return; }
       const hint = el.querySelector('#memberPlanHint');
       if (hint && !hint.querySelector('#upgradePlanChoice')) {
