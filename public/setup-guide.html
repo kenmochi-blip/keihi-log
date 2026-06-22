@@ -218,9 +218,9 @@
     </div>
     <div class="sg-header-sub">セットアップガイド</div>
     <div class="sg-progress-bar">
-      <div class="sg-progress-fill" id="progressFill" style="width:7.69%"></div>
+      <div class="sg-progress-fill" id="progressFill" style="width:7.14%"></div>
     </div>
-    <div class="sg-progress-text" id="progressText">ステップ 1 / 13</div>
+    <div class="sg-progress-text" id="progressText">ステップ 1 / 14</div>
   </div>
 
   <!-- OS タブ（将来のiPhone・PC用） -->
@@ -281,9 +281,9 @@ const STEPS = [
     title: 'Google AI StudioでAPIキーを取得する',
     img: '/img/setup-guide/step05.png',
     desc: `<p>AI領収書解析に使う<strong>Google Gemini APIキー</strong>を取得します。</p>
-           <p>まず画面下の<strong>「Google AI Studioを開く」</strong>ボタンをタップして、Google AI Studioに移動してください。次のステップ（6〜8）でAPIキーを作成し、ここに戻って貼り付けます。</p>
-           <div class="sg-action">「Google AI Studioを開く」ボタンをタップしてAI Studioへ移動</div>
-           <div class="sg-tip">💡 Google AI Studioのタブを開いたまま、このタブに戻ってきて貼り付けてください。</div>`,
+           <p>赤枠の<strong>「Google AI Studioを開く」</strong>ボタンをタップして、別のタブでAI Studioを開いてください。次のステップ（6〜8）でAPIキーを作成します。</p>
+           <div class="sg-action">「Google AI Studioを開く」ボタンをタップ</div>
+           <div class="sg-tip">💡 このタブは閉じずに残しておいてください。キーを取得したら戻ってきます。</div>`,
   },
   {
     title: 'Google AI Studioを開いて「APIキーを作成」',
@@ -304,6 +304,14 @@ const STEPS = [
     desc: `<p>作成されたAPIキーの横にある<strong>コピーアイコン</strong>をタップして、キーをコピーします。</p>
            <div class="sg-action">APIキーの右のコピーアイコンをタップ</div>
            <div class="sg-warn">⚠️ このキーは他の人に見せないでください。コピーしたらすぐにブラウザの別タブ（経費ログ）に戻ってください。</div>`,
+  },
+  {
+    title: '経費ログに戻ってAPIキーを貼り付ける',
+    img: '/img/setup-guide/step05b.png',
+    desc: `<p>ブラウザの<strong>経費ログのタブに切り替えて</strong>戻ってきてください。</p>
+           <p>コピーしたAPIキーをGemini APIキーの入力欄に<strong>長押しして貼り付け</strong>、赤枠の<strong>「次へ」</strong>をタップします。</p>
+           <div class="sg-action">入力欄に貼り付けて「次へ」をタップ</div>
+           <div class="sg-tip">💡 入力欄を長押しすると「貼り付け」が表示されます。</div>`,
   },
   {
     title: '電帳法対応の設定をする',
