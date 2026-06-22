@@ -340,12 +340,14 @@ async function _convertLicense(key, oldData, session, email, name, businessName,
   await kv.set(`session:${session.id}`, key, { ex: SESSION_TTL });
   if (email) await kv.set(`email_to_license:${email}`, key);
   if (session.subscription) await kv.set(`stripe_sub:${session.subscription}`, key);
-  console.log(`License converted to paid: ${key} for ${email} until ${expiresAtStr}`);
+  // セッションのメールが取れなかった場合はトライアル申込み時のメールにフォールバック
+  const toEmail = email || oldData.email || '';
+  console.log(`License converted to paid: ${key} for ${toEmail} until ${expiresAtStr}`);
 
-  if (process.env.RESEND_API_KEY) {
-    await _sendUpgradeEmail(email, name || oldData.customerName || company, key, expiresAtStr, plan);
+  if (process.env.RESEND_API_KEY && toEmail) {
+    await _sendUpgradeEmail(toEmail, name || oldData.customerName || company, key, expiresAtStr, plan);
     if (process.env.ADMIN_NOTIFY_EMAIL) {
-      await _sendAdminUpgradeEmail(email, name, key, expiresAtStr);
+      await _sendAdminUpgradeEmail(toEmail, name, key, expiresAtStr);
     }
   }
 }
@@ -370,12 +372,14 @@ async function _upgradeLicense(key, oldData, session, email, name, plan, interva
   if (session.subscription) {
     await kv.set(`stripe_sub:${session.subscription}`, key);
   }
-  console.log(`License upgraded: ${key} for ${email}`);
+  // セッションのメールが取れなかった場合は既存ライセンスのメールにフォールバック
+  const toEmail = email || oldData.email || '';
+  console.log(`License upgraded: ${key} for ${toEmail}`);
 
-  if (process.env.RESEND_API_KEY) {
-    await _sendUpgradeEmail(email, name, key, expiresAtStr, plan);
+  if (process.env.RESEND_API_KEY && toEmail) {
+    await _sendUpgradeEmail(toEmail, name || oldData.customerName || oldData.company, key, expiresAtStr, plan);
     if (process.env.ADMIN_NOTIFY_EMAIL) {
-      await _sendAdminUpgradeEmail(email, name, key, expiresAtStr);
+      await _sendAdminUpgradeEmail(toEmail, name, key, expiresAtStr);
     }
   }
 }
