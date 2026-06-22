@@ -218,9 +218,9 @@
     </div>
     <div class="sg-header-sub">セットアップガイド</div>
     <div class="sg-progress-bar">
-      <div class="sg-progress-fill" id="progressFill" style="width:6.67%"></div>
+      <div class="sg-progress-fill" id="progressFill" style="width:7.69%"></div>
     </div>
-    <div class="sg-progress-text" id="progressText">ステップ 1 / 15</div>
+    <div class="sg-progress-text" id="progressText">ステップ 1 / 13</div>
   </div>
 
   <!-- OS タブ（将来のiPhone・PC用） -->
@@ -278,12 +278,12 @@ const STEPS = [
            <div class="sg-warn">⚠️ 「設定後変更不可」と書かれているのはチームURLのみです。会社名は後で変更できます。</div>`,
   },
   {
-    title: 'Gemini APIキーをセットアップに貼り付ける',
+    title: 'Google AI StudioでAPIキーを取得する',
     img: '/img/setup-guide/step05.png',
-    desc: `<p>AI領収書解析に使う<strong>Google Gemini APIキー</strong>を入力します。</p>
-           <p>次のステップ（ステップ6〜8）でキーを取得してからここに貼り付けます。</p>
-           <div class="sg-action">APIキー入力後「次へ」をタップ</div>
-           <div class="sg-tip">💡 キーの取得方法は次のステップで説明します。一度ブラウザを別タブで開いて作業してください。</div>`,
+    desc: `<p>AI領収書解析に使う<strong>Google Gemini APIキー</strong>を取得します。</p>
+           <p>まず画面下の<strong>「Google AI Studioを開く」</strong>ボタンをタップして、Google AI Studioに移動してください。次のステップ（6〜8）でAPIキーを作成し、ここに戻って貼り付けます。</p>
+           <div class="sg-action">「Google AI Studioを開く」ボタンをタップしてAI Studioへ移動</div>
+           <div class="sg-tip">💡 Google AI Studioのタブを開いたまま、このタブに戻ってきて貼り付けてください。</div>`,
   },
   {
     title: 'Google AI Studioを開いて「APIキーを作成」',
@@ -306,11 +306,12 @@ const STEPS = [
            <div class="sg-warn">⚠️ このキーは他の人に見せないでください。コピーしたらすぐにブラウザの別タブ（経費ログ）に戻ってください。</div>`,
   },
   {
-    title: '電帳法対応（スキップ可）',
+    title: '電帳法対応の設定をする',
     img: '/img/setup-guide/step09.png',
-    desc: `<p>電子帳簿保存法に対応した社内規程を自動作成する機能です。<strong>必須ではありません。</strong></p>
-           <p>後から設定画面でいつでも設定できます。</p>
-           <div class="sg-action">今は「スキップして後で設定する」をタップしてOK</div>`,
+    desc: `<p>電子帳簿保存法に対応した社内規程を自動作成する機能です。</p>
+           <p><strong>電帳法対応が必要な方は、必要事項を入力して「次へ」をタップ</strong>してください。法人・個人事業主で電子申告・電子保存をしている場合に必要です。</p>
+           <p>今すぐ不要な方は「スキップして後で設定する」でも構いません（設定画面からいつでも設定可能）。</p>
+           <div class="sg-action">電帳法対応が必要な方は必要事項を入力して「次へ」をタップ</div>`,
   },
   {
     title: '「セットアップ開始」をタップ',
@@ -340,19 +341,6 @@ const STEPS = [
     desc: `<p>Chromeブラウザの<strong>右上の「⋮」メニュー</strong>をタップして、「ホーム画面に追加」を選んでください。</p>
            <div class="sg-action">「ホーム画面に追加」をタップ</div>
            <div class="sg-tip">💡 ホーム画面に追加すると、アイコンから素早くアプリを開けます（任意）。</div>`,
-  },
-  {
-    title: 'ホーム画面への追加② 「ショートカットを作成」を選択',
-    img: '/img/setup-guide/step14.png',
-    desc: `<p>「ホーム画面に追加」の選択肢が表示されます。<strong>「ショートカットを作成」</strong>をタップしてください。</p>
-           <div class="sg-action">「ショートカットを作成」をタップ</div>`,
-  },
-  {
-    title: 'ホーム画面への追加③ 追加を確認',
-    img: '/img/setup-guide/step15.png',
-    desc: `<p>「ショートカットを作成」の確認ダイアログが表示されます。<strong>「追加」</strong>をタップしてください。</p>
-           <div class="sg-action">右下の「追加」をタップ</div>
-           <div class="sg-tip">💡 ホーム画面に「経費ログ」のアイコンが追加されます。次回からはアイコンをタップするだけで開けます！</div>`,
   },
 ];
 
