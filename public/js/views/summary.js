@@ -455,9 +455,11 @@ const SummaryView = (() => {
       // 日付を M/D 形式に短縮（例: 2026-04-18 → 4/18）
       const shortDate = e.date ? e.date.replace(/^\d{4}-0?(\d+)-0?(\d+)$/, '$1/$2') : e.date;
       const status  = e.settlementDate ? '精算済' : e.confirmed ? '登録済' : '申請済';
-      const canEdit = isAdmin || (status === '申請済' && e.email === myEmail);
+      // 精算済み判定（会社払いは除く）- list.js と同じロジック
+      const isSettled = status === '精算済' && !String(e.settlementDate || '').startsWith('会社払い');
+      const canEdit = !isSettled && (isAdmin || (status === '申請済' && e.email === myEmail));
       // アコーディオンは備考・証票・各種ボタンのいずれかがある場合に表示
-      const hasExtra = !!(e.note || imgUrls.length > 0 || canEdit || (isAdmin && status === '申請済'));
+      const hasExtra = !!(e.note || imgUrls.length > 0 || canEdit || (isAdmin && status === '申請済') || (isAdmin && isSettled));
 
       const _urlsJson = imgUrls.length ? _escape(JSON.stringify(imgUrls)) : '';
       const receiptBtns = imgUrls.map((url, j) =>
@@ -471,6 +473,8 @@ const SummaryView = (() => {
         ? `<button class="btn btn-outline-secondary btn-sm py-0 px-1 drill-edit-btn" data-id="${_escape(e.id)}" title="編集"><i class="bi bi-pencil"></i></button>` : '';
       const delBtn  = canEdit
         ? `<button class="btn btn-outline-danger btn-sm py-0 px-1 drill-del-btn" data-id="${_escape(e.id)}" title="削除"><i class="bi bi-trash"></i></button>` : '';
+      const unsettleBtn = isAdmin && isSettled
+        ? `<button class="btn btn-outline-warning btn-sm py-0 px-1 drill-unsettle-btn" data-id="${_escape(e.id)}" title="精算を解除して登録済に戻す"><i class="bi bi-arrow-counterclockwise"></i></button>` : '';
 
       return `<tr data-expense-id="${_escape(e.id)}">
         <td style="white-space:nowrap;">${shortDate}</td>
@@ -495,7 +499,7 @@ const SummaryView = (() => {
             <div style="flex:1;font-size:0.78rem;color:#495057;white-space:pre-wrap;word-break:break-all;min-width:0;">
               ${e.note ? `<i class="bi bi-chat-text me-1 text-secondary"></i>${_escape(e.note)}` : ''}
             </div>
-            <div style="display:flex;gap:0.3rem;flex-shrink:0;">${receiptBtns}${approveBtn}${editBtn}${delBtn}</div>
+            <div style="display:flex;gap:0.3rem;flex-shrink:0;">${receiptBtns}${approveBtn}${editBtn}${delBtn}${unsettleBtn}</div>
           </div>
         </td>
       </tr>` : ''}`;
@@ -621,6 +625,31 @@ const SummaryView = (() => {
           App.showToast('削除しました', 'success');
         } catch (err) {
           App.showToast('削除に失敗しました。' + App.friendlyError(err), 'danger');
+        } finally {
+          App.hideLoading();
+        }
+      });
+    });
+
+    // 精算解除ボタン（精算済→登録済に戻す）
+    div.querySelectorAll('.drill-unsettle-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const ok = await App.confirm('この申請の精算を解除して登録済に戻しますか？');
+        if (!ok) return;
+        App.showLoading('精算解除中...');
+        try {
+          await Sheets.batchUnsettle([btn.dataset.id]);
+          const e = _expenses.find(x => x.id === btn.dataset.id);
+          if (e) { e.settlementDate = null; }
+          const tr = div.querySelector(`tr[data-expense-id="${btn.dataset.id}"]`);
+          if (tr) {
+            const badge = tr.querySelector('.badge-settled');
+            if (badge) { badge.className = 'badge badge-confirmed rounded-pill px-2'; badge.textContent = '登録済'; }
+          }
+          btn.remove();
+          App.showToast('精算を解除しました', 'success');
+        } catch (err) {
+          App.showToast('精算解除に失敗しました。' + App.friendlyError(err), 'danger');
         } finally {
           App.hideLoading();
         }
