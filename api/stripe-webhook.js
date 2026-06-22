@@ -86,6 +86,15 @@ async function _issueNewLicense(session) {
     return;
   }
 
+  // ── デバッグ: セッションの重要フィールドをログ ──────────────────────
+  console.log('[webhook] session.id:', session.id,
+    'payment_status:', session.payment_status,
+    'mode:', session.mode,
+    'subscription:', session.subscription || '(none)',
+    'client_reference_id:', session.client_reference_id || '(none)',
+    'customer_email:', session.customer_details?.email || session.customer_email || '(none)',
+    'amount_total:', session.amount_total);
+
   const customerEmail = session.customer_details?.email || session.customer_email || '';
   // "顧客の氏名を収集" → customer_details.name / individual_name（新APIでは両方あり）
   const customerName  = session.customer_details?.individual_name
@@ -212,6 +221,13 @@ async function _issueNewLicense(session) {
 
   // メールアドレスごとの全ライセンス一覧を更新（3件上限・再アクティブ化判定に使用）
   await kv.set(EMAIL_LICENSES_KEY, [...new Set([...allLicenseKeys, licenseKey])]);
+
+  // ── デバッグ: 発行直前ログ ──────────────────────────────────────────
+  console.log('[webhook] issuing license:', licenseKey,
+    'trial:', !!trialEnd, 'trialEnd:', trialEnd,
+    'isCardlessTrial:', session.payment_status === 'no_payment_required',
+    'expiresAt:', licenseData.expiresAt,
+    'plan:', plan, 'interval:', interval);
 
   // サブスクリプションIDからライセンスキーを逆引き（更新・停止処理用）
   if (session.subscription) {
@@ -675,7 +691,8 @@ async function _renewLicense(invoice) {
     else newExpiry.setMonth(newExpiry.getMonth() + 1);
   }
   await kv.set(`license:${key}`, { ...data, expiresAt: newExpiry.toISOString().split('T')[0], trial: false });
-  console.log(`License renewed: ${key} until ${newExpiry.toISOString().split('T')[0]}`);
+  console.log('[webhook] License renewed:', key, 'until', newExpiry.toISOString().split('T')[0],
+    'billing_reason:', 'renewal', 'periodEnd:', periodEnd || '(fallback)');
 }
 
 async function _handleSubscriptionUpdated(subscription, previousAttributes) {
