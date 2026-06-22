@@ -1220,9 +1220,7 @@ const SettingsView = (() => {
     } catch (err) {
       const msg = err.message === 'trial_user'
         ? 'トライアル中はポータルを利用できません。有料プランへ切り替えてからご利用ください。'
-        : err.serverMsg
-          ? `ポータルエラー: ${err.serverMsg}`
-          : 'ポータルを開けませんでした: ' + err.message;
+        : 'ポータルを開けませんでした。しばらく待ってから再試行してください。';
       App.showToast(msg, 'danger');
     } finally {
       App.hideLoading();

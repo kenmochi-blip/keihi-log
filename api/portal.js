@@ -57,9 +57,14 @@ export default async function handler(req, res) {
 
     // トライアル中（カード未登録）はポータルを開けない — KV の trial フラグが誤っている場合の保険
     if (subscriptionId) {
-      const sub = await stripe.subscriptions.retrieve(subscriptionId);
-      if (sub.status === 'trialing') {
-        return res.status(400).json({ error: 'trial_user' });
+      try {
+        const sub = await stripe.subscriptions.retrieve(subscriptionId);
+        if (sub.status === 'trialing') {
+          return res.status(400).json({ error: 'trial_user' });
+        }
+      } catch (subErr) {
+        // トライアルsubがStripe側で削除済みの場合はスキップ（KVのtrial:falseを信頼）
+        console.warn(`[portal] subscription ${subscriptionId} not retrievable, skipping trial check:`, subErr.message);
       }
     }
 
