@@ -664,6 +664,9 @@ function _bindSubtypePills(el) {
 
     el.querySelector('#btnAnalyze')?.addEventListener('click', () => _runAiAnalysis(el));
 
+    // 上部の丸いカメラアイコンもカメラを起動
+    el.querySelector('.hero-icon-wrap')?.addEventListener('click', () => el.querySelector('#camInput-領収書')?.click());
+
     // 2枚目以降のドロップゾーン（#heroPreview 表示中に追加ファイルをドロップできる）
     const heroDrop2 = el.querySelector('#heroDrop2');
     if (heroDrop2) {

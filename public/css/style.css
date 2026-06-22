@@ -503,7 +503,9 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
   background: linear-gradient(145deg, #5aa6ff 0%, #0d6efd 100%);
   display: inline-flex; align-items: center; justify-content: center;
   margin-bottom: 12px; box-shadow: 0 4px 12px rgba(13,110,253,0.28);
+  cursor: pointer; transition: transform 0.1s;
 }
+.hero-icon-wrap:active { transform: scale(0.93); }
 .hero-icon-wrap i { font-size: 1.6rem; color: #fff; }
 .hero-title { font-size: 1rem; font-weight: 800; color: #212529; margin-bottom: 14px; }
 .hero-btn-camera {
