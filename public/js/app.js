@@ -311,6 +311,11 @@ const App = (() => {
 
       // UIを即時描画（会社名・規程もキャッシュから）
       const companyName = localStorage.getItem('keihi_company_name') || '';
+      if (companyName) {
+        document.title = `経費ログ | ${companyName}`;
+        const titleEl = document.getElementById('navAppTitle');
+        if (titleEl) titleEl.textContent = `経費ログ - ${_truncateCompany(companyName)}`;
+      }
       _setupUI('submit', companyName);
       return true;
     } catch (_) {
