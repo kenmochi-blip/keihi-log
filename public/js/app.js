@@ -398,8 +398,8 @@ const App = (() => {
              <span class="d-block text-muted-light" style="font-size:0.74rem;opacity:0.85;">${desc}</span>
            </a>`;
     return `<div class="mx-auto" style="max-width:340px;">
-      ${card(solo, 'ソロプラン', '月330円（税込）', '1人で使う', false, currentPlan === 'solo')}
-      ${card(team, 'チームプラン', '月825円（税込）', 'チームで使う', true, currentPlan === 'team')}
+      ${card(solo, 'ソロプラン', '月330円（税込）', '個人事業主・フリーランス向け。１ユーザー。', false, currentPlan === 'solo')}
+      ${card(team, 'チームプラン', '月825円（税込）', 'チーム・中小企業向け。ユーザー数制限なし。', true, currentPlan === 'team')}
     </div>`;
   }
 
