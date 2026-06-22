@@ -116,8 +116,11 @@ async function _issueNewLicense(session) {
   // サブスクリプションの請求間隔・トライアル期限を取得
   let interval = 'month';
   let trialEnd  = null; // Unix秒タイムスタンプ（トライアル中の場合のみ）
-  // カード無しトライアルは payment_status が no_payment_required になる
-  const isCardlessTrial = session.payment_status === 'no_payment_required';
+  // カード無しトライアルの検知:
+  // - subscription型（Stripeトライアル）: payment_status === 'no_payment_required'
+  // - ¥0 one-time payment型（Payment Link ¥0）: payment_status === 'paid' + amount_total === 0
+  const isCardlessTrial = session.payment_status === 'no_payment_required'
+    || (session.amount_total === 0 && session.mode === 'payment');
   if (session.subscription) {
     try {
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY?.trim());
