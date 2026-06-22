@@ -521,6 +521,10 @@ ${trialNotice}
   <li>「セットアップ開始」をタップ → Google Driveにスプレッドシートとフォルダーが自動作成されます。完了後に表示される<strong>チームURL</strong>をメンバーに共有するだけで、メンバーはそのURLを開いてGoogleログインするだけで使い始められます</li>
 </ol>
 
+<p style="margin:1.2rem 0;">
+  <a href="https://keihi-log.com/setup-guide" style="display:inline-block;background:#f0f4ff;color:#0d6efd;text-decoration:none;padding:10px 20px;border-radius:6px;font-size:0.92em;font-weight:600;border:1px solid #c2d4ff;">📱 スクリーンショット付きセットアップガイドを見る</a>
+</p>
+
 <p style="color:#555;font-size:0.9em;">ご不明な点は <a href="mailto:support@keihi-log.com">support@keihi-log.com</a> までお気軽にお問い合わせください。</p>
     `.trim(),
   };
