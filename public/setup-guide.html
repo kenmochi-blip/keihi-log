@@ -367,10 +367,10 @@ function render() {
       <div class="sg-step-num">${current + 1}</div>
       <div class="sg-step-title">${s.title}</div>
     </div>
+    <div class="sg-desc">${s.desc}</div>
     <div class="sg-screenshot-wrap">
       <img src="${s.img}" alt="ステップ${current + 1}のスクリーンショット" loading="lazy">
     </div>
-    <div class="sg-desc">${s.desc}</div>
   `;
 
   document.getElementById('btnPrev').disabled = current === 0;
