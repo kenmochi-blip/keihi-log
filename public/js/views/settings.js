@@ -1242,7 +1242,10 @@ const SettingsView = (() => {
     if (!result) {
       div.innerHTML = '<span class="text-muted small">ライセンス未確認</span>';
     } else if (result.valid) {
-      div.innerHTML = `<span class="badge ${result.trial ? 'bg-warning text-dark' : 'bg-success'}"><i class="bi bi-check-circle me-1"></i>${result.trial ? 'トライアル中' : 'ライセンス有効'}</span>
+      const planLabel = !result.trial && result.plan
+        ? `<span class="badge bg-info text-dark ms-2"><i class="bi bi-person${result.plan === 'team' ? 's' : ''}-fill me-1"></i>${result.plan === 'team' ? 'チームプラン' : 'ソロプラン'}</span>`
+        : '';
+      div.innerHTML = `<span class="badge ${result.trial ? 'bg-warning text-dark' : 'bg-success'}"><i class="bi bi-check-circle me-1"></i>${result.trial ? 'トライアル中' : 'ライセンス有効'}</span>${planLabel}
         ${result.expiresAt ? `<span class="text-muted small ms-2">${result.trial ? 'トライアル期限' : '期限'}: ${result.expiresAt.split('T')[0]}</span>` : ''}
 `;
     } else {
