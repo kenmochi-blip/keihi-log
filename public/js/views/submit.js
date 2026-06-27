@@ -377,7 +377,7 @@ const SubmitView = (() => {
     return `
     <div class="mb-2">
       <div class="d-flex justify-content-between align-items-center mb-1">
-        <label class="form-label small fw-semibold mb-0">金額・勘定科目 <span class="text-danger">*</span></label>
+        <label class="form-label small fw-semibold mb-0">金額（税込）・勘定科目 <span class="text-danger">*</span></label>
         <div class="d-flex align-items-center gap-2">
           <button class="btn btn-link btn-sm p-0 text-decoration-none btn-toggle-split">明細分割</button>
           <a href="/faq#q302" class="text-muted" style="font-size:0.78rem;" title="明細分割について"><i class="bi bi-question-circle"></i></a>
@@ -385,7 +385,7 @@ const SubmitView = (() => {
       </div>
       <div id="singleLine" class="row g-2">
         <div class="col-5">
-          <input type="text" inputmode="numeric" class="form-control form-control-sm amount-input" id="inputAmount" placeholder="金額（円）">
+          <input type="text" inputmode="numeric" class="form-control form-control-sm amount-input" id="inputAmount" placeholder="金額（税込）">
         </div>
         <div class="col-7">
           <select class="form-select form-select-sm" id="selCategory"></select>
@@ -409,7 +409,7 @@ const SubmitView = (() => {
   function _amountSectionNoReceipt() {
     return `
     <div class="mb-2">
-      <label class="form-label small fw-semibold mb-1">金額・勘定科目 <span class="text-danger">*</span></label>
+      <label class="form-label small fw-semibold mb-1">金額（税込）・勘定科目 <span class="text-danger">*</span></label>
       <div id="splitLines"></div>
       <div id="splitTotal" class="text-end text-muted small mt-1">合計: <span id="lblSplitTotal">0</span>円</div>
     </div>`;
