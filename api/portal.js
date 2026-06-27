@@ -15,10 +15,12 @@ export default async function handler(req, res) {
   const { ok } = await rateLimit(req, { prefix: 'rl:portal', limit: 10, window: 60 });
   if (!ok) return res.status(429).json({ error: 'too_many_requests' });
 
-  const { key } = req.body || {};
+  const { key, flow } = req.body || {};
   if (!key || typeof key !== 'string') {
     return res.status(400).json({ error: 'missing_key' });
   }
+  // flow: 'update'（プラン変更画面へ直行）/ 'cancel'（解約画面へ直行）/ 未指定（ポータルトップ）
+  const flowType = flow === 'update' || flow === 'cancel' ? flow : null;
 
   const data = await kv.get(`license:${key}`);
   if (!data) return res.status(404).json({ error: 'not_found' });
@@ -107,10 +109,30 @@ export default async function handler(req, res) {
       }
     }
 
+    // flow 指定時はポータルの該当画面（プラン変更/解約）へ直行させる。
+    // 対象サブスクは「現在アクティブなもの」を採用（保存IDが古い場合に備えて顧客から引く）。
+    let flowData;
+    if (flowType) {
+      let activeSubId = null;
+      try {
+        const subs = await stripe.subscriptions.list({ customer: customerId, status: 'active', limit: 1 });
+        activeSubId = subs.data[0]?.id || null;
+      } catch (e) {
+        console.warn('[portal] active subscription lookup failed:', e.message);
+      }
+      if (activeSubId) {
+        flowData = flowType === 'update'
+          ? { type: 'subscription_update', subscription_update: { subscription: activeSubId } }
+          : { type: 'subscription_cancel', subscription_cancel: { subscription: activeSubId } };
+      }
+      // アクティブなサブスクが無い場合は flow_data を付けずにポータルトップを開く（フォールバック）
+    }
+
     const origin = req.headers.origin || 'https://keihi-log.com';
     const portalSession = await stripe.billingPortal.sessions.create({
       customer:   customerId,
       return_url: `${origin}/app?plan_updated=1`,
+      ...(flowData ? { flow_data: flowData } : {}),
     });
 
     return res.status(200).json({ url: portalSession.url });

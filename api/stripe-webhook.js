@@ -715,14 +715,30 @@ async function _renewLicense(invoice) {
 }
 
 async function _handleSubscriptionUpdated(subscription, previousAttributes) {
-  // プラン変更のみ処理（それ以外のsub更新は無視）
-  const prevItems = previousAttributes?.items;
-  if (!prevItems) return;
-
   const key = await kv.get(`stripe_sub:${subscription.id}`).catch(() => null);
   if (!key) return;
   const data = await kv.get(`license:${key}`);
   if (!data) return;
+
+  // ── 解約予約の検知（cancel_at_period_end が false→true）─────────────
+  // ポータルで「請求期間の終了時にキャンセル」を選ぶとこのイベントが発火する。
+  // ユーザーへ解約受付メールを送る（期間終了日まで利用可である旨を明記）。
+  if (previousAttributes && 'cancel_at_period_end' in previousAttributes
+      && !previousAttributes.cancel_at_period_end
+      && subscription.cancel_at_period_end === true) {
+    const endUnix = subscription.cancel_at || subscription.current_period_end || null;
+    const endDate = endUnix ? new Date(endUnix * 1000).toISOString().split('T')[0] : '';
+    console.log(`[webhook] cancellation scheduled: ${key} ends ${endDate || '(unknown)'}`);
+    if (process.env.RESEND_API_KEY && data.email) {
+      await _sendCancellationEmail(data.email, data.customerName || data.company, endDate);
+    }
+    // 解約予約は plan 変更ではないため以降の処理はスキップ
+    return;
+  }
+
+  // プラン変更のみ処理（それ以外のsub更新は無視）
+  const prevItems = previousAttributes?.items;
+  if (!prevItems) return;
 
   // 現在のプライスIDからプランを判定（metadataが最優先、なければ商品名で判定）
   const currentItem = subscription.items?.data?.[0];
@@ -777,6 +793,31 @@ async function _sendPlanChangeEmail(to, name, newPlan, oldPlan) {
     body: JSON.stringify(body),
   });
   if (!resp.ok) console.error('Resend plan change error:', await resp.text());
+}
+
+async function _sendCancellationEmail(to, name, endDate) {
+  const body = {
+    from: process.env.RESEND_FROM_EMAIL || 'noreply@' + (process.env.VERCEL_PROJECT_PRODUCTION_URL || 'example.com'),
+    to,
+    subject: `【経費ログ】解約手続きを受け付けました`,
+    html: `
+<p>${name} 様</p>
+<p>サブスクリプションの解約手続きを受け付けました。</p>
+<ul>
+  ${endDate ? `<li>ご利用いただける期限：<strong>${endDate}</strong>（この日まで通常どおりご利用いただけます）</li>` : ''}
+  <li>期限を過ぎると自動更新は行われず、以降の請求は発生しません。</li>
+</ul>
+<p>解約後も、経費データはお客様のGoogleスプレッドシート上にそのまま保持されます。</p>
+<p>「やっぱり継続したい」場合は、期限内であればアプリの設定タブ、またはStripeの画面から解約を取り消せます。</p>
+<p>ご不明な点は <a href="mailto:support@keihi-log.com">support@keihi-log.com</a> までお気軽にお問い合わせください。</p>
+    `.trim(),
+  };
+  const resp = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!resp.ok) console.error('Resend cancellation error:', await resp.text());
 }
 
 async function _suspendLicense(subscription) {

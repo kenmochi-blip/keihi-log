@@ -816,11 +816,10 @@ const SettingsView = (() => {
     // ポータル・新規契約ボタンは innerHTML で動的に生成されるため、
     // addEventListener では再描画後にリスナーが失われる。el への委譲で常に確実に動作させる。
     el.addEventListener('click', e => {
-      if (e.target.closest('#btnCustomerPortal')) {
-        _openStripePortal();
-      } else if (e.target.closest('#btnNewContract')) {
-        const portalSection = el.querySelector('#portalSection');
-        _newContract(portalSection);
+      if (e.target.closest('#btnChangePlan')) {
+        _openStripePortal('update');   // プラン変更画面へ直行
+      } else if (e.target.closest('#btnCancelPlan')) {
+        _openStripePortal('cancel');   // 解約画面へ直行
       }
     });
   }
@@ -1203,15 +1202,15 @@ const SettingsView = (() => {
     }
   }
 
-  async function _openStripePortal() {
+  async function _openStripePortal(flow) {
     const key = localStorage.getItem('keihi_license_key');
     if (!key) { App.showToast('ライセンスキーが設定されていません', 'danger'); return; }
-    App.showLoading('ポータルを開いています...');
+    App.showLoading(flow === 'cancel' ? '解約画面を開いています...' : 'プラン画面を開いています...');
     try {
       const res = await fetch('/api/portal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key }),
+        body: JSON.stringify({ key, flow }),
       });
       const json = await res.json();
       const { url, error, message: serverMsg } = json;
@@ -1286,13 +1285,13 @@ const SettingsView = (() => {
     section.innerHTML = `
       <div class="card mb-3">
         <div class="card-body">
-          <button class="btn btn-outline-primary w-100 mb-2" id="btnNewContract">
-            <i class="bi bi-plus-circle me-1"></i>新規にプランを契約する
+          <button class="btn btn-outline-primary w-100 mb-2" id="btnChangePlan">
+            <i class="bi bi-arrow-repeat me-1"></i>プランを変更する
           </button>
-          <button class="btn btn-outline-secondary w-100" id="btnCustomerPortal">
-            <i class="bi bi-arrow-repeat me-1"></i>プランを変更・解約する
+          <button class="btn btn-outline-secondary w-100" id="btnCancelPlan">
+            <i class="bi bi-x-circle me-1"></i>プランを解約する
           </button>
-          <div class="text-muted mt-1" style="font-size:0.75rem;text-align:center;">Stripeのカスタマーポータルで支払い・プラン変更・解約を管理できます。</div>
+          <div class="text-muted mt-1" style="font-size:0.75rem;text-align:center;">ボタンを押すと、Stripeの安全な画面で手続きできます。</div>
         </div>
       </div>
       `;
