@@ -641,10 +641,12 @@ function _bindSubtypePills(el) {
       if (fileBtn) fileBtn.addEventListener('click', () => fileInput.click());
       fileInput.addEventListener('change', e => { processFiles(el, type, e.target.files); e.target.value = ''; });
 
-      // ドラッグ＆ドロップ（領収書ヒーローゾーン全体 or 参考資料エリア）
+      // ドラッグ＆ドロップ（領収書ヒーローゾーン全体 or アップロードブロック全体）
+      // ※ previewArea 自身は空のとき高さ0でドロップ不可。カメラ/ファイルボタンを含む
+      //   親ブロック（.mb-2）を対象にして、ボタン表示エリア全体で受け付ける。
       const dropZone = type === '領収書'
         ? el.querySelector('#heroZone')
-        : el.querySelector(`#previewArea-${_typeId(type)}`)?.closest('.mb-2') ?? null;
+        : el.querySelector(`#previewArea-${_typeId(type)}`)?.parentElement ?? null;
       if (!dropZone) return;
 
       dropZone.addEventListener('dragover', e => {

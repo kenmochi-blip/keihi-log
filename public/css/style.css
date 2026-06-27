@@ -126,6 +126,14 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 .upload-card-sm i { font-size: 1.1rem; }
 .upload-card-sm:hover { border-color: #0d6efd; }
 
+/* 参考資料・領収書なし・電車/バス・自家用車のアップロードブロックへのドロップ時フィードバック */
+.mb-2.drag-over {
+  outline: 2px dashed #0d6efd;
+  outline-offset: 2px;
+  background: #f0f5ff;
+  border-radius: 10px;
+}
+
 /* フォーム入力中の履歴エリアグレーアウト */
 #historySection.history-inactive {
   opacity: 0.35;
