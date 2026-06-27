@@ -908,6 +908,13 @@ async function _suspendLicense(subscription) {
   if (!key) return;
   const data = await kv.get(`license:${key}`);
   if (!data) return;
+  // 削除されたサブスクが、このライセンスの「現行サブスク」でない場合は停止しない。
+  // （重複サブスクの掃除などで古い/別サブスクが削除されても、現役サブスクで有効なライセンスを
+  //   誤って停止しないようにする）。stripeSubscriptionId 未保存の旧データは従来どおり停止する。
+  if (data.stripeSubscriptionId && data.stripeSubscriptionId !== subscription.id) {
+    console.log(`[webhook] subscription.deleted ${subscription.id} is not current (${data.stripeSubscriptionId}) for ${key} — skip suspend`);
+    return;
+  }
   await kv.set(`license:${key}`, { ...data, suspended: true });
   console.log(`License suspended: ${key}`);
 
@@ -919,9 +926,9 @@ async function _suspendLicense(subscription) {
   }
 }
 
-// 重複サブスク防止ガード：checkout完了後、同一カスタマーにアクティブな有料サブスクが
-// 複数残っていたら（このアプリは 1カスタマー=1サブスク。複数チームは別カスタマー/別メール）、
-// 今回作成された分以外をキャンセルし、直近(7日以内)の請求を返金して二重請求を防ぐ。
+// 重複サブスク検知（アラートのみ）：checkout完了後、同一カスタマーにアクティブな有料サブスクが
+// 複数残っていたら管理者へ通知する。※自動キャンセル/返金は誤作動でライセンス停止を招いたため廃止。
+// 新規重複は「アップグレードもポータルのプラン変更を使う」修正で発生源を塞いでいる。
 async function _guardDuplicateSubscriptions(session) {
   const customerId = session.customer;
   const keepSubId  = session.subscription;
@@ -937,44 +944,22 @@ async function _guardDuplicateSubscriptions(session) {
   const extras = active.filter(s => s.id !== keepSubId);
   if (extras.length === 0) return; // 重複なし
 
-  console.warn(`[webhook] duplicate subs for customer ${customerId}: keep=${keepSubId} cancel=${extras.map(s => s.id).join(',')}`);
-  const cancelled = [];
-  for (const sub of extras) {
-    try {
-      await stripe.subscriptions.cancel(sub.id);
-      await kv.del(`stripe_sub:${sub.id}`).catch(() => {});
-      cancelled.push(sub.id);
-      // 直近(7日以内)に支払われた請求のみ返金（重複請求の払い戻し。古い正規請求は対象外）
-      const invRef = sub.latest_invoice;
-      const invoice = typeof invRef === 'string'
-        ? await stripe.invoices.retrieve(invRef).catch(() => null)
-        : invRef;
-      const pi = invoice?.payment_intent;
-      const recent = invoice?.status === 'paid' && invoice?.created && (Date.now() / 1000 - invoice.created) < 7 * 24 * 3600;
-      if (pi && recent) {
-        await stripe.refunds.create({ payment_intent: typeof pi === 'string' ? pi : pi.id })
-          .then(() => console.log(`[webhook] dup refund issued for sub ${sub.id}`))
-          .catch(e => console.warn(`[webhook] dup refund failed ${sub.id}:`, e.message));
-      }
-    } catch (e) { console.warn(`[webhook] dup cancel failed ${sub.id}:`, e.message); }
-  }
+  console.warn(`[webhook] duplicate subs detected for customer ${customerId}: keep=${keepSubId} others=${extras.map(s => s.id).join(',')}`);
 
-  // 管理者へ通知
-  if (cancelled.length && process.env.RESEND_API_KEY && process.env.ADMIN_NOTIFY_EMAIL) {
+  // 管理者へ通知（自動操作はしない。手動で確認・整理してもらう）
+  if (process.env.RESEND_API_KEY && process.env.ADMIN_NOTIFY_EMAIL) {
     const email = session.customer_details?.email || session.customer_email || '';
     const body = {
       from: process.env.RESEND_FROM_EMAIL || 'noreply@' + (process.env.VERCEL_PROJECT_PRODUCTION_URL || 'example.com'),
       to: process.env.ADMIN_NOTIFY_EMAIL,
-      subject: `【経費ログ】重複サブスクを自動キャンセルしました`,
+      subject: `【経費ログ】重複サブスクの可能性を検出`,
       html: `
-<p>同一カスタマーに重複したサブスクリプションを検出し、二重請求防止のため自動キャンセルしました。</p>
+<p>同一カスタマーに複数のアクティブなサブスクリプションを検出しました。二重請求の可能性があるため、Stripeダッシュボードでご確認ください（自動キャンセルはしていません）。</p>
 <table style="border-collapse:collapse;font-size:14px;">
   <tr><td style="padding:4px 12px 4px 0;color:#666;">カスタマー</td><td style="font-family:monospace;">${customerId}</td></tr>
   <tr><td style="padding:4px 12px 4px 0;color:#666;">メール</td><td>${email || '—'}</td></tr>
-  <tr><td style="padding:4px 12px 4px 0;color:#666;">維持したサブスク</td><td style="font-family:monospace;">${keepSubId}</td></tr>
-  <tr><td style="padding:4px 12px 4px 0;color:#666;">キャンセルしたサブスク</td><td style="font-family:monospace;">${cancelled.join('<br>')}</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;color:#666;">アクティブなサブスク</td><td style="font-family:monospace;">${active.map(s => s.id).join('<br>')}</td></tr>
 </table>
-<p style="color:#666;font-size:0.9em;">直近7日以内の請求は自動返金しています。返金状況はStripeダッシュボードでご確認ください。</p>
       `.trim(),
     };
     await fetch('https://api.resend.com/emails', {
