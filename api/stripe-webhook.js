@@ -715,21 +715,7 @@ async function _renewLicense(invoice) {
 }
 
 async function _handleSubscriptionUpdated(subscription, previousAttributes) {
-  let key = await kv.get(`stripe_sub:${subscription.id}`).catch(() => null);
-  // フォールバック：stripe_sub マッピングが無い（旧トライアル転換等で紐付けが壊れた）場合、
-  // 顧客メールから email_to_license で逆引きし、見つかれば stripe_sub を自己修復する。
-  if (!key && subscription.customer) {
-    try {
-      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY?.trim());
-      const cust = await stripe.customers.retrieve(subscription.customer);
-      const email = cust?.email || '';
-      if (email) key = await kv.get(`email_to_license:${email}`).catch(() => null);
-    } catch (_) {}
-    if (key) {
-      await kv.set(`stripe_sub:${subscription.id}`, key).catch(() => {});
-      console.log(`[webhook] stripe_sub self-healed: ${subscription.id} → ${key}`);
-    }
-  }
+  const key = await _resolveLicenseKey(subscription);
   if (!key) return;
   const data = await kv.get(`license:${key}`);
   if (!data) return;
@@ -834,21 +820,47 @@ async function _sendCancellationEmail(to, name, endDate) {
   if (!resp.ok) console.error('Resend cancellation error:', await resp.text());
 }
 
-async function _suspendLicense(subscription) {
-  // サブスクリプションIDで正確なライセンスキーを特定（複数チーム対応）
+// サブスクリプションからライセンスキーを解決する共通ヘルパー。
+// stripe_sub マッピング → 顧客メールから email_to_license で逆引き、の順。
+// 旧トライアル転換等でマッピングが壊れている場合の救済＋自己修復を兼ねる。
+async function _resolveLicenseKey(subscription) {
   let key = subscription.id
     ? await kv.get(`stripe_sub:${subscription.id}`).catch(() => null)
     : null;
-  // フォールバック：メールアドレスからの逆引き（旧データ互換）
-  if (!key) {
-    const email = subscription.customer_email || '';
-    if (!email) return;
-    key = await kv.get(`email_to_license:${email}`);
+  if (key) return key;
+  // 顧客メールから逆引き
+  let email = subscription.customer_email || '';
+  if (!email && subscription.customer) {
+    try {
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY?.trim());
+      const custId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id;
+      const cust = await stripe.customers.retrieve(custId);
+      email = cust?.email || '';
+    } catch (_) {}
   }
+  if (email) key = await kv.get(`email_to_license:${email}`).catch(() => null);
+  // 自己修復：以降のイベントで stripe_sub から直接引けるようにする
+  if (key && subscription.id) {
+    await kv.set(`stripe_sub:${subscription.id}`, key).catch(() => {});
+    console.log(`[webhook] stripe_sub self-healed: ${subscription.id} → ${key}`);
+  }
+  return key;
+}
+
+async function _suspendLicense(subscription) {
+  const key = await _resolveLicenseKey(subscription);
   if (!key) return;
   const data = await kv.get(`license:${key}`);
-  if (data) await kv.set(`license:${key}`, { ...data, suspended: true });
+  if (!data) return;
+  await kv.set(`license:${key}`, { ...data, suspended: true });
   console.log(`License suspended: ${key}`);
+
+  // 解約完了（サブスク削除＝即時解約 or 期間終了到達）の通知メール。
+  // ※ 期間終了時キャンセルの場合は予約時に _handleSubscriptionUpdated が
+  //   受付メールを送っているが、最終的な終了通知としてここでも送る。
+  if (process.env.RESEND_API_KEY && data.email) {
+    await _sendCancellationEmail(data.email, data.customerName || data.company, '');
+  }
 }
 
 function _getRawBody(req) {
