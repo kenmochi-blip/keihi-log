@@ -220,7 +220,7 @@ const SubmitView = (() => {
   <div id="panel-自家用車" class="d-none">
     ${_dateField()}
     <div class="mb-2">
-      <label class="form-label small fw-semibold">案件・経路名</label>
+      <label class="form-label small fw-semibold">案件・経路名 <span class="text-danger">*</span></label>
       <input type="text" class="form-control form-control-sm" id="txtCarRoute" placeholder="例：〇〇社訪問 東京→横浜">
     </div>
     <div class="row g-2 mb-2">
@@ -930,6 +930,11 @@ function _bindSubtypePills(el) {
     rateInput.classList.add('bg-light');
     if (rateHint) rateHint.classList.remove('d-none');
 
+    const DEFAULT_RATE = 20;
+    // まず確定値を表示（空欄を防ぐ）。localStorageに有効値があればそれ、無ければ既定20。
+    const stored = Number(localStorage.getItem(CAR_RATE_KEY));
+    rateInput.value = stored >= 1 ? stored : DEFAULT_RATE;
+
     // シートから最新のレートを取得（localStorageをフォールバックとして使用）
     const isDemo = typeof Demo !== 'undefined' && Demo.isActive();
     if (!isDemo) {
@@ -937,14 +942,19 @@ function _bindSubtypePills(el) {
         const sheetRate = await Sheets.readSetting('B7');
         if (sheetRate && !isNaN(Number(sheetRate)) && Number(sheetRate) >= 1) {
           rateInput.value = Number(sheetRate);
-          localStorage.setItem(CAR_RATE_KEY, sheetRate);
+          localStorage.setItem(CAR_RATE_KEY, String(Number(sheetRate)));
         } else if (!localStorage.getItem(CAR_RATE_KEY)) {
           // B7未設定・localStorage未設定の場合はデフォルト20を確定値として保存
-          rateInput.value = 20;
-          localStorage.setItem(CAR_RATE_KEY, '20');
+          rateInput.value = DEFAULT_RATE;
+          localStorage.setItem(CAR_RATE_KEY, String(DEFAULT_RATE));
         }
       } catch (_) {}
     }
+
+    // 最終ガード：それでも空・不正なら既定値を表示
+    if (!rateInput.value || Number(rateInput.value) < 1) rateInput.value = DEFAULT_RATE;
+    // レート確定後に合計を再計算（km入力済みのケースに追従）
+    el.querySelector('#numCarKm')?.dispatchEvent(new Event('input'));
   }
 
   function _bindCarCalc(el) {
