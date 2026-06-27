@@ -38,6 +38,11 @@ const Router = (() => {
     }
     _current = viewName;
 
+    // 通常ビューへ遷移したらボトムナビを必ず再表示する。
+    // （アクセス拒否・シート未共有などのエラー画面が d-none を付けたまま
+    //   再表示する経路が無く、以降の通常画面でナビが消えたままになるため）
+    document.querySelector('nav.fixed-bottom')?.classList.remove('d-none');
+
     // ナビアクティブ状態
     document.querySelectorAll('.nav-item-btn').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.view === viewName);
