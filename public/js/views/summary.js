@@ -276,8 +276,16 @@ const SummaryView = (() => {
   function _categoryKey(e) {
     const parts = App.parseSplitCategory(e.category);
     if (!parts.length) return [{ key: '（未分類）', amount: e.amount }];
+    // 単一カテゴリは常に実額（e.amount）を使う。カテゴリ文字列に埋め込まれた
+    // 金額が編集等で実額とズレても、集計を内訳モーダル（e.amount基準）と一致させる。
+    if (parts.length === 1) return [{ key: parts[0].cat, amount: e.amount }];
     const hasAmounts = parts.every(p => p.amount !== null);
     if (hasAmounts) {
+      // 分割：埋め込み金額の合計が実額とズレている場合は実額で比例配分して整合させる
+      const sum = parts.reduce((s, p) => s + (p.amount || 0), 0);
+      if (sum > 0 && Math.abs(sum - e.amount) > 0.5) {
+        return parts.map(p => ({ key: p.cat, amount: e.amount * (p.amount / sum) }));
+      }
       return parts.map(p => ({ key: p.cat, amount: p.amount }));
     }
     // 旧データ（個別金額なし）は均等割り
