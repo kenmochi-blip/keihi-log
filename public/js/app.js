@@ -439,22 +439,55 @@ const App = (() => {
 
   /**
    * Stripeの支払い完了後に別タブから戻った時にキャッシュをクリアしてバナーを即時更新する。
-   * visibilitychange イベント用。直前のライセンスが trial だった場合のみ再検証する。
+   * visibilitychange イベント用。
+   * - 通常の trial 復帰：1回だけ再検証（キャッシュ更新のみ）。
+   * - アップグレード導線（Stripe決済リンク）を踏んだ直後：webhook が KV を
+   *   trial:false に書き換えるまで数秒かかるため、反映されるまで数回ポーリングして
+   *   バナーを「すぐに」消す。
    */
+  let _trialPolling = false;
   async function recheckTrialAfterReturn() {
     const key = localStorage.getItem('keihi_license_key');
     if (!key) return;
+
+    // アップグレード導線を踏んだか（app.html のクリックリスナーが timestamp を記録）
+    const pendingAt = Number(sessionStorage.getItem('keihi_upgrade_pending') || 0);
+    const upgradePending = pendingAt > 0 && (Date.now() - pendingAt) < 30 * 60 * 1000; // 30分以内
+
+    // 直近のライセンスが trial か（キャッシュから判定）
+    let wasTrial = null;
     try {
       const cached = JSON.parse(localStorage.getItem('keihi_license_cache_v2') || 'null');
-      if (!cached?.result?.trial) return; // trial でなければ不要
-    } catch (_) { return; }
-    License.clearCache();
-    const lic = await License.verify(key).catch(() => null);
-    if (!lic) return;
-    _updateTrialBanner(lic);
-    // 設定タブの trialUpgradeBox も更新（現在設定タブが表示中であれば反映）
-    if (typeof Settings !== 'undefined' && Settings.refreshLicenseUI) {
-      Settings.refreshLicenseUI(lic);
+      wasTrial = cached?.result?.trial ?? null;
+    } catch (_) {}
+
+    // trial でもアップグレード待ちでもなければ何もしない（無駄打ち防止）
+    if (!upgradePending && wasTrial !== true) return;
+    if (_trialPolling) return;
+    _trialPolling = true;
+    try {
+      // アップグレード直後は webhook 反映待ちで複数回、それ以外は1回だけ
+      const maxTries = upgradePending ? 8 : 1;
+      for (let i = 0; i < maxTries; i++) {
+        License.clearCache();
+        const lic = await License.verify(key).catch(() => null);
+        if (lic) {
+          _updateTrialBanner(lic);
+          // 設定タブの trialUpgradeBox も更新（設定タブ表示中なら反映）
+          if (typeof Settings !== 'undefined' && Settings.refreshLicenseUI) {
+            Settings.refreshLicenseUI(lic);
+          }
+          // 有料へ切り替わった → 完了。アップグレード待ちフラグを解除
+          if (lic.valid && !lic.trial) {
+            sessionStorage.removeItem('keihi_upgrade_pending');
+            break;
+          }
+        }
+        if (document.hidden) break; // タブが再び隠れたら中断
+        if (i < maxTries - 1) await new Promise(r => setTimeout(r, 4000));
+      }
+    } finally {
+      _trialPolling = false;
     }
   }
 

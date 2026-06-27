@@ -6,6 +6,9 @@ const License = (() => {
 
   const CACHE_KEY = 'keihi_license_cache_v2';
   const CACHE_TTL = 60 * 60 * 1000; // 1時間（ms）
+  // トライアル中は短命キャッシュにする。これがないと有料転換後もリロードで
+  // 古い trial:true を最大1時間返し続け、トライアルバナーが消えない。
+  const TRIAL_CACHE_TTL = 30 * 1000; // 30秒（ms）
 
   async function verify(key) {
     if (!key) return { valid: false, reason: 'no_key' };
@@ -54,10 +57,13 @@ const License = (() => {
 
     // キャッシュ保存
     try {
+      const ttl = result.valid
+        ? (result.trial ? TRIAL_CACHE_TTL : CACHE_TTL) // 有料転換を素早く反映するため trial は短命
+        : 60 * 60 * 1000;
       localStorage.setItem(CACHE_KEY, JSON.stringify({
         key,
         result,
-        expiry: Date.now() + (result.valid ? CACHE_TTL : 60 * 60 * 1000),
+        expiry: Date.now() + ttl,
       }));
     } catch (_) {}
 

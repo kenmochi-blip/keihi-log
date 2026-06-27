@@ -187,7 +187,7 @@
   <script src="js/sheets.js?v=20260622b"></script>
   <script src="js/drive.js?v=20260617"></script>
   <script src="js/gemini.js?v=20260617"></script>
-  <script src="js/license.js?v=20260617"></script>
+  <script src="js/license.js?v=20260627"></script>
   <script src="js/setup.js?v=20260612"></script>
   <script src="js/views/submit.js?v=20260622b"></script>
   <script src="js/views/list.js?v=20260620"></script>
@@ -195,10 +195,16 @@
   <script src="js/views/settings.js?v=20260623"></script>
   <script src="js/router.js?v=20260612"></script>
   <script src="js/swipe.js?v=20260615"></script>
-  <script src="js/app.js?v=20260622e"></script>
+  <script src="js/app.js?v=20260627"></script>
   <script src="js/chat.js?v=20260612"></script>
   <script>
     SupportChat.init();
+    // 有料アップグレードのStripe決済リンクを踏んだら「アップグレード中」を記録。
+    // 別タブで支払い後に戻ったとき、webhook反映までポーリングしてバナーを即時に消すため。
+    document.addEventListener('click', (e) => {
+      const a = e.target.closest && e.target.closest('a[href*="buy.stripe.com"]');
+      if (a) sessionStorage.setItem('keihi_upgrade_pending', String(Date.now()));
+    }, true);
     // Stripeの支払い完了後に別タブから戻ったときにトライアルバナーを即時更新
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) App.recheckTrialAfterReturn?.();
