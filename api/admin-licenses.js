@@ -580,6 +580,21 @@ ${logText}
       return res.status(200).json({ ok: true, ...updated });
     }
 
+    if (action === 'unsuspend') {
+      // 停止フラグを解除してライセンスを復旧する
+      const updated = { ...data, suspended: false };
+      await kv.set(`license:${key}`, updated);
+      console.log(`License unsuspended (manual): ${key}`);
+      return res.status(200).json({ ok: true, ...updated });
+    }
+
+    if (action === 'suspend') {
+      const updated = { ...data, suspended: true };
+      await kv.set(`license:${key}`, updated);
+      console.log(`License suspended (manual): ${key}`);
+      return res.status(200).json({ ok: true, ...updated });
+    }
+
     if (action === 'upgrade') {
       const { plan: newPlan, expiresAt: customExpiry } = req.body;
       const expiresAt = customExpiry ? new Date(customExpiry) : new Date();
