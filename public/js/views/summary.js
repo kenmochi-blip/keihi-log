@@ -616,7 +616,12 @@ const SummaryView = (() => {
     div.querySelectorAll('.drill-edit-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         modal.hide();
-        SubmitView.queueEdit(btn.dataset.id, _expenses, 'summary');
+        // 破棄（戻る）時はこのポップアップを再表示して「直前の状態」に戻す
+        const reopenDrill = () => {
+          Router.navigate('summary');
+          _showDrill(title, expenses, settleCallback, showName, amountMap);
+        };
+        SubmitView.queueEdit(btn.dataset.id, _expenses, 'summary', reopenDrill);
         Router.navigate('submit');
       });
     });

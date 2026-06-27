@@ -1032,6 +1032,7 @@ const ListView = (() => {
     // Androidバックジェスチャー / ブラウザ戻るボタン → ポップアップを閉じる
     window.addEventListener('popstate', e => {
       if (viewer.style.display !== 'none') {
+        window.__keihiReceiptViewerCloseTs = Date.now(); // 編集popstateとの競合回避用
         _historyPushed = false;
         _pzReset();
         viewer.style.display = 'none';

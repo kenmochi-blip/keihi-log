@@ -19,6 +19,7 @@ const SubmitView = (() => {
   let _customFlags      = [];
   let _pendingEdit   = null; // 一覧表からの編集キュー {id, expenses}
   let _returnAfterEdit = null; // 編集保存後の遷移先ビュー名
+  let _discardReturn = null; // 編集を破棄（戻る/キャンセル）したときの復帰先（ビュー名 or 関数）
   let _editHistoryPushed = false; // 編集開始時にダミー履歴を積んだか
   let _editPopstateBound = false; // popstateリスナー登録済みか
   let _historyAll      = []; // 自分の全履歴（ソート済）
@@ -458,7 +459,11 @@ const SubmitView = (() => {
     });
     el.querySelector('#btnNavLeft')?.addEventListener('click', () => SwipeNav.swipeTo('summary'));
     el.querySelector('#btnNavRight')?.addEventListener('click', () => SwipeNav.swipeTo('list'));
-    el.querySelector('#btnCancelEdit')?.addEventListener('click', () => { _cancelEdit(el); _consumeEditHistory(); });
+    // キャンセルボタンも戻るジェスチャーと同じ挙動に統一（popstate経由で直前状態へ）
+    el.querySelector('#btnCancelEdit')?.addEventListener('click', () => {
+      if (_editHistoryPushed) history.back();
+      else _cancelEdit(el);
+    });
     el.querySelector('#btnAddMore')?.addEventListener('click', () => el.querySelector('#fileInput-領収書')?.click());
     // fromCache=true のとき：スワイプ由来でキャッシュ済みHTMLが表示されているため再ロード不要
     // 手動リフレッシュボタンはいつでも使える
@@ -1507,7 +1512,7 @@ function _bindSubtypePills(el) {
       _resetForm(el);
       _loadHistory(el);
       _consumeEditHistory(); // 保存完了時はダミー履歴を除去
-      if (returnTo) Router.navigate(returnTo);
+      _doReturn(returnTo);   // 保存後の遷移先（ビュー名）
     } catch (err) {
       App.showToast('登録エラー: ' + err.message, 'danger');
       // 編集モード中のエラーはフォームをリセットして編集バナーが残り続けるのを防ぐ
@@ -1715,7 +1720,12 @@ function _bindSubtypePills(el) {
            </button>`
         : '');
     list.querySelectorAll('.btn-edit-history').forEach(btn => {
-      btn.addEventListener('click', () => _startEdit(el, btn.dataset.id, _historyExpenses));
+      btn.addEventListener('click', () => {
+        // 直近履歴（submitホーム）からの編集 → 破棄/保存後とも submit に留まる
+        _returnAfterEdit = 'submit';
+        _discardReturn = 'submit';
+        _startEdit(el, btn.dataset.id, _historyExpenses);
+      });
     });
     list.querySelectorAll('.btn-del-history').forEach(btn => {
       btn.addEventListener('click', () => _deleteExpense(btn.dataset.id, el));
@@ -1997,17 +2007,28 @@ function _bindSubtypePills(el) {
       try { history.back(); } catch (_) {}
     }
   }
-  // Androidバックジェスチャー／ブラウザ戻る → 編集を破棄して元の画面（一覧・集計）へ戻す
+  // 復帰先の実行：関数なら呼ぶ／ビュー名なら遷移／'submit'・null は submit に留まる
+  function _doReturn(target) {
+    if (typeof target === 'function') { try { target(); } catch (_) {} return; }
+    if (target && target !== 'submit' && typeof Router !== 'undefined') Router.navigate(target);
+    // 'submit'/null → submitビューに留まる（_cancelEditでホーム復帰済み）
+  }
+  // Androidバックジェスチャー／ブラウザ戻る → 編集を破棄して「直前の状態」へ戻す
   function _bindEditPopstate() {
     if (_editPopstateBound) return;
     _editPopstateBound = true;
     window.addEventListener('popstate', () => {
+      // 証票ビューアが開いている／同じ戻る操作で今閉じた場合は、そちらの戻るを優先
+      const rv = document.getElementById('receiptViewer');
+      if (rv && rv.style.display !== 'none' && rv.style.display !== '') return;
+      if (Date.now() - (window.__keihiReceiptViewerCloseTs || 0) < 150) return;
       if (!(_editHistoryPushed && _editId)) return;
       _editHistoryPushed = false;
-      const ret = _returnAfterEdit || 'list';
+      // 破棄時の復帰先を優先（無ければ保存後と同じ先、それも無ければsubmitに留まる）
+      const target = (_discardReturn != null) ? _discardReturn : _returnAfterEdit;
       const el = document.getElementById('appMain');
       if (el) _cancelEdit(el); // 編集内容は保存せず破棄
-      if (typeof Router !== 'undefined') Router.navigate(ret);
+      _doReturn(target);
     });
   }
 
@@ -2018,6 +2039,7 @@ function _bindSubtypePills(el) {
     _existingHash = '';
     _existingUrls = [];
     _returnAfterEdit = null;
+    _discardReturn = null;
     _withholdingAmount = 0;
 
     // AIボタンをリセット（非表示に戻す）
@@ -2093,9 +2115,11 @@ function _bindSubtypePills(el) {
     return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
-  function queueEdit(id, expenses, returnTo = null) {
+  function queueEdit(id, expenses, returnTo = null, discardReturn) {
     _pendingEdit = { id, expenses };
     _returnAfterEdit = returnTo;
+    // 破棄時の復帰先（未指定なら保存後と同じ）
+    _discardReturn = (discardReturn !== undefined) ? discardReturn : returnTo;
   }
 
   return { render, bindEvents, queueEdit };
