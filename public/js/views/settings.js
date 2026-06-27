@@ -1009,7 +1009,10 @@ const SettingsView = (() => {
     document.body.appendChild(div);
     const modal = new bootstrap.Modal(div.querySelector('.modal'));
     modal.show();
+    let _saving = false; // 二重送信防止（保存ボタン連打で同じ人が重複登録されるのを防ぐ）
     div.querySelector('#btnSaveMember').addEventListener('click', async () => {
+      if (_saving) return;
+      const saveBtn = div.querySelector('#btnSaveMember');
       const updated = {
         name:  div.querySelector('#mName').value.trim(),
         email: div.querySelector('#mEmail').value.trim(),
@@ -1018,6 +1021,10 @@ const SettingsView = (() => {
       };
       if (!updated.name || !updated.email) return App.showToast('氏名・メールは必須です', 'danger');
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(updated.email)) return App.showToast('有効なメールアドレスを入力してください', 'danger');
+      // 重複メールチェック（新規追加時、および編集で別人のメールに変更した場合）
+      const lcEmail = updated.email.toLowerCase();
+      const dup = _master.members.some((m, i) => i !== idx && (m.email || '').toLowerCase() === lcEmail);
+      if (dup) return App.showToast('このメールアドレスは既に登録されています', 'danger');
       if (isLastAdminSelf) updated.role = 'admin';
       if (!isNew && ((_master.members[idx]?.role || '').toLowerCase() === 'admin') && updated.role !== 'admin') {
         const cnt = _master.members.filter(m => (m.role || '').toLowerCase() === 'admin').length;
@@ -1027,10 +1034,20 @@ const SettingsView = (() => {
         }
       }
       const oldEmail = isNew ? null : (_master.members[idx]?.email || null);
-      if (isNew) _master.members.push(updated);
-      else       _master.members[idx] = updated;
-      await _saveMasterToSheet(el);
-      modal.hide();
+      _saving = true;
+      if (saveBtn) { saveBtn.disabled = true; saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>保存中...'; }
+      try {
+        if (isNew) _master.members.push(updated);
+        else       _master.members[idx] = updated;
+        await _saveMasterToSheet(el);
+        modal.hide();
+      } catch (err) {
+        // 保存失敗時は楽観的に追加した行を巻き戻して再試行可能にする
+        if (isNew) _master.members = _master.members.filter(m => m !== updated);
+        _saving = false;
+        if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '保存'; }
+        App.showToast('保存に失敗しました: ' + (err?.message || ''), 'danger');
+      }
     });
     div.querySelector('.modal').addEventListener('hidden.bs.modal', () => div.remove());
   }
