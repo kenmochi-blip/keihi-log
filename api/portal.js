@@ -37,6 +37,19 @@ export default async function handler(req, res) {
     let customerId     = data.stripeCustomerId     || null;
     let subscriptionId = data.stripeSubscriptionId || null;
 
+    // 保存済み customerId が「使う前に」実在するか検証する。
+    // テストモードで作られた顧客IDが本番キーに残っている等で 'No such customer' になるため、
+    // 無効なら null 化して下のフォールバック（session/sub/メール検索）に流す。
+    if (customerId) {
+      try {
+        const c = await stripe.customers.retrieve(customerId);
+        if (c?.deleted) { console.warn(`[portal] stored customer ${customerId} is deleted`); customerId = null; }
+      } catch (e) {
+        console.warn(`[portal] stored customer ${customerId} invalid:`, e.message);
+        customerId = null;
+      }
+    }
+
     if (!customerId) {
       // チェックアウトセッションから取得（旧データ互換）
       try {
