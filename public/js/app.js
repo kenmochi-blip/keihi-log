@@ -829,7 +829,9 @@ const App = (() => {
   function _computeRole(master, email, isOwner) {
     const e = (email || '').toLowerCase();
     const admins = master.admins || [];
-    if (admins.includes(e) || (isOwner && admins.length === 0)) return 'admin';
+    // オーナー（ライセンス購入メール＝ログインメール）は常に管理者。
+    // マスタ表D列に他の管理者が登録されていてもオーナー本人を member に落とさない。
+    if (isOwner || admins.includes(e)) return 'admin';
     if ((master.viewers || []).includes(e)) return 'viewer';
     return 'member';
   }
@@ -1121,23 +1123,32 @@ const App = (() => {
           localStorage.setItem('keihi_setup_code', token); // setupCodeとしてパスのトークンを保存
         } else {
           // APIは応答したがエイリアスに対応するシートIDもライセンスキーも見つからなかった
-          _aliasNotFound = true;
-          // 別エイリアスのキャッシュを使わないようシートIDをクリア
-          if (localStorage.getItem('keihi_alias') !== token) {
-            localStorage.removeItem('keihi_sheet_id');
-            sessionStorage.removeItem('keihi_sheet_id');
-          }
+          _handleAliasUnresolved(token);
         }
       } else if (r.status === 404) {
-        // 存在しないエイリアス：別エイリアスのキャッシュデータを表示しないようクリア
-        _aliasNotFound = true;
-        if (localStorage.getItem('keihi_alias') !== token) {
-          localStorage.removeItem('keihi_sheet_id');
-          sessionStorage.removeItem('keihi_sheet_id');
-        }
+        _handleAliasUnresolved(token);
       }
+      // それ以外（5xx 等の一時障害）はエラー画面を出さず、キャッシュのIDで続行
     } catch (_) {
       // タイムアウト・ネットワークエラーは無視してlocalStorageのIDで続行
+    }
+  }
+
+  /** エイリアスが解決できなかった（404 / sheetId無し）ときの処理。
+   *  既にこのエイリアスで解決済みのシートIDがキャッシュされている場合は、
+   *  KVの一時的な読み取り障害の可能性が高いためエラー画面を出さずキャッシュで続行する。
+   *  （過去にこの一時404で「URLが見つかりません」が誤表示される事象があった） */
+  function _handleAliasUnresolved(token) {
+    const cachedAlias = localStorage.getItem('keihi_alias');
+    const cachedSheet = localStorage.getItem('keihi_sheet_id');
+    if (cachedAlias === token && cachedSheet) {
+      return; // 一時障害とみなしてキャッシュ継続（エラー画面を出さない）
+    }
+    // 本当に未知のエイリアス：別エイリアスのキャッシュを表示しないようクリア
+    _aliasNotFound = true;
+    if (cachedAlias !== token) {
+      localStorage.removeItem('keihi_sheet_id');
+      sessionStorage.removeItem('keihi_sheet_id');
     }
   }
 

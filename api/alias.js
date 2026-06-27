@@ -52,7 +52,14 @@ export default async function handler(req, res) {
     if (!code || code.length < 3) {
       return res.status(400).json({ error: 'invalid_code' });
     }
-    const sheetId = await kv.get(`alias:${code}`).catch(() => null);
+    // KVの一時的な読み取りエラーを「見つからない(404)」と誤認させない。
+    // 障害時は503を返し、クライアントはキャッシュIDで続行できる（誤った"URL未検出"を防ぐ）。
+    let sheetId;
+    try {
+      sheetId = await kv.get(`alias:${code}`);
+    } catch (e) {
+      return res.status(503).json({ error: 'kv_unavailable' });
+    }
     if (sheetId) {
       const aliasLic = await kv.get(`alias_lic:${code}`).catch(() => null);
       let companyName = await kv.get(`alias_company:${code}`).catch(() => null);
