@@ -1148,6 +1148,9 @@ const SettingsView = (() => {
   async function _openStripePortal(flow) {
     const key = localStorage.getItem('keihi_license_key');
     if (!key) { App.showToast('ライセンスキーが設定されていません', 'danger'); return; }
+    // ユーザー操作直後に空タブを先に開く（非同期fetch後の window.open はポップアップ
+    // ブロックされやすいため）。URL確定後にそのタブへ遷移させる。
+    const portalWin = window.open('', '_blank');
     App.showLoading(flow === 'cancel' ? '解約画面を開いています...' : 'プラン画面を開いています...');
     try {
       const res = await fetch('/api/portal', {
@@ -1158,8 +1161,10 @@ const SettingsView = (() => {
       const json = await res.json();
       const { url, error, message: serverMsg } = json;
       if (!url) throw Object.assign(new Error(error || 'portal_error'), { serverMsg });
-      window.location.href = url;
+      if (portalWin) portalWin.location.href = url;  // 別タブで開く
+      else window.location.href = url;               // ブロックされた場合は同タブ遷移
     } catch (err) {
+      try { portalWin?.close(); } catch (_) {}        // 失敗時は空タブを閉じる
       // 真因切り分けのためサーバーの詳細メッセージはコンソールへ
       if (err.serverMsg) console.error('[portal]', err.message, '-', err.serverMsg);
       // 恒久的なエラー（待っても直らない）はサポート誘導する。
