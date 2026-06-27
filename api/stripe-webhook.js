@@ -715,7 +715,21 @@ async function _renewLicense(invoice) {
 }
 
 async function _handleSubscriptionUpdated(subscription, previousAttributes) {
-  const key = await kv.get(`stripe_sub:${subscription.id}`).catch(() => null);
+  let key = await kv.get(`stripe_sub:${subscription.id}`).catch(() => null);
+  // フォールバック：stripe_sub マッピングが無い（旧トライアル転換等で紐付けが壊れた）場合、
+  // 顧客メールから email_to_license で逆引きし、見つかれば stripe_sub を自己修復する。
+  if (!key && subscription.customer) {
+    try {
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY?.trim());
+      const cust = await stripe.customers.retrieve(subscription.customer);
+      const email = cust?.email || '';
+      if (email) key = await kv.get(`email_to_license:${email}`).catch(() => null);
+    } catch (_) {}
+    if (key) {
+      await kv.set(`stripe_sub:${subscription.id}`, key).catch(() => {});
+      console.log(`[webhook] stripe_sub self-healed: ${subscription.id} → ${key}`);
+    }
+  }
   if (!key) return;
   const data = await kv.get(`license:${key}`);
   if (!data) return;
