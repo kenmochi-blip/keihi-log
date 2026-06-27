@@ -1227,7 +1227,7 @@ const SettingsView = (() => {
       if (err.message === 'trial_user') {
         msg = 'トライアル中はポータルを利用できません。有料プランへ切り替えてからご利用ください。';
       } else if (persistent.includes(err.message)) {
-        msg = 'カスタマーポータルを開けませんでした。お手数ですが support@keihi-log.com までご連絡ください（解約・プラン変更はこちらから承ります）。';
+        msg = `カスタマーポータルを開けませんでした（${err.message}${err.serverMsg ? ': ' + err.serverMsg : ''}）。お手数ですが support@keihi-log.com までご連絡ください（解約・プラン変更はこちらから承ります）。`;
       } else {
         msg = 'ポータルを開けませんでした。通信状況をご確認のうえ、しばらくしてから再試行してください。';
       }
