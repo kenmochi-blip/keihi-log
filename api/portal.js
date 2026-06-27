@@ -113,27 +113,48 @@ export default async function handler(req, res) {
     // 対象サブスクは「現在アクティブなもの」を採用（保存IDが古い場合に備えて顧客から引く）。
     let flowData;
     if (flowType) {
-      let activeSubId = null;
+      let activeSub = null;
       try {
         const subs = await stripe.subscriptions.list({ customer: customerId, status: 'active', limit: 1 });
-        activeSubId = subs.data[0]?.id || null;
+        activeSub = subs.data[0] || null;
       } catch (e) {
         console.warn('[portal] active subscription lookup failed:', e.message);
       }
-      if (activeSubId) {
-        flowData = flowType === 'update'
-          ? { type: 'subscription_update', subscription_update: { subscription: activeSubId } }
-          : { type: 'subscription_cancel', subscription_cancel: { subscription: activeSubId } };
+      if (activeSub) {
+        // 既に「期間終了時キャンセル」予約済みのサブスクに対して解約フローは開けない
+        // （Stripeが "already set to be canceled" を返す）。その場合はトップを開き、
+        // ユーザーが状態確認・解約取り消しできるようにする。
+        if (flowType === 'cancel' && activeSub.cancel_at_period_end) {
+          flowData = undefined;
+        } else {
+          flowData = flowType === 'update'
+            ? { type: 'subscription_update', subscription_update: { subscription: activeSub.id } }
+            : { type: 'subscription_cancel', subscription_cancel: { subscription: activeSub.id } };
+        }
       }
       // アクティブなサブスクが無い場合は flow_data を付けずにポータルトップを開く（フォールバック）
     }
 
     const origin = req.headers.origin || 'https://keihi-log.com';
-    const portalSession = await stripe.billingPortal.sessions.create({
+    const createParams = {
       customer:   customerId,
       return_url: `${origin}/app?plan_updated=1`,
-      ...(flowData ? { flow_data: flowData } : {}),
-    });
+    };
+    let portalSession;
+    try {
+      portalSession = await stripe.billingPortal.sessions.create({
+        ...createParams,
+        ...(flowData ? { flow_data: flowData } : {}),
+      });
+    } catch (e) {
+      // flow_data 付き生成に失敗した場合（解約予約済み等の競合）はトップを開いてフォールバック
+      if (flowData) {
+        console.warn('[portal] flow create failed, retrying without flow_data:', e.message);
+        portalSession = await stripe.billingPortal.sessions.create(createParams);
+      } else {
+        throw e;
+      }
+    }
 
     return res.status(200).json({ url: portalSession.url });
   } catch (err) {
