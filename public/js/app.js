@@ -170,7 +170,8 @@ const App = (() => {
         });
 
     // Stripeポータルからの帰還時（plan_updated=1）はライセンスキャッシュをクリアして再取得
-    if (new URLSearchParams(location.search).get('plan_updated') === '1') {
+    const _returnedFromPortal = new URLSearchParams(location.search).get('plan_updated') === '1';
+    if (_returnedFromPortal) {
       License.clearCache();
       history.replaceState(null, '', location.pathname);
     }
@@ -253,6 +254,10 @@ const App = (() => {
     _updateTrialBanner(lic);
     // 設定タブが既に描画済みの場合、ライセンス表示・メンバー制限を最新結果で上書き
     if (typeof SettingsView !== 'undefined') SettingsView.refreshLicenseUI(lic);
+
+    // ポータル帰還時は webhook 反映に時間差があるため、しばらくポーリングして
+    // プラン変更・解約予約の状態を設定UIに反映させる（初回検証が古くても追従する）
+    if (_returnedFromPortal) recheckAfterPortalReturn();
 
     // quickStart 中に別スプレッドシートが検出された場合、
     // 正しいシートIDで現在のビューを再描画（旧シートのデータが表示されるのを防ぐ）
@@ -445,6 +450,32 @@ const App = (() => {
    *   trial:false に書き換えるまで数秒かかるため、反映されるまで数回ポーリングして
    *   バナーを「すぐに」消す。
    */
+  // Stripeポータル（プラン変更・解約・取消）から戻った直後の状態反映ポーリング。
+  // webhook が license:* を更新するまで数秒のラグがあるため、キャッシュを毎回クリアして
+  // 数回再検証し、そのたびに設定UI（プランバッジ・解約予約表示）を更新する。
+  let _portalPolling = false;
+  async function recheckAfterPortalReturn() {
+    const key = localStorage.getItem('keihi_license_key');
+    if (!key || _portalPolling) return;
+    _portalPolling = true;
+    try {
+      for (let i = 0; i < 6; i++) {
+        await new Promise(r => setTimeout(r, 3000));
+        if (document.hidden) break;
+        License.clearCache();
+        const lic = await License.verify(key).catch(() => null);
+        if (lic) {
+          _updateTrialBanner(lic);
+          if (typeof SettingsView !== 'undefined' && SettingsView.refreshLicenseUI) {
+            SettingsView.refreshLicenseUI(lic);
+          }
+        }
+      }
+    } finally {
+      _portalPolling = false;
+    }
+  }
+
   let _trialPolling = false;
   async function recheckTrialAfterReturn() {
     const key = localStorage.getItem('keihi_license_key');
