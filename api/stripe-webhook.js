@@ -744,9 +744,13 @@ async function _handleSubscriptionUpdated(subscription, previousAttributes) {
   // previous_attributes に依存せず、Stripeの現在状態（cancel_at_period_end）と
   // KVの保存状態（cancelScheduled）を比較して判定する。ポータル経由の更新イベントで
   // previous_attributes に cancel_at_period_end が含まれない場合でも確実に検知できる。
-  const nowScheduled = subscription.cancel_at_period_end === true;
+  // 解約予約の判定：cancel_at_period_end（旧）に加え、cancel_at（新: 具体的な解約日時）も見る。
+  // 現行のStripeカスタマーポータルは「期間終了時キャンセル」を cancel_at（タイムスタンプ）で
+  // 表現し、cancel_at_period_end は false のままになるため、cancel_at の有無で判定する。
+  const nowScheduled = subscription.cancel_at_period_end === true
+    || (subscription.cancel_at != null && subscription.status !== 'canceled');
   const wasScheduled = data.cancelScheduled === true;
-  console.log(`[webhook] sub.updated ${subscription.id} key=${key} nowScheduled=${nowScheduled} wasScheduled=${wasScheduled}`);
+  console.log(`[webhook] sub.updated ${subscription.id} key=${key} nowScheduled=${nowScheduled} wasScheduled=${wasScheduled} cancel_at=${subscription.cancel_at} cap_end=${subscription.cancel_at_period_end}`);
 
   if (nowScheduled && !wasScheduled) {
     // 新規の解約予約
