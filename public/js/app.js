@@ -1192,6 +1192,7 @@ const App = (() => {
     buildUpgradeUrl,
     buildPlanChoiceButtons,
     recheckTrialAfterReturn,
+    recheckAfterPortalReturn,
   };
 })();
 

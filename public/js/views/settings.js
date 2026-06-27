@@ -1165,6 +1165,9 @@ const SettingsView = (() => {
   async function _openStripePortal(flow) {
     const key = localStorage.getItem('keihi_license_key');
     if (!key) { App.showToast('ライセンスキーが設定されていません', 'danger'); return; }
+    // 別タブでポータルを開くと元タブのライセンスキャッシュが古いままになるため、
+    // タブに戻った時に再取得できるよう「ポータルを開いた」フラグを立てる。
+    try { sessionStorage.setItem('keihi_portal_opened', String(Date.now())); } catch (_) {}
     // ユーザー操作直後に空タブを先に開く（非同期fetch後の window.open はポップアップ
     // ブロックされやすいため）。URL確定後にそのタブへ遷移させる。
     const portalWin = window.open('', '_blank');
