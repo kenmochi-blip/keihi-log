@@ -726,31 +726,31 @@ async function _handleSubscriptionUpdated(subscription, previousAttributes) {
   const data = await kv.get(`license:${key}`);
   if (!data) return;
 
-  // ── 解約予約 / 取り消しの検知（cancel_at_period_end の変化）──────────
-  // ポータルで「請求期間の終了時にキャンセル」を選ぶとこのイベントが発火する。
-  // 解約予約状態をライセンスに保存し、クライアントUIが「解約予約済み」を表示できるようにする。
-  if (previousAttributes && 'cancel_at_period_end' in previousAttributes) {
-    const wasScheduled = !!previousAttributes.cancel_at_period_end;
-    const nowScheduled = subscription.cancel_at_period_end === true;
+  // ── 解約予約 / 取り消しの検知 ──────────────────────────────────────
+  // previous_attributes に依存せず、Stripeの現在状態（cancel_at_period_end）と
+  // KVの保存状態（cancelScheduled）を比較して判定する。ポータル経由の更新イベントで
+  // previous_attributes に cancel_at_period_end が含まれない場合でも確実に検知できる。
+  const nowScheduled = subscription.cancel_at_period_end === true;
+  const wasScheduled = data.cancelScheduled === true;
+  console.log(`[webhook] sub.updated ${subscription.id} key=${key} nowScheduled=${nowScheduled} wasScheduled=${wasScheduled}`);
 
-    if (!wasScheduled && nowScheduled) {
-      // 新規の解約予約
-      const endUnix = subscription.cancel_at || subscription.current_period_end || null;
-      const endDate = endUnix ? new Date(endUnix * 1000).toISOString().split('T')[0] : '';
-      await kv.set(`license:${key}`, { ...data, cancelScheduled: true, cancelAt: endDate });
-      console.log(`[webhook] cancellation scheduled: ${key} ends ${endDate || '(unknown)'}`);
-      if (process.env.RESEND_API_KEY && data.email) {
-        await _sendCancellationEmail(data.email, data.customerName || data.company, endDate);
-      }
-      return;
+  if (nowScheduled && !wasScheduled) {
+    // 新規の解約予約
+    const endUnix = subscription.cancel_at || subscription.current_period_end || null;
+    const endDate = endUnix ? new Date(endUnix * 1000).toISOString().split('T')[0] : '';
+    await kv.set(`license:${key}`, { ...data, cancelScheduled: true, cancelAt: endDate });
+    console.log(`[webhook] cancellation scheduled: ${key} ends ${endDate || '(unknown)'}`);
+    if (process.env.RESEND_API_KEY && data.email) {
+      await _sendCancellationEmail(data.email, data.customerName || data.company, endDate);
     }
+    return;
+  }
 
-    if (wasScheduled && !nowScheduled) {
-      // 解約予約の取り消し（継続）
-      await kv.set(`license:${key}`, { ...data, cancelScheduled: false, cancelAt: null });
-      console.log(`[webhook] cancellation reverted: ${key}`);
-      return;
-    }
+  if (!nowScheduled && wasScheduled) {
+    // 解約予約の取り消し（継続）
+    await kv.set(`license:${key}`, { ...data, cancelScheduled: false, cancelAt: null });
+    console.log(`[webhook] cancellation reverted: ${key}`);
+    return;
   }
 
   // プラン変更のみ処理（それ以外のsub更新は無視）
