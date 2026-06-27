@@ -1229,8 +1229,11 @@ const SettingsView = (() => {
       const planLabel = !result.trial && result.plan
         ? `<span class="badge bg-info text-dark ms-2"><i class="bi bi-person${result.plan === 'team' ? 's' : ''}-fill me-1"></i>${result.plan === 'team' ? 'チームプラン' : 'ソロプラン'}</span>`
         : '';
+      const pendingNote = (!result.trial && result.pendingPlan)
+        ? `<div class="text-muted small mt-1"><i class="bi bi-arrow-right-circle me-1"></i>${result.pendingPlan === 'team' ? 'チームプラン' : 'ソロプラン'}に変更予定${result.pendingPlanAt ? `（${result.pendingPlanAt}〜）` : ''}</div>`
+        : '';
       div.innerHTML = `<span class="badge ${result.trial ? 'bg-warning text-dark' : 'bg-success'}"><i class="bi bi-check-circle me-1"></i>${result.trial ? 'トライアル中' : 'ライセンス有効'}</span>${planLabel}
-        ${result.expiresAt ? `<span class="text-muted small ms-2">${result.trial ? 'トライアル期限' : '期限'}: ${result.expiresAt.split('T')[0]}</span>` : ''}
+        ${result.expiresAt ? `<span class="text-muted small ms-2">${result.trial ? 'トライアル期限' : '期限'}: ${result.expiresAt.split('T')[0]}</span>` : ''}${pendingNote}
 `;
     } else {
       div.innerHTML = '<span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>ライセンス無効</span>';

@@ -116,6 +116,8 @@ export default async function handler(req, res) {
       hasPortal:    !!data.stripeSessionId,
       cancelScheduled: data.cancelScheduled === true,
       cancelAt:        data.cancelAt || null,
+      pendingPlan:     data.pendingPlan || null,
+      pendingPlanAt:   data.pendingPlanAt || null,
     });
 
   } catch (err) {

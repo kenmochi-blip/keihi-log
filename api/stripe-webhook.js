@@ -720,6 +720,20 @@ async function _renewLicense(invoice) {
     'billing_reason:', 'renewal', 'periodEnd:', periodEnd || '(fallback)');
 }
 
+// 価格IDからプラン（solo/team）を判定する。metadata.plan 優先、なければ商品名で判定。
+async function _planFromPriceId(stripe, priceId) {
+  if (!priceId) return null;
+  try {
+    const price = await stripe.prices.retrieve(priceId, { expand: ['product'] });
+    const planMeta = price.metadata?.plan || price.product?.metadata?.plan;
+    if (planMeta) return planMeta;
+    const nm = (price.product?.name || '').toLowerCase();
+    if (nm.includes('team') || nm.includes('チーム')) return 'team';
+    if (nm.includes('solo') || nm.includes('ソロ')) return 'solo';
+  } catch (_) {}
+  return null;
+}
+
 async function _handleSubscriptionUpdated(subscription, previousAttributes) {
   const key = await _resolveLicenseKey(subscription);
   if (!key) return;
@@ -753,6 +767,36 @@ async function _handleSubscriptionUpdated(subscription, previousAttributes) {
     return;
   }
 
+  // ── 予約されたプラン変更（期間終了時ダウングレード等）の検知 ──────────
+  // ポータルで「期間終了時にプラン変更」を行うと subscription.schedule が設定される。
+  // スケジュール最終フェーズのプランを「変更予定」として保存し、アプリで予告表示する。
+  // （items は期間終了まで変わらないため、この時点では plan 本体は更新しない）
+  {
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY?.trim());
+    let pendingPlan = null, pendingPlanAt = null;
+    if (subscription.schedule) {
+      try {
+        const schedId = typeof subscription.schedule === 'string' ? subscription.schedule : subscription.schedule.id;
+        const sched = await stripe.subscriptionSchedules.retrieve(schedId);
+        const phases = sched.phases || [];
+        const last = phases[phases.length - 1];
+        const item = last?.items?.[0];
+        const priceId = typeof item?.price === 'string' ? item.price : item?.price?.id;
+        const p = await _planFromPriceId(stripe, priceId);
+        if (p && p !== data.plan) {
+          pendingPlan = p;
+          const at = last?.start_date || subscription.current_period_end;
+          pendingPlanAt = at ? new Date(at * 1000).toISOString().split('T')[0] : null;
+        }
+      } catch (e) { console.warn('[webhook] schedule retrieve failed:', e.message); }
+    }
+    if ((data.pendingPlan || null) !== pendingPlan) {
+      await kv.set(`license:${key}`, { ...data, pendingPlan, pendingPlanAt });
+      data.pendingPlan = pendingPlan; data.pendingPlanAt = pendingPlanAt; // 後続処理に反映
+      console.log(`[webhook] pending plan: ${key} → ${pendingPlan || '(none)'} at ${pendingPlanAt || ''}`);
+    }
+  }
+
   // プラン変更のみ処理（それ以外のsub更新は無視）
   const prevItems = previousAttributes?.items;
   if (!prevItems) return;
@@ -763,25 +807,14 @@ async function _handleSubscriptionUpdated(subscription, previousAttributes) {
   const priceId   = currentItem?.price?.id;
   if (!priceId) return;
 
-  // Stripeから商品情報を取得してメタデータのplanを確認
+  // Stripeから商品情報を取得してプランを判定
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY?.trim());
-  let newPlan = data.plan; // デフォルトは変更なし
-  try {
-    const price = await stripe.prices.retrieve(priceId, { expand: ['product'] });
-    const planMeta = price.metadata?.plan || price.product?.metadata?.plan;
-    if (planMeta) {
-      newPlan = planMeta;
-    } else {
-      // メタデータがない場合は商品名で判定
-      const productName = (price.product?.name || '').toLowerCase();
-      if (productName.includes('team') || productName.includes('チーム')) newPlan = 'team';
-      else if (productName.includes('solo') || productName.includes('ソロ')) newPlan = 'solo';
-    }
-  } catch (_) {}
+  const newPlan = (await _planFromPriceId(stripe, priceId)) || data.plan;
 
   if (newPlan === data.plan) return; // プラン変更なし
 
-  const updated = { ...data, plan: newPlan, planChangedAt: new Date().toISOString() };
+  // プランが実際に切り替わったので「変更予定」フラグはクリアする
+  const updated = { ...data, plan: newPlan, pendingPlan: null, pendingPlanAt: null, planChangedAt: new Date().toISOString() };
   await kv.set(`license:${key}`, updated);
   console.log(`Plan changed via portal: ${key} ${data.plan} → ${newPlan}`);
 
