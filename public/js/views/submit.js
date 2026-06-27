@@ -19,6 +19,8 @@ const SubmitView = (() => {
   let _customFlags      = [];
   let _pendingEdit   = null; // 一覧表からの編集キュー {id, expenses}
   let _returnAfterEdit = null; // 編集保存後の遷移先ビュー名
+  let _editHistoryPushed = false; // 編集開始時にダミー履歴を積んだか
+  let _editPopstateBound = false; // popstateリスナー登録済みか
   let _historyAll      = []; // 自分の全履歴（ソート済）
   let _historyExpenses = []; // 全経費データ（編集用）
   let _historyShown    = 15;
@@ -456,7 +458,7 @@ const SubmitView = (() => {
     });
     el.querySelector('#btnNavLeft')?.addEventListener('click', () => SwipeNav.swipeTo('summary'));
     el.querySelector('#btnNavRight')?.addEventListener('click', () => SwipeNav.swipeTo('list'));
-    el.querySelector('#btnCancelEdit')?.addEventListener('click', () => _cancelEdit(el));
+    el.querySelector('#btnCancelEdit')?.addEventListener('click', () => { _cancelEdit(el); _consumeEditHistory(); });
     el.querySelector('#btnAddMore')?.addEventListener('click', () => el.querySelector('#fileInput-領収書')?.click());
     // fromCache=true のとき：スワイプ由来でキャッシュ済みHTMLが表示されているため再ロード不要
     // 手動リフレッシュボタンはいつでも使える
@@ -1504,11 +1506,12 @@ function _bindSubtypePills(el) {
 
       _resetForm(el);
       _loadHistory(el);
+      _consumeEditHistory(); // 保存完了時はダミー履歴を除去
       if (returnTo) Router.navigate(returnTo);
     } catch (err) {
       App.showToast('登録エラー: ' + err.message, 'danger');
       // 編集モード中のエラーはフォームをリセットして編集バナーが残り続けるのを防ぐ
-      if (_editId) _cancelEdit(el);
+      if (_editId) { _cancelEdit(el); _consumeEditHistory(); }
     } finally {
       App.hideLoading();
     }
@@ -1788,6 +1791,8 @@ function _bindSubtypePills(el) {
     _existingUrls = e.imageLinks ? e.imageLinks.split(',').map(s => s.trim()).filter(Boolean) : [];
     _existingHash = e.imageHash || '';
     _currentType = e.type;
+    _bindEditPopstate();
+    _pushEditHistory(); // 戻るジェスチャーで前画面に戻すためのダミー履歴
 
     // サブタイプピルの状態とパネル表示
     el.querySelectorAll('.subtype-pill').forEach(p => {
@@ -1976,6 +1981,34 @@ function _bindSubtypePills(el) {
     _existingUrls = [];
     _existingHash = '';
     _resetForm(el);
+  }
+
+  // 編集開始時にダミー履歴を積む（Androidの戻るジェスチャーで前画面に戻すため）
+  function _pushEditHistory() {
+    if (!_editHistoryPushed) {
+      try { history.pushState({ keihiEdit: true }, ''); } catch (_) {}
+      _editHistoryPushed = true;
+    }
+  }
+  // 保存・キャンセルボタンなどプログラムから編集を抜けるとき、積んだダミー履歴を除去する
+  function _consumeEditHistory() {
+    if (_editHistoryPushed) {
+      _editHistoryPushed = false;
+      try { history.back(); } catch (_) {}
+    }
+  }
+  // Androidバックジェスチャー／ブラウザ戻る → 編集を破棄して元の画面（一覧・集計）へ戻す
+  function _bindEditPopstate() {
+    if (_editPopstateBound) return;
+    _editPopstateBound = true;
+    window.addEventListener('popstate', () => {
+      if (!(_editHistoryPushed && _editId)) return;
+      _editHistoryPushed = false;
+      const ret = _returnAfterEdit || 'list';
+      const el = document.getElementById('appMain');
+      if (el) _cancelEdit(el); // 編集内容は保存せず破棄
+      if (typeof Router !== 'undefined') Router.navigate(ret);
+    });
   }
 
   function _resetForm(el) {

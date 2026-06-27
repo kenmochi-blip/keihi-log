@@ -577,7 +577,7 @@ const ListView = (() => {
       });
       container.querySelectorAll('.btn-edit-list').forEach(btn => {
         btn.addEventListener('click', () => {
-          SubmitView.queueEdit(btn.dataset.id, _expenses);
+          SubmitView.queueEdit(btn.dataset.id, _expenses, 'list');
           Router.navigate('submit');
         });
       });
