@@ -113,11 +113,14 @@ async function _authorize(req, res) {
     return null;
   }
   // admin = D列='admin' または ライセンスオーナー（購入メール＝ログインメール）。
-  // オーナーは D列に他の admin がいても常に管理者とする（クライアントの _computeRole と一致）。
-  // これにより「購入者本人がマスタ表に未登録でも設定変更できる」を保証する。
+  // オーナーは D列が空欄/未登録なら常に管理者（ロックアウト防止）。ただし D列に明示的に
+  // 'viewer' / 'member' と記入された場合はその降格を尊重する（クライアントの _computeRole と一致）。
   // NOTE: 購入メールとGoogleログインメールが異なる場合はオーナー昇格が効かないため D列='admin' が必要（仕様）。
   const ownerEmail = await resolveOwnerEmail(sheetId).catch(() => '');
-  const isAdmin = master.admins.includes(me.email) || (!!ownerEmail && me.email === ownerEmail);
+  const isOwner = !!ownerEmail && me.email === ownerEmail;
+  const ownerRow = master.members.find(m => m.email === me.email);
+  const ownerDemoted = ['viewer', 'member'].includes((ownerRow?.role || '').toLowerCase());
+  const isAdmin = master.admins.includes(me.email) || (isOwner && !ownerDemoted);
   const isViewer = master.viewers?.includes(me.email);
   const isMember = isAdmin || isViewer || master.members.some(m => m.email === me.email);
   if (!isMember) { res.status(403).json({ error: 'not_a_member' }); return null; }

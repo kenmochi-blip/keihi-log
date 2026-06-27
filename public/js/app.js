@@ -828,11 +828,17 @@ const App = (() => {
    */
   function _computeRole(master, email, isOwner) {
     const e = (email || '').toLowerCase();
-    const admins = master.admins || [];
-    // オーナー（ライセンス購入メール＝ログインメール）は常に管理者。
-    // マスタ表D列に他の管理者が登録されていてもオーナー本人を member に落とさない。
-    if (isOwner || admins.includes(e)) return 'admin';
+    // 明示ロール（マスタ表D列）が最優先
+    if ((master.admins || []).includes(e)) return 'admin';
     if ((master.viewers || []).includes(e)) return 'viewer';
+    // オーナー（購入メール＝ログインメール）の扱い：
+    //   D列が空欄/未登録 → 既定で admin（ロックアウト防止）
+    //   D列に明示的に 'member' と記入 → 一般に降格（viewerは上で処理済み）
+    if (isOwner) {
+      const row = (master.members || []).find(m => (m.email || '').toLowerCase() === e);
+      const explicit = (row?.role || '').toLowerCase();
+      return explicit === 'member' ? 'member' : 'admin';
+    }
     return 'member';
   }
 
