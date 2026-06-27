@@ -54,6 +54,8 @@ export default async function handler(req, res) {
 
   if (event.type === 'checkout.session.completed') {
     await _issueNewLicense(event.data.object);
+    // ライセンス処理（必要なら旧サブスクのキャンセル）後に重複サブスクを点検する
+    await _guardDuplicateSubscriptions(event.data.object);
   }
 
   // invoice.paid は更新時（subscription_cycle）のみ有効期限を延長する
@@ -914,6 +916,72 @@ async function _suspendLicense(subscription) {
   //   受付メールを送っているが、最終的な終了通知としてここでも送る。
   if (process.env.RESEND_API_KEY && data.email) {
     await _sendCancellationEmail(data.email, data.customerName || data.company, '');
+  }
+}
+
+// 重複サブスク防止ガード：checkout完了後、同一カスタマーにアクティブな有料サブスクが
+// 複数残っていたら（このアプリは 1カスタマー=1サブスク。複数チームは別カスタマー/別メール）、
+// 今回作成された分以外をキャンセルし、直近(7日以内)の請求を返金して二重請求を防ぐ。
+async function _guardDuplicateSubscriptions(session) {
+  const customerId = session.customer;
+  const keepSubId  = session.subscription;
+  if (!customerId || !keepSubId) return; // サブスク型チェックアウトのみ対象
+
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY?.trim());
+  let active;
+  try {
+    const list = await stripe.subscriptions.list({ customer: customerId, status: 'active', limit: 20 });
+    active = list.data || [];
+  } catch (e) { console.warn('[webhook] dup-guard list failed:', e.message); return; }
+
+  const extras = active.filter(s => s.id !== keepSubId);
+  if (extras.length === 0) return; // 重複なし
+
+  console.warn(`[webhook] duplicate subs for customer ${customerId}: keep=${keepSubId} cancel=${extras.map(s => s.id).join(',')}`);
+  const cancelled = [];
+  for (const sub of extras) {
+    try {
+      await stripe.subscriptions.cancel(sub.id);
+      await kv.del(`stripe_sub:${sub.id}`).catch(() => {});
+      cancelled.push(sub.id);
+      // 直近(7日以内)に支払われた請求のみ返金（重複請求の払い戻し。古い正規請求は対象外）
+      const invRef = sub.latest_invoice;
+      const invoice = typeof invRef === 'string'
+        ? await stripe.invoices.retrieve(invRef).catch(() => null)
+        : invRef;
+      const pi = invoice?.payment_intent;
+      const recent = invoice?.status === 'paid' && invoice?.created && (Date.now() / 1000 - invoice.created) < 7 * 24 * 3600;
+      if (pi && recent) {
+        await stripe.refunds.create({ payment_intent: typeof pi === 'string' ? pi : pi.id })
+          .then(() => console.log(`[webhook] dup refund issued for sub ${sub.id}`))
+          .catch(e => console.warn(`[webhook] dup refund failed ${sub.id}:`, e.message));
+      }
+    } catch (e) { console.warn(`[webhook] dup cancel failed ${sub.id}:`, e.message); }
+  }
+
+  // 管理者へ通知
+  if (cancelled.length && process.env.RESEND_API_KEY && process.env.ADMIN_NOTIFY_EMAIL) {
+    const email = session.customer_details?.email || session.customer_email || '';
+    const body = {
+      from: process.env.RESEND_FROM_EMAIL || 'noreply@' + (process.env.VERCEL_PROJECT_PRODUCTION_URL || 'example.com'),
+      to: process.env.ADMIN_NOTIFY_EMAIL,
+      subject: `【経費ログ】重複サブスクを自動キャンセルしました`,
+      html: `
+<p>同一カスタマーに重複したサブスクリプションを検出し、二重請求防止のため自動キャンセルしました。</p>
+<table style="border-collapse:collapse;font-size:14px;">
+  <tr><td style="padding:4px 12px 4px 0;color:#666;">カスタマー</td><td style="font-family:monospace;">${customerId}</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;color:#666;">メール</td><td>${email || '—'}</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;color:#666;">維持したサブスク</td><td style="font-family:monospace;">${keepSubId}</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;color:#666;">キャンセルしたサブスク</td><td style="font-family:monospace;">${cancelled.join('<br>')}</td></tr>
+</table>
+<p style="color:#666;font-size:0.9em;">直近7日以内の請求は自動返金しています。返金状況はStripeダッシュボードでご確認ください。</p>
+      `.trim(),
+    };
+    await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }).catch(() => {});
   }
 }
 

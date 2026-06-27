@@ -666,23 +666,10 @@ const SettingsView = (() => {
       });
     });
     el.querySelector('#btnAddMember')?.addEventListener('click', () => _showMemberForm(el, null));
-    el.querySelector('#btnUpgradePlan')?.addEventListener('click', () => {
-      const key   = localStorage.getItem('keihi_license_key');
-      const email = (typeof Auth !== 'undefined' && Auth.getUserEmail?.()) || '';
-      const currentPlan = (() => { try { return JSON.parse(localStorage.getItem('keihi_license_cache_v2') || 'null')?.result?.plan || ''; } catch (_) { return ''; } })();
-      const planButtons = App.buildPlanChoiceButtons(key, email, currentPlan);
-      if (!planButtons) { App.showToast('プランリンクが設定されていません', 'danger'); return; }
-      const hint = el.querySelector('#memberPlanHint');
-      if (hint && !hint.querySelector('#upgradePlanChoice')) {
-        hint.insertAdjacentHTML('beforeend', `
-          <div id="upgradePlanChoice" class="mt-2 p-2 border rounded bg-light w-100">
-            <div class="small text-muted mb-2">
-              <i class="bi bi-info-circle me-1"></i>既存ライセンスを引き継いでプランを変更します（即時課金）。
-            </div>
-            ${planButtons}
-          </div>`);
-      }
-    });
+    // ソロ→チームのアップグレードはポータルのプラン変更（既存サブスクを日割りで変更）を使う。
+    // 以前は新規チェックアウト（Payment Link）を開いており、別サブスクが作られて
+    // 当該期間にソロ料金と重なる実質二重請求が発生していたため修正。
+    el.querySelector('#btnUpgradePlan')?.addEventListener('click', () => _openStripePortal('update'));
     el.querySelector('#btnAddCategory')?.addEventListener('click', () => _showInlineAdd(el, 'category'));
     el.querySelector('#btnAddPaySource')?.addEventListener('click', () => _showInlineAdd(el, 'paySource'));
     el.querySelector('#btnAddCustomFlag')?.addEventListener('click', () => _showInlineAdd(el, 'customFlag'));
