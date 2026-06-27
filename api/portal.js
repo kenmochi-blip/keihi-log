@@ -77,6 +77,14 @@ export default async function handler(req, res) {
     return res.status(200).json({ url: portalSession.url });
   } catch (err) {
     console.error('Portal error:', err);
+    // Stripe ダッシュボードでカスタマーポータルが未設定（未保存）の場合、
+    // billingPortal.sessions.create は "No configuration provided..." 例外を投げる。
+    // これは恒久的な設定不備なので専用コードで返し、クライアントが正しく案内できるようにする。
+    const isPortalUnconfigured = /configuration/i.test(err.message || '')
+      && /portal|customer/i.test(err.message || '');
+    if (isPortalUnconfigured) {
+      return res.status(500).json({ error: 'portal_not_configured', message: err.message });
+    }
     return res.status(500).json({ error: 'stripe_error', message: err.message });
   }
 }

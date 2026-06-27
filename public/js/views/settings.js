@@ -1218,9 +1218,19 @@ const SettingsView = (() => {
       if (!url) throw Object.assign(new Error(error || 'portal_error'), { serverMsg });
       window.location.href = url;
     } catch (err) {
-      const msg = err.message === 'trial_user'
-        ? 'トライアル中はポータルを利用できません。有料プランへ切り替えてからご利用ください。'
-        : 'ポータルを開けませんでした。しばらく待ってから再試行してください。';
+      // 真因切り分けのためサーバーの詳細メッセージはコンソールへ
+      if (err.serverMsg) console.error('[portal]', err.message, '-', err.serverMsg);
+      // 恒久的なエラー（待っても直らない）はサポート誘導する。
+      // 「しばらく待って再試行」は 429(レート制限)/ネットワーク等の一時エラーにのみ使う。
+      const persistent = ['portal_not_configured', 'stripe_error', 'no_customer', 'no_session', 'not_found'];
+      let msg;
+      if (err.message === 'trial_user') {
+        msg = 'トライアル中はポータルを利用できません。有料プランへ切り替えてからご利用ください。';
+      } else if (persistent.includes(err.message)) {
+        msg = 'カスタマーポータルを開けませんでした。お手数ですが support@keihi-log.com までご連絡ください（解約・プラン変更はこちらから承ります）。';
+      } else {
+        msg = 'ポータルを開けませんでした。通信状況をご確認のうえ、しばらくしてから再試行してください。';
+      }
       App.showToast(msg, 'danger');
     } finally {
       App.hideLoading();
