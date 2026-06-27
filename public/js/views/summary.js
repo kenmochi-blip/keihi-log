@@ -320,6 +320,8 @@ const SummaryView = (() => {
     // 集計
     const matrix        = {}; // {rowKey: {ym: amount}}
     const drillRecords  = {}; // {rowKey: {ym: [expense]}}
+    const drillAmtCell  = {}; // {rowKey: {ym: Map(eid -> 科目別按分額)}}  セルドリル用
+    const drillAmtRow   = {}; // {rowKey: Map(eid -> 科目別按分額)}        行総計ドリル用（月跨ぎ合算）
     const rowTotals     = {};
     const colTotals     = {};
     let grandTotal = 0;
@@ -328,13 +330,15 @@ const SummaryView = (() => {
       const ym = e.date.substring(0, 7);
       if (!months.includes(ym)) return;
       keyFn(e).forEach(({ key, amount }) => {
-        if (!matrix[key])       { matrix[key] = {}; drillRecords[key] = {}; }
-        if (!drillRecords[key][ym]) drillRecords[key][ym] = [];
+        if (!matrix[key])       { matrix[key] = {}; drillRecords[key] = {}; drillAmtCell[key] = {}; drillAmtRow[key] = new Map(); }
+        if (!drillRecords[key][ym]) { drillRecords[key][ym] = []; drillAmtCell[key][ym] = new Map(); }
         matrix[key][ym]      = (matrix[key][ym]      || 0) + amount;
         rowTotals[key]        = (rowTotals[key]        || 0) + amount;
         colTotals[ym]         = (colTotals[ym]         || 0) + amount;
         grandTotal            += amount;
         if (!drillRecords[key][ym].includes(e)) drillRecords[key][ym].push(e);
+        drillAmtCell[key][ym].set(e.id, (drillAmtCell[key][ym].get(e.id) || 0) + amount);
+        drillAmtRow[key].set(e.id, (drillAmtRow[key].get(e.id) || 0) + amount);
       });
     });
 
@@ -421,14 +425,14 @@ const SummaryView = (() => {
       td.addEventListener('click', () => {
         const drillExp = drillRecords[key]?.[ym] || [];
         const settle = settleCallback ? (onDone) => settleCallback(drillExp, onDone) : null;
-        _showDrill(`${key} — ${_fmtYM(ym)}`, drillExp, settle, showName);
+        _showDrill(`${key} — ${_fmtYM(ym)}`, drillExp, settle, showName, drillAmtCell[key]?.[ym]);
       });
     });
     // ドリルダウン：行の総計クリック
     container.querySelectorAll('.pivot-row-total[data-key]').forEach(td => {
       const key = td.dataset.key;
       td.addEventListener('click', () => {
-        _showDrill(`${key} — 総計`, rowAllRecords[key] || [], null, showName);
+        _showDrill(`${key} — 総計`, rowAllRecords[key] || [], null, showName, drillAmtRow[key]);
       });
     });
     // ドリルダウン：列の総計クリック（フッター）
@@ -446,8 +450,10 @@ const SummaryView = (() => {
   }
 
   // ─── ドリルダウンモーダル ──────────────────────────────────
-  function _showDrill(title, expenses, settleCallback = null, showName = true) {
-    const total = expenses.reduce((s, e) => s + e.amount, 0);
+  function _showDrill(title, expenses, settleCallback = null, showName = true, amountMap = null) {
+    // amountMap（科目別ドリル）がある場合は経費全体ではなくその科目の按分額を表示する
+    const _amt = (e) => (amountMap && amountMap.get(e.id) != null) ? amountMap.get(e.id) : e.amount;
+    const total = expenses.reduce((s, e) => s + _amt(e), 0);
     const sorted = expenses.slice().sort((a, b) => {
       const dateCmp = a.date.localeCompare(b.date);
       if (dateCmp !== 0) return dateCmp;
@@ -489,7 +495,7 @@ const SummaryView = (() => {
         <td>${_escape(e.place)}</td>
         <td class="text-end${hasExtra ? ' drill-amount-toggle' : ''}" data-row="${i}"
             style="${hasExtra ? 'cursor:pointer;' : ''}">
-          ¥${e.amount.toLocaleString()}
+          ¥${Math.round(_amt(e)).toLocaleString()}
           ${hasExtra ? '<i class="bi bi-chevron-down" style="font-size:0.6rem;opacity:0.55;margin-left:2px;vertical-align:middle;"></i>' : ''}
         </td>
         ${showName ? `<td class="text-muted" style="font-size:0.8rem;white-space:nowrap;">${_escape(App.getMemberName(e.email, e.name))}</td>` : ''}
@@ -542,7 +548,7 @@ const SummaryView = (() => {
                   <tfoot class="table-light">
                     <tr>
                       <td colspan="2" class="fw-bold">合計 ${expenses.length}件</td>
-                      <td class="text-end fw-bold">¥${total.toLocaleString()}</td>
+                      <td class="text-end fw-bold">¥${Math.round(total).toLocaleString()}</td>
                       <td colspan="${colCount - 2}"></td>
                     </tr>
                   </tfoot>
