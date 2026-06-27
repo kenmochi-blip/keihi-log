@@ -114,6 +114,8 @@ export default async function handler(req, res) {
       ownerEmail:   (data.email       || '').toLowerCase(),
       trial:        isTrial,
       hasPortal:    !!data.stripeSessionId,
+      cancelScheduled: data.cancelScheduled === true,
+      cancelAt:        data.cancelAt || null,
     });
 
   } catch (err) {

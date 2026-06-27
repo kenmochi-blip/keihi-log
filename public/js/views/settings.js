@@ -820,6 +820,8 @@ const SettingsView = (() => {
         _openStripePortal('update');   // プラン変更画面へ直行
       } else if (e.target.closest('#btnCancelPlan')) {
         _openStripePortal('cancel');   // 解約画面へ直行
+      } else if (e.target.closest('#btnManagePortal')) {
+        _openStripePortal();           // ポータルトップ（解約取り消し・プラン管理）
       }
     });
   }
@@ -1223,7 +1225,24 @@ const SettingsView = (() => {
       section.innerHTML = '';
       return;
     }
-    section.innerHTML = `
+    if (result.cancelScheduled) {
+      // 解約予約済み：再解約させず、状態表示＋管理（取り消し）ボタンのみ
+      const endTxt = result.cancelAt ? `${_escape(result.cancelAt)} に終了予定` : '現在の期間終了時に終了予定';
+      section.innerHTML = `
+      <div class="card mb-3 border-warning">
+        <div class="card-body">
+          <div class="alert alert-warning py-2 mb-2 small">
+            <i class="bi bi-clock-history me-1"></i><strong>解約予約済み</strong>：${endTxt}。それまでは通常どおりご利用いただけます。
+          </div>
+          <button class="btn btn-outline-primary w-100" id="btnManagePortal">
+            <i class="bi bi-gear me-1"></i>解約を取り消す／プランを管理する
+          </button>
+          <div class="text-muted mt-1" style="font-size:0.75rem;text-align:center;">Stripeの画面で解約の取り消し・プラン変更ができます。</div>
+        </div>
+      </div>
+      `;
+    } else {
+      section.innerHTML = `
       <div class="card mb-3">
         <div class="card-body">
           <button class="btn btn-outline-primary w-100 mb-2" id="btnChangePlan">
@@ -1236,6 +1255,7 @@ const SettingsView = (() => {
         </div>
       </div>
       `;
+    }
     // クリックは bindEvents の委譲リスナーで処理（innerHTML 再描画後もリスナーが確実に機能する）
   }
 

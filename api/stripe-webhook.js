@@ -278,6 +278,8 @@ async function _reactivateLicense(key, oldData, session, email, name, businessNa
     stripeSubscriptionId: session.subscription || oldData.stripeSubscriptionId || null,
     suspended:            false,
     trial:                !!trialEnd,
+    cancelScheduled:      false,
+    cancelAt:             null,
     reactivatedAt:        new Date().toISOString(),
     // businessName/company は最新の申込情報で上書き
     ...(businessName ? { businessName } : {}),
@@ -337,6 +339,8 @@ async function _convertLicense(key, oldData, session, email, name, businessName,
     stripeSubscriptionId: session.subscription || oldData.stripeSubscriptionId || null,
     suspended:            false,
     trial:                isStillTrial,
+    cancelScheduled:      false,
+    cancelAt:             null,
     convertedAt:          new Date().toISOString(),
     ...(businessName ? { businessName }      : {}),
     ...(company      ? { company }           : {}),
@@ -373,6 +377,8 @@ async function _upgradeLicense(key, oldData, session, email, name, plan, interva
     stripeCustomerId:     session.customer     || oldData.stripeCustomerId || null,
     stripeSubscriptionId: session.subscription || oldData.stripeSubscriptionId || null,
     trial:                false,
+    cancelScheduled:      false,
+    cancelAt:             null,
     upgradedAt:           new Date().toISOString(),
   };
   await kv.set(`license:${key}`, updated);
@@ -720,20 +726,31 @@ async function _handleSubscriptionUpdated(subscription, previousAttributes) {
   const data = await kv.get(`license:${key}`);
   if (!data) return;
 
-  // ── 解約予約の検知（cancel_at_period_end が false→true）─────────────
+  // ── 解約予約 / 取り消しの検知（cancel_at_period_end の変化）──────────
   // ポータルで「請求期間の終了時にキャンセル」を選ぶとこのイベントが発火する。
-  // ユーザーへ解約受付メールを送る（期間終了日まで利用可である旨を明記）。
-  if (previousAttributes && 'cancel_at_period_end' in previousAttributes
-      && !previousAttributes.cancel_at_period_end
-      && subscription.cancel_at_period_end === true) {
-    const endUnix = subscription.cancel_at || subscription.current_period_end || null;
-    const endDate = endUnix ? new Date(endUnix * 1000).toISOString().split('T')[0] : '';
-    console.log(`[webhook] cancellation scheduled: ${key} ends ${endDate || '(unknown)'}`);
-    if (process.env.RESEND_API_KEY && data.email) {
-      await _sendCancellationEmail(data.email, data.customerName || data.company, endDate);
+  // 解約予約状態をライセンスに保存し、クライアントUIが「解約予約済み」を表示できるようにする。
+  if (previousAttributes && 'cancel_at_period_end' in previousAttributes) {
+    const wasScheduled = !!previousAttributes.cancel_at_period_end;
+    const nowScheduled = subscription.cancel_at_period_end === true;
+
+    if (!wasScheduled && nowScheduled) {
+      // 新規の解約予約
+      const endUnix = subscription.cancel_at || subscription.current_period_end || null;
+      const endDate = endUnix ? new Date(endUnix * 1000).toISOString().split('T')[0] : '';
+      await kv.set(`license:${key}`, { ...data, cancelScheduled: true, cancelAt: endDate });
+      console.log(`[webhook] cancellation scheduled: ${key} ends ${endDate || '(unknown)'}`);
+      if (process.env.RESEND_API_KEY && data.email) {
+        await _sendCancellationEmail(data.email, data.customerName || data.company, endDate);
+      }
+      return;
     }
-    // 解約予約は plan 変更ではないため以降の処理はスキップ
-    return;
+
+    if (wasScheduled && !nowScheduled) {
+      // 解約予約の取り消し（継続）
+      await kv.set(`license:${key}`, { ...data, cancelScheduled: false, cancelAt: null });
+      console.log(`[webhook] cancellation reverted: ${key}`);
+      return;
+    }
   }
 
   // プラン変更のみ処理（それ以外のsub更新は無視）
