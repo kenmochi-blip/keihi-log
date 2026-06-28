@@ -80,6 +80,13 @@
     </div>
   </div>
 
+  <!-- 解約予定／プラン変更予定バナー（app.jsが制御） -->
+  <div id="planNoticeBanner" style="display:none;background:#fff3cd;border-bottom:1px solid #ffc107;">
+    <div class="container-fluid d-flex align-items-center gap-2 py-1 px-3" style="max-width:480px;margin:0 auto;font-size:0.8rem;">
+      <span id="planNoticeText" class="flex-grow-1"></span>
+    </div>
+  </div>
+
   <!-- メインコンテンツ -->
   <div id="appMain" class="container-fluid" style="max-width:480px;margin:0 auto;padding-bottom:80px;">
     <!-- 初期スピナー（JSが起動するまで表示。Router.navigateで上書きされる） -->
@@ -195,7 +202,7 @@
   <script src="js/views/settings.js?v=20260627l"></script>
   <script src="js/router.js?v=20260627"></script>
   <script src="js/swipe.js?v=20260615"></script>
-  <script src="js/app.js?v=20260627g"></script>
+  <script src="js/app.js?v=20260628a"></script>
   <script src="js/chat.js?v=20260612"></script>
   <script>
     SupportChat.init();

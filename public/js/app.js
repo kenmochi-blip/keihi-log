@@ -417,7 +417,27 @@ const App = (() => {
   }
 
   /** トライアル中バナーを表示（残り日数を毎回計算） */
+  // 解約予定／プラン変更予定のトップバー（トライアルバナーと同じ見た目）
+  function _updatePlanNoticeBanner(lic) {
+    const bar = document.getElementById('planNoticeBanner');
+    const txt = document.getElementById('planNoticeText');
+    if (!bar || !txt) return;
+    const isDemo = typeof Demo !== 'undefined' && Demo.isActive();
+    if (isDemo || !lic?.valid || lic.trial) { bar.style.display = 'none'; return; }
+    let msg = '';
+    if (lic.cancelScheduled) {
+      msg = `<i class="bi bi-clock-history text-warning me-1"></i>${lic.cancelAt ? lic.cancelAt + ' に' : '現在の期間終了時に'}解約予定です（それまでは通常どおりご利用いただけます）`;
+    } else if (lic.pendingPlan) {
+      const planLabel = lic.pendingPlan === 'team' ? 'チームプラン' : 'ソロプラン';
+      msg = `<i class="bi bi-arrow-right-circle text-warning me-1"></i>${lic.pendingPlanAt ? lic.pendingPlanAt + ' から' : '次回更新時に'}${planLabel}に変更されます`;
+    }
+    if (!msg) { bar.style.display = 'none'; return; }
+    txt.innerHTML = msg;
+    bar.style.display = '';
+  }
+
   function _updateTrialBanner(lic) {
+    _updatePlanNoticeBanner(lic);
     const banner = document.getElementById('trialBanner');
     const textEl = document.getElementById('trialBannerText');
     if (!banner || !textEl) return;
