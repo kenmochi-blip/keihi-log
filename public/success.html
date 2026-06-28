@@ -65,7 +65,7 @@
             const ga = (window.APP_CONFIG && window.APP_CONFIG.googleAds) || {};
             if (ga.conversionId && ga.trialConversionLabel) {
               try { gtag('config', ga.conversionId); } catch (_) {}
-              try { gtag('event', 'conversion', { send_to: `${ga.conversionId}/${ga.trialConversionLabel}` }); } catch (_) {}
+              try { gtag('event', 'conversion', { send_to: `${ga.conversionId}/${ga.trialConversionLabel}`, value: 1.0, currency: 'JPY' }); } catch (_) {}
             }
           }
         }

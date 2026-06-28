@@ -16,8 +16,8 @@ window.APP_CONFIG = {
   //   「AW-XXXXXXXXX」を conversionId に、コンバージョンラベルを trialConversionLabel に設定すると、
   //   success.html のトライアル確定時に自動送信される。未設定ならGA4の trial_start のみ記録。
   googleAds: {
-    conversionId: '',          // 例: 'AW-1234567890'
-    trialConversionLabel: '',  // 例: 'AbC-D_efGhIjKlmNoP'
+    conversionId: 'AW-17756412877',                // トライアル登録CV（Google広告）
+    trialConversionLabel: 'FADRCLO0icccEM239ZJC',  // コンバージョンラベル
   },
 
   // Stripe Payment Link
