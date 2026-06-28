@@ -580,6 +580,16 @@ ${logText}
       return res.status(200).json({ ok: true, ...updated });
     }
 
+    if (action === 'set_plan') {
+      // プランだけを直接セット（期限等は変更しない）。表示が実態とズレた時の手動修正用。
+      const { plan: newPlan } = req.body;
+      if (newPlan !== 'solo' && newPlan !== 'team') return res.status(400).json({ error: 'plan must be solo or team' });
+      const updated = { ...data, plan: newPlan, pendingPlan: null, pendingPlanAt: null, planChangedAt: new Date().toISOString() };
+      await kv.set(`license:${key}`, updated);
+      console.log(`License plan set (manual): ${key} → ${newPlan}`);
+      return res.status(200).json({ ok: true, plan: updated.plan, expiresAt: updated.expiresAt });
+    }
+
     if (action === 'unsuspend') {
       // 停止フラグを解除してライセンスを復旧する
       const updated = { ...data, suspended: false };
