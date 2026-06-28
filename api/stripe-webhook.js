@@ -745,90 +745,69 @@ async function _handleSubscriptionUpdated(subscription, previousAttributes) {
   const data = await kv.get(`license:${key}`);
   if (!data) return;
 
-  // ── 解約予約 / 取り消しの検知 ──────────────────────────────────────
-  // previous_attributes に依存せず、Stripeの現在状態（cancel_at_period_end）と
-  // KVの保存状態（cancelScheduled）を比較して判定する。ポータル経由の更新イベントで
-  // previous_attributes に cancel_at_period_end が含まれない場合でも確実に検知できる。
-  // 解約予約の判定：cancel_at_period_end（旧）に加え、cancel_at（新: 具体的な解約日時）も見る。
-  // 現行のStripeカスタマーポータルは「期間終了時キャンセル」を cancel_at（タイムスタンプ）で
-  // 表現し、cancel_at_period_end は false のままになるため、cancel_at の有無で判定する。
-  const nowScheduled = subscription.cancel_at_period_end === true
-    || (subscription.cancel_at != null && subscription.status !== 'canceled');
-  const wasScheduled = data.cancelScheduled === true;
-  console.log(`[webhook] sub.updated ${subscription.id} key=${key} nowScheduled=${nowScheduled} wasScheduled=${wasScheduled} cancel_at=${subscription.cancel_at} cap_end=${subscription.cancel_at_period_end}`);
-
-  if (nowScheduled && !wasScheduled) {
-    // 新規の解約予約
-    const endUnix = subscription.cancel_at || subscription.current_period_end || null;
-    const endDate = endUnix ? new Date(endUnix * 1000).toISOString().split('T')[0] : '';
-    await kv.set(`license:${key}`, { ...data, cancelScheduled: true, cancelAt: endDate });
-    console.log(`[webhook] cancellation scheduled: ${key} ends ${endDate || '(unknown)'}`);
-    if (process.env.RESEND_API_KEY && data.email) {
-      await _sendCancellationEmail(data.email, data.customerName || data.company, endDate);
-    }
-    return;
-  }
-
-  if (!nowScheduled && wasScheduled) {
-    // 解約予約の取り消し（継続）
-    await kv.set(`license:${key}`, { ...data, cancelScheduled: false, cancelAt: null });
-    console.log(`[webhook] cancellation reverted: ${key}`);
-    return;
-  }
-
-  // ── 予約されたプラン変更（期間終了時ダウングレード等）の検知 ──────────
-  // ポータルで「期間終了時にプラン変更」を行うと subscription.schedule が設定される。
-  // スケジュール最終フェーズのプランを「変更予定」として保存し、アプリで予告表示する。
-  // （items は期間終了まで変わらないため、この時点では plan 本体は更新しない）
-  {
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY?.trim());
-    let pendingPlan = null, pendingPlanAt = null;
-    if (subscription.schedule) {
-      try {
-        const schedId = typeof subscription.schedule === 'string' ? subscription.schedule : subscription.schedule.id;
-        const sched = await stripe.subscriptionSchedules.retrieve(schedId);
-        const phases = sched.phases || [];
-        const last = phases[phases.length - 1];
-        const item = last?.items?.[0];
-        const priceId = typeof item?.price === 'string' ? item.price : item?.price?.id;
-        const p = await _planFromPriceId(stripe, priceId);
-        if (p && p !== data.plan) {
-          pendingPlan = p;
-          const at = last?.start_date || subscription.current_period_end;
-          pendingPlanAt = at ? new Date(at * 1000).toISOString().split('T')[0] : null;
-        }
-      } catch (e) { console.warn('[webhook] schedule retrieve failed:', e.message); }
-    }
-    if ((data.pendingPlan || null) !== pendingPlan) {
-      await kv.set(`license:${key}`, { ...data, pendingPlan, pendingPlanAt });
-      data.pendingPlan = pendingPlan; data.pendingPlanAt = pendingPlanAt; // 後続処理に反映
-      console.log(`[webhook] pending plan: ${key} → ${pendingPlan || '(none)'} at ${pendingPlanAt || ''}`);
-    }
-  }
-
-  // プラン変更のみ処理（それ以外のsub更新は無視）
-  const prevItems = previousAttributes?.items;
-  if (!prevItems) return;
-
-  // 現在のプライスIDからプランを判定（metadataが最優先、なければ商品名で判定）
-  const currentItem = subscription.items?.data?.[0];
-  const productId = currentItem?.price?.product;
-  const priceId   = currentItem?.price?.id;
-  if (!priceId) return;
-
-  // Stripeから商品情報を取得してプランを判定
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY?.trim());
-  const newPlan = (await _planFromPriceId(stripe, priceId)) || data.plan;
 
-  if (newPlan === data.plan) return; // プラン変更なし
+  // イベントのスナップショットは古い場合があるため、Stripeから最新のサブスクを取得し直す。
+  // これにより、解約とスケジュール解放など複数イベントが同時に来ても、毎回「現在の真の状態」を
+  // 読んで同じ結論を導けるため、部分書き込み同士の競合（片方が他方を上書き）を防げる。
+  let sub = subscription;
+  try { sub = await stripe.subscriptions.retrieve(subscription.id); } catch (_) {}
 
-  // プランが実際に切り替わったので「変更予定」フラグはクリアする
-  const updated = { ...data, plan: newPlan, pendingPlan: null, pendingPlanAt: null, planChangedAt: new Date().toISOString() };
-  await kv.set(`license:${key}`, updated);
-  console.log(`Plan changed via portal: ${key} ${data.plan} → ${newPlan}`);
+  // 1. 解約予約状態（cancel_at_period_end 旧 / cancel_at 新の両対応）
+  const nowCancel = sub.cancel_at_period_end === true
+    || (sub.cancel_at != null && sub.status !== 'canceled');
+  const cancelUnix = sub.cancel_at || sub.current_period_end || null;
+  const cancelAt = (nowCancel && cancelUnix) ? new Date(cancelUnix * 1000).toISOString().split('T')[0] : null;
 
-  if (process.env.RESEND_API_KEY) {
-    await _sendPlanChangeEmail(data.email, data.customerName || data.company, newPlan, data.plan);
+  // 2. 現在のプラン（items から判定）
+  const priceId = sub.items?.data?.[0]?.price?.id;
+  const curPlan = priceId ? ((await _planFromPriceId(stripe, priceId)) || data.plan) : data.plan;
+
+  // 3. 予約されたプラン変更（schedule から）。解約予約中は「変更予定」は無意味なので出さない。
+  let pendingPlan = null, pendingPlanAt = null;
+  if (!nowCancel && sub.schedule) {
+    try {
+      const schedId = typeof sub.schedule === 'string' ? sub.schedule : sub.schedule.id;
+      const sched = await stripe.subscriptionSchedules.retrieve(schedId);
+      const phases = sched.phases || [];
+      const last = phases[phases.length - 1];
+      const item = last?.items?.[0];
+      const pId = typeof item?.price === 'string' ? item.price : item?.price?.id;
+      const p = await _planFromPriceId(stripe, pId);
+      if (p && p !== curPlan) {
+        pendingPlan = p;
+        const at = last?.start_date || sub.current_period_end;
+        pendingPlanAt = at ? new Date(at * 1000).toISOString().split('T')[0] : null;
+      }
+    } catch (e) { console.warn('[webhook] schedule retrieve failed:', e.message); }
+  }
+
+  console.log(`[webhook] sub.updated ${sub.id} key=${key} cancel=${nowCancel}(${cancelAt}) plan=${curPlan} pending=${pendingPlan}`);
+
+  // 遷移判定（メール送信用。書き込み前の data と比較）
+  const wasCancel   = data.cancelScheduled === true;
+  const planChanged = curPlan !== data.plan;
+
+  // 4. 直前に最新を再読込し、導出した全状態をまとめて1回で書き込む（部分書き込みの競合を回避）
+  const latest = (await kv.get(`license:${key}`).catch(() => null)) || data;
+  await kv.set(`license:${key}`, {
+    ...latest,
+    plan:            curPlan,
+    cancelScheduled: nowCancel,
+    cancelAt:        nowCancel ? cancelAt : null,
+    pendingPlan,
+    pendingPlanAt,
+    ...(planChanged ? { planChangedAt: new Date().toISOString() } : {}),
+  });
+
+  // メール送信（遷移時のみ）
+  if (!wasCancel && nowCancel && process.env.RESEND_API_KEY && data.email) {
+    console.log(`[webhook] cancellation scheduled: ${key} ends ${cancelAt || '(unknown)'}`);
+    await _sendCancellationEmail(data.email, data.customerName || data.company, cancelAt || '');
+  }
+  if (planChanged && process.env.RESEND_API_KEY && data.email) {
+    console.log(`Plan changed via portal: ${key} ${data.plan} → ${curPlan}`);
+    await _sendPlanChangeEmail(data.email, data.customerName || data.company, curPlan, data.plan);
   }
 }
 
