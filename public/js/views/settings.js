@@ -87,7 +87,10 @@ const SettingsView = (() => {
           ` : ''}
 
           <!-- ライセンスキー -->
-          <div class="settings-step-title">ライセンスキー <a href="/faq#q1001" class="text-muted ms-1" style="font-size:0.78rem;" title="FAQを見る"><i class="bi bi-question-circle"></i></a></div>
+          <div class="settings-step-title d-flex align-items-center justify-content-between">
+            <span>ライセンスキー <a href="/faq#q1001" class="text-muted ms-1" style="font-size:0.78rem;" title="FAQを見る"><i class="bi bi-question-circle"></i></a></span>
+            ${licKey ? `<button class="btn btn-outline-secondary btn-sm py-0 px-2" id="btnRefreshLicense" title="プラン変更などを今すぐ反映" style="font-size:0.75rem;"><i class="bi bi-arrow-clockwise me-1"></i>更新</button>` : ''}
+          </div>
           <div id="licenseStatus" class="mb-2"></div>
           ${!licKey ? `<div class="settings-step-hint mb-2">メールにて通知されたライセンスキーを入力してください<br>例：<code>KL-XXXXXXXXXXXXXXXXXXXX</code></div>` : ''}
           <div class="input-group mb-1">
@@ -387,6 +390,26 @@ const SettingsView = (() => {
     });
     el.querySelector('#btnEditRegulationInit')?.addEventListener('click', () => {
       el.querySelector('#regulationInitForm')?.classList.remove('d-none');
+    });
+
+    // ライセンス情報を手動更新（キャッシュをクリアして再取得）。プラン変更等を即反映する。
+    el.querySelector('#btnRefreshLicense')?.addEventListener('click', async () => {
+      const key = localStorage.getItem('keihi_license_key');
+      if (!key) return;
+      const btn = el.querySelector('#btnRefreshLicense');
+      const orig = btn ? btn.innerHTML : '';
+      if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>'; }
+      try {
+        License.clearCache();
+        const lic = await License.verify(key).catch(() => null);
+        if (lic) {
+          _updateLicenseStatus(el, lic);
+          _applyMemberPlanRestriction(el);
+        }
+        App.showToast('ライセンス情報を更新しました', 'success');
+      } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = orig; }
+      }
     });
 
     // ライセンスキー表示/非表示トグル（CSSマスクのオン・オフ）
