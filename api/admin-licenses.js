@@ -384,7 +384,10 @@ export default async function handler(req, res) {
 
     const days = Math.min(Math.max(parseInt(req.query.days || '90', 10), 1), 3650);
     const to   = new Date();
-    const from = new Date(); from.setDate(from.getDate() - days);
+    let from = new Date(); from.setDate(from.getDate() - days);
+    // 統計の起点（リセット日時）が設定されていれば、それより前は集計対象外にする
+    const _epoch = await kv.get('stats_epoch').catch(() => null);
+    if (_epoch) { const e = new Date(_epoch); if (e > from) from = e; }
 
     // 全ライセンス取得
     const keys = [];
