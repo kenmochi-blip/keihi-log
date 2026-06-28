@@ -169,10 +169,18 @@ const App = (() => {
           return m;
         });
 
-    // Stripeポータルからの帰還時（plan_updated=1）はライセンスキャッシュをクリアして再取得
-    const _returnedFromPortal = new URLSearchParams(location.search).get('plan_updated') === '1';
+    // Stripeポータルからの帰還時はライセンスキャッシュをクリアして再取得する。
+    // plan_updated=1（同タブ帰還）に加え、別タブでポータルを開いた直後（30分以内）は
+    // 通常のページリフレッシュでもキャッシュをクリアし、プラン変更を即反映させる。
+    // （キャッシュは localStorage なのでリロードしても消えず、最大1時間古いプランを返すため）
+    const _planUpdatedParam = new URLSearchParams(location.search).get('plan_updated') === '1';
+    const _portalOpenedAt = Number(sessionStorage.getItem('keihi_portal_opened') || 0);
+    const _portalRecent = _portalOpenedAt > 0 && (Date.now() - _portalOpenedAt < 30 * 60 * 1000);
+    const _returnedFromPortal = _planUpdatedParam || _portalRecent;
     if (_returnedFromPortal) {
       License.clearCache();
+    }
+    if (_planUpdatedParam) {
       history.replaceState(null, '', location.pathname);
     }
 
