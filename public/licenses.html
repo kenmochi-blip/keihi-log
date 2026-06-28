@@ -419,6 +419,47 @@
           </div>
         </div>
 
+      <!-- ライフサイクル・マトリクス（当月/前月/累計） -->
+      <div class="panel" style="margin-bottom:1rem;">
+        <div class="panel-header">
+          <i class="bi bi-grid-3x3-gap" style="color:var(--accent);"></i>
+          <span class="title">ライフサイクル・マトリクス</span>
+        </div>
+        <div class="panel-body">
+          <table class="data-table" id="matrixTable" style="width:100%;">
+            <thead>
+              <tr>
+                <th>指標</th>
+                <th style="text-align:right;">当月</th>
+                <th style="text-align:right;">前月</th>
+                <th style="text-align:right;">累計</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>新規トライアル</td><td id="mxTrialCur" style="text-align:right;">—</td><td id="mxTrialPrev" style="text-align:right;">—</td><td id="mxTrialCum" style="text-align:right;">—</td></tr>
+              <tr><td>有料切り替え</td><td id="mxPaidCur" style="text-align:right;">—</td><td id="mxPaidPrev" style="text-align:right;">—</td><td id="mxPaidCum" style="text-align:right;">—</td></tr>
+              <tr><td>失効</td><td id="mxExpCur" style="text-align:right;">—</td><td id="mxExpPrev" style="text-align:right;">—</td><td id="mxExpCum" style="text-align:right;">—</td></tr>
+              <tr><td>解約</td><td id="mxCancelCur" style="text-align:right;">—</td><td id="mxCancelPrev" style="text-align:right;">—</td><td id="mxCancelCum" style="text-align:right;">—</td></tr>
+            </tbody>
+          </table>
+          <div style="font-size:0.68rem;color:var(--text-mute);margin-top:0.5rem;line-height:1.6;">
+            新規トライアル＝当月の新規登録 ／ 有料切り替え＝convertedAt/upgradedAt ／
+            失効＝期限切れ（解約以外） ／ 解約＝ユーザーによる解約リクエスト
+          </div>
+        </div>
+      </div>
+
+      <!-- 解約理由の集計 -->
+      <div class="panel" style="margin-bottom:1rem;">
+        <div class="panel-header">
+          <i class="bi bi-chat-left-text" style="color:#dc2626;"></i>
+          <span class="title">解約理由の集計</span>
+        </div>
+        <div class="panel-body">
+          <div id="cancelReasonBody" style="font-size:0.85rem;color:var(--text-mute);">読み込み中...</div>
+        </div>
+      </div>
+
       <div class="panel">
         <div class="panel-header">
           <i class="bi bi-list-ul" style="color:var(--accent);"></i>
@@ -1053,6 +1094,8 @@
       document.getElementById('summary').classList.remove('d-none');
       updateStats();
       updateMonthly();
+      updateMatrix();
+      updateCancelReasons();
       render();
       renderReferrerTable();
       loadAppLogs();
@@ -1457,6 +1500,62 @@
       document.getElementById('mPlanSwitchBreakdown').innerHTML = planChanges.length
         ? planChanges.map(l => `<span style="display:block;">${esc(l.company || '')}: ${l.prevPlan || '?'}→${l.plan || '?'}</span>`).join('')
         : '<span style="font-style:italic;">履歴なし</span>';
+    }
+
+    // 当月/前月/累計 × 新規トライアル/有料切替/失効/解約 のマトリクス
+    function updateMatrix() {
+      const now = new Date();
+      const curYm  = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      const prevD  = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const prevYm = `${prevD.getFullYear()}-${String(prevD.getMonth() + 1).padStart(2, '0')}`;
+      const inMonth = (dt, ym) => (dt || '').slice(0, 7) === ym;
+
+      const trialDate  = l => l.createdAt || '';                    // 新規トライアル＝新規登録
+      const paidDate   = l => l.convertedAt || l.upgradedAt || '';  // 有料切り替え
+      const cancelDate = l => l.canceledAt || '';                   // 解約リクエスト
+      const expireDate = l => {                                     // 失効＝期限切れ（解約以外）
+        if (!l.expiresAt || l.canceledAt) return '';
+        if (new Date(l.expiresAt) >= new Date()) return '';
+        return l.expiresAt;
+      };
+
+      const count    = (fn, ym) => _all.filter(l => inMonth(fn(l), ym)).length;
+      const countCum = (fn)     => _all.filter(l => !!fn(l)).length;
+      const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+
+      set('mxTrialCur',  count(trialDate, curYm));  set('mxTrialPrev',  count(trialDate, prevYm));  set('mxTrialCum',  countCum(trialDate));
+      set('mxPaidCur',   count(paidDate, curYm));   set('mxPaidPrev',   count(paidDate, prevYm));   set('mxPaidCum',   countCum(paidDate));
+      set('mxExpCur',    count(expireDate, curYm)); set('mxExpPrev',    count(expireDate, prevYm)); set('mxExpCum',    countCum(expireDate));
+      set('mxCancelCur', count(cancelDate, curYm)); set('mxCancelPrev', count(cancelDate, prevYm)); set('mxCancelCum', countCum(cancelDate));
+    }
+
+    // 解約理由の集計（Stripeのcancellation_details.feedback）
+    function updateCancelReasons() {
+      const labels = {
+        too_expensive: '高すぎる', missing_features: '機能不足', switched_service: '他サービスへ移行',
+        unused: '使わなくなった', customer_service: 'サポート不満', too_complex: '複雑すぎる',
+        low_quality: '品質不満', other: 'その他', '': '（理由なし）',
+      };
+      const cancelled = _all.filter(l => l.canceledAt || l.cancelScheduled || l.cancelReason);
+      const counts = {};
+      cancelled.forEach(l => { const r = l.cancelReason || ''; counts[r] = (counts[r] || 0) + 1; });
+      const total = cancelled.length;
+      const body = document.getElementById('cancelReasonBody');
+      if (!body) return;
+      if (total === 0) { body.innerHTML = '<span style="font-style:italic;">解約データはまだありません</span>'; return; }
+      const rows = Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([r, n]) => {
+        const pct = Math.round(n / total * 100);
+        return `<tr><td>${labels[r] || esc(r)}</td><td style="text-align:right;">${n}</td><td style="text-align:right;color:var(--text-mute);">${pct}%</td></tr>`;
+      }).join('');
+      const comments = cancelled.filter(l => l.cancelComment).map(l => `<li>${esc(l.cancelComment)}</li>`).join('');
+      body.innerHTML = `
+        <table class="data-table" style="width:100%;">
+          <thead><tr><th>理由</th><th style="text-align:right;">件数</th><th style="text-align:right;">割合</th></tr></thead>
+          <tbody>${rows}</tbody>
+          <tfoot><tr><td style="font-weight:700;">合計</td><td style="text-align:right;font-weight:700;">${total}</td><td></td></tr></tfoot>
+        </table>
+        ${comments ? `<div style="margin-top:0.6rem;font-size:0.75rem;"><div style="color:var(--text-mute);margin-bottom:0.2rem;">自由記述コメント：</div><ul style="margin:0;padding-left:1.1rem;">${comments}</ul></div>` : ''}
+      `;
     }
 
     function getStatus(lic) {

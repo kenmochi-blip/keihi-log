@@ -790,6 +790,14 @@ async function _handleSubscriptionUpdated(subscription, previousAttributes) {
 
   // 4. 直前に最新を再読込し、導出した全状態をまとめて1回で書き込む（部分書き込みの競合を回避）
   const latest = (await kv.get(`license:${key}`).catch(() => null)) || data;
+  // 解約理由・解約リクエスト時刻（/licenses の集計用）。解約中のみ保持、取消でクリア。
+  const cancelFields = nowCancel
+    ? {
+        canceledAt:    latest.canceledAt || new Date().toISOString(),
+        cancelReason:  sub.cancellation_details?.feedback || latest.cancelReason || '',
+        cancelComment: sub.cancellation_details?.comment || latest.cancelComment || '',
+      }
+    : { canceledAt: null, cancelReason: null, cancelComment: null };
   await kv.set(`license:${key}`, {
     ...latest,
     plan:            curPlan,
@@ -797,6 +805,7 @@ async function _handleSubscriptionUpdated(subscription, previousAttributes) {
     cancelAt:        nowCancel ? cancelAt : null,
     pendingPlan,
     pendingPlanAt,
+    ...cancelFields,
     ...(planChanged ? { planChangedAt: new Date().toISOString() } : {}),
   });
 
@@ -897,7 +906,14 @@ async function _suspendLicense(subscription) {
     console.log(`[webhook] subscription.deleted ${subscription.id} is not current (${data.stripeSubscriptionId}) for ${key} — skip suspend`);
     return;
   }
-  await kv.set(`license:${key}`, { ...data, suspended: true });
+  // 解約理由・解約時刻を記録（/licenses の集計用。未記録の場合のみ補完）
+  await kv.set(`license:${key}`, {
+    ...data,
+    suspended: true,
+    canceledAt:    data.canceledAt || new Date().toISOString(),
+    cancelReason:  data.cancelReason  || subscription.cancellation_details?.feedback || '',
+    cancelComment: data.cancelComment || subscription.cancellation_details?.comment || '',
+  });
   console.log(`License suspended: ${key}`);
 
   // 解約完了（サブスク削除＝即時解約 or 期間終了到達）の通知メール。
