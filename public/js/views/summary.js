@@ -501,7 +501,9 @@ const SummaryView = (() => {
         ${showName ? `<td class="text-muted" style="font-size:0.8rem;white-space:nowrap;">${_escape(App.getMemberName(e.email, e.name))}</td>` : ''}
         <td>
           ${e.settlementDate
-            ? '<span class="badge badge-settled rounded-pill px-2">精算済</span>'
+            ? (String(e.settlementDate).startsWith('会社払い')
+                ? '<span class="badge bg-secondary rounded-pill px-2">会社払い</span>'
+                : '<span class="badge badge-settled rounded-pill px-2">精算済</span>')
             : e.confirmed
               ? '<span class="badge badge-confirmed rounded-pill px-2">登録済</span>'
               : '<span class="badge badge-pending rounded-pill px-2">申請済</span>'}

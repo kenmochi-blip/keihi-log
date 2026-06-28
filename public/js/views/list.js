@@ -489,7 +489,7 @@ const ListView = (() => {
 
     visible.forEach(e => {
       const status = _getStatus(e);
-      const statusBadge = _statusBadge(status);
+      const statusBadge = _statusBadge(status, e);
       // 精算済み判定：サーバー側 _isRealSettled と同じロジック
       const isSettled = status === '精算済' && !String(e.settlementDate || '').startsWith('会社払い');
       // 編集可否：精算済は不可。管理者は全ステータス可、一般は申請済かつ本人のみ
@@ -703,8 +703,13 @@ const ListView = (() => {
     return '申請済';
   }
 
-  function _statusBadge(status) {
-    if (status === '精算済') return `<span class="badge badge-settled" style="font-size:0.65rem;">精算済</span>`;
+  function _statusBadge(status, e) {
+    if (status === '精算済') {
+      // 会社払いは実精算ではなく編集可能。紛らわしいので専用バッジで区別する。
+      if (e && String(e.settlementDate || '').startsWith('会社払い'))
+        return `<span class="badge bg-secondary" style="font-size:0.65rem;">会社払い</span>`;
+      return `<span class="badge badge-settled" style="font-size:0.65rem;">精算済</span>`;
+    }
     if (status === '登録済') return `<span class="badge badge-confirmed" style="font-size:0.65rem;">登録済</span>`;
     return `<span class="badge badge-pending" style="font-size:0.65rem;">申請済</span>`;
   }
