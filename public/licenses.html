@@ -424,6 +424,11 @@
         <div class="panel-header">
           <i class="bi bi-grid-3x3-gap" style="color:var(--accent);"></i>
           <span class="title">ライフサイクル・マトリクス</span>
+          <span id="statsEpochLabel" style="font-size:0.7rem;color:var(--text-mute);margin-left:auto;"></span>
+          <button class="btn-ghost" id="btnStatsReset" style="font-size:0.72rem;padding:0.2rem 0.55rem;border-color:#dc2626;color:#dc2626;">
+            <i class="bi bi-arrow-counterclockwise"></i>統計リセット
+          </button>
+          <button class="btn-ghost d-none" id="btnStatsResetClear" style="font-size:0.72rem;padding:0.2rem 0.55rem;">解除</button>
         </div>
         <div class="panel-body">
           <table class="data-table" id="matrixTable" style="width:100%;">
@@ -616,6 +621,11 @@
 
   <script>
     let _all = [];
+    let _statsEpoch = null; // 統計の起点（リセット日時）。これ以降の登録分のみ集計する。
+    // 集計対象ライセンス（リセット日時以降に作成されたもの）。テスト期間のデータを除外する。
+    function _statsList() {
+      return _statsEpoch ? _all.filter(l => (l.createdAt || '') >= _statsEpoch) : _all;
+    }
     let _secret = '';
 
     // 管理APIへのシークレットは Authorization ヘッダーで送る（URLに含めるとログに残るため）
@@ -1086,6 +1096,8 @@
       if (!resp.ok) { alert('認証に失敗しました'); return; }
       const data = await resp.json();
       _all = data.licenses;
+      _statsEpoch = data.statsEpoch || null;
+      _renderStatsEpoch();
       if (data.sentryToken) _sentryToken = data.sentryToken;
       _hasClaudeKey = !!data.hasClaudeKey;
       _hasCfKey     = !!data.hasCfKey;
@@ -1436,6 +1448,7 @@
     }
 
     function updateMonthly() {
+      const _all = _statsList(); // リセット日時以降のみ集計
       const ym = document.getElementById('monthPicker').value;
       if (!ym) return;
 
@@ -1502,8 +1515,39 @@
         : '<span style="font-style:italic;">履歴なし</span>';
     }
 
+    // 統計の起点（リセット日時）の表示と、リセット/解除ボタンの結線
+    function _renderStatsEpoch() {
+      const label = document.getElementById('statsEpochLabel');
+      const clearBtn = document.getElementById('btnStatsResetClear');
+      if (label) label.textContent = _statsEpoch
+        ? `統計の起点：${_statsEpoch.replace('T', ' ').slice(0, 16)} 〜`
+        : '統計の起点：全期間';
+      if (clearBtn) clearBtn.classList.toggle('d-none', !_statsEpoch);
+    }
+    async function _setStatsEpoch(epoch) {
+      const resp = await fetch('/api/admin-licenses', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'set_stats_epoch', epoch }),
+      });
+      if (!resp.ok) { alert('リセットに失敗しました'); return; }
+      const data = await resp.json();
+      _statsEpoch = data.statsEpoch || null;
+      _renderStatsEpoch();
+      updateStats(); updateMonthly(); updateMatrix(); updateCancelReasons();
+    }
+    document.getElementById('btnStatsReset')?.addEventListener('click', async () => {
+      if (!confirm('現在時刻を統計の起点に設定します。これ以降に登録されたデータだけを集計します（過去データは削除されません）。よろしいですか？')) return;
+      await _setStatsEpoch(new Date().toISOString());
+    });
+    document.getElementById('btnStatsResetClear')?.addEventListener('click', async () => {
+      if (!confirm('統計の起点を解除して全期間の集計に戻します。よろしいですか？')) return;
+      await _setStatsEpoch(null);
+    });
+
     // 当月/前月/累計 × 新規トライアル/有料切替/失効/解約 のマトリクス
     function updateMatrix() {
+      const _all = _statsList(); // リセット日時以降のみ集計
       const now = new Date();
       const curYm  = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
       const prevD  = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -1531,6 +1575,7 @@
 
     // 解約理由の集計（Stripeのcancellation_details.feedback）
     function updateCancelReasons() {
+      const _all = _statsList(); // リセット日時以降のみ集計
       const labels = {
         too_expensive: '高すぎる', missing_features: '機能不足', switched_service: '他サービスへ移行',
         unused: '使わなくなった', customer_service: 'サポート不満', too_complex: '複雑すぎる',
@@ -1565,6 +1610,7 @@
     }
 
     function updateStats() {
+      const _all = _statsList(); // リセット日時以降のみ集計（KPIカードもリセット起点に揃える）
       // 累計課金（解約含む）= Stripe決済者 または 手動で有料転換した人。
       // 一度でも課金した人の総数で、解約・期限切れでも減らない積み上げ指標。
       const paidCumulative = _all.filter(l => l.stripeSessionId || l.upgradedAt).length;

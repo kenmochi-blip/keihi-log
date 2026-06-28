@@ -559,6 +559,19 @@ ${logText}
   // PATCH: 手動アップグレード
   if (req.method === 'PATCH') {
     const { key, action } = req.body || {};
+
+    // キー不要のグローバル操作：統計の起点（リセット日時）の設定/解除
+    if (action === 'set_stats_epoch') {
+      const { epoch } = req.body;
+      if (epoch === null || epoch === '') {
+        await kv.del('stats_epoch');
+        return res.status(200).json({ ok: true, statsEpoch: null });
+      }
+      const ts = epoch || new Date().toISOString();
+      await kv.set('stats_epoch', ts);
+      return res.status(200).json({ ok: true, statsEpoch: ts });
+    }
+
     if (!key) return res.status(400).json({ error: 'key required' });
     const data = await kv.get(`license:${key}`).catch(() => null);
     if (!data) return res.status(404).json({ error: 'not found' });
@@ -740,10 +753,12 @@ ${logText}
 
     licenses.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
     const referrers = await kv.get('referrer_master').catch(() => null) || [];
+    const statsEpoch = await kv.get('stats_epoch').catch(() => null);
     return res.status(200).json({
       total: licenses.length,
       licenses,
       referrers,
+      statsEpoch:   statsEpoch || null,
       sentryToken:  process.env.SENTRY_AUTH_TOKEN  || null,
       hasClaudeKey:  !!process.env.ANTHROPIC_API_KEY,
       hasCfKey:      !!(process.env.CLOUDFLARE_API_TOKEN && process.env.CLOUDFLARE_ZONE_ID),
