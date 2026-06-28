@@ -56,11 +56,13 @@ export default async function handler(req, res) {
     await _issueNewLicense(event.data.object);
   }
 
-  // invoice.paid は更新時（subscription_cycle）のみ有効期限を延長する
-  // subscription_create はcheckout.session.completedで処理済みのためスキップ
+  // invoice.paid は更新時（subscription_cycle）のみ有効期限を延長する。
+  // - subscription_create: checkout.session.completed で処理済みのためスキップ
+  // - subscription_update: プラン変更の日割り請求。期間は変わらず、plan変更イベントと
+  //   並行するため _renewLicense が古いplanで上書きするレースの原因 → スキップ
   if (event.type === 'invoice.paid') {
     const inv = event.data.object;
-    if (inv.billing_reason !== 'subscription_create') {
+    if (inv.billing_reason !== 'subscription_create' && inv.billing_reason !== 'subscription_update') {
       await _renewLicense(inv);
     }
   }
@@ -715,9 +717,12 @@ async function _renewLicense(invoice) {
     if (data.interval === 'year') newExpiry.setFullYear(newExpiry.getFullYear() + 1);
     else newExpiry.setMonth(newExpiry.getMonth() + 1);
   }
-  await kv.set(`license:${key}`, { ...data, expiresAt: newExpiry.toISOString().split('T')[0], trial: false });
+  // 書き込み直前に最新を再読込してから expiresAt/trial だけ更新する。
+  // （プラン変更イベント等が並行して plan を書き換えた場合に、古い plan で上書きしないため）
+  const latest = (await kv.get(`license:${key}`).catch(() => null)) || data;
+  await kv.set(`license:${key}`, { ...latest, expiresAt: newExpiry.toISOString().split('T')[0], trial: false });
   console.log('[webhook] License renewed:', key, 'until', newExpiry.toISOString().split('T')[0],
-    'billing_reason:', 'renewal', 'periodEnd:', periodEnd || '(fallback)');
+    'billing_reason:', invoice.billing_reason || 'renewal', 'periodEnd:', periodEnd || '(fallback)');
 }
 
 // 価格IDからプラン（solo/team）を判定する。metadata.plan 優先、なければ商品名で判定。
