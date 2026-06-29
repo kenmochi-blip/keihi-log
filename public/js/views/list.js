@@ -999,9 +999,12 @@ const ListView = (() => {
 
     let _urls = [], _cur = 0;
     let _historyPushed = false;
+    let _retry = 0;            // 現在表示中URLの再試行回数
+    const _MAX_RETRY = 2;      // サーバーレスのコールドスタート等で初回失敗することがあるため
 
     function _show(urls, idx) {
       _urls = urls; _cur = idx;
+      _retry = 0;
       _pzReset();
       const url = urls[_cur];
       const isPdf = url.toLowerCase().includes('pdf') || url.includes('application%2Fpdf');
@@ -1047,13 +1050,33 @@ const ListView = (() => {
       }
     });
 
+    img.addEventListener('load', () => {
+      // 読み込み成功時はエラー表示を消し、再試行カウンタをリセット
+      _retry = 0;
+      if (viewer.style.display !== 'none' && img.style.display === 'none' && (!errWrap || errWrap.style.display === 'none')) {
+        img.style.display = 'block';
+      }
+    });
+
     img.addEventListener('error', () => {
       if (viewer.style.display === 'none') return;
+      const u = _urls[_cur] || '';
+      const isPdf = u.toLowerCase().includes('pdf') || u.includes('application%2Fpdf');
+      // 一過性の失敗（サーバーレスのコールドスタート等）に備えて数回リトライしてからエラー表示
+      if (!isPdf && u && _retry < _MAX_RETRY) {
+        _retry++;
+        const sep = u.includes('?') ? '&' : '?';
+        setTimeout(() => {
+          if (viewer.style.display === 'none' || _urls[_cur] !== u) return;
+          img.style.display = 'block';
+          img.src = u + sep + '_r=' + _retry;  // キャッシュを避けて再取得
+        }, 500 * _retry);
+        return;
+      }
       img.style.display = 'none';
       if (errWrap) {
         errWrap.style.display = 'block';
         if (errLink) {
-          const u = _urls[_cur] || '';
           const m = u.match(/[?&]fileId=([a-zA-Z0-9_-]+)/);
           errLink.href = m ? `https://drive.google.com/file/d/${m[1]}/view` : u || '#';
         }
