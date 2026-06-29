@@ -502,33 +502,6 @@
         </div>
       </div>
 
-      <!-- 通知登録者 -->
-      <div class="panel" style="margin-top:1rem;">
-        <div class="panel-header" style="justify-content:space-between;">
-          <div style="display:flex;align-items:center;gap:0.5rem;">
-            <i class="bi bi-bell" style="color:#d97706;"></i>
-            <span class="title">リリース通知登録者</span>
-            <span id="notifyCount" style="font-size:0.72rem;color:var(--text-mute);"></span>
-          </div>
-          <button class="btn-ghost" id="btnNotifyRefresh" style="font-size:0.75rem;padding:0.25rem 0.6rem;">
-            <i class="bi bi-arrow-clockwise"></i>更新
-          </button>
-        </div>
-        <div style="overflow-x:auto;">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th class="ps-first" style="width:200px;">メールアドレス</th>
-                <th class="pe-last" style="width:160px;">登録日時</th>
-              </tr>
-            </thead>
-            <tbody id="notifyTableBody">
-              <tr><td colspan="2" style="text-align:center;padding:1.5rem;color:var(--text-mute);">読み込み中...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
       <div class="panel" style="margin-top:1rem;">
         <div class="panel-header">
           <i class="bi bi-plus-circle" style="color:#16a34a;"></i>
@@ -653,7 +626,6 @@
     document.getElementById('btnAppLogRefresh').addEventListener('click', () => loadAppLogs());
     document.getElementById('btnAppLogAnalyze').addEventListener('click', () => analyzeAppLogs());
     document.getElementById('btnAppLogClear').addEventListener('click', () => clearAppLogs());
-    document.getElementById('btnNotifyRefresh').addEventListener('click', () => loadNotifyList());
     document.getElementById('btnIssue').addEventListener('click', issueLicense);
     document.getElementById('btnAddReferrer').addEventListener('click', addReferrer);
     document.getElementById('btnReferrerRefresh').addEventListener('click', loadReferrers);
@@ -1107,7 +1079,6 @@
       render();
       renderReferrerTable();
       loadAppLogs();
-      loadNotifyList();
       loadFeedback();
       if (_hasCfKey) loadCloudflare();
       if (_sentryToken) loadSentry();
