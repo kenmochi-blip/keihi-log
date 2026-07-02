@@ -1009,12 +1009,19 @@ const ListView = (() => {
       return m ? `https://drive.google.com/file/d/${m[1]}/view` : (u || '#');
     }
 
-    // PDFをインライン表示（プロキシは application/pdf を inline で返すのでiframeで描画可能）
-    function _showPdf(url) {
+    // 直前に生成した PDF の Blob URL（描画切替時に解放してメモリリークを防ぐ）
+    let _pdfBlobUrl = null;
+    function _revokePdfBlob() {
+      if (_pdfBlobUrl) { URL.revokeObjectURL(_pdfBlobUrl); _pdfBlobUrl = null; }
+    }
+
+    // PDFをインライン表示。frameSrc は iframe に流すURL（Blob URL可）、
+    // origUrl は「別タブで開く」フォールバック用の元URL。
+    function _showPdf(frameSrc, origUrl) {
       img.style.display = 'none';
       if (errWrap) errWrap.style.display = 'none';
-      if (pdfFrame) pdfFrame.src = url;
-      pdfLink.href = _fallbackHref(url);   // iframeが描画できない環境（iOS Safari等）の保険
+      if (pdfFrame) pdfFrame.src = frameSrc;
+      pdfLink.href = _fallbackHref(origUrl || frameSrc);  // iOS Safari等の保険
       pdfWrap.style.display = 'flex';
     }
 
@@ -1033,11 +1040,12 @@ const ListView = (() => {
       _urls = urls; _cur = idx;
       _retry = 0;
       _pzReset();
+      _revokePdfBlob();
       const url = urls[_cur];
       const isPdf = url.toLowerCase().includes('pdf') || url.includes('application%2Fpdf');
       if (errWrap) errWrap.style.display = 'none';
       if (isPdf) {
-        _showPdf(url);
+        _showPdf(url, url);
       } else {
         // 拡張子の無いプロキシURLは画像として読み込み、失敗時にContent-Typeで再判定する
         pdfWrap.style.display = 'none';
@@ -1061,6 +1069,7 @@ const ListView = (() => {
       viewer.style.display = 'none';
       img.src = '';
       if (pdfFrame) pdfFrame.src = '';
+      _revokePdfBlob();
       pdfWrap.style.display = 'none';
       if (errWrap) errWrap.style.display = 'none';
       document.body.style.overflow = '';
@@ -1080,6 +1089,7 @@ const ListView = (() => {
         viewer.style.display = 'none';
         img.src = '';
         if (pdfFrame) pdfFrame.src = '';
+        _revokePdfBlob();
         pdfWrap.style.display = 'none';
         if (errWrap) errWrap.style.display = 'none';
         document.body.style.overflow = '';
@@ -1097,14 +1107,22 @@ const ListView = (() => {
     img.addEventListener('error', async () => {
       if (viewer.style.display === 'none') return;
       const u = _urls[_cur] || '';
-      // まず Content-Type を確認：PDF は画像として読めないだけなのでインライン表示へ回す
-      // （SAプロキシの署名URLは拡張子を持たず、URL文字列ではPDF判定できないため）
+      // まず実体を取得して Content-Type を確認：PDF は画像として読めないだけなので
+      // インライン表示へ回す（SAプロキシの署名URLは拡張子を持たずURL文字列では判定不可。
+      // かつプロキシは HEAD を許可しないため GET で取得する）。
       try {
-        const r = await fetch(u, { method: 'HEAD' });
+        const r = await fetch(u);
         if (viewer.style.display === 'none' || _urls[_cur] !== u) return;
         const ct = (r.headers.get('content-type') || '').toLowerCase();
-        if (ct.includes('pdf')) { _showPdf(u); return; }
-      } catch (_) { /* HEAD失敗時は下のリトライ/エラー処理へ */ }
+        if (ct.includes('pdf')) {
+          const blob = await r.blob();
+          if (viewer.style.display === 'none' || _urls[_cur] !== u) return;
+          _revokePdfBlob();
+          _pdfBlobUrl = URL.createObjectURL(blob);   // Blob URL は X-Frame-Options の影響を受けず確実に描画
+          _showPdf(_pdfBlobUrl, u);
+          return;
+        }
+      } catch (_) { /* 取得失敗時は下のリトライ/エラー処理へ */ }
       if (viewer.style.display === 'none' || _urls[_cur] !== u) return;
       // 画像の一過性失敗（サーバーレスのコールドスタート等）は数回リトライしてからエラー表示
       if (u && _retry < _MAX_RETRY) {
