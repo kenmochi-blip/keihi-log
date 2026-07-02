@@ -1,8 +1,16 @@
 import { kv } from '@vercel/kv';
+import { rateLimit } from './_rateLimit.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  // 無認証でメール送信＋KV書き込みが走るため、IP単位でレート制限する
+  // （自ドメインを踏み台にしたメール爆撃・KV肥大化の防止）。
+  const rl = await rateLimit(req, { prefix: 'notify', limit: 5, window: 600 });
+  if (!rl.ok) {
+    return res.status(429).json({ error: 'リクエストが多すぎます。しばらくしてからお試しください。' });
   }
 
   const { email } = req.body || {};

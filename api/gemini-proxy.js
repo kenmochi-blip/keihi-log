@@ -2,8 +2,17 @@
  * Gemini API プロキシ（デモモード用）
  * APIキーはVercel環境変数で管理し、ソースコードには含まない
  */
+import { rateLimit } from './_rateLimit.js';
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
+
+  // デモ用の共有キー（サーバー所有）を無認証で叩けるため、IP単位でレート制限する。
+  // 未制限だとオーナー課金のGeminiキー/クォータを第三者に枯渇させられる。
+  const rl = await rateLimit(req, { prefix: 'demo-gemini', limit: 20, window: 600 });
+  if (!rl.ok) {
+    return res.status(429).json({ error: 'リクエストが多すぎます。しばらくしてからお試しください。' });
+  }
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return res.status(503).json({ error: 'Gemini APIキーが設定されていません' });

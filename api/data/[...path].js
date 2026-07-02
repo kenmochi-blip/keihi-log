@@ -159,45 +159,22 @@ async function health(req, res) {
     return res.status(200).json({ saConfigured: false, authenticated: false });
   }
 
-  const sheetId = _query(req).get('sheetId');
-
+  // 注: 以前はここで ?sheetId= を無認証で受け、対象シートの会社名・タブ構成・
+  //     メンバー数・経費行数（PII/メタ情報）を返していたが、認可なしの情報漏洩に
+  //     なるため撤去した。SA の疎通確認のみを返す。
   try {
     const auth = getSaAuth();
     const client = await auth.getClient();
     const token = await client.getAccessToken();
-    const base = {
+    return res.status(200).json({
       saConfigured: true,
       authenticated: !!token?.token,
       serviceAccountEmail: client.email || null,
-    };
-
-    // 共有検証プローブ（PIIなし）
-    if (sheetId && _validSheetId(sheetId)) {
-      const sheets = sheetsClient();
-      const meta = await sheets.spreadsheets.get({
-        spreadsheetId: sheetId,
-        fields: 'properties.title,sheets.properties.title',
-      });
-      const tabs = (meta.data.sheets || []).map(s => s.properties.title);
-      const master = await readMaster(sheetId);
-      const exp = await sheets.spreadsheets.values.get({
-        spreadsheetId: sheetId, range: '経費一覧!A2:A',
-      }).catch(() => ({ data: {} }));
-      base.sheetProbe = {
-        canRead: true,
-        title: meta.data.properties?.title || '',
-        tabs,
-        memberCount: master.members.length,
-        adminCount: master.admins.length,
-        expenseRowCount: (exp.data.values || []).length,
-      };
-    }
-    return res.status(200).json(base);
+    });
   } catch (e) {
     return res.status(200).json({
       saConfigured: true,
       authenticated: false,
-      ...(sheetId ? { sheetProbe: { canRead: false, error: e.message || 'read_failed' } } : {}),
       error: e.message || 'sa_auth_failed',
     });
   }
@@ -315,6 +292,8 @@ async function expensesEdit(req, res) {
 
   const found = await _getExpenseByIdViaSA(sheetId, id);
   if (!found) return res.status(404).json({ error: 'not_found' });
+  // 精算済（実精算）は誰でも編集不可（電帳法）。誤精算の訂正は admin 限定の unsettle 経由で行う。
+  if (_isRealSettled(found.raw)) return res.status(403).json({ error: 'settled_locked' });
   if (!_canModify(me, isAdmin, found.raw)) return res.status(403).json({ error: 'forbidden' });
 
   const r = row.slice(0, 21);

@@ -519,7 +519,7 @@ const ListView = (() => {
 
       // PC行（10列）
       rowsPc.push(`<tr>
-        <td class="list-date">${e.date}</td>
+        <td class="list-date">${_escape(e.date)}</td>
         <td class="list-member">${_escape(App.getMemberName(e.email, e.name))}</td>
         <td class="list-place">${e.settlementDate?.startsWith('会社払い') ? '🏢 ' : ''}${_escape(e.place)}</td>
         <td class="list-type-cell">${_escape(e.type)}</td>
