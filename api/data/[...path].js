@@ -247,6 +247,32 @@ async function expensesGet(req, res) {
  *   - J列(confirmed=承認) = admin のときのみ true 許可（一般メンバーの自己承認防止）
  *   - Q列(id) = 未指定なら採番
  */
+/**
+ * 同一シートへの経費書き込みを直列化するアドバイザリロック（KV NX）。
+ * 経費の新規追加は「2行目に空行を挿入 → その行に書き込み」の複数ステップで、
+ * この間に別の追加が割り込むと行がずれ、後勝ちで片方の申請が空行のまま消える。
+ * 書き込みの間だけ相互排他をかけてこれを防ぐ。
+ *  - 取得できなければ短時間スピン（最大 ~5s）で待機。
+ *  - 待っても取れない／KV障害時はロックなしで続行（フェイルオープン：ロック無しの現状挙動に劣化するだけ）。
+ *  - TTL付きなのでクラッシュ時も最大 LOCK_TTL 秒で自動解放。
+ */
+async function _withSheetWriteLock(sheetId, fn) {
+  const lockKey = `wlock:${sheetId}`;
+  const LOCK_TTL = 15;                       // 秒（異常時の自動解放）
+  const MAX_WAIT_MS = 5000, STEP_MS = 100;
+  let held = false;
+  for (let waited = 0; waited <= MAX_WAIT_MS; waited += STEP_MS) {
+    held = !!(await kv.set(lockKey, '1', { nx: true, ex: LOCK_TTL }).catch(() => false));
+    if (held) break;
+    await new Promise(r => setTimeout(r, STEP_MS));
+  }
+  try {
+    return await fn();
+  } finally {
+    if (held) await kv.del(lockKey).catch(() => {});
+  }
+}
+
 async function expensesCreate(req, res) {
   const authz = await _authorize(req, res);
   if (!authz) return;
@@ -267,7 +293,8 @@ async function expensesCreate(req, res) {
   if (!r[16]) r[16] = _uuid();            // Q: id
   r[8]  = _normalizeImageLinks(r[8]);     // I: 署名付きプロキシURL→永続Drive URLへ戻す
 
-  await prependExpenseRowViaSA(sheetId, r);
+  // insert→write→format を直列化し、同時追加による行ズレ・申請消失を防ぐ
+  await _withSheetWriteLock(sheetId, () => prependExpenseRowViaSA(sheetId, r));
   _inProcDel(`data:exp:${sheetId}`); await kv.del(`data:exp:${sheetId}`).catch(() => {}); // 一覧キャッシュ無効化
 
   return res.status(200).json({ ok: true, id: r[16] });
