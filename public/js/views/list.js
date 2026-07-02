@@ -987,6 +987,7 @@ const ListView = (() => {
     const viewer   = document.getElementById('receiptViewer');
     const img      = document.getElementById('receiptViewerImg');
     const pdfWrap  = document.getElementById('receiptViewerPdf');
+    const pdfFrame = document.getElementById('receiptViewerPdfFrame');
     const pdfLink  = document.getElementById('receiptViewerPdfLink');
     const closeBtn  = document.getElementById('receiptViewerClose');
     const navBar    = document.getElementById('receiptViewerNav');
@@ -1002,17 +1003,48 @@ const ListView = (() => {
     let _retry = 0;            // 現在表示中URLの再試行回数
     const _MAX_RETRY = 2;      // サーバーレスのコールドスタート等で初回失敗することがあるため
 
+    // fileId から Drive の閲覧URL（別タブ用フォールバック）を作る
+    function _fallbackHref(u) {
+      const m = String(u || '').match(/[?&]fileId=([a-zA-Z0-9_-]+)/);
+      return m ? `https://drive.google.com/file/d/${m[1]}/view` : (u || '#');
+    }
+
+    // PDFをインライン表示（プロキシは application/pdf を inline で返すのでiframeで描画可能）
+    function _showPdf(url) {
+      img.style.display = 'none';
+      if (errWrap) errWrap.style.display = 'none';
+      if (pdfFrame) pdfFrame.src = url;
+      pdfLink.href = _fallbackHref(url);   // iframeが描画できない環境（iOS Safari等）の保険
+      pdfWrap.style.display = 'flex';
+    }
+
+    // 読み込み不能時のエラーカード
+    function _showError(url) {
+      img.style.display = 'none';
+      pdfWrap.style.display = 'none';
+      if (pdfFrame) pdfFrame.src = '';
+      if (errWrap) {
+        errWrap.style.display = 'block';
+        if (errLink) errLink.href = _fallbackHref(url);
+      }
+    }
+
     function _show(urls, idx) {
       _urls = urls; _cur = idx;
       _retry = 0;
       _pzReset();
       const url = urls[_cur];
       const isPdf = url.toLowerCase().includes('pdf') || url.includes('application%2Fpdf');
-      img.style.display = isPdf ? 'none' : 'block';
-      pdfWrap.style.display = isPdf ? 'block' : 'none';
       if (errWrap) errWrap.style.display = 'none';
-      if (isPdf) { pdfLink.href = url; }
-      else { img.src = url; }
+      if (isPdf) {
+        _showPdf(url);
+      } else {
+        // 拡張子の無いプロキシURLは画像として読み込み、失敗時にContent-Typeで再判定する
+        pdfWrap.style.display = 'none';
+        if (pdfFrame) pdfFrame.src = '';
+        img.style.display = 'block';
+        img.src = url;
+      }
       navBar.style.display = urls.length > 1 ? 'block' : 'none';
       if (pageEl) pageEl.textContent = `${_cur + 1} / ${urls.length}`;
       viewer.style.display = 'block';
@@ -1028,6 +1060,8 @@ const ListView = (() => {
       _pzReset();
       viewer.style.display = 'none';
       img.src = '';
+      if (pdfFrame) pdfFrame.src = '';
+      pdfWrap.style.display = 'none';
       if (errWrap) errWrap.style.display = 'none';
       document.body.style.overflow = '';
       // ダミー履歴エントリを除去（バックで閉じた場合は既にpopstateで除去済みなのでスキップ）
@@ -1045,6 +1079,8 @@ const ListView = (() => {
         _pzReset();
         viewer.style.display = 'none';
         img.src = '';
+        if (pdfFrame) pdfFrame.src = '';
+        pdfWrap.style.display = 'none';
         if (errWrap) errWrap.style.display = 'none';
         document.body.style.overflow = '';
       }
@@ -1058,12 +1094,20 @@ const ListView = (() => {
       }
     });
 
-    img.addEventListener('error', () => {
+    img.addEventListener('error', async () => {
       if (viewer.style.display === 'none') return;
       const u = _urls[_cur] || '';
-      const isPdf = u.toLowerCase().includes('pdf') || u.includes('application%2Fpdf');
-      // 一過性の失敗（サーバーレスのコールドスタート等）に備えて数回リトライしてからエラー表示
-      if (!isPdf && u && _retry < _MAX_RETRY) {
+      // まず Content-Type を確認：PDF は画像として読めないだけなのでインライン表示へ回す
+      // （SAプロキシの署名URLは拡張子を持たず、URL文字列ではPDF判定できないため）
+      try {
+        const r = await fetch(u, { method: 'HEAD' });
+        if (viewer.style.display === 'none' || _urls[_cur] !== u) return;
+        const ct = (r.headers.get('content-type') || '').toLowerCase();
+        if (ct.includes('pdf')) { _showPdf(u); return; }
+      } catch (_) { /* HEAD失敗時は下のリトライ/エラー処理へ */ }
+      if (viewer.style.display === 'none' || _urls[_cur] !== u) return;
+      // 画像の一過性失敗（サーバーレスのコールドスタート等）は数回リトライしてからエラー表示
+      if (u && _retry < _MAX_RETRY) {
         _retry++;
         const sep = u.includes('?') ? '&' : '?';
         setTimeout(() => {
@@ -1073,14 +1117,7 @@ const ListView = (() => {
         }, 500 * _retry);
         return;
       }
-      img.style.display = 'none';
-      if (errWrap) {
-        errWrap.style.display = 'block';
-        if (errLink) {
-          const m = u.match(/[?&]fileId=([a-zA-Z0-9_-]+)/);
-          errLink.href = m ? `https://drive.google.com/file/d/${m[1]}/view` : u || '#';
-        }
-      }
+      _showError(u);
     });
 
     closeBtn?.addEventListener('click', _close);

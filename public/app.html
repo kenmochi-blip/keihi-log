@@ -154,9 +154,9 @@
         <div style="margin-bottom:1rem;opacity:0.85;font-size:0.9rem;">画像を読み込めませんでした</div>
         <a id="receiptViewerErrorLink" href="#" target="_blank" rel="noopener" class="btn btn-light btn-sm">別タブで開く <i class="bi bi-box-arrow-up-right ms-1"></i></a>
       </div>
-      <div id="receiptViewerPdf" style="display:none;color:#fff;text-align:center;">
-        <i class="bi bi-filetype-pdf" style="font-size:4rem;display:block;margin-bottom:1rem;"></i>
-        <a id="receiptViewerPdfLink" href="#" target="_blank" class="btn btn-light">PDFを開く <i class="bi bi-box-arrow-up-right ms-1"></i></a>
+      <div id="receiptViewerPdf" style="display:none;width:100%;height:100%;flex-direction:column;align-items:center;">
+        <iframe id="receiptViewerPdfFrame" src="" title="証票PDF" style="flex:1 1 auto;width:100%;border:none;background:#fff;border-radius:4px;"></iframe>
+        <a id="receiptViewerPdfLink" href="#" target="_blank" rel="noopener" class="btn btn-light btn-sm mt-2 flex-shrink-0">別タブで開く <i class="bi bi-box-arrow-up-right ms-1"></i></a>
       </div>
     </div>
     <div id="receiptViewerNav" style="display:none;position:absolute;bottom:16px;left:0;right:0;text-align:center;">
