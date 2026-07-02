@@ -248,12 +248,13 @@ async function expensesGet(req, res) {
  *   - Q列(id) = 未指定なら採番
  */
 /**
- * 同一シートへの経費書き込みを直列化するアドバイザリロック（KV NX）。
- * 経費の新規追加は「2行目に空行を挿入 → その行に書き込み」の複数ステップで、
- * この間に別の追加が割り込むと行がずれ、後勝ちで片方の申請が空行のまま消える。
+ * 同一シートへの経費書き込み（新規追加・編集・削除）を直列化するアドバイザリロック（KV NX）。
+ * これらは「行を特定/挿入 → その行へ書き込み/削除」の複数ステップで、この間に別の
+ * 書き込みが割り込むと行番号がずれ、申請の消失・隣の行の誤上書き/誤削除が起きる。
  * 書き込みの間だけ相互排他をかけてこれを防ぐ。
  *  - 取得できなければ短時間スピン（最大 ~5s）で待機。
- *  - 待っても取れない／KV障害時はロックなしで続行（フェイルオープン：ロック無しの現状挙動に劣化するだけ）。
+ *  - 待っても取れない場合はロックなしで続行（フェイルオープン：ロック無しの現状挙動に劣化するだけ）。
+ *  - KV障害（set が例外）時はスピンせず即続行（障害時に無駄な数秒待ちを生まない）。
  *  - TTL付きなのでクラッシュ時も最大 LOCK_TTL 秒で自動解放。
  */
 async function _withSheetWriteLock(sheetId, fn) {
@@ -262,9 +263,14 @@ async function _withSheetWriteLock(sheetId, fn) {
   const MAX_WAIT_MS = 5000, STEP_MS = 100;
   let held = false;
   for (let waited = 0; waited <= MAX_WAIT_MS; waited += STEP_MS) {
-    held = !!(await kv.set(lockKey, '1', { nx: true, ex: LOCK_TTL }).catch(() => false));
-    if (held) break;
-    await new Promise(r => setTimeout(r, STEP_MS));
+    let acquired;
+    try {
+      acquired = await kv.set(lockKey, '1', { nx: true, ex: LOCK_TTL });
+    } catch (_) {
+      break;   // KV障害：スピンせず即座にロック無しで続行
+    }
+    if (acquired) { held = true; break; }     // 取得成功
+    await new Promise(r => setTimeout(r, STEP_MS));  // 他が保持中：少し待って再試行
   }
   try {
     return await fn();
@@ -317,26 +323,29 @@ async function expensesEdit(req, res) {
     return res.status(400).json({ error: 'invalid_request' });
   }
 
-  const found = await _getExpenseByIdViaSA(sheetId, id);
-  if (!found) return res.status(404).json({ error: 'not_found' });
-  // 精算済（実精算）は誰でも編集不可（電帳法）。誤精算の訂正は admin 限定の unsettle 経由で行う。
-  if (_isRealSettled(found.raw)) return res.status(403).json({ error: 'settled_locked' });
-  if (!_canModify(me, isAdmin, found.raw)) return res.status(403).json({ error: 'forbidden' });
+  // 行の特定→書き込みを直列化（他の追加/削除による行ズレで隣の行を誤上書きしないため）
+  return _withSheetWriteLock(sheetId, async () => {
+    const found = await _getExpenseByIdViaSA(sheetId, id);
+    if (!found) return res.status(404).json({ error: 'not_found' });
+    // 精算済（実精算）は誰でも編集不可（電帳法）。誤精算の訂正は admin 限定の unsettle 経由で行う。
+    if (_isRealSettled(found.raw)) return res.status(403).json({ error: 'settled_locked' });
+    if (!_canModify(me, isAdmin, found.raw)) return res.status(403).json({ error: 'forbidden' });
 
-  const r = row.slice(0, 21);
-  while (r.length < 21) r.push('');
-  // 整合性: 所有者(P)は元のまま維持（編集者で上書きしない）、承認(J)は admin のみ true 可
-  r[15] = found.raw[15] || me.email;
-  r[9]  = isAdmin ? (r[9] === true || r[9] === 'TRUE') : false;
-  r[16] = id;
-  r[8]  = _normalizeImageLinks(r[8]);     // I: 署名付きプロキシURL→永続Drive URLへ戻す
+    const r = row.slice(0, 21);
+    while (r.length < 21) r.push('');
+    // 整合性: 所有者(P)は元のまま維持（編集者で上書きしない）、承認(J)は admin のみ true 可
+    r[15] = found.raw[15] || me.email;
+    r[9]  = isAdmin ? (r[9] === true || r[9] === 'TRUE') : false;
+    r[16] = id;
+    r[8]  = _normalizeImageLinks(r[8]);     // I: 署名付きプロキシURL→永続Drive URLへ戻す
 
-  // 修正履歴に変更前/変更後を2行で残す（変更セルを色付き）
-  await _writeEditHistory(sheetId, _nowJst(), me.email, found.raw, r);
-  await updateRangeViaSA(sheetId, `経費一覧!A${found.rowNum}:U${found.rowNum}`, [r]);
-  _inProcDel(`data:exp:${sheetId}`); await kv.del(`data:exp:${sheetId}`).catch(() => {});
+    // 修正履歴に変更前/変更後を2行で残す（変更セルを色付き）
+    await _writeEditHistory(sheetId, _nowJst(), me.email, found.raw, r);
+    await updateRangeViaSA(sheetId, `経費一覧!A${found.rowNum}:U${found.rowNum}`, [r]);
+    _inProcDel(`data:exp:${sheetId}`); await kv.del(`data:exp:${sheetId}`).catch(() => {});
 
-  return res.status(200).json({ ok: true, id });
+    return res.status(200).json({ ok: true, id });
+  });
 }
 
 /**
@@ -352,20 +361,23 @@ async function expensesDelete(req, res) {
   const id = _query(req).get('id') || (await _body(req))?.id;
   if (!id) return res.status(400).json({ error: 'invalid_request' });
 
-  const found = await _getExpenseByIdViaSA(sheetId, id);
-  if (!found) return res.status(404).json({ error: 'not_found' });
+  // 行の特定→退避→削除を直列化（他の追加/削除による行ズレで隣の行を誤削除しないため）
+  return _withSheetWriteLock(sheetId, async () => {
+    const found = await _getExpenseByIdViaSA(sheetId, id);
+    if (!found) return res.status(404).json({ error: 'not_found' });
 
-  // 精算済（実精算＝会社払いマーカー以外の精算日）は削除禁止（電帳法）
-  if (_isRealSettled(found.raw)) return res.status(403).json({ error: 'settled_locked' });
-  if (!_canModify(me, isAdmin, found.raw)) return res.status(403).json({ error: 'forbidden' });
+    // 精算済（実精算＝会社払いマーカー以外の精算日）は削除禁止（電帳法）
+    if (_isRealSettled(found.raw)) return res.status(403).json({ error: 'settled_locked' });
+    if (!_canModify(me, isAdmin, found.raw)) return res.status(403).json({ error: 'forbidden' });
 
-  const raw21 = found.raw.slice(0, 21);
-  while (raw21.length < 21) raw21.push('');
-  await prependRowViaSA(sheetId, '削除一覧', [_nowJst(), me.email, ...raw21]);
-  await deleteRowViaSA(sheetId, '経費一覧', found.rowNum);
-  _inProcDel(`data:exp:${sheetId}`); await kv.del(`data:exp:${sheetId}`).catch(() => {});
+    const raw21 = found.raw.slice(0, 21);
+    while (raw21.length < 21) raw21.push('');
+    await prependRowViaSA(sheetId, '削除一覧', [_nowJst(), me.email, ...raw21]);
+    await deleteRowViaSA(sheetId, '経費一覧', found.rowNum);
+    _inProcDel(`data:exp:${sheetId}`); await kv.del(`data:exp:${sheetId}`).catch(() => {});
 
-  return res.status(200).json({ ok: true, id });
+    return res.status(200).json({ ok: true, id });
+  });
 }
 
 /**
