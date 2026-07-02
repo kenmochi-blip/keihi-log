@@ -1639,14 +1639,17 @@ function _bindSubtypePills(el) {
 
     // 1. 2ヶ月以上前チェックは_handleSubmitで先行実施済みのためここでは省略
 
-    // 2. インボイス番号＋金額の重複チェック（最優先・確実な重複）
+    // 2. インボイス番号＋金額＋日付の重複チェック（最優先・確実な重複）
+    //    インボイス番号(T番号)は事業者ごとに固定のため、番号＋金額だけでは
+    //    「同じ取引先の毎月同額の請求書」が誤検知される。日付一致も条件にする。
     if (data.invoice && data.invoice.trim()) {
       const invNorm = data.invoice.trim().toUpperCase();
       const invDup = expenses.find(e => {
         if (e.id === _editId) return false;
         return e.invoice &&
           e.invoice.trim().toUpperCase() === invNorm &&
-          Number(e.amount) === Number(data.amount);
+          Number(e.amount) === Number(data.amount) &&
+          String(e.date) === String(data.date);
       });
       if (invDup) {
         alerts.push(`インボイス番号と金額が一致する申請済みデータがあります (${invDup.date} ${invDup.place} ¥${Number(invDup.amount).toLocaleString('ja-JP')})`);
