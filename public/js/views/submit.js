@@ -738,16 +738,21 @@ function _bindSubtypePills(el) {
       const div = document.createElement('div');
       div.className = 'file-preview-item';
       div.dataset.existingIdx = i;
-      // サムネイル取得はCORSで失敗するためアイコン+リンクで表示
+      // サムネイル取得はCORSで失敗するためアイコン+ボタンで表示。
+      // 一覧と同じ .btn-receipt-view にして、list.js の委任リスナーが拾う
+      // ポップアップビューア（✕で閉じる・PDF対応）で開く（別タブにしない）。
       div.innerHTML =
-        `<a href="${url}" target="_blank" rel="noopener"
+        `<button type="button" class="btn-receipt-view"
             style="display:flex;align-items:center;justify-content:center;
                    width:80px;height:80px;border-radius:4px;background:#f0f4ff;
-                   border:1px solid #c8d8f8;text-decoration:none;flex-direction:column;gap:4px;">
+                   border:1px solid #c8d8f8;flex-direction:column;gap:4px;cursor:pointer;padding:0;">
            <i class="bi bi-file-earmark-image" style="font-size:1.8rem;color:#4a90d9;"></i>
            <span style="font-size:0.6rem;color:#555;">証票を開く</span>
-         </a>
+         </button>
          <button class="remove-btn" data-existing-idx="${i}">✕</button>`;
+      const viewBtn = div.querySelector('.btn-receipt-view');
+      viewBtn.dataset.urls = JSON.stringify([url]);   // dataset経由なのでHTMLエスケープ不要
+      viewBtn.dataset.idx = '0';
       div.querySelector('.remove-btn').addEventListener('click', () => {
         _existingUrls[i] = null;
         div.remove();
