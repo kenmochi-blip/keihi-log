@@ -13,6 +13,7 @@ const SubmitView = (() => {
   let _existingHash     = '';
   let _editId           = null;
   let _withholdingAmount = 0; // AIが検出した源泉徴収税額
+  let _aiParsedAmount = 0;    // AIが解析した金額（N列/AI解析額）。手修正検知の基準に使う
   let _currentType      = '領収書';
   let _cats             = [];
   let _paySources       = [];
@@ -549,6 +550,7 @@ function _bindSubtypePills(el) {
         // 同じピルを再クリック → 解除、領収書モードに戻る
         _currentType = '領収書';
         _selectedFiles = []; _compressedFiles = []; _compressPromise = null;
+        _aiParsedAmount = 0;
         _aiAutoPromise = null; _prefetchedTime = null; ++_aiAutoVersion;
         ++_preUploadVersion; _preUploadPromise = null; _preUploadResult = null;
         el.querySelectorAll('.subtype-pill').forEach(p => p.classList.remove('active'));
@@ -562,6 +564,7 @@ function _bindSubtypePills(el) {
       }
       _currentType = type;
       _selectedFiles = []; _compressedFiles = []; _compressPromise = null;
+      _aiParsedAmount = 0;
       _aiAutoPromise = null; _prefetchedTime = null; ++_aiAutoVersion;
       ++_preUploadVersion; _preUploadPromise = null; _preUploadResult = null;
       el.querySelectorAll('.subtype-pill').forEach(p => p.classList.toggle('active', p === pill));
@@ -1113,6 +1116,7 @@ function _bindSubtypePills(el) {
       _showReceiptFields(el);
 
       let filled = 0;
+      _aiParsedAmount = 0;   // 今回の解析結果で採れた金額のみを基準にする（前回値の残留を防ぐ）
       if (result.date) {
         el.querySelector('#inputDate').value = result.date;
         filled++;
@@ -1155,6 +1159,8 @@ function _bindSubtypePills(el) {
         });
         _calcSplitTotal(el);
         filled++;
+        // AI解析額（手修正検知の基準）＝各明細の合計
+        _aiParsedAmount = result.items.reduce((s, it) => s + (Number(it.amount) || 0), 0);
       } else {
         // 1件 or items なし → split 行1行に統合（items[0] を優先して拾う）
         const singleItem  = result.items?.[0];
@@ -1173,6 +1179,7 @@ function _bindSubtypePills(el) {
             const markupPct = 3;
             const rate = baseRate * (1 + markupPct / 100);
             const jpy = Math.floor(Number(result.fx_amount) * rate);
+            _aiParsedAmount = jpy;   // AI解析額（外貨換算後の円）
             if (firstRow) firstRow.querySelector('.split-amount').value = jpy.toLocaleString('ja-JP');
             const noteInput = el.querySelector('#inputNote');
             const markupNote = markupPct > 0 ? `＋手数料${markupPct}%` : '';
@@ -1188,6 +1195,7 @@ function _bindSubtypePills(el) {
           }
         } else if (totalAmount != null && totalAmount !== '') {
           if (firstRow) firstRow.querySelector('.split-amount').value = Number(totalAmount).toLocaleString('ja-JP');
+          _aiParsedAmount = Number(totalAmount) || 0;   // AI解析額（手修正検知の基準）
           filled++;
         }
 
@@ -1451,7 +1459,7 @@ function _bindSubtypePills(el) {
         aiAudit,
         settlementDate: data.corpPay ? `会社払い（${data.paySource}）` : '',
         invoice:        data.invoice,
-        aiAmount:       0,
+        aiAmount:       _aiParsedAmount || 0,   // AI解析額をN列に保存（手修正検知の基準・監査証跡）
         imageHash:      hashes.join(','),
         email:          Auth.getUserEmail(),
         id:             _editId || crypto.randomUUID(),
@@ -1644,6 +1652,13 @@ function _bindSubtypePills(el) {
 
     // 1. 2ヶ月以上前チェックは_handleSubmitで先行実施済みのためここでは省略
 
+    // 1.5. AI解析額との不一致チェック（金額の手修正・誤入力を検知）
+    //     AIが金額を解析できたケース（_aiParsedAmount>0）のみ。0の型（領収書なし/交通費等）や
+    //     解析基準が無い既存データは対象外。
+    if (_aiParsedAmount > 0 && Number(data.amount) !== Math.round(_aiParsedAmount)) {
+      alerts.push(`AI解析額 ¥${Math.round(_aiParsedAmount).toLocaleString('ja-JP')} と申請額 ¥${Number(data.amount).toLocaleString('ja-JP')} が一致しません（金額を手修正した場合はご確認ください）`);
+    }
+
     // 2. インボイス番号＋金額＋日付の重複チェック（最優先・確実な重複）
     //    インボイス番号(T番号)は事業者ごとに固定のため、番号＋金額だけでは
     //    「同じ取引先の毎月同額の請求書」が誤検知される。日付一致も条件にする。
@@ -1808,6 +1823,8 @@ function _bindSubtypePills(el) {
     _editId = id;
     _existingUrls = e.imageLinks ? e.imageLinks.split(',').map(s => s.trim()).filter(Boolean) : [];
     _existingHash = e.imageHash || '';
+    // 既存のAI解析額を基準として引き継ぐ（金額を手修正したらアラートが出るように）
+    _aiParsedAmount = Number(e.aiAmount) || 0;
     _currentType = e.type;
     _bindEditPopstate();
     _pushEditHistory(); // 戻るジェスチャーで前画面に戻すためのダミー履歴
@@ -2049,6 +2066,7 @@ function _bindSubtypePills(el) {
     _returnAfterEdit = null;
     _discardReturn = null;
     _withholdingAmount = 0;
+    _aiParsedAmount = 0;
 
     // AIボタンをリセット（非表示に戻す）
     const analyzeBtn = el.querySelector('#btnAnalyze');
