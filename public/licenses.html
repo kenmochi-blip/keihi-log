@@ -323,57 +323,6 @@
       </div>
 
       <!-- Cloudflare -->
-      <div id="cfSection" class="d-none" style="margin-bottom:1rem;">
-        <div class="panel">
-          <div class="panel-header" style="justify-content:space-between;">
-            <div style="display:flex;align-items:center;gap:0.5rem;">
-              <svg width="16" height="16" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M62 44c-1-4-4.5-6.5-8.5-6.5-1.2 0-2.5.3-3.7.9C46.7 31 40 26.5 32 26.5c-10.8 0-19.5 8.7-19.5 19.5v.2C6.5 47.5 2 52.5 2 58.5 2 65 7 70 13.5 70H64c6.2 0 11.5-5.2 11.5-11.5C75.5 51.9 69.7 45.5 62 44Z" fill="#F38020"/>
-                <path d="M79.5 44.5c-.6 0-1.2 0-1.8.1C76 38 70 33 62.8 33c-2 0-3.9.4-5.6 1.2 1.2 2.6 1.8 5.5 1.8 8.5 0 .1 0 .2 0 .3h1c5.2 0 9.5 4.3 9.5 9.5S65.2 62 60 62H79.5C85.3 62 90 57.3 90 51.5S85.3 44.5 79.5 44.5Z" fill="#FBAD41"/>
-              </svg>
-              <span class="title">Cloudflare アクセス解析</span>
-              <span id="cfUpdatedAt" style="font-size:0.7rem;color:var(--text-mute);"></span>
-            </div>
-            <div style="display:flex;align-items:center;gap:0.5rem;">
-              <select id="cfDays" class="filter-select" style="font-size:0.75rem;padding:0.2rem 0.5rem;">
-                <option value="7">7日間</option>
-                <option value="14">14日間</option>
-                <option value="30">30日間</option>
-              </select>
-              <button class="btn-ghost" id="btnCfRefresh" style="font-size:0.75rem;padding:0.25rem 0.6rem;">
-                <i class="bi bi-arrow-clockwise"></i>更新
-              </button>
-            </div>
-          </div>
-          <div class="panel-body">
-            <div class="sentry-kpi-grid" style="margin-bottom:1rem;">
-              <div class="sentry-kpi c-blue"><div class="sv" id="cfRequests">—</div><div class="sl">総リクエスト</div></div>
-              <div class="sentry-kpi c-red"><div class="sv" id="cf4xx">—</div><div class="sl">4xxエラー</div></div>
-              <div class="sentry-kpi c-mute"><div class="sv" id="cfUniques">—</div><div class="sl">ユニーク訪問者</div></div>
-              <div class="sentry-kpi c-green"><div class="sv" id="cfCacheRate">—</div><div class="sl">キャッシュヒット率</div></div>
-            </div>
-            <div style="overflow-x:auto;">
-              <table class="data-table" id="cfTable">
-                <thead>
-                  <tr>
-                    <th class="ps-first" style="width:110px;">日付</th>
-                    <th style="text-align:right;width:100px;">リクエスト</th>
-                    <th style="text-align:right;width:90px;">4xxエラー</th>
-                    <th style="text-align:right;width:90px;">5xxエラー</th>
-                    <th style="text-align:right;width:90px;">脅威</th>
-                    <th class="pe-last" style="width:180px;">キャッシュ率</th>
-                    <th style="text-align:right;width:110px;">ユニーク訪問者</th>
-                  </tr>
-                </thead>
-                <tbody id="cfTableBody">
-                  <tr><td colspan="7" style="text-align:center;padding:1.5rem;color:var(--text-mute);">読み込み中...</td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- Sentry -->
       <div id="sentrySection" class="d-none" style="margin-bottom:1rem;">
         <div class="panel">
@@ -621,6 +570,58 @@
           </table>
         </div>
         <div id="feedbackError" class="d-none" style="padding:1.25rem;color:#dc2626;font-size:0.82rem;"></div>
+      </div>
+
+      <!-- Cloudflare（利用価値が低いため末尾に配置） -->
+      <div id="cfSection" class="d-none" style="margin-bottom:1rem;">
+        <div class="panel">
+          <div class="panel-header" style="justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:0.5rem;">
+              <svg width="16" height="16" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M62 44c-1-4-4.5-6.5-8.5-6.5-1.2 0-2.5.3-3.7.9C46.7 31 40 26.5 32 26.5c-10.8 0-19.5 8.7-19.5 19.5v.2C6.5 47.5 2 52.5 2 58.5 2 65 7 70 13.5 70H64c6.2 0 11.5-5.2 11.5-11.5C75.5 51.9 69.7 45.5 62 44Z" fill="#F38020"/>
+                <path d="M79.5 44.5c-.6 0-1.2 0-1.8.1C76 38 70 33 62.8 33c-2 0-3.9.4-5.6 1.2 1.2 2.6 1.8 5.5 1.8 8.5 0 .1 0 .2 0 .3h1c5.2 0 9.5 4.3 9.5 9.5S65.2 62 60 62H79.5C85.3 62 90 57.3 90 51.5S85.3 44.5 79.5 44.5Z" fill="#FBAD41"/>
+              </svg>
+              <span class="title">Cloudflare アクセス解析</span>
+              <span id="cfUpdatedAt" style="font-size:0.7rem;color:var(--text-mute);"></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:0.5rem;">
+              <select id="cfDays" class="filter-select" style="font-size:0.75rem;padding:0.2rem 0.5rem;">
+                <option value="7">7日間</option>
+                <option value="14">14日間</option>
+                <option value="30">30日間</option>
+              </select>
+              <button class="btn-ghost" id="btnCfRefresh" style="font-size:0.75rem;padding:0.25rem 0.6rem;">
+                <i class="bi bi-arrow-clockwise"></i>更新
+              </button>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="sentry-kpi-grid" style="margin-bottom:1rem;">
+              <div class="sentry-kpi c-blue"><div class="sv" id="cfRequests">—</div><div class="sl">総リクエスト</div></div>
+              <div class="sentry-kpi c-red"><div class="sv" id="cf4xx">—</div><div class="sl">4xxエラー</div></div>
+              <div class="sentry-kpi c-mute"><div class="sv" id="cfUniques">—</div><div class="sl">ユニーク訪問者</div></div>
+              <div class="sentry-kpi c-green"><div class="sv" id="cfCacheRate">—</div><div class="sl">キャッシュヒット率</div></div>
+            </div>
+            <div style="overflow-x:auto;">
+              <table class="data-table" id="cfTable">
+                <thead>
+                  <tr>
+                    <th class="ps-first" style="width:110px;">日付</th>
+                    <th style="text-align:right;width:100px;">リクエスト</th>
+                    <th style="text-align:right;width:90px;">4xxエラー</th>
+                    <th style="text-align:right;width:90px;">5xxエラー</th>
+                    <th style="text-align:right;width:90px;">脅威</th>
+                    <th class="pe-last" style="width:180px;">キャッシュ率</th>
+                    <th style="text-align:right;width:110px;">ユニーク訪問者</th>
+                  </tr>
+                </thead>
+                <tbody id="cfTableBody">
+                  <tr><td colspan="7" style="text-align:center;padding:1.5rem;color:var(--text-mute);">読み込み中...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </div>
 
     </div>
