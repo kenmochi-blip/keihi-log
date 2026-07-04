@@ -719,17 +719,42 @@ const ListView = (() => {
     const header = ['申請日時','申請者名','タイプ','日付','支払先','金額','勘定科目',
       '備考','証票URL','ステータス','インボイス番号','申請者Email','ID','精算日','税区分','支払元','源泉徴収','カスタムフラグ'];
     const _isoToSlash = s => s ? String(s).replace(/^(\d{4})-(\d{2})-(\d{2}).*/, '$1/$2/$3') : '';
-    const rows = filtered.map(e => {
+    // 申請日時：Sheetsのシリアル値（例 46184.75）を YYYY/MM/DD HH:mm:ss へ整形。
+    // 文字列日付はスラッシュ整形にフォールバック。
+    const _fmtAppliedAt = v => {
+      if (v == null || v === '') return '';
+      const n = Number(v);
+      if (Number.isFinite(n) && n > 20000 && n < 100000) {
+        const d = new Date(Math.round((n - 25569) * 86400) * 1000); // 秒に丸めて端数ノイズ除去
+        const p = x => String(x).padStart(2, '0');
+        return `${d.getUTCFullYear()}/${p(d.getUTCMonth() + 1)}/${p(d.getUTCDate())} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())}`;
+      }
+      return _isoToSlash(v);
+    };
+    const rows = [];
+    filtered.forEach(e => {
       const corpSrc = _corpPaySource(e);
       const paySource = corpSrc ? corpSrc : `個人（${App.getMemberName(e.email, e.name)}）`;
-      return [
-        _isoToSlash(e.appliedAt), App.getMemberName(e.email, e.name), e.type, _isoToSlash(e.date), e.place, e.amount,
-        App.categoryLabel(e.category),
-        e.note, e.imageLinks.split(',')[0]?.trim() || '',
-        _getStatus(e), e.invoice, e.email, e.id,
-        e.settlementDate || '', _effectiveTaxRate(e), paySource,
-        e.withholding || 0, e.customFlag || ''
-      ];
+      const name = App.getMemberName(e.email, e.name);
+      const img = e.imageLinks.split(',')[0]?.trim() || '';
+      const status = _getStatus(e);
+      const wh = Number(e.withholding) || 0;
+      // 複数科目（split）は勘定科目・税率ごとに1行ずつ出力。税率が混ざっても各行で表示（「混在」を出さない）。
+      const parts = App.parseSplitCategory(e.category);
+      const isSplit = parts.length > 1 && parts.every(p => p.amount !== null);
+      const lines = isSplit
+        ? parts.map(p => ({ cat: p.cat, amount: p.amount, tax: p.taxRate || _effectiveTaxRate(e) }))
+        : [{ cat: App.categoryLabel(e.category), amount: Number(e.amount) || 0, tax: _effectiveTaxRate(e) }];
+      lines.forEach((ln, i) => {
+        rows.push([
+          _fmtAppliedAt(e.appliedAt), name, e.type, _isoToSlash(e.date), e.place, ln.amount,
+          ln.cat,
+          e.note, img,
+          status, e.invoice, e.email, e.id,
+          e.settlementDate || '', ln.tax, paySource,
+          i === 0 ? wh : 0, e.customFlag || ''  // 源泉徴収は二重計上を避け先頭行のみ
+        ]);
+      });
     });
     const csv = [header, ...rows].map(r =>
       r.map(v => `"${String(v || '').replace(/"/g, '""')}"`).join(',')
