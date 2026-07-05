@@ -2086,6 +2086,38 @@ function _todayJst() {
   return d.toISOString().slice(0, 10);
 }
 
+/** 全角数字→半角。 */
+function _toHalfWidthDigits(s) {
+  return String(s).replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
+}
+
+/**
+ * ゆるい日付パース → 'YYYY-MM-DD' or null。
+ * 受け付ける例: 2026-05-05 / 2026/5/5 / 2026.5.5 / 2026年5月5日 / 20260505 /
+ *   5月5日 / 5/5（年なしは今年）/ 26-5-5 / 全角数字。
+ */
+function _parseLooseDate(text) {
+  const s = _toHalfWidthDigits(String(text).trim());
+  const yNow = Number(_todayJst().slice(0, 4));
+  let y, m, d;
+  const nums = s.match(/\d+/g);
+  if (!nums) return null;
+  if (/^\d{8}$/.test(s)) {              // 20260505
+    y = +s.slice(0, 4); m = +s.slice(4, 6); d = +s.slice(6, 8);
+  } else if (nums.length >= 3) {         // 2026-05-05 / 2026年5月5日 等
+    y = +nums[0]; m = +nums[1]; d = +nums[2];
+  } else if (nums.length === 2) {        // 5月5日 / 5/5（年なし→今年）
+    y = yNow; m = +nums[0]; d = +nums[1];
+  } else {
+    return null;
+  }
+  if (y < 100) y += 2000;                // 26 → 2026
+  if (!(m >= 1 && m <= 12) || d < 1) return null;
+  const dim = new Date(y, m, 0).getDate();  // その月の日数
+  if (d > dim) return null;
+  return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+}
+
 /** 確認画面のテキスト（解析結果＋監査アラート）。 */
 function _lineSummary(data, alerts) {
   const yen = (n) => '¥' + Number(n || 0).toLocaleString('ja-JP');
@@ -2157,7 +2189,7 @@ async function _handleLinePostback(userId, replyToken, dataStr) {
     pending.step = 'awaiting_value';
     pending.editField = f;
     await kv.set(`line:pending:${userId}`, pending, { ex: 600 }).catch(() => {});
-    const labels = { date: '日付（例: 2026-07-05）', place: '支払先', amount: '金額（数字）', category: '科目' };
+    const labels = { date: '日付（例: 2026-05-05 / 20260505 / 5月5日）', place: '支払先', amount: '金額（数字）', category: '科目' };
     return _lineReply(replyToken, _lineText(`新しい「${labels[f] || f}」を送ってください。`));
   }
   if (action === 'setcat') {
@@ -2177,13 +2209,13 @@ async function _applyLineEdit(userId, replyToken, pending, text) {
   const f = pending.editField;
   const d = pending.data;
   if (f === 'date') {
-    const v = text.replace(/[／.]/g, '-').replace(/[^\d-]/g, '');
-    if (!_validDateStr(v)) return _lineReply(replyToken, _lineText('日付は YYYY-MM-DD 形式で送ってください（例: 2026-07-05）。'));
+    const v = _parseLooseDate(text);
+    if (!v) return _lineReply(replyToken, _lineText('日付を認識できませんでした。例: 2026-05-05 / 20260505 / 5月5日 のように送ってください。'));
     d.date = v;
   } else if (f === 'place') {
     d.place = text.slice(0, 100);
   } else if (f === 'amount') {
-    const n = Number(text.replace(/[^\d]/g, ''));
+    const n = Number(_toHalfWidthDigits(text).replace(/[^\d]/g, ''));
     if (!n || n < 1) return _lineReply(replyToken, _lineText('金額は1以上の数字で送ってください。'));
     d.amount = n;
     // 単一科目なら分割表記も金額を追従
