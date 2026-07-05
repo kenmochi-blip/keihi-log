@@ -2168,7 +2168,7 @@ async function lineLinks(req, res) {
  */
 // リッチメニューの画像/レイアウトを変えたらこのバージョンを上げる（自動再設定される）
 // 画像/レイアウト/挙動を変えたら上げる（自動再設定＆per-user再割当）
-const RICHMENU_VERSION = 'v4';
+const RICHMENU_VERSION = 'v5';
 let _richmenuEnsured = false; // ウォームインスタンス内キャッシュ
 
 /**
@@ -2212,13 +2212,16 @@ async function _setupRichMenuViaApi() {
   });
   if (!upResp.ok) { console.error('richmenu upload failed:', upResp.status); return false; }
 
-  await kv.set('line:richmenuid', created.richMenuId).catch(() => {}); // per-user割当で使う
+  await kv.set('line:richmenuid', created.richMenuId).catch(() => {});
+  // 全ユーザーの既定メニューに設定（確実に表示させる。per-user方式は割当が不安定だったため既定に戻す）
+  const setResp = await fetch(`https://api.line.me/v2/bot/user/all/richmenu/${created.richMenuId}`, { method: 'POST', headers: H });
+  if (!setResp.ok) { console.error('richmenu set-default failed:', setResp.status); return false; }
   return true;
 }
 
 /**
  * リッチメニューが未設定なら1回だけ自動設定する（Webhook受信時に呼ぶ）。
- * bot単位・全チーム共通。既定設定はせず、連携ユーザーに per-user 割当する方式。
+ * bot単位・全チーム共通。作成後に全ユーザーの既定メニューとして設定し、確実に表示させる。
  */
 async function _ensureRichMenu() {
   if (_richmenuEnsured || !_lineToken()) return;
@@ -2236,21 +2239,8 @@ async function _ensureRichMenu() {
   finally { await kv.del(`${flagKey}:lock`).catch(() => {}); }
 }
 
-/** 連携済みユーザーにだけリッチメニューを割り当てる（1ユーザー1回・バージョン別フラグ）。 */
-async function _lineEnsureUserMenu(userId) {
-  if (!userId || !_lineToken()) return;
-  const flagKey = `line:menu:${RICHMENU_VERSION}:${userId}`;
-  const done = await kv.get(flagKey).catch(() => null);
-  if (done) return;
-  const rmid = await kv.get('line:richmenuid').catch(() => null);
-  if (!rmid) return;
-  try {
-    const r = await fetch(`https://api.line.me/v2/bot/user/${userId}/richmenu/${rmid}`, {
-      method: 'POST', headers: { Authorization: `Bearer ${_lineToken()}` },
-    });
-    if (r.ok) await kv.set(flagKey, '1', { ex: 90 * 24 * 3600 }).catch(() => {});
-  } catch (_) {}
-}
+/** （無効化）既定メニューを全ユーザーに表示する方式に戻したため、per-user割当は不要。 */
+async function _lineEnsureUserMenu(_userId) { /* no-op */ }
 
 /**
  * GET    /api/data/linerichmenu   状態（保守用）
