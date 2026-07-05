@@ -2077,6 +2077,8 @@ function _lineParsedToData(g, categories) {
     taxRate,
     withholding,
     aiAmount: amount,  // 解析時点の金額＝AI解析額（N列・手修正検知の基準）
+    corpPay: false,    // 支払方法（true=会社払い）。修正メニューで変更可能。
+    paySource: '',     // 会社払い時の支払元（設定の支払元リストから選ぶ）
   };
 }
 
@@ -2132,6 +2134,7 @@ function _lineSummary(data, alerts) {
     `金額: ${yen(data.amount)}`,
     `科目: ${catLabel || '(未設定)'}`,
     `税区分: ${data.taxRate}`,
+    `支払方法: ${data.corpPay ? `会社払い${data.paySource ? `（${data.paySource}）` : ''}` : '自分の立替'}`,
   ];
   if (data.invoice) lines.push(`インボイス: ${data.invoice}`);
   if (data.withholding) lines.push(`源泉徴収: ${yen(data.withholding)}`);
@@ -2162,11 +2165,12 @@ async function _handleLinePostback(userId, replyToken, dataStr) {
   if (action === 'edit') {
     if (!pending) return _lineReply(replyToken, _lineText('時間切れです。もう一度画像を送ってください。'));
     return _lineReply(replyToken, _lineText('どの項目を修正しますか？', [
-      _qpPostback('日付',   'action=editfield&f=date'),
-      _qpPostback('支払先', 'action=editfield&f=place'),
-      _qpPostback('金額',   'action=editfield&f=amount'),
-      _qpPostback('科目',   'action=editfield&f=category'),
-      _qpPostback('戻る',   'action=editback'),
+      _qpPostback('日付',     'action=editfield&f=date'),
+      _qpPostback('支払先',   'action=editfield&f=place'),
+      _qpPostback('金額',     'action=editfield&f=amount'),
+      _qpPostback('科目',     'action=editfield&f=category'),
+      _qpPostback('支払方法', 'action=paymethod'),
+      _qpPostback('戻る',     'action=editback'),
     ]));
   }
   if (action === 'editback') {
@@ -2198,6 +2202,41 @@ async function _handleLinePostback(userId, replyToken, dataStr) {
     pending.data.category = c;  // 単一科目に置換
     delete pending.step; delete pending.editField;
     pending.alerts = await _reauditPending(userId, pending);
+    await kv.set(`line:pending:${userId}`, pending, { ex: 600 }).catch(() => {});
+    return _lineReply(replyToken, _lineText(_lineSummary(pending.data, pending.alerts), _confirmQuick()));
+  }
+  // 支払方法: 自分の立替 / 会社払い（→支払元選択）
+  if (action === 'paymethod') {
+    if (!pending) return _lineReply(replyToken, _lineText('時間切れです。もう一度画像を送ってください。'));
+    return _lineReply(replyToken, _lineText('支払方法を選んでください:', [
+      _qpPostback('自分の立替', 'action=setpay&corp=0'),
+      _qpPostback('会社払い',   'action=setpay&corp=1'),
+    ]));
+  }
+  if (action === 'setpay') {
+    if (!pending) return _lineReply(replyToken, _lineText('時間切れです。もう一度画像を送ってください。'));
+    if (params.get('corp') !== '1') {
+      // 自分の立替に設定して確認へ戻る
+      pending.data.corpPay = false; pending.data.paySource = '';
+      await kv.set(`line:pending:${userId}`, pending, { ex: 600 }).catch(() => {});
+      return _lineReply(replyToken, _lineText(_lineSummary(pending.data, pending.alerts), _confirmQuick()));
+    }
+    // 会社払い → 支払元を選ばせる（設定の支払元リスト）。未設定なら支払元なしで会社払い。
+    const link = await _lineLink(userId);
+    const master = link ? await readMasterCached(link.sheetId).catch(() => null) : null;
+    const sources = (master?.paySources || []).slice(0, 12);
+    if (!sources.length) {
+      pending.data.corpPay = true; pending.data.paySource = '';
+      await kv.set(`line:pending:${userId}`, pending, { ex: 600 }).catch(() => {});
+      return _lineReply(replyToken, _lineText(_lineSummary(pending.data, pending.alerts), _confirmQuick()));
+    }
+    const items = sources.map(s => _qpPostback(s, `action=setpaysrc&s=${encodeURIComponent(s)}`));
+    return _lineReply(replyToken, _lineText('会社払いの支払元を選んでください:', items));
+  }
+  if (action === 'setpaysrc') {
+    if (!pending) return _lineReply(replyToken, _lineText('時間切れです。もう一度画像を送ってください。'));
+    pending.data.corpPay = true;
+    pending.data.paySource = params.get('s') || '';
     await kv.set(`line:pending:${userId}`, pending, { ex: 600 }).catch(() => {});
     return _lineReply(replyToken, _lineText(_lineSummary(pending.data, pending.alerts), _confirmQuick()));
   }
@@ -2256,6 +2295,8 @@ async function _lineRegister(userId, replyToken, pending) {
   const d = pending.data;
   const aiAudit = (pending.alerts && pending.alerts.length) ? ('⛔ ' + pending.alerts.join(' / ')) : '';
   const imageLink = pending.imageLink || '';
+  // 会社払いは L列（精算日）に「会社払い（支払元）」を記録（Web版と同じ扱い＝精算不要・未精算一覧に出ない）
+  const settlement = d.corpPay ? `会社払い（${d.paySource || 'その他'}）` : '';
   const row = [
     _nowJst(),                                  // A: 申請日時（サーバー時刻）
     name,                                       // B: 名前
@@ -2268,7 +2309,7 @@ async function _lineRegister(userId, replyToken, pending) {
     imageLink ? `=HYPERLINK("${imageLink}","証票")` : '', // I: 証票
     false,                                      // J: 承認（LINEからは常に未承認）
     aiAudit,                                    // K: 監査
-    '',                                         // L: 精算日
+    settlement,                                 // L: 精算日（会社払い時は「会社払い（支払元）」）
     d.invoice || '',                            // M: インボイス
     pending.aiAmount || 0,                      // N: AI解析額
     pending.imageHash || '',                    // O: 画像ハッシュ
@@ -2286,7 +2327,8 @@ async function _lineRegister(userId, replyToken, pending) {
     await kv.del(`data:exp:${sheetId}`).catch(() => {});
     await kv.del(`line:pending:${userId}`).catch(() => {});
     return _lineReply(replyToken, _lineText(
-      `登録しました（申請済）。\n${d.date} ${d.place} ¥${Number(d.amount).toLocaleString('ja-JP')}` +
+      `登録しました（${d.corpPay ? '会社払い' : '申請済'}）。\n${d.date} ${d.place} ¥${Number(d.amount).toLocaleString('ja-JP')}` +
+      (d.corpPay ? `\n支払方法: 会社払い${d.paySource ? `（${d.paySource}）` : ''}（精算不要）` : '') +
       (aiAudit ? '\n※確認事項ありのため管理者が内容を確認します。' : '')
     ));
   } catch (e) {
