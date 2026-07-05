@@ -1444,6 +1444,18 @@ const SettingsView = (() => {
 
   /** 連携コード表示モーダル。addFriendUrl があれば友だち追加QR/リンクも表示する。 */
   function _showLineCodeModal(name, code, isDemo, addFriendUrl) {
+    // 本人にテキストで送れる案内文（URL＋コード）
+    const _msgLines = [`${name} さん`, '', '経費ログのLINE連携のご案内です。', ''];
+    if (addFriendUrl) {
+      _msgLines.push('① 下のリンクから「経費ログ」公式アカウントを友だち追加してください', addFriendUrl, '');
+      _msgLines.push('② 追加後、トークで下の6桁コードを送信してください', code);
+    } else {
+      _msgLines.push('① 経費ログの公式アカウントを友だち追加してください');
+      _msgLines.push('② 追加後、トークで下の6桁コードを送信してください', code);
+    }
+    _msgLines.push('（有効期限：24時間・1回のみ有効）', '', 'その後は領収書の写真を送るだけで経費を登録できます。');
+    const messageText = _msgLines.join('\n');
+
     // 友だち追加セクション（公式アカウントのURLが設定されている場合のみ）
     const friendSection = addFriendUrl ? `
       <div class="mt-3 pt-3 border-top">
@@ -1477,12 +1489,17 @@ const SettingsView = (() => {
               ${friendSection}
               <div class="fw-bold mt-2" style="font-size:2.4rem;letter-spacing:0.3rem;">${_escape(code)}</div>
               <div class="text-warning small mt-1">有効期限：24時間（使い捨て）</div>
-              <div class="text-muted small mt-2">この画面をスクリーンショットして本人に送ると簡単です。</div>
               ${isDemo ? '<div class="text-info small mt-2">※デモモードのため実際には発行されません</div>' : ''}
+              <div class="mt-3 pt-3 border-top text-start">
+                <div class="fw-semibold small mb-1"><i class="bi bi-envelope me-1 text-primary"></i>メール・チャットで送る案内文</div>
+                <textarea class="form-control form-control-sm" id="lineMsgText" rows="7" readonly style="font-size:0.78rem;resize:vertical;">${_escape(messageText)}</textarea>
+                <div class="text-muted mt-1" style="font-size:0.7rem;">下の「案内文をコピー」で全文コピー → 本人にそのまま送れます。</div>
+              </div>
             </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-outline-secondary btn-sm" id="btnCopyLineCode"><i class="bi bi-clipboard me-1"></i>コードをコピー</button>
-              <button type="button" class="btn btn-primary btn-sm" data-bs-dismiss="modal">閉じる</button>
+            <div class="modal-footer flex-wrap">
+              <button type="button" class="btn btn-primary btn-sm" id="btnCopyLineMsg"><i class="bi bi-clipboard-check me-1"></i>案内文をコピー</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" id="btnCopyLineCode"><i class="bi bi-clipboard me-1"></i>コードのみ</button>
+              <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">閉じる</button>
             </div>
           </div>
         </div>
@@ -1490,6 +1507,9 @@ const SettingsView = (() => {
     document.body.appendChild(div);
     const modalEl = div.querySelector('.modal');
     const modal = new bootstrap.Modal(modalEl);
+    modalEl.querySelector('#btnCopyLineMsg')?.addEventListener('click', () => {
+      navigator.clipboard.writeText(messageText).then(() => App.showToast('案内文をコピーしました', 'success'));
+    });
     modalEl.querySelector('#btnCopyLineCode')?.addEventListener('click', () => {
       navigator.clipboard.writeText(code).then(() => App.showToast('コードをコピーしました', 'success'));
     });
