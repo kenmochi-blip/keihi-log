@@ -1642,6 +1642,35 @@ function _confirmQuick() {
   ];
 }
 
+/**
+ * 登録前の確認メッセージ（Flex）。クイックリプライだと小さく目立たないため、
+ * メッセージ内に大きめの色付きボタン（登録する=緑/修正する/やめる）を出す。
+ */
+function _lineConfirmMessage(summaryText) {
+  return {
+    type: 'flex',
+    altText: '内容を確認して登録してください',
+    contents: {
+      type: 'bubble',
+      body: {
+        type: 'box', layout: 'vertical', paddingAll: 'lg',
+        contents: [{ type: 'text', text: String(summaryText), wrap: true, size: 'sm', color: '#333333' }],
+      },
+      footer: {
+        type: 'box', layout: 'vertical', spacing: 'md', paddingAll: 'lg',
+        contents: [
+          { type: 'button', style: 'primary', color: '#17a55b', height: 'md',
+            action: { type: 'postback', label: '✅ 登録する', data: 'action=register', displayText: '登録する' } },
+          { type: 'button', style: 'primary', color: '#0d6efd', height: 'md',
+            action: { type: 'postback', label: '✏️ 修正する', data: 'action=edit', displayText: '修正する' } },
+          { type: 'button', style: 'link', height: 'sm', color: '#999999',
+            action: { type: 'postback', label: 'やめる', data: 'action=cancel', displayText: 'やめる' } },
+        ],
+      },
+    },
+  };
+}
+
 /** LINEコンテンツAPIで画像バイト列を取得。 */
 async function _lineFetchContent(messageId) {
   const resp = await fetch(`${LINE_API_DATA}/message/${messageId}/content`, {
@@ -1858,8 +1887,11 @@ async function _handleLineCode(userId, replyToken, code) {
   await kv.del(`line:code:${code}`).catch(() => {});
   await kv.del(failKey).catch(() => {});
 
+  // 連携完了したので、このユーザーにだけリッチメニューを表示する
+  await _lineEnsureUserMenu(userId).catch(() => {});
+
   return _lineReply(replyToken, _lineText(
-    `連携しました。「${info.name || 'メンバー'}」として登録されます。\n領収書の画像を送ってください。`
+    `連携しました。「${info.name || 'メンバー'}」として登録されます。\n下のメニューまたは画像送信で経費を登録できます。`
   ));
 }
 
@@ -1870,6 +1902,7 @@ async function _handleLineImage(userId, replyToken, messageId) {
   if (!link) {
     return _lineReply(replyToken, _lineText('未連携です。まず管理者から受け取った6桁の連携コードを送信してください。'));
   }
+  _lineEnsureUserMenu(userId).catch(() => {}); // 連携済みならメニュー割当（既存ユーザー救済・冪等）
 
   // ── 将来: 複数経費ログ対応の挿入ポイント ──
   //   const links = await _lineLinks(userId);
@@ -1942,9 +1975,8 @@ async function _handleLineImage(userId, replyToken, messageId) {
       alerts, aiAmount: data.aiAmount, step: 'confirm',
     }, { ex: 600 }).catch(() => {});
 
-    return _lineReply(replyToken, _lineText(
-      _lineSummary(data, alerts) + (imageStored ? '' : '\n（証票画像は現在保存されません）'),
-      _confirmQuick()
+    return _lineReply(replyToken, _lineConfirmMessage(
+      _lineSummary(data, alerts) + (imageStored ? '' : '\n（証票画像は現在保存されません）')
     ));
   } catch (e) {
     const emsg = String(e?.message || e);
@@ -2135,15 +2167,21 @@ async function lineLinks(req, res) {
  * ※ 管理者のみ。LINE_CHANNEL_ACCESS_TOKEN を使用（無料操作・通数カウント外）。
  */
 // リッチメニューの画像/レイアウトを変えたらこのバージョンを上げる（自動再設定される）
-const RICHMENU_VERSION = 'v1';
+// 画像/レイアウト/挙動を変えたら上げる（自動再設定＆per-user再割当）
+const RICHMENU_VERSION = 'v2';
 let _richmenuEnsured = false; // ウォームインスタンス内キャッシュ
 
-/** リッチメニューを作成＋画像アップロード＋全ユーザー既定に設定（成功で true）。 */
+/**
+ * リッチメニューを作成＋画像アップロードし、richMenuId をKVに保存（成功で true）。
+ * ※ 既定(全ユーザー)には設定しない。連携完了したユーザーにだけ per-user で割り当てる
+ *   （未連携ユーザーはメニュー非表示＝6桁コードの入力欄が隠れない）。
+ */
 async function _setupRichMenuViaApi() {
   const token = _lineToken();
   if (!token) return false;
   const H = { Authorization: `Bearer ${token}` };
-  // 既存を全削除（重複防止）
+  // 既定(全ユーザー)を解除 ＋ 既存メニューを全削除（重複防止・旧v1の既定も消す）
+  await fetch('https://api.line.me/v2/bot/user/all/richmenu', { method: 'DELETE', headers: H }).catch(() => {});
   try {
     const list = await (await fetch('https://api.line.me/v2/bot/richmenu/list', { headers: H })).json();
     for (const m of (list.richmenus || [])) {
@@ -2174,30 +2212,44 @@ async function _setupRichMenuViaApi() {
   });
   if (!upResp.ok) { console.error('richmenu upload failed:', upResp.status); return false; }
 
-  const setResp = await fetch(`https://api.line.me/v2/bot/user/all/richmenu/${created.richMenuId}`, { method: 'POST', headers: H });
-  if (!setResp.ok) { console.error('richmenu set-default failed:', setResp.status); return false; }
+  await kv.set('line:richmenuid', created.richMenuId).catch(() => {}); // per-user割当で使う
   return true;
 }
 
 /**
  * リッチメニューが未設定なら1回だけ自動設定する（Webhook受信時に呼ぶ）。
- * bot単位・全チーム共通なので、管理者の手動操作は不要。バージョン変更で自動再設定。
+ * bot単位・全チーム共通。既定設定はせず、連携ユーザーに per-user 割当する方式。
  */
 async function _ensureRichMenu() {
   if (_richmenuEnsured || !_lineToken()) return;
   const flagKey = `line:richmenu:${RICHMENU_VERSION}`;
   const done = await kv.get(flagKey).catch(() => null);
   if (done) { _richmenuEnsured = true; return; }
-  // 同時実行防止（NXロック・失敗時はTTLで自然解放され次回再試行）
   const lock = await kv.set(`${flagKey}:lock`, '1', { nx: true, ex: 120 }).catch(() => 'OK');
   if (lock === null) return;
   try {
     if (await _setupRichMenuViaApi()) {
-      await kv.set(flagKey, '1').catch(() => {}); // 恒久フラグ
+      await kv.set(flagKey, '1').catch(() => {});
       _richmenuEnsured = true;
     }
   } catch (e) { console.error('ensureRichMenu error:', e?.message || e); }
   finally { await kv.del(`${flagKey}:lock`).catch(() => {}); }
+}
+
+/** 連携済みユーザーにだけリッチメニューを割り当てる（1ユーザー1回・バージョン別フラグ）。 */
+async function _lineEnsureUserMenu(userId) {
+  if (!userId || !_lineToken()) return;
+  const flagKey = `line:menu:${RICHMENU_VERSION}:${userId}`;
+  const done = await kv.get(flagKey).catch(() => null);
+  if (done) return;
+  const rmid = await kv.get('line:richmenuid').catch(() => null);
+  if (!rmid) return;
+  try {
+    const r = await fetch(`https://api.line.me/v2/bot/user/${userId}/richmenu/${rmid}`, {
+      method: 'POST', headers: { Authorization: `Bearer ${_lineToken()}` },
+    });
+    if (r.ok) await kv.set(flagKey, '1', { ex: 90 * 24 * 3600 }).catch(() => {});
+  } catch (_) {}
 }
 
 /**
@@ -2509,7 +2561,7 @@ async function _handleLinePostback(userId, replyToken, dataStr) {
   }
   if (action === 'editback') {
     if (!pending) return _lineReply(replyToken, _lineText('時間切れです。もう一度画像を送ってください。'));
-    return _lineReply(replyToken, _lineText(_lineSummary(pending.data, pending.alerts), _confirmQuick()));
+    return _lineReply(replyToken, _lineConfirmMessage(_lineSummary(pending.data, pending.alerts)));
   }
   if (action === 'editfield') {
     if (!pending) return _lineReply(replyToken, _lineText('時間切れです。もう一度画像を送ってください。'));
@@ -2537,7 +2589,7 @@ async function _handleLinePostback(userId, replyToken, dataStr) {
     delete pending.step; delete pending.editField;
     pending.alerts = await _reauditPending(userId, pending);
     await kv.set(`line:pending:${userId}`, pending, { ex: 600 }).catch(() => {});
-    return _lineReply(replyToken, _lineText(_lineSummary(pending.data, pending.alerts), _confirmQuick()));
+    return _lineReply(replyToken, _lineConfirmMessage(_lineSummary(pending.data, pending.alerts)));
   }
   // 支払方法: 自分の立替 / 会社払い（→支払元選択）
   if (action === 'paymethod') {
@@ -2553,7 +2605,7 @@ async function _handleLinePostback(userId, replyToken, dataStr) {
       // 自分の立替に設定して確認へ戻る
       pending.data.corpPay = false; pending.data.paySource = '';
       await kv.set(`line:pending:${userId}`, pending, { ex: 600 }).catch(() => {});
-      return _lineReply(replyToken, _lineText(_lineSummary(pending.data, pending.alerts), _confirmQuick()));
+      return _lineReply(replyToken, _lineConfirmMessage(_lineSummary(pending.data, pending.alerts)));
     }
     // 会社払い → 支払元を選ばせる（設定の支払元リスト）。未設定なら支払元なしで会社払い。
     const link = await _lineLink(userId);
@@ -2562,7 +2614,7 @@ async function _handleLinePostback(userId, replyToken, dataStr) {
     if (!sources.length) {
       pending.data.corpPay = true; pending.data.paySource = '';
       await kv.set(`line:pending:${userId}`, pending, { ex: 600 }).catch(() => {});
-      return _lineReply(replyToken, _lineText(_lineSummary(pending.data, pending.alerts), _confirmQuick()));
+      return _lineReply(replyToken, _lineConfirmMessage(_lineSummary(pending.data, pending.alerts)));
     }
     const items = sources.map(s => _qpPostback(s, `action=setpaysrc&s=${encodeURIComponent(s)}`));
     return _lineReply(replyToken, _lineText('会社払いの支払元を選んでください:', items));
@@ -2572,7 +2624,7 @@ async function _handleLinePostback(userId, replyToken, dataStr) {
     pending.data.corpPay = true;
     pending.data.paySource = params.get('s') || '';
     await kv.set(`line:pending:${userId}`, pending, { ex: 600 }).catch(() => {});
-    return _lineReply(replyToken, _lineText(_lineSummary(pending.data, pending.alerts), _confirmQuick()));
+    return _lineReply(replyToken, _lineConfirmMessage(_lineSummary(pending.data, pending.alerts)));
   }
   return _lineReply(replyToken, _lineText('もう一度画像を送ってください。'));
 }
@@ -2601,7 +2653,7 @@ async function _applyLineEdit(userId, replyToken, pending, text) {
   delete pending.step; delete pending.editField;
   pending.alerts = await _reauditPending(userId, pending);
   await kv.set(`line:pending:${userId}`, pending, { ex: 600 }).catch(() => {});
-  return _lineReply(replyToken, _lineText(_lineSummary(d, pending.alerts), _confirmQuick()));
+  return _lineReply(replyToken, _lineConfirmMessage(_lineSummary(d, pending.alerts)));
 }
 
 /** 修正後に監査を再実行（AI解析額との不一致等が変わるため）。 */
@@ -2676,6 +2728,7 @@ async function _lineRegister(userId, replyToken, pending) {
 async function _handleLineUnsettled(userId, replyToken) {
   const link = await _lineLink(userId);
   if (!link) return _lineReply(replyToken, _lineText('未連携です。連携コードを送信してください。'));
+  _lineEnsureUserMenu(userId).catch(() => {});
   const { sheetId, identity } = link;
 
   const name = await _lineMemberName(sheetId, identity);
@@ -2714,6 +2767,7 @@ function _expStatusLabel(e) {
 async function _handleLineHistory(userId, replyToken) {
   const link = await _lineLink(userId);
   if (!link) return _lineReply(replyToken, _lineText('未連携です。連携コードを送信してください。'));
+  _lineEnsureUserMenu(userId).catch(() => {});
   const { sheetId, identity } = link;
 
   const name = await _lineMemberName(sheetId, identity);
