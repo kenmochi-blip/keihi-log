@@ -2369,9 +2369,19 @@ async function lineCodeIssue(req, res) {
       return res.status(500).json({ error: 'member_add_failed' });
     }
   } else {
-    // 既存メンバーか確認
-    const nm = await _lineMemberName(authz.sheetId, identity);
-    if (nm === null) return res.status(400).json({ error: 'not_a_member', message: 'そのメールはマスタ表にありません' });
+    // 既存メンバーか確認。直前にクライアントがメンバー追加した直後だと
+    // マスタ表キャッシュ（in-proc 55s / KV 60s）が古く未反映のことがあるため、
+    // キャッシュで見つからなければ1回だけシートを直読み（read-after-write 一貫性）。
+    let nm = await _lineMemberName(authz.sheetId, identity);
+    if (nm === null) {
+      _inProcDel(`acct:master:${authz.sheetId}`);
+      await kv.del(`acct:master:${authz.sheetId}`).catch(() => {});
+      const fresh = await readMaster(authz.sheetId).catch(() => null);
+      const idLower = String(identity).toLowerCase();
+      const hit = fresh?.members?.find(mm => String(mm.email).toLowerCase() === idLower);
+      nm = hit ? (hit.name || '') : null;
+    }
+    if (nm === null) return res.status(400).json({ error: 'not_a_member', message: 'そのメンバーがマスタ表にありません' });
   }
 
   // 6桁コード生成（衝突は極めて稀・使い捨て24h）

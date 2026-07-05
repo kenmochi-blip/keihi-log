@@ -221,22 +221,21 @@ const SettingsView = (() => {
     </div>
   </div>
 
-  <!-- LINE連携（管理者のみ・チームプラン限定） -->
+  <!-- LINE連携の使い方（管理者のみ・チームプラン限定・説明のみ） -->
   <div class="card mb-3" id="lineSection">
     <div class="card-body">
-      <div class="settings-section-title d-flex justify-content-between align-items-center">
-        <span>LINE連携 <span class="badge bg-success bg-opacity-75 ms-1" style="font-size:0.6rem;">チームプラン</span></span>
-        <button class="btn btn-outline-success btn-sm" id="btnAddLineMember"><i class="bi bi-plus me-1"></i>LINE専用メンバー</button>
+      <div class="settings-section-title">
+        <span>LINE連携の使い方 <span class="badge bg-success bg-opacity-75 ms-1" style="font-size:0.6rem;">チームプラン</span></span>
       </div>
       <div class="settings-step-hint mt-2">
-        メンバーはLINE公式アカウントに領収書画像を送るだけで経費を登録できます。<br>
-        <strong>連携方法：</strong>上の「メンバー管理」で対象メンバーの
-        <span class="badge border border-success text-success"><i class="bi bi-chat-dots me-1"></i>LINE</span>
-        ボタンを押すと6桁コードが出ます。本人がLINEでそのコードを送ると連携完了です。<br>
+        メンバーはLINE公式アカウントに領収書画像を送るだけで経費を登録できます。連携は<strong>「メンバー管理」に一本化</strong>しました。<br>
         <span class="text-muted d-block mt-1">
-          ・<strong>Googleアカウントを使っているメンバーも、この💬ボタンでLINEを併用できます</strong>
-          （Web申請とLINE申請が同じ人として集約されます）。<br>
-          ・Googleアカウントを持たないメンバーは「＋LINE専用メンバー」で追加してください。
+          ① メンバーを追加/編集する（<strong>Googleアカウントのメール欄は任意</strong>。空欄にすると「LINE専用メンバー」）。<br>
+          ② そのメンバーの
+          <span class="badge border border-success text-success"><i class="bi bi-chat-dots me-1"></i>LINE</span>
+          ボタン（または編集画面の「LINE連携コードを発行」）で6桁コードを発行。<br>
+          ③ 本人がLINEでそのコードを送信すると連携完了。<br>
+          ※ <strong>Googleアカウントのメンバーも同じ操作でLINEを併用できます</strong>（Web申請とLINE申請が同じ人に集約）。
         </span>
       </div>
       <div id="lineDisabledHint" class="d-none mt-2">
@@ -710,7 +709,6 @@ const SettingsView = (() => {
       if (del)  _deleteMember(el, Number(del.dataset.index));
       if (line) _issueLineCode(el, Number(line.dataset.index));
     });
-    el.querySelector('#btnAddLineMember')?.addEventListener('click', () => _addLineOnlyMember(el));
     ['#categoryList', '#paySourceList', '#customFlagList'].forEach(sel => {
       el.querySelector(sel)?.addEventListener('click', e => {
         const btn = e.target.closest('.btn-del-item');
@@ -1010,13 +1008,59 @@ const SettingsView = (() => {
 
   }
 
+  /** LINE専用メンバー用の合成ID（line: + 12桁hex）。既存と衝突しないものを返す。 */
+  function _genSynthId() {
+    const existing = new Set((_master.members || []).map(m => String(m.email || '').toLowerCase()));
+    for (let attempt = 0; attempt < 20; attempt++) {
+      const hex = [...crypto.getRandomValues(new Uint8Array(6))].map(b => b.toString(16).padStart(2, '0')).join('');
+      const id = 'line:' + hex;
+      if (!existing.has(id)) return id;
+    }
+    return 'line:' + Date.now().toString(16).slice(-12);
+  }
+
   function _showMemberForm(el, idx) {
     const m = idx !== null ? _master.members[idx] : { name: '', email: '', dept: '', role: '' };
     const isNew = idx === null;
     const mRole = (m.role || '').toLowerCase();
+    const isLineOnly = String(m.email || '').startsWith('line:');
     const currentEmail = (Auth.getUserEmail() || '').toLowerCase();
     const adminCount = _master.members.filter(m2 => (m2.role || '').toLowerCase() === 'admin').length;
     const isLastAdminSelf = !isNew && mRole === 'admin' && adminCount <= 1 && m.email?.toLowerCase() === currentEmail;
+    // LINE連携はチームプラン限定
+    const _lic = _getCachedLicenseResult();
+    const isDemoNow = typeof Demo !== 'undefined' && Demo.isActive();
+    const lineAvailable = isDemoNow || !!(_lic && _lic.plan !== 'solo');
+
+    // メールアドレス欄：新規は編集可、既存は変更不可（申請の紐付けが壊れるため）。
+    // LINE専用メンバー（合成ID）は生IDを見せず「LINE専用」と表示。
+    const emailField = isLineOnly
+      ? `<input type="text" class="form-control form-control-sm bg-light" value="LINE専用メンバー（Googleアカウントなし）" readonly>
+         <div class="form-text"><i class="bi bi-chat-dots me-1 text-success"></i>このメンバーはLINEでのみ経費を登録します</div>`
+      : `<input type="email" class="form-control form-control-sm" id="mEmail" value="${_escape(m.email)}" ${!isNew ? 'readonly' : ''}
+             placeholder="${isNew ? '例）name@gmail.com（LINEだけで使う人は空欄）' : ''}">
+         <div class="form-text"><i class="bi bi-google me-1 text-primary"></i>Googleアカウントのメール（Gmail・Google Workspace）。${isNew ? '<strong>空欄にするとLINE専用メンバー</strong>として登録します。' : ''}</div>`;
+
+    // LINE連携セクション
+    let lineSectionHtml = '';
+    if (!lineAvailable) {
+      lineSectionHtml = `<div class="mt-3 pt-2 border-top">
+        <div class="text-muted small"><i class="bi bi-info-circle me-1"></i>LINE連携はチームプランでご利用いただけます</div></div>`;
+    } else if (isNew) {
+      lineSectionHtml = `<div class="mt-3 pt-2 border-top">
+        <div class="form-label small mb-1"><i class="bi bi-chat-dots me-1 text-success"></i>LINE連携</div>
+        <div class="text-muted small">保存すると、このメンバーのLINE連携コードを発行できます。</div></div>`;
+    } else {
+      lineSectionHtml = `<div class="mt-3 pt-2 border-top">
+        <div class="form-label small mb-1"><i class="bi bi-chat-dots me-1 text-success"></i>LINE連携</div>
+        <div class="text-muted small mb-2">
+          ${isLineOnly ? 'LINEでコードを送信すると連携が完了します。' : 'このGoogleアカウントのメンバーは、LINEも併用できます（Web申請とLINE申請が同じ人に集約されます）。'}
+        </div>
+        <button type="button" class="btn btn-outline-success btn-sm w-100" id="btnFormLineCode">
+          <i class="bi bi-chat-dots me-1"></i>LINE連携コードを発行
+        </button></div>`;
+    }
+
     const div = document.createElement('div');
     div.innerHTML = `
       <div class="modal fade" tabindex="-1">
@@ -1029,9 +1073,8 @@ const SettingsView = (() => {
             <div class="modal-body">
               <div class="mb-2"><label class="form-label small">氏名</label>
                 <input type="text" class="form-control form-control-sm" id="mName" value="${_escape(m.name)}"></div>
-              <div class="mb-2"><label class="form-label small">メールアドレス</label>
-                <input type="email" class="form-control form-control-sm" id="mEmail" value="${_escape(m.email)}" ${!isNew ? 'readonly' : ''}>
-                <div class="form-text"><i class="bi bi-google me-1 text-primary"></i>Googleアカウントに紐づいたメールアドレスを入力してください（Gmail・Google Workspace）</div>
+              <div class="mb-2"><label class="form-label small">メールアドレス${isNew ? '（任意）' : ''}</label>
+                ${emailField}
               </div>
               <div class="mb-2"><label class="form-label small">所属</label>
                 <input type="text" class="form-control form-control-sm" id="mDept" value="${_escape(m.dept)}"></div>
@@ -1043,6 +1086,7 @@ const SettingsView = (() => {
                 </select>
                 ${isLastAdminSelf ? '<div class="form-text text-danger small"><i class="bi bi-lock-fill me-1"></i>唯一の管理者のため変更できません</div>' : ''}
               </div>
+              ${lineSectionHtml}
             </div>
             <div class="modal-footer">
               <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">キャンセル</button>
@@ -1054,22 +1098,40 @@ const SettingsView = (() => {
     document.body.appendChild(div);
     const modal = new bootstrap.Modal(div.querySelector('.modal'));
     modal.show();
+
+    // フォーム内のLINE連携コード発行（既存メンバーのみ）
+    div.querySelector('#btnFormLineCode')?.addEventListener('click', () => {
+      modal.hide();
+      _issueLineCode(el, idx);
+    });
+
     let _saving = false; // 二重送信防止（保存ボタン連打で同じ人が重複登録されるのを防ぐ）
     div.querySelector('#btnSaveMember').addEventListener('click', async () => {
       if (_saving) return;
       const saveBtn = div.querySelector('#btnSaveMember');
+      // 既存メンバーのメールは変更不可（readonly）→ 元の値を維持。新規のみ入力値を採用。
+      let email;
+      if (!isNew) {
+        email = m.email || '';
+      } else {
+        email = (div.querySelector('#mEmail')?.value || '').trim();
+        if (email) {
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return App.showToast('有効なメールアドレスを入力してください', 'danger');
+          const lc = email.toLowerCase();
+          if (_master.members.some((mm, i) => i !== idx && (mm.email || '').toLowerCase() === lc))
+            return App.showToast('このメールアドレスは既に登録されています', 'danger');
+        } else {
+          // 空欄 → LINE専用メンバー（合成IDを付与）
+          email = _genSynthId();
+        }
+      }
       const updated = {
         name:  div.querySelector('#mName').value.trim(),
-        email: div.querySelector('#mEmail').value.trim(),
+        email,
         dept:  div.querySelector('#mDept').value.trim(),
         role:  div.querySelector('#mRole').value,
       };
-      if (!updated.name || !updated.email) return App.showToast('氏名・メールは必須です', 'danger');
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(updated.email)) return App.showToast('有効なメールアドレスを入力してください', 'danger');
-      // 重複メールチェック（新規追加時、および編集で別人のメールに変更した場合）
-      const lcEmail = updated.email.toLowerCase();
-      const dup = _master.members.some((m, i) => i !== idx && (m.email || '').toLowerCase() === lcEmail);
-      if (dup) return App.showToast('このメールアドレスは既に登録されています', 'danger');
+      if (!updated.name) return App.showToast('氏名は必須です', 'danger');
       if (isLastAdminSelf) updated.role = 'admin';
       if (!isNew && ((_master.members[idx]?.role || '').toLowerCase() === 'admin') && updated.role !== 'admin') {
         const cnt = _master.members.filter(m => (m.role || '').toLowerCase() === 'admin').length;
@@ -1078,7 +1140,7 @@ const SettingsView = (() => {
           return;
         }
       }
-      const oldEmail = isNew ? null : (_master.members[idx]?.email || null);
+      const wasLineOnlyNew = isNew && String(email).startsWith('line:');
       _saving = true;
       if (saveBtn) { saveBtn.disabled = true; saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>保存中...'; }
       try {
@@ -1086,6 +1148,11 @@ const SettingsView = (() => {
         else       _master.members[idx] = updated;
         await _saveMasterToSheet(el);
         modal.hide();
+        // 新規LINE専用メンバーは保存直後に連携コードを発行して手間を省く
+        if (wasLineOnlyNew && lineAvailable) {
+          const newIdx = _master.members.findIndex(mm => mm.email === email);
+          if (newIdx >= 0) setTimeout(() => _issueLineCode(el, newIdx), 350);
+        }
       } catch (err) {
         // 保存失敗時は楽観的に追加した行を巻き戻して再試行可能にする
         if (isNew) _master.members = _master.members.filter(m => m !== updated);
@@ -1266,11 +1333,9 @@ const SettingsView = (() => {
       btn.classList.replace('btn-outline-secondary', 'btn-outline-primary');
       hint?.classList.add('d-none');
     }
-    // LINE連携もチームプラン限定（ソロは無効化して案内）
-    const lineAdd  = el.querySelector('#btnAddLineMember');
+    // LINE連携もチームプラン限定（ソロは行のLINEボタンを無効化して案内）
     const lineHint = el.querySelector('#lineDisabledHint');
     el.querySelectorAll('.btn-line-code').forEach(b => { b.disabled = isSolo; });
-    if (lineAdd) lineAdd.disabled = isSolo;
     if (isSolo) lineHint?.classList.remove('d-none');
     else lineHint?.classList.add('d-none');
   }
@@ -1290,25 +1355,6 @@ const SettingsView = (() => {
       _showLineCodeModal(m.name, res.code, false);
     } catch (err) {
       App.showToast('コード発行に失敗しました：' + (err.message || ''), 'danger');
-    }
-  }
-
-  /** Googleアカウントを持たないLINE専用メンバーを追加し、連携コードを表示。 */
-  async function _addLineOnlyMember(el) {
-    if (typeof Demo !== 'undefined' && Demo.isActive()) {
-      return App.showToast('デモモードではLINE専用メンバーを追加できません', 'info');
-    }
-    const name = window.prompt('LINE専用メンバーの氏名を入力してください');
-    if (!name || !name.trim()) return;
-    try {
-      App.showToast('メンバーを追加しています…', 'info');
-      const res = await Sheets.issueLineCode('', name.trim());
-      await App.getMaster(true).catch(() => {});   // マスタ再取得
-      _renderMembers(el);
-      _applyMemberPlanRestriction(el);
-      _showLineCodeModal(name.trim(), res.code, false);
-    } catch (err) {
-      App.showToast('追加に失敗しました：' + (err.message || ''), 'danger');
     }
   }
 
