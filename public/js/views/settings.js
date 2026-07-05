@@ -221,42 +221,6 @@ const SettingsView = (() => {
     </div>
   </div>
 
-  <!-- LINE連携の使い方（管理者のみ・チームプラン限定・説明のみ） -->
-  <div class="card mb-3" id="lineSection">
-    <div class="card-body">
-      <div class="settings-section-title">
-        <span>LINE連携の使い方 <span class="badge bg-success bg-opacity-75 ms-1" style="font-size:0.6rem;">チームプラン</span></span>
-      </div>
-      <div class="settings-step-hint mt-2">
-        メンバーはLINE公式アカウントに領収書画像を送るだけで経費を登録できます。連携は<strong>「メンバー管理」に一本化</strong>しました。<br>
-        <span class="text-muted d-block mt-1">
-          ① メンバーを追加/編集する（<strong>Googleアカウントのメール欄は任意</strong>。空欄にすると「LINE専用メンバー」）。<br>
-          ② そのメンバーの
-          <span class="badge border border-success text-success"><i class="bi bi-chat-dots me-1"></i>LINE</span>
-          ボタン（または編集画面の「LINE連携コードを発行」）で6桁コードを発行。<br>
-          ③ 本人がLINEでそのコードを送信すると連携完了。<br>
-          ※ <strong>Googleアカウントのメンバーも同じ操作でLINEを併用できます</strong>（Web申請とLINE申請が同じ人に集約）。
-        </span>
-      </div>
-      <div id="lineDisabledHint" class="d-none mt-2">
-        <div class="d-flex align-items-center gap-2 flex-wrap">
-          <span class="text-muted small"><i class="bi bi-info-circle me-1"></i>LINE連携はチームプランでご利用いただけます</span>
-        </div>
-      </div>
-      <!-- 証票画像の保存（オーナーのGoogleドライブに保存する認可） -->
-      <div class="mt-3 pt-3 border-top" id="lineDriveBlock">
-        <div class="form-label small mb-1"><i class="bi bi-image me-1 text-success"></i>証票画像の保存</div>
-        <div class="settings-step-hint mb-2">
-          LINEで送られた領収書画像を経費ログのGoogleドライブ（証票フォルダ）に保存するには、
-          <strong>オーナー（ライセンス購入者）のGoogleアカウントで一度だけ有効化</strong>が必要です。
-          （サービスアカウントは容量を持たずファイルを保存できないため）
-        </div>
-        <div id="lineDriveStatus" class="small text-muted mb-2"><span class="spinner-border spinner-border-sm me-1"></span>確認中…</div>
-        <div id="lineDriveActions"></div>
-      </div>
-    </div>
-  </div>
-
   <!-- メンバー招待URL（管理者のみ・メンバー管理の下） -->
   ${ssId ? `
   <div class="card mb-3">
@@ -712,7 +676,6 @@ const SettingsView = (() => {
     }
 
     _applyMemberPlanRestriction(el);
-    _initLineDrive(el);   // LINE証票保存の状態を取得して表示
     el.querySelector('#memberList')?.addEventListener('click', e => {
       const edit = e.target.closest('.btn-edit-member');
       const del  = e.target.closest('.btn-del-member');
@@ -1097,6 +1060,7 @@ const SettingsView = (() => {
                   <option value="" ${mRole !== 'admin' && mRole !== 'viewer' ? 'selected' : ''}>一般（申請のみ）</option>
                 </select>
                 ${isLastAdminSelf ? '<div class="form-text text-danger small"><i class="bi bi-lock-fill me-1"></i>唯一の管理者のため変更できません</div>' : ''}
+                <div class="form-text ${isLineOnly ? '' : 'd-none'}" id="roleLineHint"><i class="bi bi-info-circle me-1"></i>LINE専用メンバー（メールなし）は一般権限のみです（Web管理はできません）。</div>
               </div>
               ${lineSectionHtml}
             </div>
@@ -1110,6 +1074,22 @@ const SettingsView = (() => {
     document.body.appendChild(div);
     const modal = new bootstrap.Modal(div.querySelector('.modal'));
     modal.show();
+
+    // 権限ロック：LINE専用（メールなし）は一般権限のみ。新規はメール欄の入力に追従。
+    const _emailInput = div.querySelector('#mEmail');
+    const _roleSelect = div.querySelector('#mRole');
+    const _roleHint   = div.querySelector('#roleLineHint');
+    function _syncRoleLock() {
+      if (isLastAdminSelf) return; // 唯一管理者ロックが優先
+      const noEmail = isLineOnly || (isNew && !(_emailInput?.value || '').trim());
+      if (_roleSelect) {
+        _roleSelect.disabled = noEmail;
+        if (noEmail) _roleSelect.value = ''; // 一般に固定
+      }
+      _roleHint?.classList.toggle('d-none', !noEmail);
+    }
+    _emailInput?.addEventListener('input', _syncRoleLock);
+    _syncRoleLock();
 
     // フォーム内のLINE連携コード発行（既存メンバーのみ）
     div.querySelector('#btnFormLineCode')?.addEventListener('click', () => {
@@ -1144,8 +1124,11 @@ const SettingsView = (() => {
         role:  div.querySelector('#mRole').value,
       };
       if (!updated.name) return App.showToast('氏名は必須です', 'danger');
+      // LINE専用（メールなし・合成ID）は必ず一般権限（Web管理不可のため）
+      if (String(email).startsWith('line:')) updated.role = '';
       if (isLastAdminSelf) updated.role = 'admin';
-      if (!isNew && ((_master.members[idx]?.role || '').toLowerCase() === 'admin') && updated.role !== 'admin') {
+      if (!isNew && !String(email).startsWith('line:') &&
+          ((_master.members[idx]?.role || '').toLowerCase() === 'admin') && updated.role !== 'admin') {
         const cnt = _master.members.filter(m => (m.role || '').toLowerCase() === 'admin').length;
         if (cnt <= 1) {
           App.showToast('管理者が1人のため降格できません。先に他のメンバーを管理者に設定してください。', 'danger');
@@ -1345,83 +1328,26 @@ const SettingsView = (() => {
       btn.classList.replace('btn-outline-secondary', 'btn-outline-primary');
       hint?.classList.add('d-none');
     }
-    // LINE連携もチームプラン限定（ソロは行のLINEボタンを無効化して案内）
-    const lineHint = el.querySelector('#lineDisabledHint');
+    // LINE連携もチームプラン限定（ソロは行のLINEボタンを無効化）
     el.querySelectorAll('.btn-line-code').forEach(b => { b.disabled = isSolo; });
-    if (isSolo) lineHint?.classList.remove('d-none');
-    else lineHint?.classList.add('d-none');
-    // 証票保存ブロックもソロでは隠す
-    el.querySelector('#lineDriveBlock')?.classList.toggle('d-none', isSolo);
   }
 
-  /** LINE証票保存の状態を取得して表示する。 */
-  async function _initLineDrive(el) {
-    const statusEl = el.querySelector('#lineDriveStatus');
-    const actionsEl = el.querySelector('#lineDriveActions');
-    if (!statusEl || !actionsEl) return;
-    if (typeof Demo !== 'undefined' && Demo.isActive()) {
-      statusEl.innerHTML = '<span class="text-muted">デモモードでは利用できません</span>';
-      actionsEl.innerHTML = '';
-      return;
-    }
-    try {
-      const s = await Sheets.getLineDriveStatus();
-      _renderLineDrive(el, s);
-    } catch (err) {
-      statusEl.innerHTML = '<span class="text-muted">状態を取得できませんでした</span>';
-      actionsEl.innerHTML = '';
-    }
-  }
-
-  function _renderLineDrive(el, s) {
-    const statusEl = el.querySelector('#lineDriveStatus');
-    const actionsEl = el.querySelector('#lineDriveActions');
-    if (!statusEl || !actionsEl) return;
+  /** 証票保存の状態に応じた案内HTML（連携コードモーダル内に表示）。 */
+  function _lineDriveSectionHtml(s) {
+    if (!s) return '';
     if (s.enabled) {
-      statusEl.innerHTML = '<span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>有効</span>' +
-        (s.byEmail ? ` <span class="text-muted">（${_escape(s.byEmail)} のアカウントで保存）</span>` : '');
-      actionsEl.innerHTML = '<button class="btn btn-outline-danger btn-sm" id="btnLineDriveDisable"><i class="bi bi-x-circle me-1"></i>無効化</button>';
-      actionsEl.querySelector('#btnLineDriveDisable')?.addEventListener('click', () => _disableLineDrive(el));
-    } else {
-      statusEl.innerHTML = '<span class="text-warning"><i class="bi bi-exclamation-triangle-fill me-1"></i>未有効化</span> <span class="text-muted">— LINEの証票画像は現在保存されません</span>';
-      if (s.isOwner) {
-        actionsEl.innerHTML = '<button class="btn btn-success btn-sm" id="btnLineDriveEnable"><i class="bi bi-shield-check me-1"></i>証票保存を有効化</button>';
-        actionsEl.querySelector('#btnLineDriveEnable')?.addEventListener('click', () => _enableLineDrive(el));
-      } else {
-        actionsEl.innerHTML = `<div class="text-muted small"><i class="bi bi-info-circle me-1"></i>オーナー（${_escape(s.ownerEmail || 'ライセンス購入者')}）のGoogleアカウントでログインして有効化してください</div>`;
-      }
+      return `<div class="alert alert-success py-2 px-3 small text-start mt-3 mb-0" id="lineDriveBox">
+        <i class="bi bi-check-circle-fill me-1"></i>証票画像も保存されます
+        <a href="#" class="ms-2 text-danger" id="lineDriveDisableLink">無効化</a></div>`;
     }
-  }
-
-  async function _enableLineDrive(el) {
-    const rt = Auth.getRefreshToken();
-    if (!rt) {
-      App.showToast('リフレッシュトークンがありません。一度ログアウト→再ログインしてから有効化してください', 'warning');
-      return;
+    if (s.isOwner) {
+      return `<div class="alert alert-warning py-2 px-3 small text-start mt-3 mb-0" id="lineDriveBox">
+        <i class="bi bi-exclamation-triangle-fill me-1"></i>証票画像は現在<strong>保存されません</strong>。
+        <button class="btn btn-success btn-sm ms-1" id="lineDriveEnableBtn"><i class="bi bi-shield-check me-1"></i>証票保存を有効化</button>
+        <div class="text-muted mt-1" style="font-size:0.7rem;">オーナーのGoogleアカウントで一度だけ有効化すれば、以降のLINE証票が保存されます。</div></div>`;
     }
-    const btn = el.querySelector('#btnLineDriveEnable');
-    if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>有効化中…'; }
-    try {
-      const res = await Sheets.enableLineDrive(rt);
-      App.showToast(res.verified ? '証票保存を有効化しました' : '有効化しましたが動作確認に失敗しました。再ログイン後に再度お試しください',
-        res.verified ? 'success' : 'warning');
-      await _initLineDrive(el);
-    } catch (err) {
-      App.showToast('有効化に失敗しました：' + (err.message || ''), 'danger');
-      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-shield-check me-1"></i>証票保存を有効化'; }
-    }
-  }
-
-  async function _disableLineDrive(el) {
-    const ok = await App.confirm('LINE証票保存を無効化しますか？（以降LINEの証票画像は保存されません）');
-    if (!ok) return;
-    try {
-      await Sheets.disableLineDrive();
-      App.showToast('無効化しました', 'success');
-      await _initLineDrive(el);
-    } catch (err) {
-      App.showToast('無効化に失敗しました：' + (err.message || ''), 'danger');
-    }
+    return `<div class="alert alert-secondary py-2 px-3 small text-start mt-3 mb-0" id="lineDriveBox">
+      <i class="bi bi-info-circle me-1"></i>オーナー（${_escape(s.ownerEmail || 'ライセンス購入者')}）が証票保存を有効化すると、LINEの証票画像も保存されます。</div>`;
   }
 
   /** メンバーのLINE連携コードを発行してモーダルで表示。 */
@@ -1429,21 +1355,22 @@ const SettingsView = (() => {
     const m = _master?.members?.[idx];
     if (!m) return;
     if (typeof Demo !== 'undefined' && Demo.isActive()) {
-      return _showLineCodeModal(m.name, '123456', true, 'https://line.me/R/ti/p/@demo');
+      return _showLineCodeModal(m.name, '123456', true, 'https://line.me/R/ti/p/@demo', { enabled: true });
     }
-    const isLineOnly = String(m.email || '').startsWith('line:');
     try {
       App.showToast('連携コードを発行しています…', 'info');
       // 既存メンバーは email を identity に、LINE専用メンバーは既存の合成IDを引き継ぐため identity=email(=合成ID)
       const res = await Sheets.issueLineCode(m.email || '', m.name);
-      _showLineCodeModal(m.name, res.code, false, res.addFriendUrl || '');
+      let driveStatus = null;
+      try { driveStatus = await Sheets.getLineDriveStatus(); } catch (_) {}
+      _showLineCodeModal(m.name, res.code, false, res.addFriendUrl || '', driveStatus);
     } catch (err) {
       App.showToast('コード発行に失敗しました：' + (err.message || ''), 'danger');
     }
   }
 
   /** 連携コード表示モーダル。addFriendUrl があれば友だち追加QR/リンクも表示する。 */
-  function _showLineCodeModal(name, code, isDemo, addFriendUrl) {
+  function _showLineCodeModal(name, code, isDemo, addFriendUrl, driveStatus) {
     // 本人にテキストで送れる案内文（URL＋コード）
     const _msgLines = [`${name} さん`, '', '経費ログのLINE連携のご案内です。', ''];
     if (addFriendUrl) {
@@ -1495,6 +1422,7 @@ const SettingsView = (() => {
                 <textarea class="form-control form-control-sm" id="lineMsgText" rows="7" readonly style="font-size:0.78rem;resize:vertical;">${_escape(messageText)}</textarea>
                 <div class="text-muted mt-1" style="font-size:0.7rem;">下の「案内文をコピー」で全文コピー → 本人にそのまま送れます。</div>
               </div>
+              ${_lineDriveSectionHtml(driveStatus)}
             </div>
             <div class="modal-footer flex-wrap">
               <button type="button" class="btn btn-primary btn-sm" id="btnCopyLineMsg"><i class="bi bi-clipboard-check me-1"></i>案内文をコピー</button>
@@ -1513,6 +1441,39 @@ const SettingsView = (() => {
     modalEl.querySelector('#btnCopyLineCode')?.addEventListener('click', () => {
       navigator.clipboard.writeText(code).then(() => App.showToast('コードをコピーしました', 'success'));
     });
+
+    // 証票保存の有効化/無効化（モーダル内で完結。状態はその場で再描画）
+    const _rerenderDrive = async () => {
+      let s = null;
+      try { s = await Sheets.getLineDriveStatus(); } catch (_) {}
+      const box = modalEl.querySelector('#lineDriveBox');
+      if (box) { box.outerHTML = _lineDriveSectionHtml(s); _wireDrive(); }
+    };
+    function _wireDrive() {
+      modalEl.querySelector('#lineDriveEnableBtn')?.addEventListener('click', async () => {
+        const rt = Auth.getRefreshToken();
+        if (!rt) return App.showToast('リフレッシュトークンがありません。一度ログアウト→再ログインしてから有効化してください', 'warning');
+        const b = modalEl.querySelector('#lineDriveEnableBtn');
+        if (b) { b.disabled = true; b.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>有効化中…'; }
+        try {
+          const r = await Sheets.enableLineDrive(rt);
+          App.showToast(r.verified ? '証票保存を有効化しました' : '有効化しましたが動作確認に失敗しました。再ログイン後に再度お試しください', r.verified ? 'success' : 'warning');
+          await _rerenderDrive();
+        } catch (err) {
+          App.showToast('有効化に失敗しました：' + (err.message || ''), 'danger');
+          if (b) { b.disabled = false; b.innerHTML = '<i class="bi bi-shield-check me-1"></i>証票保存を有効化'; }
+        }
+      });
+      modalEl.querySelector('#lineDriveDisableLink')?.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const ok = await App.confirm('LINE証票保存を無効化しますか？（以降LINEの証票画像は保存されません）');
+        if (!ok) return;
+        try { await Sheets.disableLineDrive(); App.showToast('無効化しました', 'success'); await _rerenderDrive(); }
+        catch (err) { App.showToast('無効化に失敗しました：' + (err.message || ''), 'danger'); }
+      });
+    }
+    _wireDrive();
+
     modalEl.addEventListener('hidden.bs.modal', () => div.remove());
     modal.show();
   }
