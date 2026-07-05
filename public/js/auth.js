@@ -303,6 +303,11 @@ const Auth = (() => {
     return _refreshToken().then(() => _idToken);
   }
 
+  /** 保存済みリフレッシュトークンを返す（LINE証票保存の有効化用。無ければ空）。 */
+  function getRefreshToken() {
+    return _loadSession()?.refresh_token || '';
+  }
+
   function getUserInfo() {
     if (typeof Demo !== 'undefined' && Demo.isActive()) {
       const email = Demo.getUserEmail();
@@ -364,7 +369,7 @@ const Auth = (() => {
     });
   }
 
-  return { init, getToken, getAccessToken, getIdToken, getUserInfo, getUserEmail, signOut, authFetch, initiateLogin, handleCallback };
+  return { init, getToken, getAccessToken, getIdToken, getRefreshToken, getUserInfo, getUserEmail, signOut, authFetch, initiateLogin, handleCallback };
 })();
 
 // ── ログイン画面初期化 ──────────────────────────────────────

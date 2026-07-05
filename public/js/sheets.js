@@ -73,6 +73,18 @@ const Sheets = (() => {
   function unlinkLine(payload, ssId) {
     return _proxyWrite('lineunlink', ssId || _ssId(), 'POST', payload);
   }
+  /** LINE証票保存の状態を取得（有効/無効・オーナー判定）。 */
+  function getLineDriveStatus(ssId) {
+    return _proxyGet('linedrivetoken', ssId || _ssId());
+  }
+  /** LINE証票保存を有効化（オーナー専用）。リフレッシュトークンをサーバーへ保存。 */
+  function enableLineDrive(refreshToken, ssId) {
+    return _proxyWrite('linedrivetoken', ssId || _ssId(), 'POST', { refreshToken });
+  }
+  /** LINE証票保存を無効化（admin専用）。 */
+  function disableLineDrive(ssId) {
+    return _proxyWrite('linedrivetoken', ssId || _ssId(), 'DELETE', undefined);
+  }
 
   /** 一時的なサーバーエラー時に指数バックオフでリトライする fetch ラッパー。 */
   async function _fetchWithRetry(fn, maxRetries = 3) {
@@ -670,6 +682,9 @@ const Sheets = (() => {
     approveExpense,
     issueLineCode,
     unlinkLine,
+    getLineDriveStatus,
+    enableLineDrive,
+    disableLineDrive,
     readSetting,
     readAllSettings,
     writeSetting,

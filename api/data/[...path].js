@@ -94,6 +94,8 @@ export default async function handler(req, res) {
         return await lineCodeIssue(req, res);
       case 'lineunlink':
         return await lineUnlink(req, res);
+      case 'linedrivetoken':
+        return await lineDriveToken(req, res);
       default:
         return res.status(404).json({ error: 'not_found', resource });
     }
@@ -1942,20 +1944,151 @@ async function _handleLineImage(userId, replyToken, messageId) {
   }
 }
 
-/** SAで証票フォルダ(設定B4)へ画像を保存。 */
+const SA_EMAIL = 'keihi-log-proxy@keihi-log.iam.gserviceaccount.com';
+
+/* ── オーナートークンの保管（AES-256-GCM・鍵はGOOGLE_SA_KEYから導出） ── */
+function _tokenSecretKey() {
+  return crypto.createHash('sha256').update('linedrive:' + (process.env.GOOGLE_SA_KEY || '')).digest();
+}
+function _encryptToken(plain) {
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', _tokenSecretKey(), iv);
+  const enc = Buffer.concat([cipher.update(String(plain), 'utf8'), cipher.final()]);
+  return Buffer.concat([iv, cipher.getAuthTag(), enc]).toString('base64');
+}
+function _decryptToken(b64) {
+  const raw = Buffer.from(b64, 'base64');
+  const decipher = crypto.createDecipheriv('aes-256-gcm', _tokenSecretKey(), raw.subarray(0, 12));
+  decipher.setAuthTag(raw.subarray(12, 28));
+  return Buffer.concat([decipher.update(raw.subarray(28)), decipher.final()]).toString('utf8');
+}
+
+/**
+ * オーナーのリフレッシュトークン（KV保管）から有効なアクセストークンを得る。
+ * 未設定・失効時は null。アクセストークンは in-proc に50分キャッシュ。
+ */
+async function _ownerAccessToken(sheetId) {
+  const cacheKey = `linedrive:at:${sheetId}`;
+  const cached = _inProcGet(cacheKey);
+  if (cached) return cached;
+  const stored = await kv.get(`line:drivetoken:${sheetId}`).catch(() => null);
+  if (!stored?.enc) return null;
+  let refresh;
+  try { refresh = _decryptToken(stored.enc); } catch (_) { return null; }
+  try {
+    const resp = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: process.env.GOOGLE_CLIENT_ID || '',
+        client_secret: process.env.GOOGLE_CLIENT_SECRET || '',
+        refresh_token: refresh,
+        grant_type: 'refresh_token',
+      }),
+      signal: AbortSignal.timeout(15000),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok || !data.access_token) {
+      console.error('owner token refresh failed:', data.error || resp.status);
+      return null;
+    }
+    _inProcSet(cacheKey, data.access_token, 50 * 60 * 1000);
+    return data.access_token;
+  } catch (e) {
+    console.error('owner token refresh error:', e?.message || e);
+    return null;
+  }
+}
+
+/**
+ * 証票フォルダ(設定B4)へ画像を保存する。
+ * SAは容量が無くMy Driveに新規ファイルを作れないため、オーナーのトークンでアップロードし
+ * （＝オーナーが所有・オーナーの容量を使用）、SAには閲覧権限を付与する（Web版と同じ）。
+ * オーナートークン未設定時は 'no_owner_token' を投げ、呼び出し側が証票なしで続行する。
+ */
 async function _lineUploadReceipt(sheetId, buf, mime) {
+  const accessToken = await _ownerAccessToken(sheetId);
+  if (!accessToken) { const e = new Error('no_owner_token'); e.code = 'no_owner_token'; throw e; }
+
   const sheets = sheetsClient();
   const cfg = await sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range: '設定!B4' });
   const folderId = cfg.data.values?.[0]?.[0] || '';
   if (!folderId) throw new Error('証票フォルダ(設定B4)未設定');
+
   const ext = mime.includes('png') ? 'png' : mime.includes('pdf') ? 'pdf' : 'jpg';
-  const drive = driveClient();
-  const created = await drive.files.create({
-    requestBody: { name: `LINE_${Date.now()}.${ext}`, mimeType: mime, parents: [folderId] },
-    media: { mimeType: mime, body: bufferToStream(buf) },
-    fields: 'id, webViewLink',
+  const meta = JSON.stringify({ name: `LINE_${Date.now()}.${ext}`, mimeType: mime, parents: [folderId] });
+  const boundary = '----keihiLine' + crypto.randomBytes(8).toString('hex');
+  const body = Buffer.concat([
+    Buffer.from(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${meta}\r\n`),
+    Buffer.from(`--${boundary}\r\nContent-Type: ${mime}\r\n\r\n`),
+    buf,
+    Buffer.from(`\r\n--${boundary}--\r\n`),
+  ]);
+  const up = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': `multipart/related; boundary=${boundary}` },
+    body,
+    signal: AbortSignal.timeout(30000),
   });
-  return { id: created.data.id, webViewLink: created.data.webViewLink };
+  const data = await up.json().catch(() => ({}));
+  if (!up.ok || !data.id) throw new Error('drive upload ' + up.status + ' ' + (data.error?.message || ''));
+
+  // SA に閲覧権限を付与（プロキシ経由での証票閲覧を可能にする。Web版 uploadFile と同じ）
+  await fetch(`https://www.googleapis.com/drive/v3/files/${data.id}/permissions`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ role: 'reader', type: 'user', emailAddress: SA_EMAIL }),
+  }).catch(() => {});
+
+  return { id: data.id, webViewLink: data.webViewLink || `https://drive.google.com/file/d/${data.id}/view` };
+}
+
+/**
+ * POST /api/data/linedrivetoken   オーナーのリフレッシュトークンを保存（LINE証票保存を有効化）
+ * GET  /api/data/linedrivetoken   有効/無効の状態を返す
+ * DELETE /api/data/linedrivetoken 無効化（トークン削除）
+ * ※ 保存できるのはオーナー本人（ライセンス購入メール＝ログインメール）のみ。
+ */
+async function lineDriveToken(req, res) {
+  const authz = await _authorize(req, res);
+  if (!authz) return;
+  const key = `line:drivetoken:${authz.sheetId}`;
+
+  if (req.method === 'GET') {
+    const stored = await kv.get(key).catch(() => null);
+    return res.status(200).json({
+      enabled: !!stored?.enc,
+      ownerEmail: authz.ownerEmail || '',
+      byEmail: stored?.email || '',
+      isOwner: !!authz.ownerEmail && authz.me.email === authz.ownerEmail,
+    });
+  }
+
+  if (!authz.isAdmin) return res.status(403).json({ error: 'admin_only' });
+
+  if (req.method === 'DELETE') {
+    await kv.del(key).catch(() => {});
+    _inProcDel(`linedrive:at:${authz.sheetId}`);
+    return res.status(200).json({ ok: true, enabled: false });
+  }
+
+  if (req.method === 'POST') {
+    // オーナー本人のみ（トークンの持ち主＝証票フォルダの所有者である必要があるため）
+    if (!authz.ownerEmail || authz.me.email !== authz.ownerEmail) {
+      return res.status(403).json({ error: 'owner_only', message: 'オーナー（ライセンス購入者）のGoogleアカウントで有効化してください' });
+    }
+    const body = (await _body(req)) || {};
+    const refreshToken = String(body.refreshToken || '').trim();
+    if (!refreshToken) return res.status(400).json({ error: 'no_refresh_token', message: 'リフレッシュトークンがありません。一度サインアウトして再度ログインしてからお試しください。' });
+
+    await kv.set(key, { enc: _encryptToken(refreshToken), email: authz.me.email, at: _nowJst() }).catch(() => {});
+    _inProcDel(`linedrive:at:${authz.sheetId}`);
+    // 動作確認: すぐアクセストークンを取得できるか
+    const ok = !!(await _ownerAccessToken(authz.sheetId));
+    return res.status(200).json({ ok: true, enabled: true, verified: ok });
+  }
+
+  return res.status(405).json({ error: 'method_not_allowed' });
 }
 
 /** 設定B5の鍵でGeminiを代理呼び出し（gemini()と同じ鍵キャッシュ経路）。 */

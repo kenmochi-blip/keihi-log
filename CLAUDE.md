@@ -171,6 +171,11 @@ git push origin claude/rebuild-receipt-app-Ft3lE
   `LINE_ADD_FRIEND_URL`（公式アカウント友だち追加URL。連携コードモーダルにQR表示。未設定でも可）
 - 識別: メールありメンバーは P列=本人メール。メールなし（LINE専用）は合成ID `line:{sha256}先頭12`。
   設定タブの「LINE専用メンバー」ボタンで合成IDメンバーをマスタ表に追加＋コード発行。
+- ⚠️ **証票画像の保存はオーナーのOAuthトークン方式**（`POST/GET/DELETE /api/data/linedrivetoken`）。
+  SAは容量が無くMy Driveに新規ファイルを作れないため、**オーナー（購入メール＝ログインメール）が
+  設定タブで一度「証票保存を有効化」**し、リフレッシュトークンをKV（`line:drivetoken:{sheetId}`・
+  AES-256-GCM暗号化・鍵はGOOGLE_SA_KEY派生）に保管。LINEサーバーはそれでアップロード→SAへ閲覧権付与
+  （Web版 uploadFile と同じ）。未有効化時は証票なしで登録継続（ベストエフォート）。新規環境変数なし。
 - ⚠️ **監査ロジックは二重管理**：クライアント `submit.js _runAuditChecks` と
   サーバー `api/data/[...path].js _serverAuditChecks` が同一ルール。**片方を変えたら必ず両方直す**。
   （将来Web側もサーバー監査を呼ぶ1本化が次の課題）
