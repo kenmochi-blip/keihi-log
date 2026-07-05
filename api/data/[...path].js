@@ -1910,8 +1910,18 @@ async function _handleLineImage(userId, replyToken, messageId) {
       _lineSummary(data, alerts), _confirmQuick()
     ));
   } catch (e) {
-    console.error('line image error:', e?.message || e);
-    return _lineReply(replyToken, _lineText('画像の解析に失敗しました。もう一度お試しいただくか、明るくはっきりした画像でお送りください。'));
+    const emsg = String(e?.message || e);
+    console.error('line image error:', emsg);
+    // 失敗理由を管理者が特定しやすいよう、原因別に案内を出し分ける
+    let hint = '画像の解析に失敗しました。もう一度、明るくはっきりした画像でお送りください。';
+    if (/Gemini|gemini/.test(emsg)) {
+      hint = 'AI解析に失敗しました。経費ログの設定で「Gemini APIキー」が未設定か無効の可能性があります。管理者にご確認ください。';
+    } else if (/証票フォルダ|folder/.test(emsg)) {
+      hint = '証票の保存に失敗しました。証票フォルダの設定・共有（サービスアカウント）をご確認ください。管理者にご相談ください。';
+    } else if (/content fetch/.test(emsg)) {
+      hint = '画像の取得に失敗しました。少し時間をおいてもう一度送ってみてください。';
+    }
+    return _lineReply(replyToken, _lineText(hint));
   }
 }
 
