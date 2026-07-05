@@ -14,6 +14,19 @@ const ListView = (() => {
   let _shownCount = 50;
   let _sortMode  = 'applied'; // 'applied'=登録順 / 'date'=日付順
 
+  /** 申請日時（シリアル値/文字列）→ 'YYYY-MM-DD'。期間フィルタ用。 */
+  function _appliedDateStr(v) {
+    if (v == null || v === '') return '';
+    const n = Number(v);
+    if (Number.isFinite(n) && n > 20000 && n < 100000) {
+      const d = new Date(Math.round((n - 25569) * 86400) * 1000);
+      const p = x => String(x).padStart(2, '0');
+      return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())}`;
+    }
+    const m = String(v).match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+    return m ? `${m[1]}-${String(m[2]).padStart(2, '0')}-${String(m[3]).padStart(2, '0')}` : '';
+  }
+
   function render() {
     const { fromYM, toYM } = _defaultRange();
     return `
@@ -425,8 +438,14 @@ const ListView = (() => {
         if (e.email !== email) return false;
       } else if (member && e.email !== member) return false;
 
-      if (fromDate && e.date < fromDate) return false;
-      if (toDate   && e.date > toDate)   return false;
+      // 期間フィルタ：日付（e.date）または申請日時（appliedAt）のどちらかが期間内なら表示。
+      // 最近登録したものは、領収書の日付が古くても（登録順で上位に）出るようにする。
+      if (fromDate || toDate) {
+        const aDate = _appliedDateStr(e.appliedAt);
+        const inByDate    = (!fromDate || e.date >= fromDate) && (!toDate || e.date <= toDate);
+        const inByApplied = !!aDate && (!fromDate || aDate >= fromDate) && (!toDate || aDate <= toDate);
+        if (!inByDate && !inByApplied) return false;
+      }
       if (type && e.type !== type) return false;
       if (status && _getStatus(e) !== status) return false;
       if (customFlag && e.customFlag !== customFlag) return false;
