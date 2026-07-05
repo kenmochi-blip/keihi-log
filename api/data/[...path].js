@@ -24,6 +24,7 @@ import { getSaAuth } from '../_sa.js';
 import { verifyIdToken } from '../_verifyToken.js';
 import { rateLimit } from '../_rateLimit.js';
 import { FAQ_TEXT } from '../_faq-data.js';
+import { RICHMENU_PNG_BASE64 } from '../_richmenuImage.js';
 
 // bodyParser を無効化し、ボディは手動で読む（_readRaw）。
 // 理由: LINE Webhook の署名検証(HMAC-SHA256)には「生ボディの厳密なバイト列」が必要で、
@@ -96,6 +97,8 @@ export default async function handler(req, res) {
         return await lineUnlink(req, res);
       case 'linedrivetoken':
         return await lineDriveToken(req, res);
+      case 'linerichmenu':
+        return await lineRichMenu(req, res);
       default:
         return res.status(404).json({ error: 'not_found', resource });
     }
@@ -1794,15 +1797,19 @@ async function _handleLineText(userId, replyToken, text) {
   }
 
   // 未精算キーワード
-  if (/未精算|未清算|一覧|残/.test(text)) {
+  if (/未精算|未清算|残/.test(text)) {
     return _handleLineUnsettled(userId, replyToken);
+  }
+  // 履歴キーワード
+  if (/履歴|申請|一覧|確認/.test(text)) {
+    return _handleLineHistory(userId, replyToken);
   }
 
   // 連携済みなら使い方案内、未連携なら連携案内
   const link = await _lineLink(userId);
   if (link) {
     return _lineReply(replyToken, _lineText(
-      '領収書の画像を送ると経費を登録できます。\n「未精算」と送ると自分の未精算一覧を表示します。'
+      '領収書の画像を送ると経費を登録できます。\n「未精算」で未精算一覧、「履歴」で直近の申請を表示します。'
     ));
   }
   return _lineReply(replyToken, _lineText(
@@ -2091,6 +2098,84 @@ async function lineDriveToken(req, res) {
   return res.status(405).json({ error: 'method_not_allowed' });
 }
 
+/**
+ * POST   /api/data/linerichmenu   リッチメニューを作成＋画像アップロード＋全ユーザー既定に設定
+ * GET    /api/data/linerichmenu   既定リッチメニューの有無
+ * DELETE /api/data/linerichmenu   既定解除＋全リッチメニュー削除
+ * ※ 管理者のみ。LINE_CHANNEL_ACCESS_TOKEN を使用（無料操作・通数カウント外）。
+ */
+async function lineRichMenu(req, res) {
+  const authz = await _authorize(req, res);
+  if (!authz) return;
+  if (!authz.isAdmin) return res.status(403).json({ error: 'admin_only' });
+  const token = _lineToken();
+  if (!token) return res.status(400).json({ error: 'line_not_configured', message: 'LINE_CHANNEL_ACCESS_TOKEN が未設定です' });
+  const H = { Authorization: `Bearer ${token}` };
+
+  const _deleteAll = async () => {
+    try {
+      const list = await (await fetch('https://api.line.me/v2/bot/richmenu/list', { headers: H })).json();
+      for (const m of (list.richmenus || [])) {
+        await fetch(`https://api.line.me/v2/bot/richmenu/${m.richMenuId}`, { method: 'DELETE', headers: H }).catch(() => {});
+      }
+    } catch (_) {}
+  };
+
+  if (req.method === 'GET') {
+    const r = await fetch('https://api.line.me/v2/bot/user/all/richmenu', { headers: H }).catch(() => null);
+    return res.status(200).json({ enabled: !!(r && r.ok) });
+  }
+
+  if (req.method === 'DELETE') {
+    await fetch('https://api.line.me/v2/bot/user/all/richmenu', { method: 'DELETE', headers: H }).catch(() => {});
+    await _deleteAll();
+    return res.status(200).json({ ok: true, enabled: false });
+  }
+
+  if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
+
+  try {
+    await _deleteAll(); // 重複防止のため既存を全削除
+
+    const menu = {
+      size: { width: 2500, height: 843 },
+      selected: true,
+      name: 'keihi-log-menu',
+      chatBarText: 'メニュー',
+      areas: [
+        { bounds: { x: 0,    y: 0, width: 833, height: 843 }, action: { type: 'postback', data: 'action=sendreceipt', displayText: '領収書を送る' } },
+        { bounds: { x: 833,  y: 0, width: 834, height: 843 }, action: { type: 'postback', data: 'action=history',     displayText: '自分の申請' } },
+        { bounds: { x: 1667, y: 0, width: 833, height: 843 }, action: { type: 'postback', data: 'action=unsettled',   displayText: '未精算の確認' } },
+      ],
+    };
+    const createResp = await fetch('https://api.line.me/v2/bot/richmenu', {
+      method: 'POST', headers: { ...H, 'Content-Type': 'application/json' }, body: JSON.stringify(menu),
+    });
+    const created = await createResp.json().catch(() => ({}));
+    if (!createResp.ok || !created.richMenuId) {
+      return res.status(502).json({ error: 'create_failed', message: created.message || `status ${createResp.status}` });
+    }
+    const richMenuId = created.richMenuId;
+
+    const imgBuf = Buffer.from(RICHMENU_PNG_BASE64, 'base64');
+    const upResp = await fetch(`https://api-data.line.me/v2/bot/richmenu/${richMenuId}/content`, {
+      method: 'POST', headers: { ...H, 'Content-Type': 'image/png' }, body: imgBuf,
+    });
+    if (!upResp.ok) {
+      return res.status(502).json({ error: 'upload_failed', message: (await upResp.text().catch(() => '')) || `status ${upResp.status}` });
+    }
+
+    const setResp = await fetch(`https://api.line.me/v2/bot/user/all/richmenu/${richMenuId}`, { method: 'POST', headers: H });
+    if (!setResp.ok) {
+      return res.status(502).json({ error: 'set_default_failed', message: (await setResp.text().catch(() => '')) || `status ${setResp.status}` });
+    }
+    return res.status(200).json({ ok: true, enabled: true, richMenuId });
+  } catch (e) {
+    console.error('richmenu setup error:', e?.message || e);
+    return res.status(500).json({ error: 'server_error', message: e?.message || 'unknown' });
+  }
+}
+
 /** 設定B5の鍵でGeminiを代理呼び出し（gemini()と同じ鍵キャッシュ経路）。 */
 async function _lineGeminiKey(sheetId) {
   const keyCacheKey = `gemini:key:${sheetId}`;
@@ -2285,6 +2370,21 @@ function _lineSummary(data, alerts) {
 async function _handleLinePostback(userId, replyToken, dataStr) {
   const params = new URLSearchParams(dataStr);
   const action = params.get('action');
+
+  // ── リッチメニューのボタン（pending不要） ──
+  if (action === 'sendreceipt') {
+    return _lineReply(replyToken, {
+      type: 'text',
+      text: '領収書の写真を送ってください📷',
+      quickReply: { items: [
+        { type: 'action', action: { type: 'camera',     label: 'カメラで撮影' } },
+        { type: 'action', action: { type: 'cameraRoll', label: 'アルバム/スクショ' } },
+      ] },
+    });
+  }
+  if (action === 'history')   return _handleLineHistory(userId, replyToken);
+  if (action === 'unsettled') return _handleLineUnsettled(userId, replyToken);
+
   const pending = await kv.get(`line:pending:${userId}`).catch(() => null);
 
   if (action === 'register') {
@@ -2496,6 +2596,40 @@ async function _handleLineUnsettled(userId, replyToken) {
     `・${e.date} ${String(e.place || '').slice(0, 16)} ¥${Number(e.amount).toLocaleString('ja-JP')}`
   );
   const head = `未精算 ${mine.length}件 / 合計 ¥${total.toLocaleString('ja-JP')}`;
+  const more = mine.length > N ? `\n…ほか${mine.length - N}件` : '';
+  return _lineReply(replyToken, _lineText([head, '', ...shown].join('\n') + more));
+}
+
+/** 経費オブジェクトからステータス表示ラベルを得る。 */
+function _expStatusLabel(e) {
+  const s = String(e.settlementDate || '').trim();
+  if (s.startsWith('会社払い')) return '会社払い';
+  if (s !== '') return '精算済';
+  if (e.confirmed) return '登録済';
+  return '申請済';
+}
+
+/** 自分の直近の申請（全ステータス）を返す。リッチメニュー「自分の申請」。 */
+async function _handleLineHistory(userId, replyToken) {
+  const link = await _lineLink(userId);
+  if (!link) return _lineReply(replyToken, _lineText('未連携です。連携コードを送信してください。'));
+  const { sheetId, identity } = link;
+
+  const name = await _lineMemberName(sheetId, identity);
+  if (name === null) return _lineReply(replyToken, _lineText('メンバー登録が見つかりません。'));
+
+  const idLower = String(identity).toLowerCase();
+  const expenses = await readExpensesViaSA(sheetId).catch(() => []);
+  const mine = expenses.filter(e => String(e.email).toLowerCase() === idLower);
+  if (!mine.length) return _lineReply(replyToken, _lineText('申請はまだありません。領収書の写真を送ると登録できます。'));
+
+  // 申請日時→日付の新しい順
+  mine.sort((a, b) => String(b.appliedAt || b.date || '').localeCompare(String(a.appliedAt || a.date || '')));
+  const N = 15;
+  const shown = mine.slice(0, N).map(e =>
+    `・${e.date} ${String(e.place || '').slice(0, 14)} ¥${Number(e.amount).toLocaleString('ja-JP')}【${_expStatusLabel(e)}】`
+  );
+  const head = `直近の申請（全${mine.length}件中${Math.min(N, mine.length)}件）`;
   const more = mine.length > N ? `\n…ほか${mine.length - N}件` : '';
   return _lineReply(replyToken, _lineText([head, '', ...shown].join('\n') + more));
 }
