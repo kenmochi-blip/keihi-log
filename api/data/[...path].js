@@ -99,6 +99,8 @@ export default async function handler(req, res) {
         return await lineDriveToken(req, res);
       case 'linerichmenu':
         return await lineRichMenu(req, res);
+      case 'linelinks':
+        return await lineLinks(req, res);
       default:
         return res.status(404).json({ error: 'not_found', resource });
     }
@@ -2105,6 +2107,25 @@ async function lineDriveToken(req, res) {
   }
 
   return res.status(405).json({ error: 'method_not_allowed' });
+}
+
+/**
+ * GET /api/data/linelinks   このシートで現在LINE連携済みの identity 一覧を返す（admin）。
+ *   クライアントのメンバー表示（接続済み判定）に使う。
+ */
+async function lineLinks(req, res) {
+  const authz = await _authorize(req, res);
+  if (!authz) return;
+  if (!authz.isAdmin) return res.status(403).json({ error: 'admin_only' });
+  const ids = await kv.smembers(`line:link_by_sheet:${authz.sheetId}`).catch(() => []);
+  const identities = [];
+  for (const uid of (ids || [])) {
+    const links = await _lineLinks(uid);
+    for (const l of links) {
+      if (l.sheetId === authz.sheetId && l.identity) identities.push(String(l.identity).toLowerCase());
+    }
+  }
+  return res.status(200).json({ identities: [...new Set(identities)] });
 }
 
 /**

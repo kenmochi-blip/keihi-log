@@ -6,6 +6,7 @@
 const SettingsView = (() => {
 
   let _master = null;
+  let _lineLinkedSet = new Set(); // LINE連携済みの identity（メール/合成ID・小文字）
 
   function render() {
     const isDemo = typeof Demo !== 'undefined' && Demo.isActive();
@@ -676,6 +677,7 @@ const SettingsView = (() => {
     }
 
     _applyMemberPlanRestriction(el);
+    _loadLineLinks(el);   // LINE接続状態を取得してメンバー表示を更新
     el.querySelector('#memberList')?.addEventListener('click', e => {
       const edit = e.target.closest('.btn-edit-member');
       const del  = e.target.closest('.btn-del-member');
@@ -887,18 +889,26 @@ const SettingsView = (() => {
           : '<span class="badge bg-secondary ms-1" style="font-size:0.6rem;cursor:pointer;" data-bs-toggle="tooltip" data-bs-placement="top" title="自分の経費申請のみ可能"><i class="bi bi-person-fill me-1"></i>一般</span>';
       // LINE専用メンバー（メールなし・合成ID）は生IDを見せず「LINE専用」と表示
       const isLineOnly = String(m.email || '').startsWith('line:');
+      const isConnected = _lineLinkedSet.has(String(m.email || '').toLowerCase());
+      // ① Googleのみ・未接続 → LINEボタン表示 / ② Google+接続済 → 「LINE接続済」バッジ / ③ LINE専用 → バッジのみ
       const idLabel = isLineOnly
         ? '<span class="badge bg-success bg-opacity-75 ms-1" style="font-size:0.6rem;"><i class="bi bi-chat-dots-fill me-1"></i>LINE専用</span>'
         : _escape(m.email);
+      const connectedBadge = (!isLineOnly && isConnected)
+        ? '<span class="badge bg-success ms-1" style="font-size:0.6rem;"><i class="bi bi-chat-dots-fill me-1"></i>LINE接続済</span>'
+        : '';
+      const lineBtn = (!isLineOnly && !isConnected)
+        ? `<button class="btn btn-outline-success btn-sm btn-line-code" data-index="${i}" title="このメンバーのLINE連携を設定"><i class="bi bi-chat-dots me-1"></i>LINE</button>`
+        : '';
       return `
       <div class="d-flex align-items-center gap-2 py-2 border-bottom">
         <div class="flex-grow-1">
           <div class="master-item-name">${_escape(m.name)}</div>
           <div class="text-muted" style="font-size:0.72rem;">${idLabel}${m.dept ? ' / ' + _escape(m.dept) : ''}
-            ${roleBadge}
+            ${roleBadge}${connectedBadge}
           </div>
         </div>
-        <button class="btn btn-outline-success btn-sm btn-line-code" data-index="${i}" title="このメンバーのLINE連携コードを発行"><i class="bi bi-chat-dots me-1"></i>LINE</button>
+        ${lineBtn}
         <button class="btn btn-outline-secondary btn-sm btn-edit-member" data-index="${i}" title="編集"><i class="bi bi-pencil"></i></button>
         <button class="btn btn-outline-danger btn-sm btn-del-member" data-index="${i}"><i class="bi bi-trash"></i></button>
       </div>`;
@@ -918,6 +928,17 @@ const SettingsView = (() => {
         _hideTimer = setTimeout(() => tooltip.hide(), 2000);
       }, { passive: false });
     });
+  }
+
+  /** LINE連携済みの identity 一覧を取得し、メンバー表示（接続済み判定）を更新する。 */
+  async function _loadLineLinks(el) {
+    if (typeof Demo !== 'undefined' && Demo.isActive()) return;
+    try {
+      const r = await Sheets.getLineLinks();
+      _lineLinkedSet = new Set((r.identities || []).map(s => String(s).toLowerCase()));
+      _renderMembers(el);              // 接続状態を反映して再描画
+      _applyMemberPlanRestriction(el); // 新しいボタンにプラン制限を再適用
+    } catch (_) { /* 取得失敗時は未接続扱いのまま（ボタン表示） */ }
   }
 
   function _renderSimpleList(el, containerId, items, type) {

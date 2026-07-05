@@ -85,6 +85,10 @@ const Sheets = (() => {
   function disableLineDrive(ssId) {
     return _proxyWrite('linedrivetoken', ssId || _ssId(), 'DELETE', undefined);
   }
+  /** このシートでLINE連携済みの identity 一覧を取得（メンバー表示の接続済み判定用）。 */
+  function getLineLinks(ssId) {
+    return _proxyGet('linelinks', ssId || _ssId());
+  }
 
   /** 一時的なサーバーエラー時に指数バックオフでリトライする fetch ラッパー。 */
   async function _fetchWithRetry(fn, maxRetries = 3) {
@@ -685,6 +689,7 @@ const Sheets = (() => {
     getLineDriveStatus,
     enableLineDrive,
     disableLineDrive,
+    getLineLinks,
     readSetting,
     readAllSettings,
     writeSetting,
