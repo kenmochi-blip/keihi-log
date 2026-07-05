@@ -230,9 +230,14 @@ const SettingsView = (() => {
       </div>
       <div class="settings-step-hint mt-2">
         メンバーはLINE公式アカウントに領収書画像を送るだけで経費を登録できます。<br>
-        各メンバーの <i class="bi bi-chat-dots"></i> ボタンで6桁の連携コードを発行し、本人に伝えてください。
-        メンバーはLINEでそのコードを送信すると連携が完了します。<br>
-        <span class="text-muted">※ Googleアカウントを持たないメンバーは「LINE専用メンバー」として追加できます。</span>
+        <strong>連携方法：</strong>上の「メンバー管理」で対象メンバーの
+        <span class="badge border border-success text-success"><i class="bi bi-chat-dots me-1"></i>LINE</span>
+        ボタンを押すと6桁コードが出ます。本人がLINEでそのコードを送ると連携完了です。<br>
+        <span class="text-muted d-block mt-1">
+          ・<strong>Googleアカウントを使っているメンバーも、この💬ボタンでLINEを併用できます</strong>
+          （Web申請とLINE申請が同じ人として集約されます）。<br>
+          ・Googleアカウントを持たないメンバーは「＋LINE専用メンバー」で追加してください。
+        </span>
       </div>
       <div id="lineDisabledHint" class="d-none mt-2">
         <div class="d-flex align-items-center gap-2 flex-wrap">
@@ -920,8 +925,8 @@ const SettingsView = (() => {
             ${roleBadge}
           </div>
         </div>
-        <button class="btn btn-outline-success btn-sm btn-line-code" data-index="${i}" title="LINE連携コードを発行"><i class="bi bi-chat-dots"></i></button>
-        <button class="btn btn-outline-secondary btn-sm btn-edit-member" data-index="${i}"><i class="bi bi-pencil"></i></button>
+        <button class="btn btn-outline-success btn-sm btn-line-code" data-index="${i}" title="このメンバーのLINE連携コードを発行"><i class="bi bi-chat-dots me-1"></i>LINE</button>
+        <button class="btn btn-outline-secondary btn-sm btn-edit-member" data-index="${i}" title="編集"><i class="bi bi-pencil"></i></button>
         <button class="btn btn-outline-danger btn-sm btn-del-member" data-index="${i}"><i class="bi bi-trash"></i></button>
       </div>`;
     }).join('');
