@@ -1332,7 +1332,7 @@ const SettingsView = (() => {
     el.querySelectorAll('.btn-line-code').forEach(b => { b.disabled = isSolo; });
   }
 
-  /** 証票保存の状態に応じた案内HTML（連携コードモーダル内に表示）。 */
+  /** 証票保存の状態に応じた案内HTML（連携コードモーダル内に表示・有効化ボタンは置かない）。 */
   function _lineDriveSectionHtml(s) {
     if (!s) return '';
     if (s.enabled) {
@@ -1340,14 +1340,62 @@ const SettingsView = (() => {
         <i class="bi bi-check-circle-fill me-1"></i>証票画像も保存されます
         <a href="#" class="ms-2 text-danger" id="lineDriveDisableLink">無効化</a></div>`;
     }
-    if (s.isOwner) {
-      return `<div class="alert alert-warning py-2 px-3 small text-start mt-3 mb-0" id="lineDriveBox">
-        <i class="bi bi-exclamation-triangle-fill me-1"></i>証票画像は現在<strong>保存されません</strong>。
-        <button class="btn btn-success btn-sm ms-1" id="lineDriveEnableBtn"><i class="bi bi-shield-check me-1"></i>証票保存を有効化</button>
-        <div class="text-muted mt-1" style="font-size:0.7rem;">オーナーのGoogleアカウントで一度だけ有効化すれば、以降のLINE証票が保存されます。</div></div>`;
-    }
+    const note = s.isOwner
+      ? '証票画像は保存されません（後で有効化もできます）'
+      : `オーナー（${_escape(s.ownerEmail || 'ライセンス購入者')}）が有効化すると証票画像も保存されます`;
     return `<div class="alert alert-secondary py-2 px-3 small text-start mt-3 mb-0" id="lineDriveBox">
-      <i class="bi bi-info-circle me-1"></i>オーナー（${_escape(s.ownerEmail || 'ライセンス購入者')}）が証票保存を有効化すると、LINEの証票画像も保存されます。</div>`;
+      <i class="bi bi-info-circle me-1"></i>${note}</div>`;
+  }
+
+  /**
+   * 証票保存の有効化を促す専用ポップアップ（未有効化かつオーナー時に、コード画面より先に出す）。
+   * ユーザーの選択（有効化/スキップ）後に、最新の状態を resolve する。
+   */
+  function _promptEnableLineDrive(status) {
+    return new Promise((resolve) => {
+      const div = document.createElement('div');
+      div.innerHTML = `
+        <div class="modal fade" tabindex="-1">
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-image me-2 text-success"></i>証票画像の保存</h5>
+              </div>
+              <div class="modal-body">
+                <p class="small mb-2">LINEで送られた領収書画像を経費ログのGoogleドライブ（証票フォルダ）に保存するには、
+                <strong>オーナー（あなた）のGoogleアカウントで一度だけ有効化</strong>が必要です。</p>
+                <p class="text-muted small mb-0">有効化しない場合、LINEの経費は<strong>証票画像なし</strong>で登録されます（後から有効化も可能）。</p>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="btnDriveSkip">スキップ</button>
+                <button type="button" class="btn btn-success btn-sm" id="btnDriveEnable"><i class="bi bi-shield-check me-1"></i>証票保存を有効化</button>
+              </div>
+            </div>
+          </div>
+        </div>`;
+      document.body.appendChild(div);
+      const modalEl = div.querySelector('.modal');
+      const modal = new bootstrap.Modal(modalEl, { backdrop: 'static' });
+      let _result = status, _settled = false;
+      modalEl.querySelector('#btnDriveSkip').addEventListener('click', () => modal.hide());
+      modalEl.querySelector('#btnDriveEnable').addEventListener('click', async () => {
+        const rt = Auth.getRefreshToken();
+        if (!rt) { App.showToast('リフレッシュトークンがありません。一度ログアウト→再ログインしてから有効化してください', 'warning'); return; }
+        const b = modalEl.querySelector('#btnDriveEnable'), skip = modalEl.querySelector('#btnDriveSkip');
+        b.disabled = true; b.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>有効化中…'; if (skip) skip.disabled = true;
+        try {
+          const r = await Sheets.enableLineDrive(rt);
+          App.showToast(r.verified ? '証票保存を有効化しました' : '有効化しましたが動作確認に失敗しました。再ログイン後に再度お試しください', r.verified ? 'success' : 'warning');
+          try { _result = await Sheets.getLineDriveStatus(); } catch (_) { _result = { ...status, enabled: true }; }
+          modal.hide();
+        } catch (err) {
+          App.showToast('有効化に失敗しました：' + (err.message || ''), 'danger');
+          b.disabled = false; b.innerHTML = '<i class="bi bi-shield-check me-1"></i>証票保存を有効化'; if (skip) skip.disabled = false;
+        }
+      });
+      modalEl.addEventListener('hidden.bs.modal', () => { div.remove(); if (!_settled) { _settled = true; resolve(_result); } });
+      modal.show();
+    });
   }
 
   /** メンバーのLINE連携コードを発行してモーダルで表示。 */
@@ -1363,6 +1411,10 @@ const SettingsView = (() => {
       const res = await Sheets.issueLineCode(m.email || '', m.name);
       let driveStatus = null;
       try { driveStatus = await Sheets.getLineDriveStatus(); } catch (_) {}
+      // 未有効化かつオーナーなら、案内画面より先に有効化の許諾ポップアップを出す（見過ごし防止）
+      if (driveStatus && !driveStatus.enabled && driveStatus.isOwner) {
+        driveStatus = await _promptEnableLineDrive(driveStatus);
+      }
       _showLineCodeModal(m.name, res.code, false, res.addFriendUrl || '', driveStatus);
     } catch (err) {
       App.showToast('コード発行に失敗しました：' + (err.message || ''), 'danger');
@@ -1450,25 +1502,10 @@ const SettingsView = (() => {
       if (box) { box.outerHTML = _lineDriveSectionHtml(s); _wireDrive(); }
     };
     function _wireDrive() {
-      modalEl.querySelector('#lineDriveEnableBtn')?.addEventListener('click', async () => {
-        const rt = Auth.getRefreshToken();
-        if (!rt) return App.showToast('リフレッシュトークンがありません。一度ログアウト→再ログインしてから有効化してください', 'warning');
-        const b = modalEl.querySelector('#lineDriveEnableBtn');
-        if (b) { b.disabled = true; b.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>有効化中…'; }
-        try {
-          const r = await Sheets.enableLineDrive(rt);
-          App.showToast(r.verified ? '証票保存を有効化しました' : '有効化しましたが動作確認に失敗しました。再ログイン後に再度お試しください', r.verified ? 'success' : 'warning');
-          await _rerenderDrive();
-        } catch (err) {
-          App.showToast('有効化に失敗しました：' + (err.message || ''), 'danger');
-          if (b) { b.disabled = false; b.innerHTML = '<i class="bi bi-shield-check me-1"></i>証票保存を有効化'; }
-        }
-      });
+      // 無効化は確認なしで即実行（誤操作しても再有効化は容易なため）
       modalEl.querySelector('#lineDriveDisableLink')?.addEventListener('click', async (e) => {
         e.preventDefault();
-        const ok = await App.confirm('LINE証票保存を無効化しますか？（以降LINEの証票画像は保存されません）');
-        if (!ok) return;
-        try { await Sheets.disableLineDrive(); App.showToast('無効化しました', 'success'); await _rerenderDrive(); }
+        try { await Sheets.disableLineDrive(); App.showToast('証票保存を無効化しました', 'success'); await _rerenderDrive(); }
         catch (err) { App.showToast('無効化に失敗しました：' + (err.message || ''), 'danger'); }
       });
     }
