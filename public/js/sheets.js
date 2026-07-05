@@ -64,6 +64,15 @@ const Sheets = (() => {
     return _proxyWrite('approve', ssId || _ssId(), 'POST', { ids: [id] });
   }
 
+  /** LINE連携コードを発行（admin専用）。identity=メール（既存メンバー）or 空（→名前で新規LINE専用メンバー）。 */
+  function issueLineCode(identity, name, ssId) {
+    return _proxyWrite('line/code', ssId || _ssId(), 'POST', { identity, name });
+  }
+  /** LINE連携を解除（admin専用）。payload: { userId } または { identity }。 */
+  function unlinkLine(payload, ssId) {
+    return _proxyWrite('line/unlink', ssId || _ssId(), 'POST', payload);
+  }
+
   /** 一時的なサーバーエラー時に指数バックオフでリトライする fetch ラッパー。 */
   async function _fetchWithRetry(fn, maxRetries = 3) {
     let delay = 1000;
@@ -658,6 +667,8 @@ const Sheets = (() => {
     editExpense,
     deleteExpense,
     approveExpense,
+    issueLineCode,
+    unlinkLine,
     readSetting,
     readAllSettings,
     writeSetting,

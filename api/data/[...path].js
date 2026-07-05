@@ -25,8 +25,12 @@ import { verifyIdToken } from '../_verifyToken.js';
 import { rateLimit } from '../_rateLimit.js';
 import { FAQ_TEXT } from '../_faq-data.js';
 
-// レシート画像は Base64 で送られるため、デフォルト4.5MBでは不足する可能性がある
-export const config = { api: { bodyParser: { sizeLimit: '12mb' } } };
+// bodyParser を無効化し、ボディは手動で読む（_readRaw）。
+// 理由: LINE Webhook の署名検証(HMAC-SHA256)には「生ボディの厳密なバイト列」が必要で、
+//       Vercel の bodyParser を通すと生ボディが失われるため。関数12個制限内に収めるため
+//       LINE Webhook を別ファイルにせずこのキャッチオールに同居させる（設計 §4）。
+//       生ボディは _readRaw で1度だけ読み req にキャッシュ、JSON化は _body が担う。
+export const config = { api: { bodyParser: false } };
 
 // in-processキャッシュ（ウォームインスタンス内でのKV往復を排除する）
 // Vercelのサーバーレス関数はウォームインスタンスを再利用するため、モジュール変数がリクエスト間で共有される。
@@ -82,6 +86,8 @@ export default async function handler(req, res) {
         return await accountantRouter(req, res);
       case 'chat':
         return await chat(req, res);
+      case 'line':
+        return await lineRouter(req, res);
       default:
         return res.status(404).json({ error: 'not_found', resource });
     }
@@ -484,7 +490,7 @@ async function mastersWrite(req, res) {
   if (!authz) return;
   if (!authz.isAdmin) return res.status(403).json({ error: 'admin_only' });
 
-  const { rows } = req.body || {};
+  const { rows } = (await _body(req)) || {};
   if (!Array.isArray(rows)) return res.status(400).json({ error: 'rows_required' });
 
   const sheetId = authz.sheetId;
@@ -1439,15 +1445,39 @@ function _canModify(me, isAdmin, raw) {
   return _statusOf(raw) === '申請済' && String(raw[15] || '').toLowerCase() === me.email;
 }
 
-/** リクエストボディを JSON として取得する。Vercel が既にパース済みなら req.body を使う。 */
+/**
+ * リクエストの生ボディ(Buffer)を1度だけ読み、req にキャッシュして返す。
+ * bodyParser を無効化しているため、全ボディはここを通る。
+ * ストリームは1度しか読めないので、複数ハンドラ/署名検証+JSON化の両方に耐えるよう
+ * req._rawBody にキャッシュする。上限は12MB相当（レシートBase64のため）。
+ */
+async function _readRaw(req) {
+  if (req._rawBody !== undefined) return req._rawBody;
+  const MAX = 12 * 1024 * 1024;
+  const chunks = [];
+  let size = 0;
+  try {
+    for await (const c of req) {
+      size += c.length;
+      if (size > MAX) { req._rawBody = null; return null; } // 過大なボディは拒否
+      chunks.push(c);
+    }
+    req._rawBody = Buffer.concat(chunks);
+  } catch (_) {
+    req._rawBody = null;
+  }
+  return req._rawBody;
+}
+
+/** リクエストボディを JSON として取得する（bodyParser無効・生ボディから手動パース）。 */
 async function _body(req) {
+  // Vercel が何らかの理由で既にパース済みの場合はそれを尊重（保険）
   if (req.body && typeof req.body === 'object') return req.body;
   if (typeof req.body === 'string') { try { return JSON.parse(req.body); } catch (_) { return null; } }
-  // ストリームから読む（フォールバック）
+  const raw = await _readRaw(req);
+  if (!raw) return null;
   try {
-    const chunks = [];
-    for await (const c of req) chunks.push(c);
-    return JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}');
+    return JSON.parse(raw.toString('utf8') || '{}');
   } catch (_) { return null; }
 }
 
@@ -1455,7 +1485,7 @@ async function _body(req) {
 async function chat(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
 
-  const { message, history = [] } = req.body || {};
+  const { message, history = [] } = (await _body(req)) || {};
   if (!message || typeof message !== 'string' || message.length > 500)
     return res.status(400).json({ error: 'invalid_message' });
 
@@ -1514,4 +1544,839 @@ function _uuid() {
     const r = (Math.random() * 16) | 0;
     return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
   });
+}
+
+/* ═══════════════════════════ LINE 連携 ═══════════════════════════
+ *
+ * LINE公式アカウントに領収書画像を送ると送信者の経費ログに登録される。
+ * 設計: docs/line-integration-design.md
+ *
+ * 方針:
+ *   - 全応答は Reply API のみ（Push/Multicast等は使わない＝無料枠を消費しない）
+ *   - チームプラン限定（連携コード発行時＋Webhook受信時に都度検証）
+ *   - LINEの用途は「①画像送信 ②登録前の確認/修正/やめる ③未精算一覧の閲覧」に限定
+ *   - 承認・精算・削除・編集はWeb側のみ
+ *
+ * エンドポイント（このキャッチオール内）:
+ *   POST /api/data/line/webhook   LINE署名検証（生ボディ必須。bodyParser無効化済み）
+ *   POST /api/data/line/code      連携コード発行（admin・設定タブから）
+ *   POST /api/data/line/unlink    連携解除（admin・メンバー削除連動）
+ */
+
+const LINE_API      = 'https://api.line.me/v2/bot';
+const LINE_API_DATA = 'https://api-data.line.me/v2/bot';
+
+function _lineEnabled() { return process.env.LINE_ENABLED === '1'; }
+function _lineToken()   { return process.env.LINE_CHANNEL_ACCESS_TOKEN || ''; }
+function _lineSecret()  { return process.env.LINE_CHANNEL_SECRET || ''; }
+
+/** メールを持たないLINE専用メンバーの合成ID（生userIdはシートに書かない）。 */
+function _lineSynthId(userId) {
+  return 'line:' + crypto.createHash('sha256').update(String(userId)).digest('hex').slice(0, 12);
+}
+
+async function lineRouter(req, res) {
+  const sub = _pathSegs(req)[3] || '';
+  if (sub === 'webhook') return lineWebhook(req, res);
+  if (sub === 'code')    return lineCodeIssue(req, res);
+  if (sub === 'unlink')  return lineUnlink(req, res);
+  return res.status(404).json({ error: 'not_found' });
+}
+
+/* ── 署名検証・Reply API・コンテンツ取得 ── */
+
+/** x-line-signature を CHANNEL_SECRET でHMAC-SHA256検証（生ボディ必須）。 */
+function _verifyLineSignature(rawBuf, signature) {
+  const secret = _lineSecret();
+  if (!secret || !signature || !rawBuf) return false;
+  const expected = crypto.createHmac('sha256', secret).update(rawBuf).digest('base64');
+  const a = Buffer.from(signature);
+  const b = Buffer.from(expected);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+/** Reply API（無料・通数カウント外）。失敗しても致命でないため握りつぶしてログのみ。 */
+async function _lineReply(replyToken, messages) {
+  if (!replyToken || !_lineToken()) return;
+  try {
+    const resp = await fetch(`${LINE_API}/message/reply`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${_lineToken()}` },
+      body: JSON.stringify({ replyToken, messages: Array.isArray(messages) ? messages : [messages] }),
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!resp.ok) console.error('line reply failed:', resp.status, await resp.text().catch(() => ''));
+  } catch (e) {
+    console.error('line reply error:', e?.message || e);
+  }
+}
+
+/** テキスト＋クイックリプライ（postbackアクション）を1メッセージに組む。 */
+function _lineText(text, quickItems) {
+  const msg = { type: 'text', text: String(text).slice(0, 4900) };
+  if (quickItems && quickItems.length) {
+    msg.quickReply = { items: quickItems.slice(0, 13) };
+  }
+  return msg;
+}
+function _qpPostback(label, data) {
+  return { type: 'action', action: { type: 'postback', label: String(label).slice(0, 20), data, displayText: label } };
+}
+function _qpMessage(label, text) {
+  return { type: 'action', action: { type: 'message', label: String(label).slice(0, 20), text } };
+}
+
+/** 登録前の確認ボタン群（登録する/修正する/やめる）。 */
+function _confirmQuick() {
+  return [
+    _qpPostback('登録する', 'action=register'),
+    _qpPostback('修正する', 'action=edit'),
+    _qpPostback('やめる',   'action=cancel'),
+  ];
+}
+
+/** LINEコンテンツAPIで画像バイト列を取得。 */
+async function _lineFetchContent(messageId) {
+  const resp = await fetch(`${LINE_API_DATA}/message/${messageId}/content`, {
+    headers: { Authorization: `Bearer ${_lineToken()}` },
+    signal: AbortSignal.timeout(30000),
+  });
+  if (!resp.ok) throw new Error(`content fetch ${resp.status}`);
+  const mime = resp.headers.get('content-type') || 'image/jpeg';
+  const buf = Buffer.from(await resp.arrayBuffer());
+  return { buf, mime };
+}
+
+/* ── Webhook 本体 ── */
+
+async function lineWebhook(req, res) {
+  // キルスイッチ: OFFなら常に200を返す（no-op）
+  if (!_lineEnabled()) return res.status(200).json({ ok: true, disabled: true });
+
+  const raw = await _readRaw(req);
+  const sig = req.headers['x-line-signature'] || req.headers['X-Line-Signature'] || '';
+  if (!_verifyLineSignature(raw, sig)) {
+    return res.status(401).json({ error: 'bad_signature' });
+  }
+
+  let payload;
+  try { payload = JSON.parse(raw.toString('utf8') || '{}'); } catch (_) { payload = {}; }
+  const events = Array.isArray(payload.events) ? payload.events : [];
+
+  // LINEはタイムアウト時に再送する。各イベントは冪等化しつつ順に処理し、必ず200で返す。
+  for (const ev of events) {
+    try { await _handleLineEvent(ev); }
+    catch (e) { console.error('line event error:', e?.message || e); }
+  }
+  return res.status(200).json({ ok: true });
+}
+
+/** イベント1件を処理。冪等化（webhookEventId）→種別ごとに分岐。 */
+async function _handleLineEvent(ev) {
+  // 冪等化: 同一イベントの再送を1hブロック
+  const eid = ev.webhookEventId;
+  if (eid) {
+    const fresh = await kv.set(`line:evt:${eid}`, '1', { nx: true, ex: 3600 }).catch(() => 'OK');
+    if (fresh === null) return; // 既に処理済み
+  }
+
+  const userId = ev.source?.userId;
+  const replyToken = ev.replyToken;
+
+  if (ev.type === 'follow') {
+    return _lineReply(replyToken, _lineText(
+      '経費ログbotへようこそ。\nご利用には管理者から受け取った6桁の連携コードの送信が必要です。\n連携後は領収書の画像を送るだけで経費を登録できます。'
+    ));
+  }
+
+  if (!userId) return;
+
+  if (ev.type === 'postback') {
+    return _handleLinePostback(userId, replyToken, ev.postback?.data || '');
+  }
+
+  if (ev.type === 'message') {
+    const m = ev.message || {};
+    if (m.type === 'image') return _handleLineImage(userId, replyToken, m.id);
+    if (m.type === 'text')  return _handleLineText(userId, replyToken, String(m.text || '').trim());
+    // その他（スタンプ・動画等）は案内のみ
+    return _lineReply(replyToken, _lineText('領収書の画像を送ってください。'));
+  }
+}
+
+/* ── リンク解決・プラン/メンバー検証 ── */
+
+/** userId → 紐付け情報 { sheetId, identity, name } or null。 */
+async function _lineLink(userId) {
+  return await kv.get(`line:link:${userId}`).catch(() => null);
+}
+
+/** チームプランかつ有効なライセンスか（license.js と同じ判定）。 */
+async function _isTeamPlanActive(sheetId) {
+  // B3 ライセンスキーを取得（resolveOwnerEmail と同じ経路）
+  const settKey = `cfg:settings:${sheetId}`;
+  let licKey = (_inProcGet(settKey) || await kv.get(settKey).catch(() => null))?.settings?.B3 || '';
+  if (!licKey) {
+    try {
+      const sheets = sheetsClient();
+      const r = await sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range: '設定!B3' });
+      licKey = r.data.values?.[0]?.[0] || '';
+    } catch (_) {}
+  }
+  if (!licKey) return false;
+  const data = await kv.get(`license:${licKey}`).catch(() => null);
+  if (!data || data.suspended) return false;
+  if (data.expiresAt && new Date(data.expiresAt) < new Date()) return false;
+  const isTrial = data.trial === true ||
+    (!('trial' in data) && data.stripeSessionId && data.createdAt && data.expiresAt &&
+      (new Date(data.expiresAt) - new Date(data.createdAt)) / 86400000 <= 35);
+  const plan = isTrial ? 'team' : (data.plan || 'solo');
+  return plan === 'team';
+}
+
+/** identity（メール or 合成ID）が現在もマスタ表のメンバーか再検証し、名前を返す。 */
+async function _lineMemberName(sheetId, identity) {
+  const master = await readMasterCached(sheetId).catch(() => null);
+  if (!master?.members) return null;
+  const idLower = String(identity).toLowerCase();
+  const hit = master.members.find(m => String(m.email).toLowerCase() === idLower);
+  return hit ? (hit.name || '') : null;
+}
+
+/** LINE専用の簡易レート制限（userId単位・KV）。ok:false で拒否。 */
+async function _lineRateOk(userId, { limit = 8, window = 60 } = {}) {
+  const key = `line:rl:${userId}`;
+  try {
+    const n = await kv.incr(key);
+    if (n === 1) await kv.expire(key, window);
+    return n <= limit;
+  } catch (_) { return true; } // KV障害時はフェイルオープン
+}
+
+/* ── テキスト受信（連携コード / 修正値入力 / 未精算キーワード） ── */
+
+async function _handleLineText(userId, replyToken, text) {
+  // 修正フロー: 値入力待ちなら最優先で処理
+  const pending = await kv.get(`line:pending:${userId}`).catch(() => null);
+  if (pending && pending.step === 'awaiting_value' && pending.editField) {
+    return _applyLineEdit(userId, replyToken, pending, text);
+  }
+
+  // 6桁数字 → 連携コード
+  if (/^\d{6}$/.test(text)) {
+    return _handleLineCode(userId, replyToken, text);
+  }
+
+  // 未精算キーワード
+  if (/未精算|未清算|一覧|残/.test(text)) {
+    return _handleLineUnsettled(userId, replyToken);
+  }
+
+  // 連携済みなら使い方案内、未連携なら連携案内
+  const link = await _lineLink(userId);
+  if (link) {
+    return _lineReply(replyToken, _lineText(
+      '領収書の画像を送ると経費を登録できます。\n「未精算」と送ると自分の未精算一覧を表示します。'
+    ));
+  }
+  return _lineReply(replyToken, _lineText(
+    '未連携です。管理者から受け取った6桁の連携コードを送信してください。'
+  ));
+}
+
+/** 連携コードによる紐付け。総当たり対策として userId 単位の失敗回数を制限。 */
+async function _handleLineCode(userId, replyToken, code) {
+  // 失敗回数制限（1時間に10回まで）
+  const failKey = `line:codefail:${userId}`;
+  const fails = Number(await kv.get(failKey).catch(() => 0)) || 0;
+  if (fails >= 10) {
+    return _lineReply(replyToken, _lineText('試行回数が上限に達しました。しばらくしてからお試しください。'));
+  }
+
+  const info = await kv.get(`line:code:${code}`).catch(() => null);
+  if (!info || !info.sheetId || !info.identity) {
+    const n = await kv.incr(failKey).catch(() => 1);
+    if (n === 1) await kv.expire(failKey, 3600).catch(() => {});
+    return _lineReply(replyToken, _lineText('連携コードが無効か、期限切れです。管理者に再発行を依頼してください。'));
+  }
+
+  // コードは使い捨て。紐付けを作成し、逆引きセットにも登録。
+  await kv.set(`line:link:${userId}`, {
+    sheetId: info.sheetId, identity: info.identity, name: info.name || '',
+  }).catch(() => {});
+  await kv.sadd(`line:link_by_sheet:${info.sheetId}`, userId).catch(() => {});
+  await kv.del(`line:code:${code}`).catch(() => {});
+  await kv.del(failKey).catch(() => {});
+
+  return _lineReply(replyToken, _lineText(
+    `連携しました。「${info.name || 'メンバー'}」として登録されます。\n領収書の画像を送ってください。`
+  ));
+}
+
+/* ── 画像受信 → 解析 → 確認 ── */
+
+async function _handleLineImage(userId, replyToken, messageId) {
+  const link = await _lineLink(userId);
+  if (!link) {
+    return _lineReply(replyToken, _lineText('未連携です。まず管理者から受け取った6桁の連携コードを送信してください。'));
+  }
+  const { sheetId, identity } = link;
+
+  // プラン確認（チーム限定）
+  if (!(await _isTeamPlanActive(sheetId))) {
+    return _lineReply(replyToken, _lineText('LINE連携はチームプランでご利用いただけます。管理者にプランをご確認ください。'));
+  }
+
+  // メンバー再検証（キャッシュだけ信用しない）
+  const name = await _lineMemberName(sheetId, identity);
+  if (name === null) {
+    return _lineReply(replyToken, _lineText('メンバー登録が見つかりません。管理者に連携し直しを依頼してください。'));
+  }
+
+  // レート制限
+  if (!(await _lineRateOk(userId))) {
+    return _lineReply(replyToken, _lineText('短時間に送信が集中しています。少し時間をおいてからお試しください。'));
+  }
+
+  try {
+    // 画像取得 → ハッシュ → SAで証票フォルダへ保存
+    const { buf, mime } = await _lineFetchContent(messageId);
+    const imageHash = crypto.createHash('sha256').update(buf).digest('hex');
+    const driveInfo = await _lineUploadReceipt(sheetId, buf, mime);
+
+    // 勘定科目リスト取得 → Gemini解析
+    const master = await readMasterCached(sheetId).catch(() => ({ categories: [] }));
+    const categories = master.categories?.length ? master.categories : ['雑費'];
+    const parsed = await _lineAnalyze(sheetId, buf, mime, categories);
+
+    // 解析結果 → 経費データ
+    const data = _lineParsedToData(parsed, categories);
+    data.imageLink = driveInfo.webViewLink || '';
+
+    // 監査チェック（既存経費と突合）
+    const expenses = await readExpensesViaSA(sheetId).catch(() => []);
+    const alerts = _serverAuditChecks(expenses, data, [imageHash]);
+
+    // pending 保存（TTL10分）
+    await kv.set(`line:pending:${userId}`, {
+      data, imageHash, driveFileId: driveInfo.id, imageLink: data.imageLink,
+      alerts, aiAmount: data.aiAmount, step: 'confirm',
+    }, { ex: 600 }).catch(() => {});
+
+    return _lineReply(replyToken, _lineText(
+      _lineSummary(data, alerts), _confirmQuick()
+    ));
+  } catch (e) {
+    console.error('line image error:', e?.message || e);
+    return _lineReply(replyToken, _lineText('画像の解析に失敗しました。もう一度お試しいただくか、明るくはっきりした画像でお送りください。'));
+  }
+}
+
+/** SAで証票フォルダ(設定B4)へ画像を保存。 */
+async function _lineUploadReceipt(sheetId, buf, mime) {
+  const sheets = sheetsClient();
+  const cfg = await sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range: '設定!B4' });
+  const folderId = cfg.data.values?.[0]?.[0] || '';
+  if (!folderId) throw new Error('証票フォルダ(設定B4)未設定');
+  const ext = mime.includes('png') ? 'png' : mime.includes('pdf') ? 'pdf' : 'jpg';
+  const drive = driveClient();
+  const created = await drive.files.create({
+    requestBody: { name: `LINE_${Date.now()}.${ext}`, mimeType: mime, parents: [folderId] },
+    media: { mimeType: mime, body: bufferToStream(buf) },
+    fields: 'id, webViewLink',
+  });
+  return { id: created.data.id, webViewLink: created.data.webViewLink };
+}
+
+/** 設定B5の鍵でGeminiを代理呼び出し（gemini()と同じ鍵キャッシュ経路）。 */
+async function _lineGeminiKey(sheetId) {
+  const keyCacheKey = `gemini:key:${sheetId}`;
+  let apiKey = _inProcGet(keyCacheKey);
+  if (!apiKey) {
+    apiKey = await kv.get(keyCacheKey).catch(() => null);
+    if (apiKey) _inProcSet(keyCacheKey, apiKey, 290_000);
+  }
+  if (!apiKey) {
+    const sheets = sheetsClient();
+    const cfg = await sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range: '設定!B5' });
+    apiKey = cfg.data.values?.[0]?.[0] || '';
+    if (apiKey) {
+      _inProcSet(keyCacheKey, apiKey, 290_000);
+      kv.set(keyCacheKey, apiKey, { ex: 300 }).catch(() => {});
+    }
+  }
+  return apiKey;
+}
+
+/** 画像をGeminiで解析し JSON を返す（クライアント gemini.js と同一プロンプト）。 */
+async function _lineAnalyze(sheetId, buf, mime, categories) {
+  const apiKey = await _lineGeminiKey(sheetId);
+  if (!apiKey) throw new Error('Gemini APIキー(設定B5)未設定');
+
+  const prompt = `
+以下の領収書画像を解析して、JSON形式で情報を抽出してください。
+勘定科目は次のリストから必ず1つ選んでください（リスト外の値は返さないこと）：${categories.join('、')}
+判断が難しい場合はリストの先頭（${categories[0]}）を返し、category_fallback を true にしてください。
+
+必ず以下のJSON形式で回答してください（コードブロックなし）：
+{
+  "date": "YYYY-MM-DD",
+  "shop": "支払先名",
+  "invoice": "T+13桁のインボイス番号またはnull",
+  "total_amount": 金額（日本円の場合）またはnull（外貨の場合）,
+  "category": "勘定科目（単一カテゴリの場合）",
+  "category_fallback": true または false,
+  "items": [{"amount": 金額（合算後）, "category": "勘定科目", "tax_rate": "課税10%/課税8%/非課税/不課税のいずれか"}] または null,
+  "fx_currency": "USD/EUR等の通貨コードまたはnull",
+  "fx_amount": 外貨金額またはnull,
+  "tax_rate": "課税10%/課税8%/混在/非課税/不課税のいずれか",
+  "withholding_amount": 源泉徴収税額（整数）またはnull
+}
+
+注意：
+- 金額が日本円なら total_amount に数値を入れ fx_* は null
+- total_amount は「税込み費用計上額（源泉徴収控除前）」を入れること
+- 複数カテゴリ・税区分が混在する場合は items を使い category は null
+- items の集約ルール：「勘定科目」と「税区分」の組み合わせが同じ明細は1行に合算すること
+- インボイス番号は T+13桁の数字で始まる番号
+- tax_rate：食品・飲料なら「課税8%」、交通費は「課税10%」、非課税取引なら「非課税」、不課税取引なら「不課税」、複数税率混在なら「混在」、それ以外は「課税10%」
+`;
+
+  const b64 = buf.toString('base64');
+  const reqBody = {
+    contents: [{ parts: [{ inlineData: { mimeType: mime, data: b64 } }, { text: prompt }] }],
+    generationConfig: { temperature: 0.1, responseMimeType: 'application/json' },
+  };
+  const MODEL = 'gemini-3.1-flash-lite';
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+    body: JSON.stringify(reqBody),
+    signal: AbortSignal.timeout(55000),
+  });
+  if (!resp.ok) {
+    const d = await resp.json().catch(() => ({}));
+    throw new Error('gemini ' + resp.status + ' ' + (d?.error?.message || ''));
+  }
+  const d = await resp.json();
+  const text = d.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+  try { return JSON.parse(text); }
+  catch (_) {
+    const m = text.match(/\{[\s\S]*\}/);
+    if (m) return JSON.parse(m[0]);
+    throw new Error('解析結果のパース失敗');
+  }
+}
+
+/** Gemini解析JSON → 経費データ（G列科目フォーマット・S列税区分を組む）。 */
+function _lineParsedToData(g, categories) {
+  const valid = new Set(categories);
+  const pickCat = (c) => (c && valid.has(c)) ? c : categories[0];
+
+  let amount = 0, category = '', taxRate = '課税10%';
+  if (Array.isArray(g.items) && g.items.length) {
+    // 分割: "科目:金額:税率/..." 形式（parseSplitCategory と対称）
+    const parts = g.items.map(it => {
+      const cat = pickCat(it.category);
+      const amt = Math.round(Number(it.amount) || 0);
+      const tax = it.tax_rate || '課税10%';
+      return { cat, amt, tax };
+    });
+    amount = parts.reduce((s, p) => s + p.amt, 0);
+    category = parts.map(p => p.amt ? `${p.cat}:${p.amt}:${p.tax}` : p.cat).join('/');
+    const taxes = [...new Set(parts.map(p => p.tax))];
+    taxRate = taxes.length === 1 ? taxes[0] : '混在';
+  } else {
+    amount = Math.round(Number(g.total_amount) || 0);
+    category = pickCat(g.category);
+    taxRate = g.tax_rate && g.tax_rate !== '混在' ? g.tax_rate : '課税10%';
+  }
+
+  const withholding = Math.round(Number(g.withholding_amount) || 0);
+  const fxNote = (!g.total_amount && g.fx_amount)
+    ? `外貨: ${g.fx_currency || ''} ${g.fx_amount}（金額は「修正する」で入力してください）` : '';
+
+  return {
+    date:    _validDateStr(g.date) ? g.date : _todayJst(),
+    place:   String(g.shop || '').slice(0, 100),
+    amount,
+    category,
+    note:    fxNote,
+    invoice: String(g.invoice && g.invoice !== 'null' ? g.invoice : '').trim(),
+    taxRate,
+    withholding,
+    aiAmount: amount,  // 解析時点の金額＝AI解析額（N列・手修正検知の基準）
+  };
+}
+
+function _validDateStr(s) { return typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s); }
+function _todayJst() {
+  const d = new Date(Date.now() + 9 * 3600 * 1000);
+  return d.toISOString().slice(0, 10);
+}
+
+/** 確認画面のテキスト（解析結果＋監査アラート）。 */
+function _lineSummary(data, alerts) {
+  const yen = (n) => '¥' + Number(n || 0).toLocaleString('ja-JP');
+  const catLabel = data.category.split('/').map(seg => {
+    const p = seg.split(':');
+    return p.length >= 2 ? `${p[0]}(${yen(p[1])})` : p[0];
+  }).join(' / ');
+  const lines = [
+    '【内容を確認してください】',
+    `日付: ${data.date}`,
+    `支払先: ${data.place || '(不明)'}`,
+    `金額: ${yen(data.amount)}`,
+    `科目: ${catLabel || '(未設定)'}`,
+    `税区分: ${data.taxRate}`,
+  ];
+  if (data.invoice) lines.push(`インボイス: ${data.invoice}`);
+  if (data.withholding) lines.push(`源泉徴収: ${yen(data.withholding)}`);
+  if (data.note) lines.push(`備考: ${data.note}`);
+  if (alerts && alerts.length) {
+    lines.push('', '⚠️ 確認事項:');
+    alerts.forEach(a => lines.push(`・${a}`));
+  }
+  lines.push('', 'この内容で登録しますか？');
+  return lines.join('\n');
+}
+
+/* ── postback（登録/修正/やめる/項目選択） ── */
+
+async function _handleLinePostback(userId, replyToken, dataStr) {
+  const params = new URLSearchParams(dataStr);
+  const action = params.get('action');
+  const pending = await kv.get(`line:pending:${userId}`).catch(() => null);
+
+  if (action === 'register') {
+    if (!pending) return _lineReply(replyToken, _lineText('時間切れです。もう一度画像を送ってください。'));
+    return _lineRegister(userId, replyToken, pending);
+  }
+  if (action === 'cancel') {
+    await kv.del(`line:pending:${userId}`).catch(() => {});
+    return _lineReply(replyToken, _lineText('取り消しました。'));
+  }
+  if (action === 'edit') {
+    if (!pending) return _lineReply(replyToken, _lineText('時間切れです。もう一度画像を送ってください。'));
+    return _lineReply(replyToken, _lineText('どの項目を修正しますか？', [
+      _qpPostback('日付',   'action=editfield&f=date'),
+      _qpPostback('支払先', 'action=editfield&f=place'),
+      _qpPostback('金額',   'action=editfield&f=amount'),
+      _qpPostback('科目',   'action=editfield&f=category'),
+      _qpPostback('戻る',   'action=editback'),
+    ]));
+  }
+  if (action === 'editback') {
+    if (!pending) return _lineReply(replyToken, _lineText('時間切れです。もう一度画像を送ってください。'));
+    return _lineReply(replyToken, _lineText(_lineSummary(pending.data, pending.alerts), _confirmQuick()));
+  }
+  if (action === 'editfield') {
+    if (!pending) return _lineReply(replyToken, _lineText('時間切れです。もう一度画像を送ってください。'));
+    const f = params.get('f');
+    // 科目はボタン選択（マスタのカテゴリ）にする
+    if (f === 'category') {
+      const link = await _lineLink(userId);
+      const master = link ? await readMasterCached(link.sheetId).catch(() => null) : null;
+      const cats = (master?.categories || []).slice(0, 12);
+      if (cats.length) {
+        const items = cats.map(c => _qpPostback(c, `action=setcat&c=${encodeURIComponent(c)}`));
+        return _lineReply(replyToken, _lineText('科目を選んでください:', items));
+      }
+    }
+    pending.step = 'awaiting_value';
+    pending.editField = f;
+    await kv.set(`line:pending:${userId}`, pending, { ex: 600 }).catch(() => {});
+    const labels = { date: '日付（例: 2026-07-05）', place: '支払先', amount: '金額（数字）', category: '科目' };
+    return _lineReply(replyToken, _lineText(`新しい「${labels[f] || f}」を送ってください。`));
+  }
+  if (action === 'setcat') {
+    if (!pending) return _lineReply(replyToken, _lineText('時間切れです。もう一度画像を送ってください。'));
+    const c = params.get('c') || '';
+    pending.data.category = c;  // 単一科目に置換
+    delete pending.step; delete pending.editField;
+    pending.alerts = await _reauditPending(userId, pending);
+    await kv.set(`line:pending:${userId}`, pending, { ex: 600 }).catch(() => {});
+    return _lineReply(replyToken, _lineText(_lineSummary(pending.data, pending.alerts), _confirmQuick()));
+  }
+  return _lineReply(replyToken, _lineText('もう一度画像を送ってください。'));
+}
+
+/** 修正値の反映（テキスト入力）。 */
+async function _applyLineEdit(userId, replyToken, pending, text) {
+  const f = pending.editField;
+  const d = pending.data;
+  if (f === 'date') {
+    const v = text.replace(/[／.]/g, '-').replace(/[^\d-]/g, '');
+    if (!_validDateStr(v)) return _lineReply(replyToken, _lineText('日付は YYYY-MM-DD 形式で送ってください（例: 2026-07-05）。'));
+    d.date = v;
+  } else if (f === 'place') {
+    d.place = text.slice(0, 100);
+  } else if (f === 'amount') {
+    const n = Number(text.replace(/[^\d]/g, ''));
+    if (!n || n < 1) return _lineReply(replyToken, _lineText('金額は1以上の数字で送ってください。'));
+    d.amount = n;
+    // 単一科目なら分割表記も金額を追従
+    if (d.category && !d.category.includes('/') && d.category.includes(':')) {
+      const p = d.category.split(':'); d.category = `${p[0]}:${n}:${p[2] || d.taxRate}`;
+    }
+  } else if (f === 'category') {
+    d.category = text.slice(0, 60);
+  }
+  delete pending.step; delete pending.editField;
+  pending.alerts = await _reauditPending(userId, pending);
+  await kv.set(`line:pending:${userId}`, pending, { ex: 600 }).catch(() => {});
+  return _lineReply(replyToken, _lineText(_lineSummary(d, pending.alerts), _confirmQuick()));
+}
+
+/** 修正後に監査を再実行（AI解析額との不一致等が変わるため）。 */
+async function _reauditPending(userId, pending) {
+  try {
+    const link = await _lineLink(userId);
+    if (!link) return pending.alerts || [];
+    const expenses = await readExpensesViaSA(link.sheetId).catch(() => []);
+    return _serverAuditChecks(expenses, { ...pending.data, aiAmount: pending.aiAmount }, [pending.imageHash]);
+  } catch (_) { return pending.alerts || []; }
+}
+
+/** 登録実行（申請済で経費一覧へ）。 */
+async function _lineRegister(userId, replyToken, pending) {
+  const link = await _lineLink(userId);
+  if (!link) return _lineReply(replyToken, _lineText('連携が切れています。連携コードを送信してください。'));
+  const { sheetId, identity } = link;
+
+  if (!(await _isTeamPlanActive(sheetId))) {
+    return _lineReply(replyToken, _lineText('LINE連携はチームプランでご利用いただけます。'));
+  }
+  const name = await _lineMemberName(sheetId, identity);
+  if (name === null) return _lineReply(replyToken, _lineText('メンバー登録が見つかりません。管理者にご確認ください。'));
+
+  const d = pending.data;
+  const aiAudit = (pending.alerts && pending.alerts.length) ? ('⛔ ' + pending.alerts.join(' / ')) : '';
+  const imageLink = pending.imageLink || '';
+  const row = [
+    _nowJst(),                                  // A: 申請日時（サーバー時刻）
+    name,                                       // B: 名前
+    '領収書',                                   // C: タイプ
+    d.date,                                     // D: 日付
+    d.place,                                    // E: 支払先
+    d.amount,                                   // F: 金額
+    d.category,                                 // G: 勘定科目
+    d.note || '',                               // H: 備考
+    imageLink ? `=HYPERLINK("${imageLink}","証票")` : '', // I: 証票
+    false,                                      // J: 承認（LINEからは常に未承認）
+    aiAudit,                                    // K: 監査
+    '',                                         // L: 精算日
+    d.invoice || '',                            // M: インボイス
+    pending.aiAmount || 0,                      // N: AI解析額
+    pending.imageHash || '',                    // O: 画像ハッシュ
+    identity,                                   // P: email or 合成ID
+    _uuid(),                                    // Q: id
+    'LINE',                                     // R: デバイス
+    d.taxRate || '課税10%',                     // S: 税区分
+    d.withholding || 0,                         // T: 源泉徴収
+    '',                                         // U: カスタムフラグ
+  ];
+
+  try {
+    await _withSheetWriteLock(sheetId, () => prependExpenseRowViaSA(sheetId, row));
+    _inProcDel(`data:exp:${sheetId}`);
+    await kv.del(`data:exp:${sheetId}`).catch(() => {});
+    await kv.del(`line:pending:${userId}`).catch(() => {});
+    return _lineReply(replyToken, _lineText(
+      `登録しました（申請済）。\n${d.date} ${d.place} ¥${Number(d.amount).toLocaleString('ja-JP')}` +
+      (aiAudit ? '\n※確認事項ありのため管理者が内容を確認します。' : '')
+    ));
+  } catch (e) {
+    console.error('line register error:', e?.message || e);
+    return _lineReply(replyToken, _lineText('登録に失敗しました。時間をおいて再度お試しください。'));
+  }
+}
+
+/* ── 未精算一覧 ── */
+
+async function _handleLineUnsettled(userId, replyToken) {
+  const link = await _lineLink(userId);
+  if (!link) return _lineReply(replyToken, _lineText('未連携です。連携コードを送信してください。'));
+  const { sheetId, identity } = link;
+
+  const name = await _lineMemberName(sheetId, identity);
+  if (name === null) return _lineReply(replyToken, _lineText('メンバー登録が見つかりません。'));
+
+  const idLower = String(identity).toLowerCase();
+  const expenses = await readExpensesViaSA(sheetId).catch(() => []);
+  // 自分の・未精算（L列空）のみ
+  const mine = expenses.filter(e =>
+    String(e.email).toLowerCase() === idLower &&
+    !(e.settlementDate && String(e.settlementDate).trim() !== '')
+  );
+  if (!mine.length) return _lineReply(replyToken, _lineText('未精算の経費はありません。'));
+
+  mine.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+  const total = mine.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+  const N = 10;
+  const shown = mine.slice(0, N).map(e =>
+    `・${e.date} ${String(e.place || '').slice(0, 16)} ¥${Number(e.amount).toLocaleString('ja-JP')}`
+  );
+  const head = `未精算 ${mine.length}件 / 合計 ¥${total.toLocaleString('ja-JP')}`;
+  const more = mine.length > N ? `\n…ほか${mine.length - N}件` : '';
+  return _lineReply(replyToken, _lineText([head, '', ...shown].join('\n') + more));
+}
+
+/* ── 監査ロジックのサーバー移植（submit.js _runAuditChecks と同期） ──
+ * ⚠️ クライアント submit.js の監査ルールを変更した場合はこちらも追従すること。 */
+function _serverAuditChecks(expenses, data, newHashes) {
+  const alerts = [];
+  const amount = Number(data.amount) || 0;
+
+  // 0. 交際費：参加者名の記載推奨
+  if (String(data.category || '').split('/').some(p => p.split(':')[0] === '交際費') && !data.note) {
+    alerts.push('交際費は備考に参加者名を記載することを推奨します');
+  }
+
+  // 1. AI解析額との不一致
+  const ai = Number(data.aiAmount) || 0;
+  if (ai > 0 && amount !== Math.round(ai)) {
+    alerts.push(`AI解析額 ¥${Math.round(ai).toLocaleString('ja-JP')} と申請額 ¥${amount.toLocaleString('ja-JP')} が一致しません`);
+  }
+
+  // 2. インボイス番号＋金額＋日付の重複
+  if (data.invoice && String(data.invoice).trim()) {
+    const invNorm = String(data.invoice).trim().toUpperCase();
+    const dup = expenses.find(e =>
+      e.invoice && String(e.invoice).trim().toUpperCase() === invNorm &&
+      Number(e.amount) === amount && String(e.date) === String(data.date));
+    if (dup) alerts.push(`インボイス番号と金額が一致する申請済みデータがあります (${dup.date} ${dup.place} ¥${Number(dup.amount).toLocaleString('ja-JP')})`);
+  }
+
+  // 3. 画像ハッシュ重複
+  if (newHashes && newHashes.length) {
+    const dup = expenses.find(e => e.imageHash && newHashes.some(h => String(e.imageHash).split(',').includes(h)));
+    if (dup) alerts.push(`同一画像が既に申請済み (${dup.date} ${dup.place})`);
+  }
+
+  // 4. 同日・同額・類似取引先
+  const sim = (a, b) => {
+    if (!a || !b) return false;
+    const na = String(a).trim().toLowerCase().replace(/[\s　]/g, '');
+    const nb = String(b).trim().toLowerCase().replace(/[\s　]/g, '');
+    if (na === nb) return true;
+    if (na.length >= 3 && (nb.includes(na) || na.includes(nb))) return true;
+    if (na.length >= 4 && nb.length >= 4 && na.slice(0, 4) === nb.slice(0, 4)) return true;
+    return false;
+  };
+  const dupE = expenses.find(e =>
+    e.date === data.date && Number(e.amount) === amount && sim(e.place, data.place));
+  if (dupE) alerts.push(`重複の疑い: ${dupE.date} ${dupE.place} ¥${Number(dupE.amount).toLocaleString('ja-JP')}`);
+
+  // 5. 高額（10万円以上）
+  if (amount >= 100000) alerts.push(`高額（¥${amount.toLocaleString('ja-JP')}）です。内容をご確認ください`);
+
+  // 6. 2ヶ月以上前の日付
+  if (_validDateStr(data.date)) {
+    const dt = new Date(data.date + 'T00:00:00+09:00');
+    const twoMonthsAgo = new Date(Date.now() - 62 * 86400000);
+    if (dt < twoMonthsAgo) alerts.push(`日付が2ヶ月以上前（${data.date}）です`);
+  }
+
+  return alerts;
+}
+
+/* ── 管理者エンドポイント: 連携コード発行 / 解除 ── */
+
+/**
+ * POST /api/data/line/code   body: { sheetId, identity, name }
+ *   admin が特定メンバー向けの6桁連携コードを発行する。
+ *   identity はメール（既存メンバー）または空（→合成ID発行を想定した名前指定）。
+ */
+async function lineCodeIssue(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
+  const authz = await _authorize(req, res);
+  if (!authz) return;
+  if (!authz.isAdmin) return res.status(403).json({ error: 'admin_only' });
+
+  if (!(await _isTeamPlanActive(authz.sheetId))) {
+    return res.status(403).json({ error: 'team_plan_required', message: 'LINE連携はチームプラン限定です' });
+  }
+
+  const body = (await _body(req)) || {};
+  const name = String(body.name || '').slice(0, 60);
+  let identity = String(body.identity || '').trim().toLowerCase();
+  if (!identity && !name) return res.status(400).json({ error: 'identity_or_name_required' });
+
+  // メールなし（LINE専用）の場合は合成IDを生成しマスタ表に登録
+  if (!identity) {
+    // 合成IDは userId 由来だが発行時点では userId 未確定 → 名前ベースの一時IDを避け、
+    // 連携時に userId から合成IDを確定する方式にするため、ここでは identity を空で持つ。
+    // マスタ表にはメールなし行として name のみ登録しておく（既存 readMaster が name のみ行を許容）。
+    // 合成IDは name/sheet が同一でも衝突しないよう乱数を混ぜて一意化する
+    identity = _lineSynthId('m:' + authz.sheetId + ':' + name + ':' + crypto.randomInt(0, 1e9));
+    try {
+      const sheets = sheetsClient();
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: authz.sheetId,
+        range: 'マスタ表!A:H',
+        valueInputOption: 'USER_ENTERED',
+        requestBody: { values: [[name, identity, '', 'member', '', '', '', '']] },
+      });
+      _inProcDel(`acct:master:${authz.sheetId}`);
+      await kv.del(`acct:master:${authz.sheetId}`).catch(() => {});
+    } catch (e) {
+      console.error('line synth member add error:', e?.message || e);
+      return res.status(500).json({ error: 'member_add_failed' });
+    }
+  } else {
+    // 既存メンバーか確認
+    const nm = await _lineMemberName(authz.sheetId, identity);
+    if (nm === null) return res.status(400).json({ error: 'not_a_member', message: 'そのメールはマスタ表にありません' });
+  }
+
+  // 6桁コード生成（衝突は極めて稀・使い捨て24h）
+  const code = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+  await kv.set(`line:code:${code}`, {
+    sheetId: authz.sheetId, identity, name,
+  }, { ex: 86400 }).catch(() => {});
+
+  return res.status(200).json({ ok: true, code, name, identity, expiresInHours: 24 });
+}
+
+/**
+ * POST /api/data/line/unlink  body: { sheetId, userId } または { identity }
+ *   admin が連携を解除する（メンバー削除連動でも呼ぶ）。
+ */
+async function lineUnlink(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
+  const authz = await _authorize(req, res);
+  if (!authz) return;
+  if (!authz.isAdmin) return res.status(403).json({ error: 'admin_only' });
+
+  const body = (await _body(req)) || {};
+  const userId = String(body.userId || '').trim();
+  const identity = String(body.identity || '').trim().toLowerCase();
+  const sheetId = authz.sheetId;
+
+  let removed = 0;
+  if (userId) {
+    const link = await kv.get(`line:link:${userId}`).catch(() => null);
+    if (link && link.sheetId === sheetId) {
+      await kv.del(`line:link:${userId}`).catch(() => {});
+      await kv.srem(`line:link_by_sheet:${sheetId}`, userId).catch(() => {});
+      removed++;
+    }
+  } else if (identity) {
+    // identity 指定 → このシートの全 userId を走査して該当を解除
+    const ids = await kv.smembers(`line:link_by_sheet:${sheetId}`).catch(() => []);
+    for (const uid of (ids || [])) {
+      const link = await kv.get(`line:link:${uid}`).catch(() => null);
+      if (link && String(link.identity).toLowerCase() === identity) {
+        await kv.del(`line:link:${uid}`).catch(() => {});
+        await kv.srem(`line:link_by_sheet:${sheetId}`, uid).catch(() => {});
+        removed++;
+      }
+    }
+  } else {
+    return res.status(400).json({ error: 'userId_or_identity_required' });
+  }
+
+  return res.status(200).json({ ok: true, removed });
 }

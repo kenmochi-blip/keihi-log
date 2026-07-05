@@ -221,6 +221,27 @@ const SettingsView = (() => {
     </div>
   </div>
 
+  <!-- LINE連携（管理者のみ・チームプラン限定） -->
+  <div class="card mb-3" id="lineSection">
+    <div class="card-body">
+      <div class="settings-section-title d-flex justify-content-between align-items-center">
+        <span>LINE連携 <span class="badge bg-success bg-opacity-75 ms-1" style="font-size:0.6rem;">チームプラン</span></span>
+        <button class="btn btn-outline-success btn-sm" id="btnAddLineMember"><i class="bi bi-plus me-1"></i>LINE専用メンバー</button>
+      </div>
+      <div class="settings-step-hint mt-2">
+        メンバーはLINE公式アカウントに領収書画像を送るだけで経費を登録できます。<br>
+        各メンバーの <i class="bi bi-chat-dots"></i> ボタンで6桁の連携コードを発行し、本人に伝えてください。
+        メンバーはLINEでそのコードを送信すると連携が完了します。<br>
+        <span class="text-muted">※ Googleアカウントを持たないメンバーは「LINE専用メンバー」として追加できます。</span>
+      </div>
+      <div id="lineDisabledHint" class="d-none mt-2">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <span class="text-muted small"><i class="bi bi-info-circle me-1"></i>LINE連携はチームプランでご利用いただけます</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- メンバー招待URL（管理者のみ・メンバー管理の下） -->
   ${ssId ? `
   <div class="card mb-3">
@@ -679,9 +700,12 @@ const SettingsView = (() => {
     el.querySelector('#memberList')?.addEventListener('click', e => {
       const edit = e.target.closest('.btn-edit-member');
       const del  = e.target.closest('.btn-del-member');
+      const line = e.target.closest('.btn-line-code');
       if (edit) _showMemberForm(el, Number(edit.dataset.index));
       if (del)  _deleteMember(el, Number(del.dataset.index));
+      if (line) _issueLineCode(el, Number(line.dataset.index));
     });
+    el.querySelector('#btnAddLineMember')?.addEventListener('click', () => _addLineOnlyMember(el));
     ['#categoryList', '#paySourceList', '#customFlagList'].forEach(sel => {
       el.querySelector(sel)?.addEventListener('click', e => {
         const btn = e.target.closest('.btn-del-item');
@@ -883,14 +907,20 @@ const SettingsView = (() => {
         : m.role === 'viewer'
           ? '<span class="badge bg-info text-dark ms-1" style="font-size:0.6rem;cursor:pointer;" data-bs-toggle="tooltip" data-bs-placement="top" title="申請＋全体の一覧・集計の閲覧が可能"><i class="bi bi-eye-fill me-1"></i>閲覧者</span>'
           : '<span class="badge bg-secondary ms-1" style="font-size:0.6rem;cursor:pointer;" data-bs-toggle="tooltip" data-bs-placement="top" title="自分の経費申請のみ可能"><i class="bi bi-person-fill me-1"></i>一般</span>';
+      // LINE専用メンバー（メールなし・合成ID）は生IDを見せず「LINE専用」と表示
+      const isLineOnly = String(m.email || '').startsWith('line:');
+      const idLabel = isLineOnly
+        ? '<span class="badge bg-success bg-opacity-75 ms-1" style="font-size:0.6rem;"><i class="bi bi-chat-dots-fill me-1"></i>LINE専用</span>'
+        : _escape(m.email);
       return `
       <div class="d-flex align-items-center gap-2 py-2 border-bottom">
         <div class="flex-grow-1">
           <div class="master-item-name">${_escape(m.name)}</div>
-          <div class="text-muted" style="font-size:0.72rem;">${_escape(m.email)}${m.dept ? ' / ' + _escape(m.dept) : ''}
+          <div class="text-muted" style="font-size:0.72rem;">${idLabel}${m.dept ? ' / ' + _escape(m.dept) : ''}
             ${roleBadge}
           </div>
         </div>
+        <button class="btn btn-outline-success btn-sm btn-line-code" data-index="${i}" title="LINE連携コードを発行"><i class="bi bi-chat-dots"></i></button>
         <button class="btn btn-outline-secondary btn-sm btn-edit-member" data-index="${i}"><i class="bi bi-pencil"></i></button>
         <button class="btn btn-outline-danger btn-sm btn-del-member" data-index="${i}"><i class="bi bi-trash"></i></button>
       </div>`;
@@ -1231,6 +1261,88 @@ const SettingsView = (() => {
       btn.classList.replace('btn-outline-secondary', 'btn-outline-primary');
       hint?.classList.add('d-none');
     }
+    // LINE連携もチームプラン限定（ソロは無効化して案内）
+    const lineAdd  = el.querySelector('#btnAddLineMember');
+    const lineHint = el.querySelector('#lineDisabledHint');
+    el.querySelectorAll('.btn-line-code').forEach(b => { b.disabled = isSolo; });
+    if (lineAdd) lineAdd.disabled = isSolo;
+    if (isSolo) lineHint?.classList.remove('d-none');
+    else lineHint?.classList.add('d-none');
+  }
+
+  /** メンバーのLINE連携コードを発行してモーダルで表示。 */
+  async function _issueLineCode(el, idx) {
+    const m = _master?.members?.[idx];
+    if (!m) return;
+    if (typeof Demo !== 'undefined' && Demo.isActive()) {
+      return _showLineCodeModal(m.name, '123456', true);
+    }
+    const isLineOnly = String(m.email || '').startsWith('line:');
+    try {
+      App.showToast('連携コードを発行しています…', 'info');
+      // 既存メンバーは email を identity に、LINE専用メンバーは既存の合成IDを引き継ぐため identity=email(=合成ID)
+      const res = await Sheets.issueLineCode(m.email || '', m.name);
+      _showLineCodeModal(m.name, res.code, false);
+    } catch (err) {
+      App.showToast('コード発行に失敗しました：' + (err.message || ''), 'danger');
+    }
+  }
+
+  /** Googleアカウントを持たないLINE専用メンバーを追加し、連携コードを表示。 */
+  async function _addLineOnlyMember(el) {
+    if (typeof Demo !== 'undefined' && Demo.isActive()) {
+      return App.showToast('デモモードではLINE専用メンバーを追加できません', 'info');
+    }
+    const name = window.prompt('LINE専用メンバーの氏名を入力してください');
+    if (!name || !name.trim()) return;
+    try {
+      App.showToast('メンバーを追加しています…', 'info');
+      const res = await Sheets.issueLineCode('', name.trim());
+      await App.getMaster(true).catch(() => {});   // マスタ再取得
+      _renderMembers(el);
+      _applyMemberPlanRestriction(el);
+      _showLineCodeModal(name.trim(), res.code, false);
+    } catch (err) {
+      App.showToast('追加に失敗しました：' + (err.message || ''), 'danger');
+    }
+  }
+
+  /** 連携コード表示モーダル。 */
+  function _showLineCodeModal(name, code, isDemo) {
+    const div = document.createElement('div');
+    div.innerHTML = `
+      <div class="modal fade" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title"><i class="bi bi-chat-dots me-2 text-success"></i>LINE連携コード</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+              <div class="text-muted small mb-2">${_escape(name)} さん用</div>
+              <div class="fw-bold" style="font-size:2.4rem;letter-spacing:0.3rem;">${_escape(code)}</div>
+              <div class="text-muted small mt-2">
+                このコードを本人に伝えてください。<br>
+                LINE公式アカウントを友だち追加し、このコードを送信すると連携が完了します。<br>
+                <span class="text-warning">有効期限：24時間（使い捨て）</span>
+              </div>
+              ${isDemo ? '<div class="text-info small mt-2">※デモモードのため実際には発行されません</div>' : ''}
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline-secondary btn-sm" id="btnCopyLineCode"><i class="bi bi-clipboard me-1"></i>コードをコピー</button>
+              <button type="button" class="btn btn-primary btn-sm" data-bs-dismiss="modal">閉じる</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(div);
+    const modalEl = div.querySelector('.modal');
+    const modal = new bootstrap.Modal(modalEl);
+    modalEl.querySelector('#btnCopyLineCode')?.addEventListener('click', () => {
+      navigator.clipboard.writeText(code).then(() => App.showToast('コードをコピーしました', 'success'));
+    });
+    modalEl.addEventListener('hidden.bs.modal', () => div.remove());
+    modal.show();
   }
 
   function _updateLicenseStatus(el, result) {

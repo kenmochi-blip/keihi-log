@@ -157,6 +157,26 @@ git push origin claude/rebuild-receipt-app-Ft3lE
 
 - [x] **`js/picker.js` を削除** → 完了（コミット 4e11c56）
 
+### 📱 LINE連携（チームプラン限定・実装済み／プレビュー検証待ち）
+
+設計: `docs/line-integration-design.md`。LINE公式アカウントに領収書画像を送ると送信者の
+経費ログに登録される。**全応答は Reply API のみ**（Push等は使わない＝無料枠を消費しない）。
+
+- サーバー実装は全て `api/data/[...path].js` 内（関数12個制限のため新規ファイルなし）
+  - `POST /api/data/line/webhook`（署名検証・生ボディ必須）／`/line/code`（admin）／`/line/unlink`（admin）
+  - ⚠️ **`bodyParser` を無効化**（`config.api.bodyParser=false`）。LINE署名検証に生ボディが要るため。
+    全ボディは `_readRaw`→`_body` で手動パース（`req._rawBody` に1度だけキャッシュ）。
+- 環境変数（プレビュー用/本番用でチャンネルを分ける）:
+  `LINE_CHANNEL_SECRET`・`LINE_CHANNEL_ACCESS_TOKEN`・`LINE_ENABLED`（"1"でON＝キルスイッチ）
+- 識別: メールありメンバーは P列=本人メール。メールなし（LINE専用）は合成ID `line:{sha256}先頭12`。
+  設定タブの「LINE専用メンバー」ボタンで合成IDメンバーをマスタ表に追加＋コード発行。
+- ⚠️ **監査ロジックは二重管理**：クライアント `submit.js _runAuditChecks` と
+  サーバー `api/data/[...path].js _serverAuditChecks` が同一ルール。**片方を変えたら必ず両方直す**。
+  （将来Web側もサーバー監査を呼ぶ1本化が次の課題）
+- 検証手順: Vercelプレビューに開発用botのWebhookを向け、実機LINEから画像送信→テスト用シートへ登録を確認。
+
 ### 📋 今後のやること
 
 - [ ] **ブログ累計PVを `/licenses` に直接表示**（GA4 Data API をサーバー側から呼んで数値を取得・表示）
+- [ ] **LINE連携をプレビュー環境でE2E検証**（開発用チャンネル作成・Webhook設定・実送信）→ 合格後 `LINE_ENABLED=1` で本番化
+- [ ] **将来**: Web側の監査も `_serverAuditChecks` を呼ぶ形に1本化（二重管理の解消）
