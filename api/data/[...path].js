@@ -1706,9 +1706,33 @@ async function _handleLineEvent(ev) {
 
 /* ── リンク解決・プラン/メンバー検証 ── */
 
-/** userId → 紐付け情報 { sheetId, identity, name } or null。 */
+/**
+ * userId → 紐付け配列 [{ sheetId, identity, name }]。
+ * 保存形式は { links: [...] }。将来の複数経費ログ対応のため配列で持つ。
+ * （旧・単一オブジェクト形式で保存された値も後方互換で配列化して返す）
+ */
+async function _lineLinks(userId) {
+  const v = await kv.get(`line:link:${userId}`).catch(() => null);
+  if (!v) return [];
+  if (Array.isArray(v.links)) return v.links.filter(l => l && l.sheetId);
+  if (v.sheetId) return [{ sheetId: v.sheetId, identity: v.identity, name: v.name || '' }]; // 旧形式
+  return [];
+}
+
+/**
+ * 写真登録・未精算照会などで使う「対象の紐付け」を1件解決する単一窓口。
+ *
+ * 現状は1対1（連携コード入力のたびに置換）なので links は最大1件 → その1件を返す。
+ *
+ * ── 将来: 1人が複数経費ログを併用する対応 ──
+ *   links.length > 1 のユーザーは、画像受信時に送信先の組織を選ばせる想定
+ *   （_handleLineImage の「複数経費ログ対応」TODO を参照）。
+ *   その際は本関数を「アクティブな1件（選択中/直近）を返す」ロジックに拡張する。
+ *   ここを単一窓口にしておくことで、呼び出し側（画像・登録・未精算）は変更不要にできる。
+ */
 async function _lineLink(userId) {
-  return await kv.get(`line:link:${userId}`).catch(() => null);
+  const links = await _lineLinks(userId);
+  return links[0] || null;
 }
 
 /** チームプランかつ有効なライセンスか（license.js と同じ判定）。 */
@@ -1801,9 +1825,19 @@ async function _handleLineCode(userId, replyToken, code) {
   }
 
   // コードは使い捨て。紐付けを作成し、逆引きセットにも登録。
-  await kv.set(`line:link:${userId}`, {
-    sheetId: info.sheetId, identity: info.identity, name: info.name || '',
-  }).catch(() => {});
+  const newLink = { sheetId: info.sheetId, identity: info.identity, name: info.name || '' };
+
+  // ── 紐付けの更新ルール ──
+  //   現状: 1対1。新しいコードで「置換」する（1人=1経費ログ）。
+  //   将来の複数経費ログ対応に切り替える場合はここを「追記＋sheetIdで重複排除」に変えるだけ:
+  //     const merged = [...(await _lineLinks(userId)).filter(l => l.sheetId !== newLink.sheetId), newLink];
+  //   （逆引きセットの掃除は不要になり、_lineLink 側で選択ロジックを足す）
+  const prev = await _lineLinks(userId);
+  // 置換で外れる古い経費ログの逆引きセットから userId を掃除（stale防止）
+  for (const l of prev) {
+    if (l.sheetId !== newLink.sheetId) await kv.srem(`line:link_by_sheet:${l.sheetId}`, userId).catch(() => {});
+  }
+  await kv.set(`line:link:${userId}`, { links: [newLink] }).catch(() => {});
   await kv.sadd(`line:link_by_sheet:${info.sheetId}`, userId).catch(() => {});
   await kv.del(`line:code:${code}`).catch(() => {});
   await kv.del(failKey).catch(() => {});
@@ -1820,6 +1854,15 @@ async function _handleLineImage(userId, replyToken, messageId) {
   if (!link) {
     return _lineReply(replyToken, _lineText('未連携です。まず管理者から受け取った6桁の連携コードを送信してください。'));
   }
+
+  // ── 将来: 複数経費ログ対応の挿入ポイント ──
+  //   const links = await _lineLinks(userId);
+  //   if (links.length > 1) {
+  //     // 画像は解析前にどの組織へ登録するか選ばせる。
+  //     // messageId とハッシュだけ pending(step:'awaiting_org') に退避し、
+  //     // links を [組織A][組織B] のクイックリプライで提示 → postback(action=pickorg&s=sheetId)
+  //     // で選択後に本関数の解析処理を継続する。単一(=1件)の今は分岐せず直進する。
+  //   }
   const { sheetId, identity } = link;
 
   // プラン確認（チーム限定）
@@ -2355,24 +2398,26 @@ async function lineUnlink(req, res) {
   const identity = String(body.identity || '').trim().toLowerCase();
   const sheetId = authz.sheetId;
 
+  // 当該シート向けのリンクだけを配列から外す（複数経費ログ対応に備えた形）。
+  //   残りが空になったらキー自体を削除、残れば絞った配列で更新。
+  async function _removeLinkFor(uid, matchFn) {
+    const links = await _lineLinks(uid);
+    const remaining = links.filter(l => !matchFn(l));
+    if (remaining.length === links.length) return false;
+    if (remaining.length) await kv.set(`line:link:${uid}`, { links: remaining }).catch(() => {});
+    else await kv.del(`line:link:${uid}`).catch(() => {});
+    await kv.srem(`line:link_by_sheet:${sheetId}`, uid).catch(() => {});
+    return true;
+  }
+
   let removed = 0;
   if (userId) {
-    const link = await kv.get(`line:link:${userId}`).catch(() => null);
-    if (link && link.sheetId === sheetId) {
-      await kv.del(`line:link:${userId}`).catch(() => {});
-      await kv.srem(`line:link_by_sheet:${sheetId}`, userId).catch(() => {});
-      removed++;
-    }
+    if (await _removeLinkFor(userId, l => l.sheetId === sheetId)) removed++;
   } else if (identity) {
     // identity 指定 → このシートの全 userId を走査して該当を解除
     const ids = await kv.smembers(`line:link_by_sheet:${sheetId}`).catch(() => []);
     for (const uid of (ids || [])) {
-      const link = await kv.get(`line:link:${uid}`).catch(() => null);
-      if (link && String(link.identity).toLowerCase() === identity) {
-        await kv.del(`line:link:${uid}`).catch(() => {});
-        await kv.srem(`line:link_by_sheet:${sheetId}`, uid).catch(() => {});
-        removed++;
-      }
+      if (await _removeLinkFor(uid, l => l.sheetId === sheetId && String(l.identity).toLowerCase() === identity)) removed++;
     }
   } else {
     return res.status(400).json({ error: 'userId_or_identity_required' });
