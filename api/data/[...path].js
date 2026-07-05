@@ -1921,7 +1921,7 @@ async function _handleLineImage(userId, replyToken, messageId) {
     const parsed = await _lineAnalyze(sheetId, buf, mime, categories);
 
     // 解析結果 → 経費データ
-    const data = _lineParsedToData(parsed, categories);
+    const data = await _lineParsedToData(parsed, categories);
     data.imageLink = imageLink;
     if (!imageStored) {
       data.note = [data.note, '※証票画像は未保存（LINE証票保存の有効化が必要）'].filter(Boolean).join('\n');
@@ -2263,14 +2263,50 @@ async function _lineAnalyze(sheetId, buf, mime, categories) {
   }
 }
 
-/** Gemini解析JSON → 経費データ（G列科目フォーマット・S列税区分を組む）。 */
-function _lineParsedToData(g, categories) {
+/** 為替レート取得（Web版 _fetchExchangeRate と同じ3ソースのフォールバック・サーバー版）。 */
+async function _fetchExchangeRate(from, to, date = null) {
+  const f = String(from).toLowerCase(), t = String(to).toLowerCase();
+  const dateStr = date || 'latest';
+  const _timeout = () => AbortSignal.timeout(8000);
+  // 1. jsdelivr currency-api（過去日付対応）
+  try {
+    const r = await fetch(`https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@${dateStr}/v1/currencies/${f}.json`, { signal: _timeout() });
+    if (r.ok) { const d = await r.json(); const rate = d[f]?.[t]; if (rate) return rate; }
+  } catch (_) {}
+  // 2. Frankfurter（過去レート対応）
+  try {
+    const endpoint = date ? date : 'latest';
+    const r = await fetch(`https://api.frankfurter.dev/v1/${endpoint}?base=${String(from).toUpperCase()}&symbols=${String(to).toUpperCase()}`, { signal: _timeout() });
+    if (r.ok) { const d = await r.json(); const rate = d.rates?.[String(to).toUpperCase()]; if (rate) return rate; }
+  } catch (_) {}
+  // 3. ExchangeRate-API 無料枠（最新のみ）
+  try {
+    const r = await fetch(`https://open.er-api.com/v6/latest/${String(from).toUpperCase()}`, { signal: _timeout() });
+    if (r.ok) { const d = await r.json(); const rate = d.rates?.[String(to).toUpperCase()]; if (rate) return rate; }
+  } catch (_) {}
+  return null;
+}
+
+/** 外貨→円換算（Web版と同じ：取引日レート×手数料3%込み・切り捨て）。取得失敗時は null。 */
+async function _lineFxConvert(from, fxAmount, date) {
+  const base = await _fetchExchangeRate(from, 'JPY', date);
+  if (!base) return null;
+  const markupPct = 3;
+  const rate = base * (1 + markupPct / 100);
+  const jpy = Math.floor(Number(fxAmount) * rate);
+  const note = `${from} ${Number(fxAmount).toLocaleString()} × ${rate.toFixed(2)}（手数料${markupPct}%込）= ¥${jpy.toLocaleString('ja-JP')}（${date}レート）`;
+  return { jpy, note };
+}
+
+/** Gemini解析JSON → 経費データ（G列科目フォーマット・S列税区分を組む・外貨は円換算）。 */
+async function _lineParsedToData(g, categories) {
   const valid = new Set(categories);
   const pickCat = (c) => (c && valid.has(c)) ? c : categories[0];
+  const txDate = _validDateStr(g.date) ? g.date : _todayJst();
 
-  let amount = 0, category = '', taxRate = '課税10%';
+  let amount = 0, category = '', taxRate = '課税10%', note = '';
   if (Array.isArray(g.items) && g.items.length) {
-    // 分割: "科目:金額:税率/..." 形式（parseSplitCategory と対称）
+    // 分割: "科目:金額:税率/..." 形式（parseSplitCategory と対称）。※明細は円建て前提。
     const parts = g.items.map(it => {
       const cat = pickCat(it.category);
       const amt = Math.round(Number(it.amount) || 0);
@@ -2281,6 +2317,13 @@ function _lineParsedToData(g, categories) {
     category = parts.map(p => p.amt ? `${p.cat}:${p.amt}:${p.tax}` : p.cat).join('/');
     const taxes = [...new Set(parts.map(p => p.tax))];
     taxRate = taxes.length === 1 ? taxes[0] : '混在';
+  } else if (g.fx_currency && g.fx_amount) {
+    // 外貨: 取引日レートで円換算（Web版と同一ロジック）
+    category = pickCat(g.category);
+    taxRate = g.tax_rate && g.tax_rate !== '混在' ? g.tax_rate : '課税10%';
+    const conv = await _lineFxConvert(g.fx_currency, Number(g.fx_amount), txDate);
+    if (conv) { amount = conv.jpy; note = conv.note; }
+    else { amount = 0; note = `外貨: ${g.fx_currency} ${g.fx_amount}（為替レート取得に失敗。「修正する」で金額を入力してください）`; }
   } else {
     amount = Math.round(Number(g.total_amount) || 0);
     category = pickCat(g.category);
@@ -2288,15 +2331,13 @@ function _lineParsedToData(g, categories) {
   }
 
   const withholding = Math.round(Number(g.withholding_amount) || 0);
-  const fxNote = (!g.total_amount && g.fx_amount)
-    ? `外貨: ${g.fx_currency || ''} ${g.fx_amount}（金額は「修正する」で入力してください）` : '';
 
   return {
-    date:    _validDateStr(g.date) ? g.date : _todayJst(),
+    date:    txDate,
     place:   String(g.shop || '').slice(0, 100),
     amount,
     category,
-    note:    fxNote,
+    note,
     invoice: String(g.invoice && g.invoice !== 'null' ? g.invoice : '').trim(),
     taxRate,
     withholding,
