@@ -1668,6 +1668,9 @@ async function lineWebhook(req, res) {
   try { payload = JSON.parse(raw.toString('utf8') || '{}'); } catch (_) { payload = {}; }
   const events = Array.isArray(payload.events) ? payload.events : [];
 
+  // リッチメニューが未設定なら自動設定（bot単位・1回のみ・管理者操作不要）
+  await _ensureRichMenu().catch(() => {});
+
   // LINEはタイムアウト時に再送する。各イベントは冪等化しつつ順に処理し、必ず200で返す。
   for (const ev of events) {
     try { await _handleLineEvent(ev); }
@@ -2110,6 +2113,78 @@ async function lineDriveToken(req, res) {
  * DELETE /api/data/linerichmenu   既定解除＋全リッチメニュー削除
  * ※ 管理者のみ。LINE_CHANNEL_ACCESS_TOKEN を使用（無料操作・通数カウント外）。
  */
+// リッチメニューの画像/レイアウトを変えたらこのバージョンを上げる（自動再設定される）
+const RICHMENU_VERSION = 'v1';
+let _richmenuEnsured = false; // ウォームインスタンス内キャッシュ
+
+/** リッチメニューを作成＋画像アップロード＋全ユーザー既定に設定（成功で true）。 */
+async function _setupRichMenuViaApi() {
+  const token = _lineToken();
+  if (!token) return false;
+  const H = { Authorization: `Bearer ${token}` };
+  // 既存を全削除（重複防止）
+  try {
+    const list = await (await fetch('https://api.line.me/v2/bot/richmenu/list', { headers: H })).json();
+    for (const m of (list.richmenus || [])) {
+      await fetch(`https://api.line.me/v2/bot/richmenu/${m.richMenuId}`, { method: 'DELETE', headers: H }).catch(() => {});
+    }
+  } catch (_) {}
+
+  const menu = {
+    size: { width: 2500, height: 843 },
+    selected: true,
+    name: 'keihi-log-menu',
+    chatBarText: 'メニュー',
+    areas: [
+      { bounds: { x: 0,    y: 0, width: 833, height: 843 }, action: { type: 'postback', data: 'action=sendreceipt', displayText: '領収書を送る' } },
+      { bounds: { x: 833,  y: 0, width: 834, height: 843 }, action: { type: 'postback', data: 'action=history',     displayText: '自分の申請' } },
+      { bounds: { x: 1667, y: 0, width: 833, height: 843 }, action: { type: 'postback', data: 'action=unsettled',   displayText: '未精算の確認' } },
+    ],
+  };
+  const createResp = await fetch('https://api.line.me/v2/bot/richmenu', {
+    method: 'POST', headers: { ...H, 'Content-Type': 'application/json' }, body: JSON.stringify(menu),
+  });
+  const created = await createResp.json().catch(() => ({}));
+  if (!createResp.ok || !created.richMenuId) { console.error('richmenu create failed:', created.message || createResp.status); return false; }
+
+  const imgBuf = Buffer.from(RICHMENU_PNG_BASE64, 'base64');
+  const upResp = await fetch(`https://api-data.line.me/v2/bot/richmenu/${created.richMenuId}/content`, {
+    method: 'POST', headers: { ...H, 'Content-Type': 'image/png' }, body: imgBuf,
+  });
+  if (!upResp.ok) { console.error('richmenu upload failed:', upResp.status); return false; }
+
+  const setResp = await fetch(`https://api.line.me/v2/bot/user/all/richmenu/${created.richMenuId}`, { method: 'POST', headers: H });
+  if (!setResp.ok) { console.error('richmenu set-default failed:', setResp.status); return false; }
+  return true;
+}
+
+/**
+ * リッチメニューが未設定なら1回だけ自動設定する（Webhook受信時に呼ぶ）。
+ * bot単位・全チーム共通なので、管理者の手動操作は不要。バージョン変更で自動再設定。
+ */
+async function _ensureRichMenu() {
+  if (_richmenuEnsured || !_lineToken()) return;
+  const flagKey = `line:richmenu:${RICHMENU_VERSION}`;
+  const done = await kv.get(flagKey).catch(() => null);
+  if (done) { _richmenuEnsured = true; return; }
+  // 同時実行防止（NXロック・失敗時はTTLで自然解放され次回再試行）
+  const lock = await kv.set(`${flagKey}:lock`, '1', { nx: true, ex: 120 }).catch(() => 'OK');
+  if (lock === null) return;
+  try {
+    if (await _setupRichMenuViaApi()) {
+      await kv.set(flagKey, '1').catch(() => {}); // 恒久フラグ
+      _richmenuEnsured = true;
+    }
+  } catch (e) { console.error('ensureRichMenu error:', e?.message || e); }
+  finally { await kv.del(`${flagKey}:lock`).catch(() => {}); }
+}
+
+/**
+ * GET    /api/data/linerichmenu   状態（保守用）
+ * POST   /api/data/linerichmenu   手動で再設定（保守用・admin）
+ * DELETE /api/data/linerichmenu   解除（保守用・admin）
+ * ※ 通常は Webhook 受信時に自動設定されるため、この操作は不要。
+ */
 async function lineRichMenu(req, res) {
   const authz = await _authorize(req, res);
   if (!authz) return;
@@ -2118,68 +2193,26 @@ async function lineRichMenu(req, res) {
   if (!token) return res.status(400).json({ error: 'line_not_configured', message: 'LINE_CHANNEL_ACCESS_TOKEN が未設定です' });
   const H = { Authorization: `Bearer ${token}` };
 
-  const _deleteAll = async () => {
-    try {
-      const list = await (await fetch('https://api.line.me/v2/bot/richmenu/list', { headers: H })).json();
-      for (const m of (list.richmenus || [])) {
-        await fetch(`https://api.line.me/v2/bot/richmenu/${m.richMenuId}`, { method: 'DELETE', headers: H }).catch(() => {});
-      }
-    } catch (_) {}
-  };
-
   if (req.method === 'GET') {
     const r = await fetch('https://api.line.me/v2/bot/user/all/richmenu', { headers: H }).catch(() => null);
     return res.status(200).json({ enabled: !!(r && r.ok) });
   }
-
   if (req.method === 'DELETE') {
     await fetch('https://api.line.me/v2/bot/user/all/richmenu', { method: 'DELETE', headers: H }).catch(() => {});
-    await _deleteAll();
+    try {
+      const list = await (await fetch('https://api.line.me/v2/bot/richmenu/list', { headers: H })).json();
+      for (const m of (list.richmenus || [])) await fetch(`https://api.line.me/v2/bot/richmenu/${m.richMenuId}`, { method: 'DELETE', headers: H }).catch(() => {});
+    } catch (_) {}
+    await kv.del(`line:richmenu:${RICHMENU_VERSION}`).catch(() => {});
+    _richmenuEnsured = false;
     return res.status(200).json({ ok: true, enabled: false });
   }
-
-  if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
-
-  try {
-    await _deleteAll(); // 重複防止のため既存を全削除
-
-    const menu = {
-      size: { width: 2500, height: 843 },
-      selected: true,
-      name: 'keihi-log-menu',
-      chatBarText: 'メニュー',
-      areas: [
-        { bounds: { x: 0,    y: 0, width: 833, height: 843 }, action: { type: 'postback', data: 'action=sendreceipt', displayText: '領収書を送る' } },
-        { bounds: { x: 833,  y: 0, width: 834, height: 843 }, action: { type: 'postback', data: 'action=history',     displayText: '自分の申請' } },
-        { bounds: { x: 1667, y: 0, width: 833, height: 843 }, action: { type: 'postback', data: 'action=unsettled',   displayText: '未精算の確認' } },
-      ],
-    };
-    const createResp = await fetch('https://api.line.me/v2/bot/richmenu', {
-      method: 'POST', headers: { ...H, 'Content-Type': 'application/json' }, body: JSON.stringify(menu),
-    });
-    const created = await createResp.json().catch(() => ({}));
-    if (!createResp.ok || !created.richMenuId) {
-      return res.status(502).json({ error: 'create_failed', message: created.message || `status ${createResp.status}` });
-    }
-    const richMenuId = created.richMenuId;
-
-    const imgBuf = Buffer.from(RICHMENU_PNG_BASE64, 'base64');
-    const upResp = await fetch(`https://api-data.line.me/v2/bot/richmenu/${richMenuId}/content`, {
-      method: 'POST', headers: { ...H, 'Content-Type': 'image/png' }, body: imgBuf,
-    });
-    if (!upResp.ok) {
-      return res.status(502).json({ error: 'upload_failed', message: (await upResp.text().catch(() => '')) || `status ${upResp.status}` });
-    }
-
-    const setResp = await fetch(`https://api.line.me/v2/bot/user/all/richmenu/${richMenuId}`, { method: 'POST', headers: H });
-    if (!setResp.ok) {
-      return res.status(502).json({ error: 'set_default_failed', message: (await setResp.text().catch(() => '')) || `status ${setResp.status}` });
-    }
-    return res.status(200).json({ ok: true, enabled: true, richMenuId });
-  } catch (e) {
-    console.error('richmenu setup error:', e?.message || e);
-    return res.status(500).json({ error: 'server_error', message: e?.message || 'unknown' });
+  if (req.method === 'POST') {
+    const ok = await _setupRichMenuViaApi();
+    if (ok) { await kv.set(`line:richmenu:${RICHMENU_VERSION}`, '1').catch(() => {}); _richmenuEnsured = true; }
+    return res.status(ok ? 200 : 502).json({ ok, enabled: ok });
   }
+  return res.status(405).json({ error: 'method_not_allowed' });
 }
 
 /** 設定B5の鍵でGeminiを代理呼び出し（gemini()と同じ鍵キャッシュ経路）。 */

@@ -221,21 +221,6 @@ const SettingsView = (() => {
     </div>
   </div>
 
-  <!-- LINEメニュー（管理者のみ・チームプラン限定・全メンバー共通・一度設定すれば反映） -->
-  <div class="card mb-3" id="lineMenuCard">
-    <div class="card-body">
-      <div class="settings-section-title">
-        <span>LINEメニュー <span class="badge bg-success bg-opacity-75 ms-1" style="font-size:0.6rem;">チームプラン</span></span>
-      </div>
-      <div class="settings-step-hint mt-2">
-        LINEトーク下部に「領収書を送る／自分の申請／未精算の確認」の常設メニューを表示します。<br>
-        <span class="text-muted">全メンバー共通です。一度「設定する」を押せば反映されます（無料枠を消費しません）。</span>
-      </div>
-      <div id="lineMenuStatus" class="small text-muted mt-2 mb-2"><span class="spinner-border spinner-border-sm me-1"></span>確認中…</div>
-      <div id="lineMenuActions"></div>
-    </div>
-  </div>
-
   <!-- メンバー招待URL（管理者のみ・メンバー管理の下） -->
   ${ssId ? `
   <div class="card mb-3">
@@ -691,7 +676,6 @@ const SettingsView = (() => {
     }
 
     _applyMemberPlanRestriction(el);
-    _initLineMenu(el);   // LINEリッチメニューの状態を表示
     el.querySelector('#memberList')?.addEventListener('click', e => {
       const edit = e.target.closest('.btn-edit-member');
       const del  = e.target.closest('.btn-del-member');
@@ -1344,68 +1328,8 @@ const SettingsView = (() => {
       btn.classList.replace('btn-outline-secondary', 'btn-outline-primary');
       hint?.classList.add('d-none');
     }
-    // LINE連携もチームプラン限定（ソロは行のLINEボタンを無効化・LINEメニューカードを隠す）
+    // LINE連携もチームプラン限定（ソロは行のLINEボタンを無効化）
     el.querySelectorAll('.btn-line-code').forEach(b => { b.disabled = isSolo; });
-    el.querySelector('#lineMenuCard')?.classList.toggle('d-none', isSolo);
-  }
-
-  /** LINEリッチメニューの状態を取得して表示。 */
-  async function _initLineMenu(el) {
-    const statusEl = el.querySelector('#lineMenuStatus');
-    const actionsEl = el.querySelector('#lineMenuActions');
-    if (!statusEl || !actionsEl) return;
-    if (typeof Demo !== 'undefined' && Demo.isActive()) {
-      statusEl.innerHTML = '<span class="text-muted">デモモードでは利用できません</span>';
-      actionsEl.innerHTML = '';
-      return;
-    }
-    try {
-      const s = await Sheets.getRichMenuStatus();
-      _renderLineMenu(el, s.enabled);
-    } catch (err) {
-      statusEl.innerHTML = '<span class="text-muted">状態を取得できませんでした</span>';
-      actionsEl.innerHTML = '';
-    }
-  }
-
-  function _renderLineMenu(el, enabled) {
-    const statusEl = el.querySelector('#lineMenuStatus');
-    const actionsEl = el.querySelector('#lineMenuActions');
-    if (!statusEl || !actionsEl) return;
-    if (enabled) {
-      statusEl.innerHTML = '<span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>設定済み</span>';
-      actionsEl.innerHTML =
-        '<button class="btn btn-outline-primary btn-sm me-2" id="btnLineMenuSetup"><i class="bi bi-arrow-repeat me-1"></i>再設定</button>' +
-        '<button class="btn btn-outline-danger btn-sm" id="btnLineMenuRemove"><i class="bi bi-x-circle me-1"></i>メニューを解除</button>';
-    } else {
-      statusEl.innerHTML = '<span class="text-warning"><i class="bi bi-exclamation-triangle-fill me-1"></i>未設定</span>';
-      actionsEl.innerHTML = '<button class="btn btn-success btn-sm" id="btnLineMenuSetup"><i class="bi bi-menu-button-wide me-1"></i>メニューを設定する</button>';
-    }
-    actionsEl.querySelector('#btnLineMenuSetup')?.addEventListener('click', () => _setupLineMenu(el));
-    actionsEl.querySelector('#btnLineMenuRemove')?.addEventListener('click', () => _removeLineMenu(el));
-  }
-
-  async function _setupLineMenu(el) {
-    const btn = el.querySelector('#btnLineMenuSetup');
-    if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>設定中…'; }
-    try {
-      await Sheets.setupRichMenu();
-      App.showToast('LINEメニューを設定しました', 'success');
-      await _initLineMenu(el);
-    } catch (err) {
-      App.showToast('設定に失敗しました：' + (err.message || ''), 'danger');
-      await _initLineMenu(el);
-    }
-  }
-
-  async function _removeLineMenu(el) {
-    try {
-      await Sheets.removeRichMenu();
-      App.showToast('LINEメニューを解除しました', 'success');
-      await _initLineMenu(el);
-    } catch (err) {
-      App.showToast('解除に失敗しました：' + (err.message || ''), 'danger');
-    }
   }
 
   /** 証票保存の状態に応じた案内HTML（連携コードモーダル内に表示・有効化ボタンは置かない）。 */

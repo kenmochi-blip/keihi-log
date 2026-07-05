@@ -85,18 +85,6 @@ const Sheets = (() => {
   function disableLineDrive(ssId) {
     return _proxyWrite('linedrivetoken', ssId || _ssId(), 'DELETE', undefined);
   }
-  /** LINEリッチメニューの状態を取得。 */
-  function getRichMenuStatus(ssId) {
-    return _proxyGet('linerichmenu', ssId || _ssId());
-  }
-  /** LINEリッチメニューを設定（作成＋画像＋全ユーザー既定・admin専用）。 */
-  function setupRichMenu(ssId) {
-    return _proxyWrite('linerichmenu', ssId || _ssId(), 'POST', {});
-  }
-  /** LINEリッチメニューを解除（admin専用）。 */
-  function removeRichMenu(ssId) {
-    return _proxyWrite('linerichmenu', ssId || _ssId(), 'DELETE', undefined);
-  }
 
   /** 一時的なサーバーエラー時に指数バックオフでリトライする fetch ラッパー。 */
   async function _fetchWithRetry(fn, maxRetries = 3) {
@@ -697,9 +685,6 @@ const Sheets = (() => {
     getLineDriveStatus,
     enableLineDrive,
     disableLineDrive,
-    getRichMenuStatus,
-    setupRichMenu,
-    removeRichMenu,
     readSetting,
     readAllSettings,
     writeSetting,
