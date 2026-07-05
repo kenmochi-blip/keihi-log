@@ -157,10 +157,11 @@ git push origin claude/rebuild-receipt-app-Ft3lE
 
 - [x] **`js/picker.js` を削除** → 完了（コミット 4e11c56）
 
-### 📱 LINE連携（チームプラン限定・実装済み／プレビュー検証待ち）
+### 📱 LINE連携（チームプラン限定・**本番稼働中** 2026-07-05〜）
 
 設計: `docs/line-integration-design.md`。LINE公式アカウントに領収書画像を送ると送信者の
 経費ログに登録される。**全応答は Reply API のみ**（Push等は使わない＝無料枠を消費しない）。
+本番bot `@705rxpww`・Webhook `https://keihi-log.com/api/data/linewebhook`・`LINE_ENABLED=1`。
 
 - サーバー実装は全て `api/data/[...path].js` 内（関数12個制限のため新規ファイルなし）
   - `POST /api/data/linewebhook`（署名検証・生ボディ必須）／`/linecode`（admin）／`/lineunlink`（admin）
