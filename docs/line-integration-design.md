@@ -71,9 +71,9 @@ LINE公式アカウント（bot）に領収書画像を送ると、送信者の�
 
 | メソッド/パス | 認証 | 内容 |
 |---|---|---|
-| `POST /api/data/line/webhook` | LINE署名検証（生ボディ必須） | LINEからのイベント受信。全処理の入口 |
-| `POST /api/data/line/code` | 既存 `_authorize`（admin） | 連携コード発行（設定タブから呼ぶ） |
-| `POST /api/data/line/unlink` | 既存 `_authorize`（admin） | 連携解除（メンバー削除連動でも呼ぶ） |
+| `POST /api/data/linewebhook` | LINE署名検証（生ボディ必須） | LINEからのイベント受信。全処理の入口 |
+| `POST /api/data/linecode` | 既存 `_authorize`（admin） | 連携コード発行（設定タブから呼ぶ） |
+| `POST /api/data/lineunlink` | 既存 `_authorize`（admin） | 連携解除（メンバー削除連動でも呼ぶ） |
 
 - `LINE_ENABLED` 環境変数がOFFなら webhook は即200（no-op）を返すキルスイッチ。
 - 署名検証: `x-line-signature` を `LINE_CHANNEL_SECRET` でHMAC-SHA256検証。生ボディが要るのでStripe webhookと同じbodyParser回避パターンを流用。

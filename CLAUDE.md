@@ -163,7 +163,7 @@ git push origin claude/rebuild-receipt-app-Ft3lE
 経費ログに登録される。**全応答は Reply API のみ**（Push等は使わない＝無料枠を消費しない）。
 
 - サーバー実装は全て `api/data/[...path].js` 内（関数12個制限のため新規ファイルなし）
-  - `POST /api/data/line/webhook`（署名検証・生ボディ必須）／`/line/code`（admin）／`/line/unlink`（admin）
+  - `POST /api/data/linewebhook`（署名検証・生ボディ必須）／`/linecode`（admin）／`/lineunlink`（admin）
   - ⚠️ **`bodyParser` を無効化**（`config.api.bodyParser=false`）。LINE署名検証に生ボディが要るため。
     全ボディは `_readRaw`→`_body` で手動パース（`req._rawBody` に1度だけキャッシュ）。
 - 環境変数（プレビュー用/本番用でチャンネルを分ける）:

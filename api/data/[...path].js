@@ -86,8 +86,14 @@ export default async function handler(req, res) {
         return await accountantRouter(req, res);
       case 'chat':
         return await chat(req, res);
-      case 'line':
-        return await lineRouter(req, res);
+      // LINE 連携（Vercelのこの構成では2階層パス /api/data/line/* が関数に届かないため、
+      // 動作実績のある1階層リソース名で登録する）
+      case 'linewebhook':
+        return await lineWebhook(req, res);
+      case 'linecode':
+        return await lineCodeIssue(req, res);
+      case 'lineunlink':
+        return await lineUnlink(req, res);
       default:
         return res.status(404).json({ error: 'not_found', resource });
     }
@@ -1558,9 +1564,11 @@ function _uuid() {
  *   - 承認・精算・削除・編集はWeb側のみ
  *
  * エンドポイント（このキャッチオール内）:
- *   POST /api/data/line/webhook   LINE署名検証（生ボディ必須。bodyParser無効化済み）
- *   POST /api/data/line/code      連携コード発行（admin・設定タブから）
- *   POST /api/data/line/unlink    連携解除（admin・メンバー削除連動）
+ *   POST /api/data/linewebhook   LINE署名検証（生ボディ必須。bodyParser無効化済み）
+ *   POST /api/data/linecode      連携コード発行（admin・設定タブから）
+ *   POST /api/data/lineunlink    連携解除（admin・メンバー削除連動）
+ *   ※ このVercel構成ではキャッチオール関数に2階層パス（/api/data/line/*）が届かないため、
+ *     動作実績のある1階層リソース名（linewebhook / linecode / lineunlink）で登録している。
  */
 
 const LINE_API      = 'https://api.line.me/v2/bot';
@@ -1573,14 +1581,6 @@ function _lineSecret()  { return process.env.LINE_CHANNEL_SECRET || ''; }
 /** メールを持たないLINE専用メンバーの合成ID（生userIdはシートに書かない）。 */
 function _lineSynthId(userId) {
   return 'line:' + crypto.createHash('sha256').update(String(userId)).digest('hex').slice(0, 12);
-}
-
-async function lineRouter(req, res) {
-  const sub = _pathSegs(req)[3] || '';
-  if (sub === 'webhook') return lineWebhook(req, res);
-  if (sub === 'code')    return lineCodeIssue(req, res);
-  if (sub === 'unlink')  return lineUnlink(req, res);
-  return res.status(404).json({ error: 'not_found' });
 }
 
 /* ── 署名検証・Reply API・コンテンツ取得 ── */
@@ -2328,7 +2328,7 @@ function _serverAuditChecks(expenses, data, newHashes) {
 /* ── 管理者エンドポイント: 連携コード発行 / 解除 ── */
 
 /**
- * POST /api/data/line/code   body: { sheetId, identity, name }
+ * POST /api/data/linecode   body: { sheetId, identity, name }
  *   admin が特定メンバー向けの6桁連携コードを発行する。
  *   identity はメール（既存メンバー）または空（→合成ID発行を想定した名前指定）。
  */
@@ -2394,7 +2394,7 @@ async function lineCodeIssue(req, res) {
 }
 
 /**
- * POST /api/data/line/unlink  body: { sheetId, userId } または { identity }
+ * POST /api/data/lineunlink  body: { sheetId, userId } または { identity }
  *   admin が連携を解除する（メンバー削除連動でも呼ぶ）。
  */
 async function lineUnlink(req, res) {

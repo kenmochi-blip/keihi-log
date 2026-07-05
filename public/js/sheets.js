@@ -64,13 +64,14 @@ const Sheets = (() => {
     return _proxyWrite('approve', ssId || _ssId(), 'POST', { ids: [id] });
   }
 
-  /** LINE連携コードを発行（admin専用）。identity=メール（既存メンバー）or 空（→名前で新規LINE専用メンバー）。 */
+  /** LINE連携コードを発行（admin専用）。identity=メール（既存メンバー）or 空（→名前で新規LINE専用メンバー）。
+   *  ※ Vercelのこの構成では2階層パスが関数に届かないため1階層リソース名 'linecode' を使う。 */
   function issueLineCode(identity, name, ssId) {
-    return _proxyWrite('line/code', ssId || _ssId(), 'POST', { identity, name });
+    return _proxyWrite('linecode', ssId || _ssId(), 'POST', { identity, name });
   }
   /** LINE連携を解除（admin専用）。payload: { userId } または { identity }。 */
   function unlinkLine(payload, ssId) {
-    return _proxyWrite('line/unlink', ssId || _ssId(), 'POST', payload);
+    return _proxyWrite('lineunlink', ssId || _ssId(), 'POST', payload);
   }
 
   /** 一時的なサーバーエラー時に指数バックオフでリトライする fetch ラッパー。 */
