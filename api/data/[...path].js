@@ -1703,9 +1703,11 @@ async function _handleLineEvent(ev) {
   if (ev.type === 'message') {
     const m = ev.message || {};
     if (m.type === 'image') return _handleLineImage(userId, replyToken, m.id);
+    // ファイル送信（PNG/JPEG/PDF等）も証票として受け付ける
+    if (m.type === 'file')  return _handleLineImage(userId, replyToken, m.id);
     if (m.type === 'text')  return _handleLineText(userId, replyToken, String(m.text || '').trim());
     // その他（スタンプ・動画等）は案内のみ
-    return _lineReply(replyToken, _lineText('領収書の画像を送ってください。'));
+    return _lineReply(replyToken, _lineText('領収書の画像またはPDFファイルを送ってください。'));
   }
 }
 
@@ -1893,6 +1895,10 @@ async function _handleLineImage(userId, replyToken, messageId) {
   try {
     // 画像取得 → ハッシュ
     const { buf, mime } = await _lineFetchContent(messageId);
+    // 画像・PDFのみ受け付ける（ファイル送信で他形式が来た場合の案内）
+    if (!/^image\//.test(mime) && mime !== 'application/pdf') {
+      return _lineReply(replyToken, _lineText('領収書の画像（JPEG/PNG）またはPDFファイルを送ってください。'));
+    }
     const imageHash = crypto.createHash('sha256').update(buf).digest('hex');
 
     // 証票をDriveへ保存（ベストエフォート）。
