@@ -24,7 +24,7 @@ import { getSaAuth } from '../_sa.js';
 import { verifyIdToken } from '../_verifyToken.js';
 import { rateLimit } from '../_rateLimit.js';
 import { FAQ_TEXT } from '../_faq-data.js';
-import { RICHMENU_PNG_BASE64 } from '../_richmenuImage.js';
+import { RICHMENU_PNG_BASE64, RICHMENU_LINK_PNG_BASE64 } from '../_richmenuImage.js';
 
 // bodyParser を無効化し、ボディは手動で読む（_readRaw）。
 // 理由: LINE Webhook の署名検証(HMAC-SHA256)には「生ボディの厳密なバイト列」が必要で、
@@ -1723,8 +1723,14 @@ async function _handleLineEvent(ev) {
   const replyToken = ev.replyToken;
 
   if (ev.type === 'follow') {
+    // 未連携は既定の「認証コードを入力」メニュー（折りたたみ＝入力欄が見える）のまま。
+    // 既に連携済みのユーザーが再追加した場合だけ MAIN（3ボタン）へ割り当てる。
+    if (userId) {
+      const _l = await _lineLink(userId).catch(() => null);
+      if (_l) _lineEnsureUserMenu(userId).catch(() => {});
+    }
     return _lineReply(replyToken, _lineText(
-      '経費ログbotへようこそ。\nご利用には管理者から受け取った6桁の連携コードの送信が必要です。\n連携後は領収書の画像を送るだけで経費を登録できます。'
+      '経費ログbotへようこそ。\nまず、管理者から届いた6桁の認証コードを、この下の入力欄に入力して送信してください。\n連携後は、下のメニューや画像送信で経費を登録できます。'
     ));
   }
 
@@ -2166,21 +2172,35 @@ async function lineLinks(req, res) {
  * DELETE /api/data/linerichmenu   既定解除＋全リッチメニュー削除
  * ※ 管理者のみ。LINE_CHANNEL_ACCESS_TOKEN を使用（無料操作・通数カウント外）。
  */
-// リッチメニューの画像/レイアウトを変えたらこのバージョンを上げる（自動再設定される）
-// 画像/レイアウト/挙動を変えたら上げる（自動再設定＆per-user再割当）
-const RICHMENU_VERSION = 'v5';
+// リッチメニューの画像/レイアウト/挙動を変えたら上げる（自動で再設定＆再割当される）
+const RICHMENU_VERSION = 'v6';
 let _richmenuEnsured = false; // ウォームインスタンス内キャッシュ
 
+/** 1つのリッチメニューを作成＋画像アップロードし richMenuId を返す（失敗で null）。 */
+async function _createRichMenu(H, def, pngB64) {
+  const createResp = await fetch('https://api.line.me/v2/bot/richmenu', {
+    method: 'POST', headers: { ...H, 'Content-Type': 'application/json' }, body: JSON.stringify(def),
+  });
+  const created = await createResp.json().catch(() => ({}));
+  if (!createResp.ok || !created.richMenuId) { console.error('richmenu create failed:', created.message || createResp.status); return null; }
+  const upResp = await fetch(`https://api-data.line.me/v2/bot/richmenu/${created.richMenuId}/content`, {
+    method: 'POST', headers: { ...H, 'Content-Type': 'image/png' }, body: Buffer.from(pngB64, 'base64'),
+  });
+  if (!upResp.ok) { console.error('richmenu upload failed:', upResp.status); return null; }
+  return created.richMenuId;
+}
+
 /**
- * リッチメニューを作成＋画像アップロードし、richMenuId をKVに保存（成功で true）。
- * ※ 既定(全ユーザー)には設定しない。連携完了したユーザーにだけ per-user で割り当てる
- *   （未連携ユーザーはメニュー非表示＝6桁コードの入力欄が隠れない）。
+ * 2種類のメニューを作成する。
+ *   LINK（未連携・既定）: 認証コード入力の案内。selected:false で折りたたみ＝入力欄が見える。
+ *   MAIN（連携済み・per-user）: 3ボタン（領収書を送る/過去の申請/未精算）。selected:true で展開。
+ * LINK を全ユーザー既定に設定し、MAIN は連携時に per-user 割当する。
  */
 async function _setupRichMenuViaApi() {
   const token = _lineToken();
   if (!token) return false;
   const H = { Authorization: `Bearer ${token}` };
-  // 既定(全ユーザー)を解除 ＋ 既存メニューを全削除（重複防止・旧v1の既定も消す）
+  // 既存の既定解除＋全メニュー削除（重複防止・旧バージョンの掃除）
   await fetch('https://api.line.me/v2/bot/user/all/richmenu', { method: 'DELETE', headers: H }).catch(() => {});
   try {
     const list = await (await fetch('https://api.line.me/v2/bot/richmenu/list', { headers: H })).json();
@@ -2189,32 +2209,30 @@ async function _setupRichMenuViaApi() {
     }
   } catch (_) {}
 
-  const menu = {
-    size: { width: 2500, height: 843 },
-    selected: true,
-    name: 'keihi-log-menu',
-    chatBarText: 'メニュー',
+  // 連携済み用（3ボタン・展開）
+  const mainId = await _createRichMenu(H, {
+    size: { width: 2500, height: 843 }, selected: true, name: 'keihi-log-main', chatBarText: 'メニュー',
     areas: [
       { bounds: { x: 0,    y: 0, width: 833, height: 843 }, action: { type: 'postback', data: 'action=sendreceipt', displayText: '領収書を送る' } },
       { bounds: { x: 833,  y: 0, width: 834, height: 843 }, action: { type: 'postback', data: 'action=history',     displayText: '過去の申請' } },
       { bounds: { x: 1667, y: 0, width: 833, height: 843 }, action: { type: 'postback', data: 'action=unsettled',   displayText: '未精算' } },
     ],
-  };
-  const createResp = await fetch('https://api.line.me/v2/bot/richmenu', {
-    method: 'POST', headers: { ...H, 'Content-Type': 'application/json' }, body: JSON.stringify(menu),
-  });
-  const created = await createResp.json().catch(() => ({}));
-  if (!createResp.ok || !created.richMenuId) { console.error('richmenu create failed:', created.message || createResp.status); return false; }
+  }, RICHMENU_PNG_BASE64);
+  if (!mainId) return false;
 
-  const imgBuf = Buffer.from(RICHMENU_PNG_BASE64, 'base64');
-  const upResp = await fetch(`https://api-data.line.me/v2/bot/richmenu/${created.richMenuId}/content`, {
-    method: 'POST', headers: { ...H, 'Content-Type': 'image/png' }, body: imgBuf,
-  });
-  if (!upResp.ok) { console.error('richmenu upload failed:', upResp.status); return false; }
+  // 未連携用（認証コード入力案内・折りたたみで入力欄を見せる）
+  const linkId = await _createRichMenu(H, {
+    size: { width: 2500, height: 843 }, selected: false, name: 'keihi-log-link', chatBarText: '認証コードを入力',
+    areas: [
+      { bounds: { x: 0, y: 0, width: 2500, height: 843 }, action: { type: 'postback', data: 'action=entercode', displayText: '認証コードを入力' } },
+    ],
+  }, RICHMENU_LINK_PNG_BASE64);
+  if (!linkId) return false;
 
-  await kv.set('line:richmenuid', created.richMenuId).catch(() => {});
-  // 全ユーザーの既定メニューに設定（確実に表示させる。per-user方式は割当が不安定だったため既定に戻す）
-  const setResp = await fetch(`https://api.line.me/v2/bot/user/all/richmenu/${created.richMenuId}`, { method: 'POST', headers: H });
+  await kv.set('line:richmenuid:main', mainId).catch(() => {});
+  await kv.set('line:richmenuid:link', linkId).catch(() => {});
+  // 未連携（既定）は LINK メニュー。連携時に MAIN を per-user 割当する。
+  const setResp = await fetch(`https://api.line.me/v2/bot/user/all/richmenu/${linkId}`, { method: 'POST', headers: H });
   if (!setResp.ok) { console.error('richmenu set-default failed:', setResp.status); return false; }
   return true;
 }
@@ -2239,8 +2257,23 @@ async function _ensureRichMenu() {
   finally { await kv.del(`${flagKey}:lock`).catch(() => {}); }
 }
 
-/** （無効化）既定メニューを全ユーザーに表示する方式に戻したため、per-user割当は不要。 */
-async function _lineEnsureUserMenu(_userId) { /* no-op */ }
+/**
+ * 連携済みユーザーに MAIN（3ボタン）メニューを per-user 割当する（1ユーザー1回・バージョン別フラグ）。
+ * 既定は LINK メニューなので、割当に失敗しても「メニューが消える」ことはない（安全）。
+ */
+async function _lineEnsureUserMenu(userId) {
+  if (!userId || !_lineToken()) return;
+  const flagKey = `line:menu:${RICHMENU_VERSION}:${userId}`;
+  if (await kv.get(flagKey).catch(() => null)) return;
+  const rmid = await kv.get('line:richmenuid:main').catch(() => null);
+  if (!rmid) return;
+  try {
+    const r = await fetch(`https://api.line.me/v2/bot/user/${userId}/richmenu/${rmid}`, {
+      method: 'POST', headers: { Authorization: `Bearer ${_lineToken()}` },
+    });
+    if (r.ok) await kv.set(flagKey, '1', { ex: 120 * 24 * 3600 }).catch(() => {});
+  } catch (_) {}
+}
 
 /**
  * GET    /api/data/linerichmenu   状態（保守用）
@@ -2515,6 +2548,12 @@ async function _handleLinePostback(userId, replyToken, dataStr) {
   const action = params.get('action');
 
   // ── リッチメニューのボタン（pending不要） ──
+  // 未連携メニューの「認証コードを入力」
+  if (action === 'entercode') {
+    return _lineReply(replyToken, _lineText(
+      '管理者から届いた6桁の認証コードを、この下の入力欄に入力して送信してください。\n（入力欄が出ていない場合は、メニュー右上の「∨」やキーボードのアイコンをタップしてください）'
+    ));
+  }
   // カメラ/アルバムはLINE仕様でクイックリプライ限定のため、メニュー→ワンタップで開かせる。
   if (action === 'camera') {
     return _lineReply(replyToken, {
