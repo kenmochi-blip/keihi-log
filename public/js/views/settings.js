@@ -1345,38 +1345,55 @@ const SettingsView = (() => {
     const m = _master?.members?.[idx];
     if (!m) return;
     if (typeof Demo !== 'undefined' && Demo.isActive()) {
-      return _showLineCodeModal(m.name, '123456', true);
+      return _showLineCodeModal(m.name, '123456', true, 'https://line.me/R/ti/p/@demo');
     }
     const isLineOnly = String(m.email || '').startsWith('line:');
     try {
       App.showToast('連携コードを発行しています…', 'info');
       // 既存メンバーは email を identity に、LINE専用メンバーは既存の合成IDを引き継ぐため identity=email(=合成ID)
       const res = await Sheets.issueLineCode(m.email || '', m.name);
-      _showLineCodeModal(m.name, res.code, false);
+      _showLineCodeModal(m.name, res.code, false, res.addFriendUrl || '');
     } catch (err) {
       App.showToast('コード発行に失敗しました：' + (err.message || ''), 'danger');
     }
   }
 
-  /** 連携コード表示モーダル。 */
-  function _showLineCodeModal(name, code, isDemo) {
+  /** 連携コード表示モーダル。addFriendUrl があれば友だち追加QR/リンクも表示する。 */
+  function _showLineCodeModal(name, code, isDemo, addFriendUrl) {
+    // 友だち追加セクション（公式アカウントのURLが設定されている場合のみ）
+    const friendSection = addFriendUrl ? `
+      <div class="mt-3 pt-3 border-top">
+        <div class="fw-semibold small mb-2"><span class="badge bg-success">STEP 1</span> 公式アカウントを友だち追加</div>
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(addFriendUrl)}"
+             width="150" height="150" alt="友だち追加QR" style="border:1px solid #eee;border-radius:8px;">
+        <div class="mt-2">
+          <a href="${_escape(addFriendUrl)}" target="_blank" rel="noopener" class="btn btn-success btn-sm">
+            <i class="bi bi-chat-dots-fill me-1"></i>友だち追加リンクを開く
+          </a>
+        </div>
+        <div class="text-muted mt-1" style="font-size:0.7rem;">スマホでQRを読み取るか、リンクから追加できます</div>
+      </div>
+      <div class="mt-3 pt-2">
+        <div class="fw-semibold small mb-2"><span class="badge bg-success">STEP 2</span> トークで下のコードを送信</div>
+      </div>` : `
+      <div class="text-muted small mt-2">
+        公式アカウントを友だち追加し、このコードをトークで送信すると連携が完了します。
+      </div>`;
+
     const div = document.createElement('div');
     div.innerHTML = `
       <div class="modal fade" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
           <div class="modal-content">
             <div class="modal-header">
-              <h5 class="modal-title"><i class="bi bi-chat-dots me-2 text-success"></i>LINE連携コード</h5>
+              <h5 class="modal-title"><i class="bi bi-chat-dots me-2 text-success"></i>LINE連携（${_escape(name)} さん）</h5>
               <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body text-center">
-              <div class="text-muted small mb-2">${_escape(name)} さん用</div>
-              <div class="fw-bold" style="font-size:2.4rem;letter-spacing:0.3rem;">${_escape(code)}</div>
-              <div class="text-muted small mt-2">
-                このコードを本人に伝えてください。<br>
-                LINE公式アカウントを友だち追加し、このコードを送信すると連携が完了します。<br>
-                <span class="text-warning">有効期限：24時間（使い捨て）</span>
-              </div>
+              ${friendSection}
+              <div class="fw-bold mt-2" style="font-size:2.4rem;letter-spacing:0.3rem;">${_escape(code)}</div>
+              <div class="text-warning small mt-1">有効期限：24時間（使い捨て）</div>
+              <div class="text-muted small mt-2">この画面をスクリーンショットして本人に送ると簡単です。</div>
               ${isDemo ? '<div class="text-info small mt-2">※デモモードのため実際には発行されません</div>' : ''}
             </div>
             <div class="modal-footer">

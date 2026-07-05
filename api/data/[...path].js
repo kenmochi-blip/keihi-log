@@ -2390,7 +2390,12 @@ async function lineCodeIssue(req, res) {
     sheetId: authz.sheetId, identity, name,
   }, { ex: 86400 }).catch(() => {});
 
-  return res.status(200).json({ ok: true, code, name, identity, expiresInHours: 24 });
+  // 公式アカウントの友だち追加URL（環境変数。プレビュー用/本番用で別bot）。
+  // 秘密情報ではない（誰でも友だち追加できる公開URL）ためクライアントに返してよい。
+  return res.status(200).json({
+    ok: true, code, name, identity, expiresInHours: 24,
+    addFriendUrl: process.env.LINE_ADD_FRIEND_URL || '',
+  });
 }
 
 /**

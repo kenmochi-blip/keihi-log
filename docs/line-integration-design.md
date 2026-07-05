@@ -145,6 +145,8 @@ CLAUDE.mdに「監査ルール変更時は submit.js とサーバー側の両方
 - `LINE_CHANNEL_SECRET` — 署名検証用
 - `LINE_CHANNEL_ACCESS_TOKEN` — Reply API 呼び出し用
 - `LINE_ENABLED` — キルスイッチ（"1"でON）
+- `LINE_ADD_FRIEND_URL` — 公式アカウントの友だち追加URL（例 `https://lin.ee/xxxx` / `https://line.me/R/ti/p/@basicid`）。
+  連携コードモーダルにQR＋リンクとして表示する。秘密情報ではない（公開URL）。未設定でもコードは出るが友だち追加導線は非表示。
 
 開発用・本番用でチャンネルを分けるため、プレビュー環境と本番環境で別の値を設定。
 

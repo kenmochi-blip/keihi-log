@@ -167,7 +167,8 @@ git push origin claude/rebuild-receipt-app-Ft3lE
   - ⚠️ **`bodyParser` を無効化**（`config.api.bodyParser=false`）。LINE署名検証に生ボディが要るため。
     全ボディは `_readRaw`→`_body` で手動パース（`req._rawBody` に1度だけキャッシュ）。
 - 環境変数（プレビュー用/本番用でチャンネルを分ける）:
-  `LINE_CHANNEL_SECRET`・`LINE_CHANNEL_ACCESS_TOKEN`・`LINE_ENABLED`（"1"でON＝キルスイッチ）
+  `LINE_CHANNEL_SECRET`・`LINE_CHANNEL_ACCESS_TOKEN`・`LINE_ENABLED`（"1"でON＝キルスイッチ）・
+  `LINE_ADD_FRIEND_URL`（公式アカウント友だち追加URL。連携コードモーダルにQR表示。未設定でも可）
 - 識別: メールありメンバーは P列=本人メール。メールなし（LINE専用）は合成ID `line:{sha256}先頭12`。
   設定タブの「LINE専用メンバー」ボタンで合成IDメンバーをマスタ表に追加＋コード発行。
 - ⚠️ **監査ロジックは二重管理**：クライアント `submit.js _runAuditChecks` と
