@@ -2168,7 +2168,7 @@ async function lineLinks(req, res) {
  */
 // リッチメニューの画像/レイアウトを変えたらこのバージョンを上げる（自動再設定される）
 // 画像/レイアウト/挙動を変えたら上げる（自動再設定＆per-user再割当）
-const RICHMENU_VERSION = 'v2';
+const RICHMENU_VERSION = 'v3';
 let _richmenuEnsured = false; // ウォームインスタンス内キャッシュ
 
 /**
@@ -2195,9 +2195,10 @@ async function _setupRichMenuViaApi() {
     name: 'keihi-log-menu',
     chatBarText: 'メニュー',
     areas: [
-      { bounds: { x: 0,    y: 0, width: 833, height: 843 }, action: { type: 'postback', data: 'action=sendreceipt', displayText: '領収書を送る' } },
-      { bounds: { x: 833,  y: 0, width: 834, height: 843 }, action: { type: 'postback', data: 'action=history',     displayText: '自分の申請' } },
-      { bounds: { x: 1667, y: 0, width: 833, height: 843 }, action: { type: 'postback', data: 'action=unsettled',   displayText: '未精算の確認' } },
+      { bounds: { x: 0,    y: 0, width: 625, height: 843 }, action: { type: 'postback', data: 'action=camera',    displayText: '領収書を撮る' } },
+      { bounds: { x: 625,  y: 0, width: 625, height: 843 }, action: { type: 'postback', data: 'action=upload',    displayText: '画像をアップロード' } },
+      { bounds: { x: 1250, y: 0, width: 625, height: 843 }, action: { type: 'postback', data: 'action=history',   displayText: '過去の申請' } },
+      { bounds: { x: 1875, y: 0, width: 625, height: 843 }, action: { type: 'postback', data: 'action=unsettled', displayText: '未精算' } },
     ],
   };
   const createResp = await fetch('https://api.line.me/v2/bot/richmenu', {
@@ -2525,6 +2526,22 @@ async function _handleLinePostback(userId, replyToken, dataStr) {
   const action = params.get('action');
 
   // ── リッチメニューのボタン（pending不要） ──
+  // カメラ/アルバムはLINE仕様でクイックリプライ限定のため、メニュー→ワンタップで開かせる。
+  if (action === 'camera') {
+    return _lineReply(replyToken, {
+      type: 'text',
+      text: '領収書を撮影してください📷',
+      quickReply: { items: [{ type: 'action', action: { type: 'camera', label: 'カメラを開く' } }] },
+    });
+  }
+  if (action === 'upload') {
+    return _lineReply(replyToken, {
+      type: 'text',
+      text: '送りたい画像を選んでください🖼',
+      quickReply: { items: [{ type: 'action', action: { type: 'cameraRoll', label: 'アルバムを開く' } }] },
+    });
+  }
+  // 旧メニュー（sendreceipt）互換：カメラ/アルバム両方を出す
   if (action === 'sendreceipt') {
     return _lineReply(replyToken, {
       type: 'text',
