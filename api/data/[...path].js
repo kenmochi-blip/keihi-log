@@ -1882,19 +1882,35 @@ async function _handleLineImage(userId, replyToken, messageId) {
   }
 
   try {
-    // 画像取得 → ハッシュ → SAで証票フォルダへ保存
+    // 画像取得 → ハッシュ
     const { buf, mime } = await _lineFetchContent(messageId);
     const imageHash = crypto.createHash('sha256').update(buf).digest('hex');
-    const driveInfo = await _lineUploadReceipt(sheetId, buf, mime);
 
-    // 勘定科目リスト取得 → Gemini解析
+    // 証票をDriveへ保存（ベストエフォート）。
+    // ⚠️ SAは自分のドライブ容量を持たないためMy Driveフォルダには新規ファイルを作成できない
+    //    （Service Accounts do not have storage quota）。共有ドライブ or オーナートークンが必要。
+    //    オーナートークンでの保存（設定で有効化・①）が未認可の間は、証票なしで登録を続行する。
+    let imageLink = '', driveFileId = '', imageStored = false;
+    try {
+      const driveInfo = await _lineUploadReceipt(sheetId, buf, mime);
+      imageLink = driveInfo.webViewLink || '';
+      driveFileId = driveInfo.id || '';
+      imageStored = true;
+    } catch (upErr) {
+      console.error('line receipt upload skipped (fallback):', upErr?.message || upErr);
+    }
+
+    // 勘定科目リスト取得 → Gemini解析（解析は画像バイト列を直接使うので保存可否に依存しない）
     const master = await readMasterCached(sheetId).catch(() => ({ categories: [] }));
     const categories = master.categories?.length ? master.categories : ['雑費'];
     const parsed = await _lineAnalyze(sheetId, buf, mime, categories);
 
     // 解析結果 → 経費データ
     const data = _lineParsedToData(parsed, categories);
-    data.imageLink = driveInfo.webViewLink || '';
+    data.imageLink = imageLink;
+    if (!imageStored) {
+      data.note = [data.note, '※証票画像は未保存（LINE証票保存の有効化が必要）'].filter(Boolean).join('\n');
+    }
 
     // 監査チェック（既存経費と突合）
     const expenses = await readExpensesViaSA(sheetId).catch(() => []);
@@ -1902,12 +1918,13 @@ async function _handleLineImage(userId, replyToken, messageId) {
 
     // pending 保存（TTL10分）
     await kv.set(`line:pending:${userId}`, {
-      data, imageHash, driveFileId: driveInfo.id, imageLink: data.imageLink,
+      data, imageHash, driveFileId, imageLink, imageStored,
       alerts, aiAmount: data.aiAmount, step: 'confirm',
     }, { ex: 600 }).catch(() => {});
 
     return _lineReply(replyToken, _lineText(
-      _lineSummary(data, alerts), _confirmQuick()
+      _lineSummary(data, alerts) + (imageStored ? '' : '\n（証票画像は現在保存されません）'),
+      _confirmQuick()
     ));
   } catch (e) {
     const emsg = String(e?.message || e);
