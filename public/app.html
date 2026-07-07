@@ -26,6 +26,19 @@
           'Load failed',
           'The operation was aborted',
           'AbortError',
+          // 以下はブラウザ／拡張機能／アプリ内ブラウザが注入するコード由来の外部ノイズ（当アプリのバグではない）
+          '_AutofillCallbackHandler',
+          "Can't find variable: _AutofillCallbackHandler",
+          '_AutofillCallbackHandler is not defined',
+          'ResizeObserver loop limit exceeded',
+          'ResizeObserver loop completed with undelivered notifications',
+        ],
+        // 拡張機能／別スキーム由来のスタックは丸ごと無視
+        denyUrls: [
+          /^chrome-extension:\/\//i,
+          /^moz-extension:\/\//i,
+          /^safari-extension:\/\//i,
+          /extensions\//i,
         ],
       });
     }
