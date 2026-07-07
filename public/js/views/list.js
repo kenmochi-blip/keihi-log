@@ -1064,9 +1064,33 @@ const ListView = (() => {
     function _showPdf(frameSrc, origUrl) {
       img.style.display = 'none';
       if (errWrap) errWrap.style.display = 'none';
-      if (pdfFrame) pdfFrame.src = frameSrc;
+      if (pdfFrame && frameSrc) pdfFrame.src = frameSrc;
       pdfLink.href = _fallbackHref(origUrl || frameSrc);  // iOS Safari等の保険
       pdfWrap.style.display = 'flex';
+    }
+
+    // PDFは元URLを直接 iframe に流すとインライン描画されない（添付ダウンロード扱い・
+    // フレーミング制限など）ことがあるため、GETで取得して Blob URL 化してから描画する。
+    // これは X-Frame-Options / Content-Disposition の影響を受けず確実にインライン表示できる。
+    async function _showPdfInline(url) {
+      if (pdfFrame) pdfFrame.src = 'about:blank';  // 直前のPDFの残像を消す
+      _showPdf('', url);            // まず枠と「別タブで開く」フォールバックを用意
+      try {
+        const r = await fetch(url);
+        if (viewer.style.display === 'none' || _urls[_cur] !== url) return;
+        if (r.ok) {
+          const raw = await r.blob();
+          if (viewer.style.display === 'none' || _urls[_cur] !== url) return;
+          // type が空/不正だとブラウザ内蔵ビューアが起動しないため application/pdf を明示
+          const blob = raw.type === 'application/pdf' ? raw : new Blob([raw], { type: 'application/pdf' });
+          _revokePdfBlob();
+          _pdfBlobUrl = URL.createObjectURL(blob);
+          _showPdf(_pdfBlobUrl, url);
+          return;
+        }
+      } catch (_) { /* 取得失敗時は元URLを直接流すフォールバックへ */ }
+      if (viewer.style.display === 'none' || _urls[_cur] !== url) return;
+      _showPdf(url, url);          // 最後の保険：元URLを直接 iframe へ
     }
 
     // 読み込み不能時のエラーカード
@@ -1089,7 +1113,7 @@ const ListView = (() => {
       const isPdf = url.toLowerCase().includes('pdf') || url.includes('application%2Fpdf');
       if (errWrap) errWrap.style.display = 'none';
       if (isPdf) {
-        _showPdf(url, url);
+        _showPdfInline(url);
       } else {
         // 拡張子の無いプロキシURLは画像として読み込み、失敗時にContent-Typeで再判定する
         pdfWrap.style.display = 'none';
