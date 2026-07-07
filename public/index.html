@@ -1110,19 +1110,19 @@
     <div class="row g-3 justify-content-center mt-4">
       <div class="col-sm-6 col-lg-3">
         <div class="d-flex align-items-start gap-2"><i class="bi bi-check-circle-fill" style="color:#06C755;"></i>
-          <span class="small"><strong>アプリのインストール不要</strong><br><span class="text-muted">普段使いのLINEだけで完結</span></span></div>
+          <span><strong>アプリのインストール不要</strong><br><span class="small text-muted">普段使いのLINEだけで完結</span></span></div>
       </div>
       <div class="col-sm-6 col-lg-3">
         <div class="d-flex align-items-start gap-2"><i class="bi bi-check-circle-fill" style="color:#06C755;"></i>
-          <span class="small"><strong>ITが苦手な人でもすぐ</strong><br><span class="text-muted">新しい操作を覚える必要なし</span></span></div>
+          <span><strong>ITが苦手な人でもすぐ</strong><br><span class="small text-muted">新しい操作を覚える必要なし</span></span></div>
       </div>
       <div class="col-sm-6 col-lg-3">
         <div class="d-flex align-items-start gap-2"><i class="bi bi-check-circle-fill" style="color:#06C755;"></i>
-          <span class="small"><strong>履歴・未精算もLINEで</strong><br><span class="text-muted">申請状況をトークで確認</span></span></div>
+          <span><strong>履歴・未精算もLINEで</strong><br><span class="small text-muted">申請状況をトークで確認</span></span></div>
       </div>
       <div class="col-sm-6 col-lg-3">
         <div class="d-flex align-items-start gap-2"><i class="bi bi-check-circle-fill" style="color:#06C755;"></i>
-          <span class="small"><strong>複数の経費ログに対応</strong><br><span class="text-muted">送信時に登録先を選べる</span></span></div>
+          <span><strong>複数の経費ログに対応</strong><br><span class="small text-muted">送信時に登録先を選べる</span></span></div>
       </div>
     </div>
 
@@ -1358,7 +1358,7 @@
             <li><i class="bi bi-check-circle-fill"></i>申請・承認・精算済みステータス管理</li>
             <li><i class="bi bi-check-circle-fill"></i>部署別・メンバー別レポート</li>
             <li><i class="bi bi-check-circle-fill"></i>3段階の権限管理（管理者・閲覧者・一般）</li>
-            <li><i class="bi bi-check-circle-fill" style="color:#06C755;"></i><strong>LINE連携</strong>：領収書をLINEで送るだけで申請（Googleアカウント不要のメンバーもOK）</li>
+            <li><i class="bi bi-check-circle-fill"></i><strong>LINE連携</strong>：領収書をLINEで送るだけで申請</li>
             <li><i class="bi bi-check-circle-fill"></i>Googleスプレッドシートをすでに業務で使っているチームに最適</li>
           </ul>
           <a href="https://buy.stripe.com/5kQ28r1Ps7ut2kv4io9oc08" class="btn btn-primary w-100 rounded-pill mt-auto">
@@ -1428,7 +1428,7 @@
           <tr>
             <td>LINE連携（領収書をLINEで送信）</td>
             <td class="text-center"><i class="bi bi-dash text-muted"></i></td>
-            <td class="text-center"><i class="bi bi-check-circle-fill" style="color:#06C755;"></i></td>
+            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
           </tr>
           <tr>
             <td>2週間無料トライアル</td>
@@ -1653,7 +1653,7 @@
             </h2>
             <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
               <div class="accordion-body">
-                すべてのデータは、お客様自身のGoogleドライブ内のGoogleスプレッドシートに保存されます。当社サーバーには経費明細データを保管しません。お客様がデータの完全な所有権を持ち続けることができます。
+                すべてのデータは、<strong>初期設定を行った管理者ご自身のGoogleドライブ</strong>内のスプレッドシートに保存されます（メンバー個々のドライブではなく、管理者のドライブに集約されます）。当社サーバーには経費明細データを保管しません。管理者がデータの完全な所有権を持ち続けることができます。
               </div>
             </div>
           </div>
@@ -1677,7 +1677,7 @@
             </h2>
             <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
               <div class="accordion-body">
-                はい、いつでもStripeカスタマーポータルから解約手続きが可能です。解約後は当月末までご利用いただけます。既にお支払いいただいた料金の返金は原則として行っておりません。解約後もデータはお客様自身のGoogleドライブに残り続けますので、過去の経費記録を失う心配はありません。
+                はい、いつでもStripeカスタマーポータルから解約手続きが可能です。解約後は当月末までご利用いただけます。既にお支払いいただいた料金の返金は原則として行っておりません。解約後もデータは管理者のGoogleドライブに残り続けますので、過去の経費記録を失う心配はありません。
               </div>
             </div>
           </div>
@@ -1801,7 +1801,7 @@
             <li class="d-flex align-items-baseline gap-2 mb-2"><i class="bi bi-check-circle-fill text-success flex-shrink-0"></i><span>領収書収集・精算申請を、簡素なシステムに置き換えたい</span></li>
             <li class="d-flex align-items-baseline gap-2 mb-2"><i class="bi bi-check-circle-fill text-success flex-shrink-0"></i><span>でも、高額SaaSを入れるほどでもないと感じている</span></li>
             <li class="d-flex align-items-baseline gap-2 mb-2"><i class="bi bi-check-circle-fill text-success flex-shrink-0"></i><span>経費データは外部DBに預けたくない</span></li>
-            <li class="d-flex align-items-baseline gap-2"><i class="bi bi-check-circle-fill flex-shrink-0" style="color:#06C755;"></i><span>スマホ操作が苦手なメンバーにも、<strong>LINEで領収書を送るだけ</strong>で申請してもらいたい（チームプラン）</span></li>
+            <li class="d-flex align-items-baseline gap-2"><i class="bi bi-check-circle-fill text-success flex-shrink-0"></i><span>スマホ操作が苦手なメンバーにも、<strong>LINEで領収書を送るだけ</strong>で申請してもらいたい（チームプラン）</span></li>
           </ul>
         </div>
       </div>
