@@ -1782,6 +1782,42 @@ async function _lineLink(userId) {
   return links[0] || null;
 }
 
+/**
+ * 確認中の経費データ（pending）に紐づく「登録先の経費ログ」を解決する。
+ * pending.sheetId が指す連携があればそれを、無ければ先頭を返す（旧pending後方互換）。
+ */
+async function _pendingLink(userId, pending) {
+  const links = await _lineLinks(userId);
+  if (pending?.sheetId) {
+    const hit = links.find(l => l.sheetId === pending.sheetId);
+    if (hit) return hit;
+  }
+  return links[0] || null;
+}
+
+/** 組織選択・見出し用の経費ログ表示名。設定B2会社名 → ライセンス社名 → シートID断片。 */
+async function _lineOrgLabel(sheetId) {
+  const settKey = `cfg:settings:${sheetId}`;
+  const cached = (_inProcGet(settKey) || await kv.get(settKey).catch(() => null))?.settings || null;
+  let name = cached?.B2 || '';
+  let licKey = cached?.B3 || '';
+  if (!name) {
+    if (!licKey) {
+      try {
+        const sheets = sheetsClient();
+        const r = await sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range: '設定!B2:B3' });
+        name = r.data.values?.[0]?.[0] || '';
+        licKey = r.data.values?.[1]?.[0] || '';
+      } catch (_) {}
+    }
+    if (!name && licKey) {
+      name = (await kv.get(`license:${licKey}`).catch(() => null))?.company || '';
+    }
+  }
+  name = String(name || '').trim() || `経費ログ(${String(sheetId).slice(0, 6)})`;
+  return name.slice(0, 20); // クイックリプライのラベル上限
+}
+
 /** チームプランかつ有効なライセンスか（license.js と同じ判定）。 */
 async function _isTeamPlanActive(sheetId) {
   // B3 ライセンスキーを取得（resolveOwnerEmail と同じ経路）
@@ -1878,17 +1914,12 @@ async function _handleLineCode(userId, replyToken, code) {
   // コードは使い捨て。紐付けを作成し、逆引きセットにも登録。
   const newLink = { sheetId: info.sheetId, identity: info.identity, name: info.name || '' };
 
-  // ── 紐付けの更新ルール ──
-  //   現状: 1対1。新しいコードで「置換」する（1人=1経費ログ）。
-  //   将来の複数経費ログ対応に切り替える場合はここを「追記＋sheetIdで重複排除」に変えるだけ:
-  //     const merged = [...(await _lineLinks(userId)).filter(l => l.sheetId !== newLink.sheetId), newLink];
-  //   （逆引きセットの掃除は不要になり、_lineLink 側で選択ロジックを足す）
+  // ── 紐付けの更新ルール（複数経費ログ対応） ──
+  //   同じ経費ログの旧エントリは置換し、別の経費ログは追記する（1人=複数経費ログ可）。
+  //   複数連携中のユーザーは画像送信時に登録先の組織を選ぶ（_handleLineImage 参照）。
   const prev = await _lineLinks(userId);
-  // 置換で外れる古い経費ログの逆引きセットから userId を掃除（stale防止）
-  for (const l of prev) {
-    if (l.sheetId !== newLink.sheetId) await kv.srem(`line:link_by_sheet:${l.sheetId}`, userId).catch(() => {});
-  }
-  await kv.set(`line:link:${userId}`, { links: [newLink] }).catch(() => {});
+  const merged = [...prev.filter(l => l.sheetId !== newLink.sheetId), newLink];
+  await kv.set(`line:link:${userId}`, { links: merged }).catch(() => {});
   await kv.sadd(`line:link_by_sheet:${info.sheetId}`, userId).catch(() => {});
   await kv.del(`line:code:${code}`).catch(() => {});
   await kv.del(failKey).catch(() => {});
@@ -1896,28 +1927,43 @@ async function _handleLineCode(userId, replyToken, code) {
   // 連携完了したので、このユーザーにだけリッチメニューを表示する
   await _lineEnsureUserMenu(userId).catch(() => {});
 
+  const others = merged.filter(l => l.sheetId !== newLink.sheetId).length;
+  const extra = others > 0
+    ? `\n※あなたは複数の経費ログに連携中です。画像を送ると、どの経費ログに登録するか選べます。`
+    : '';
   return _lineReply(replyToken, _lineText(
-    `連携しました。「${info.name || 'メンバー'}」として登録されます。\n下のメニューまたは画像送信で経費を登録できます。`
+    `連携しました。「${info.name || 'メンバー'}」として登録されます。\n下のメニューまたは画像送信で経費を登録できます。${extra}`
   ));
 }
 
 /* ── 画像受信 → 解析 → 確認 ── */
 
 async function _handleLineImage(userId, replyToken, messageId) {
-  const link = await _lineLink(userId);
-  if (!link) {
+  const links = await _lineLinks(userId);
+  if (!links.length) {
     return _lineReply(replyToken, _lineText('未連携です。まず管理者から受け取った6桁の連携コードを送信してください。'));
   }
   _lineEnsureUserMenu(userId).catch(() => {}); // 連携済みならメニュー割当（既存ユーザー救済・冪等）
 
-  // ── 将来: 複数経費ログ対応の挿入ポイント ──
-  //   const links = await _lineLinks(userId);
-  //   if (links.length > 1) {
-  //     // 画像は解析前にどの組織へ登録するか選ばせる。
-  //     // messageId とハッシュだけ pending(step:'awaiting_org') に退避し、
-  //     // links を [組織A][組織B] のクイックリプライで提示 → postback(action=pickorg&s=sheetId)
-  //     // で選択後に本関数の解析処理を継続する。単一(=1件)の今は分岐せず直進する。
-  //   }
+  // ── 複数経費ログ対応 ──
+  //   2つ以上の経費ログに連携中のユーザーは、解析前に登録先の組織を選ばせる。
+  //   messageId だけ pending(step:'awaiting_org') に退避し、
+  //   postback(action=pickorg&s=sheetId) で選択後に _processLineImage を続行する。
+  if (links.length > 1) {
+    await kv.set(`line:pending:${userId}`, { step: 'awaiting_org', messageId }, { ex: 600 }).catch(() => {});
+    const choices = await Promise.all(links.map(async l => ({
+      sheetId: l.sheetId,
+      label: await _lineOrgLabel(l.sheetId).catch(() => '経費ログ'),
+    })));
+    const items = choices.map(o => _qpPostback(o.label, `action=pickorg&s=${encodeURIComponent(o.sheetId)}`));
+    return _lineReply(replyToken, _lineText('どの経費ログに登録しますか？', items));
+  }
+
+  return _processLineImage(userId, replyToken, messageId, links[0]);
+}
+
+/** 画像の解析→確認カード提示（送信先の経費ログ link は確定済み）。 */
+async function _processLineImage(userId, replyToken, messageId, link) {
   const { sheetId, identity } = link;
 
   // プラン確認（チーム限定）
@@ -1975,10 +2021,12 @@ async function _handleLineImage(userId, replyToken, messageId) {
     const expenses = await readExpensesViaSA(sheetId).catch(() => []);
     const alerts = _serverAuditChecks(expenses, data, [imageHash]);
 
-    // pending 保存（TTL10分）
+    // pending 保存（TTL10分）。sheetId/identity を保持し、修正・登録・再監査が
+    // 選択済みの経費ログを対象にする（複数連携ユーザーで links[0] に流れないよう固定）。
     await kv.set(`line:pending:${userId}`, {
       data, imageHash, driveFileId, imageLink, imageStored,
       alerts, aiAmount: data.aiAmount, step: 'confirm',
+      sheetId, identity,
     }, { ex: 600 }).catch(() => {});
 
     return _lineReply(replyToken, _lineConfirmMessage(
@@ -2597,6 +2645,24 @@ async function _handleLinePostback(userId, replyToken, dataStr) {
 
   const pending = await kv.get(`line:pending:${userId}`).catch(() => null);
 
+  // 複数経費ログ: 登録先の組織を選択 → その経費ログで解析を続行
+  if (action === 'pickorg') {
+    if (!pending || pending.step !== 'awaiting_org' || !pending.messageId) {
+      return _lineReply(replyToken, _lineText('時間切れです。もう一度画像を送ってください。'));
+    }
+    const sheetId = params.get('s');
+    const links = await _lineLinks(userId);
+    const link = links.find(l => l.sheetId === sheetId);
+    if (!link) return _lineReply(replyToken, _lineText('選択した経費ログが見つかりません。もう一度画像を送ってください。'));
+    await kv.del(`line:pending:${userId}`).catch(() => {});
+    return _processLineImage(userId, replyToken, pending.messageId, link);
+  }
+
+  // 組織選択待ち中に確認系の操作が来た場合（データ未解析）→ 選び直しを促す
+  if (pending && pending.step === 'awaiting_org') {
+    return _lineReply(replyToken, _lineText('先にどの経費ログに登録するか選んでください。もう一度画像を送ると選び直せます。'));
+  }
+
   if (action === 'register') {
     if (!pending) return _lineReply(replyToken, _lineText('時間切れです。もう一度画像を送ってください。'));
     return _lineRegister(userId, replyToken, pending);
@@ -2625,7 +2691,7 @@ async function _handleLinePostback(userId, replyToken, dataStr) {
     const f = params.get('f');
     // 科目はボタン選択（マスタのカテゴリ）にする
     if (f === 'category') {
-      const link = await _lineLink(userId);
+      const link = await _pendingLink(userId, pending);
       const master = link ? await readMasterCached(link.sheetId).catch(() => null) : null;
       const cats = (master?.categories || []).slice(0, 12);
       if (cats.length) {
@@ -2665,7 +2731,7 @@ async function _handleLinePostback(userId, replyToken, dataStr) {
       return _lineReply(replyToken, _lineConfirmMessage(_lineSummary(pending.data, pending.alerts)));
     }
     // 会社払い → 支払元を選ばせる（設定の支払元リスト）。未設定なら支払元なしで会社払い。
-    const link = await _lineLink(userId);
+    const link = await _pendingLink(userId, pending);
     const master = link ? await readMasterCached(link.sheetId).catch(() => null) : null;
     const sources = (master?.paySources || []).slice(0, 12);
     if (!sources.length) {
@@ -2716,7 +2782,7 @@ async function _applyLineEdit(userId, replyToken, pending, text) {
 /** 修正後に監査を再実行（AI解析額との不一致等が変わるため）。 */
 async function _reauditPending(userId, pending) {
   try {
-    const link = await _lineLink(userId);
+    const link = await _pendingLink(userId, pending);
     if (!link) return pending.alerts || [];
     const expenses = await readExpensesViaSA(link.sheetId).catch(() => []);
     return _serverAuditChecks(expenses, { ...pending.data, aiAmount: pending.aiAmount }, [pending.imageHash]);
@@ -2725,7 +2791,7 @@ async function _reauditPending(userId, pending) {
 
 /** 登録実行（申請済で経費一覧へ）。 */
 async function _lineRegister(userId, replyToken, pending) {
-  const link = await _lineLink(userId);
+  const link = await _pendingLink(userId, pending);
   if (!link) return _lineReply(replyToken, _lineText('連携が切れています。連携コードを送信してください。'));
   const { sheetId, identity } = link;
 
@@ -2783,32 +2849,41 @@ async function _lineRegister(userId, replyToken, pending) {
 /* ── 未精算一覧 ── */
 
 async function _handleLineUnsettled(userId, replyToken) {
-  const link = await _lineLink(userId);
-  if (!link) return _lineReply(replyToken, _lineText('未連携です。連携コードを送信してください。'));
+  const links = await _lineLinks(userId);
+  if (!links.length) return _lineReply(replyToken, _lineText('未連携です。連携コードを送信してください。'));
   _lineEnsureUserMenu(userId).catch(() => {});
-  const { sheetId, identity } = link;
+  const multi = links.length > 1;
 
-  const name = await _lineMemberName(sheetId, identity);
-  if (name === null) return _lineReply(replyToken, _lineText('メンバー登録が見つかりません。'));
-
-  const idLower = String(identity).toLowerCase();
-  const expenses = await readExpensesViaSA(sheetId).catch(() => []);
-  // 自分の・未精算（L列空）のみ
-  const mine = expenses.filter(e =>
-    String(e.email).toLowerCase() === idLower &&
-    !(e.settlementDate && String(e.settlementDate).trim() !== '')
-  );
-  if (!mine.length) return _lineReply(replyToken, _lineText('未精算の経費はありません。'));
-
-  mine.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
-  const total = mine.reduce((s, e) => s + (Number(e.amount) || 0), 0);
-  const N = 10;
-  const shown = mine.slice(0, N).map(e =>
-    `・${e.date} ${String(e.place || '').slice(0, 16)} ¥${Number(e.amount).toLocaleString('ja-JP')}`
-  );
-  const head = `未精算 ${mine.length}件 / 合計 ¥${total.toLocaleString('ja-JP')}`;
-  const more = mine.length > N ? `\n…ほか${mine.length - N}件` : '';
-  return _lineReply(replyToken, _lineText([head, '', ...shown].join('\n') + more));
+  const blocks = [];
+  let grandTotal = 0, grandCount = 0;
+  for (const link of links) {
+    const { sheetId, identity } = link;
+    const name = await _lineMemberName(sheetId, identity);
+    if (name === null) continue; // このログでは既にメンバー外
+    const idLower = String(identity).toLowerCase();
+    const expenses = await readExpensesViaSA(sheetId).catch(() => []);
+    // 自分の・未精算（L列空）のみ
+    const mine = expenses.filter(e =>
+      String(e.email).toLowerCase() === idLower &&
+      !(e.settlementDate && String(e.settlementDate).trim() !== '')
+    );
+    if (!mine.length) continue;
+    mine.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+    const total = mine.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+    grandTotal += total; grandCount += mine.length;
+    const N = multi ? 5 : 10;
+    const shown = mine.slice(0, N).map(e =>
+      `・${e.date} ${String(e.place || '').slice(0, 16)} ¥${Number(e.amount).toLocaleString('ja-JP')}`
+    );
+    const more = mine.length > N ? `\n…ほか${mine.length - N}件` : '';
+    const head = multi
+      ? `【${await _lineOrgLabel(sheetId).catch(() => '')}】未精算 ${mine.length}件 / ¥${total.toLocaleString('ja-JP')}`
+      : `未精算 ${mine.length}件 / 合計 ¥${total.toLocaleString('ja-JP')}`;
+    blocks.push([head, '', ...shown].join('\n') + more);
+  }
+  if (!grandCount) return _lineReply(replyToken, _lineText('未精算の経費はありません。'));
+  const foot = multi ? `\n\n─────\n合計 ${grandCount}件 / ¥${grandTotal.toLocaleString('ja-JP')}` : '';
+  return _lineReply(replyToken, _lineText(blocks.join('\n\n') + foot));
 }
 
 /** 経費オブジェクトからステータス表示ラベルを得る。 */
@@ -2822,28 +2897,34 @@ function _expStatusLabel(e) {
 
 /** 自分の直近の申請（全ステータス）を返す。リッチメニュー「自分の申請」。 */
 async function _handleLineHistory(userId, replyToken) {
-  const link = await _lineLink(userId);
-  if (!link) return _lineReply(replyToken, _lineText('未連携です。連携コードを送信してください。'));
+  const links = await _lineLinks(userId);
+  if (!links.length) return _lineReply(replyToken, _lineText('未連携です。連携コードを送信してください。'));
   _lineEnsureUserMenu(userId).catch(() => {});
-  const { sheetId, identity } = link;
+  const multi = links.length > 1;
 
-  const name = await _lineMemberName(sheetId, identity);
-  if (name === null) return _lineReply(replyToken, _lineText('メンバー登録が見つかりません。'));
-
-  const idLower = String(identity).toLowerCase();
-  const expenses = await readExpensesViaSA(sheetId).catch(() => []);
-  const mine = expenses.filter(e => String(e.email).toLowerCase() === idLower);
-  if (!mine.length) return _lineReply(replyToken, _lineText('申請はまだありません。領収書の写真を送ると登録できます。'));
-
-  // 申請日時→日付の新しい順
-  mine.sort((a, b) => String(b.appliedAt || b.date || '').localeCompare(String(a.appliedAt || a.date || '')));
-  const N = 15;
-  const shown = mine.slice(0, N).map(e =>
-    `・${e.date} ${String(e.place || '').slice(0, 14)} ¥${Number(e.amount).toLocaleString('ja-JP')}【${_expStatusLabel(e)}】`
-  );
-  const head = `直近の申請（全${mine.length}件中${Math.min(N, mine.length)}件）`;
-  const more = mine.length > N ? `\n…ほか${mine.length - N}件` : '';
-  return _lineReply(replyToken, _lineText([head, '', ...shown].join('\n') + more));
+  const blocks = [];
+  for (const link of links) {
+    const { sheetId, identity } = link;
+    const name = await _lineMemberName(sheetId, identity);
+    if (name === null) continue;
+    const idLower = String(identity).toLowerCase();
+    const expenses = await readExpensesViaSA(sheetId).catch(() => []);
+    const mine = expenses.filter(e => String(e.email).toLowerCase() === idLower);
+    if (!mine.length) continue;
+    // 申請日時→日付の新しい順
+    mine.sort((a, b) => String(b.appliedAt || b.date || '').localeCompare(String(a.appliedAt || a.date || '')));
+    const N = multi ? 8 : 15;
+    const shown = mine.slice(0, N).map(e =>
+      `・${e.date} ${String(e.place || '').slice(0, 14)} ¥${Number(e.amount).toLocaleString('ja-JP')}【${_expStatusLabel(e)}】`
+    );
+    const head = multi
+      ? `【${await _lineOrgLabel(sheetId).catch(() => '')}】直近${Math.min(N, mine.length)}件（全${mine.length}件）`
+      : `直近の申請（全${mine.length}件中${Math.min(N, mine.length)}件）`;
+    const more = mine.length > N ? `\n…ほか${mine.length - N}件` : '';
+    blocks.push([head, '', ...shown].join('\n') + more);
+  }
+  if (!blocks.length) return _lineReply(replyToken, _lineText('申請はまだありません。領収書の写真を送ると登録できます。'));
+  return _lineReply(replyToken, _lineText(blocks.join('\n\n')));
 }
 
 /* ── 監査ロジックのサーバー移植（submit.js _runAuditChecks と同期） ──

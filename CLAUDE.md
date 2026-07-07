@@ -172,6 +172,9 @@ git push origin claude/rebuild-receipt-app-Ft3lE
   `LINE_ADD_FRIEND_URL`（公式アカウント友だち追加URL。連携コードモーダルにQR表示。未設定でも可）
 - 識別: メールありメンバーは P列=本人メール。メールなし（LINE専用）は合成ID `line:{sha256}先頭12`。
   設定タブの「LINE専用メンバー」ボタンで合成IDメンバーをマスタ表に追加＋コード発行。
+- 複数経費ログ併用（実装済み）: 1つのLINEアカウントで複数の経費ログに連携可（連携コードを追加入力で追記）。
+  複数連携中は画像送信時に登録先の組織を選ぶ（postback `pickorg`）。確認pendingに `sheetId` を保持し
+  修正・登録・再監査は選択済みログを対象（`_pendingLink`）。履歴・未精算は全ログ横断集計。詳細は設計書§12。
 - ⚠️ **証票画像の保存はオーナーのOAuthトークン方式**（`POST/GET/DELETE /api/data/linedrivetoken`）。
   SAは容量が無くMy Driveに新規ファイルを作れないため、**オーナー（購入メール＝ログインメール）が
   設定タブで一度「証票保存を有効化」**し、リフレッシュトークンをKV（`line:drivetoken:{sheetId}`・
