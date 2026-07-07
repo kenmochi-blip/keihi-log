@@ -2358,7 +2358,10 @@ async function _lineAnalyze(sheetId, buf, mime, categories) {
 
 注意：
 - 金額が日本円なら total_amount に数値を入れ fx_* は null
+- 外貨（USD/EUR等）なら total_amount は必ず null にして、fx_currency（通貨コード）と fx_amount（外貨の合計金額）を埋める。
+  ⚠️ レシートに円で併記された消費税額・参考円換算額などがあっても、その円の値は total_amount に入れない（外貨の合計を fx_amount に入れる）
 - total_amount は「税込み費用計上額（源泉徴収控除前）」を入れること
+  - 源泉徴収税が差し引かれている場合、合計欄の支払金額（源泉控除後）ではなく、小計＋消費税の合計を使う
 - 複数カテゴリ・税区分が混在する場合は items を使い category は null
 - items の集約ルール：「勘定科目」と「税区分」の組み合わせが同じ明細は1行に合算すること
 - インボイス番号は T+13桁の数字で始まる番号
