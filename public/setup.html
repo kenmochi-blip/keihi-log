@@ -173,6 +173,17 @@
             <li>表示されたキー（<code>AIzaSy...</code>）をコピー</li>
             <li>下の欄に貼り付ける</li>
           </ol>
+
+          <!-- 取得手順の実演動画 -->
+          <details class="mb-3">
+            <summary style="cursor:pointer;font-size:0.84rem;font-weight:600;color:#0d6efd;">
+              <i class="bi bi-play-circle me-1"></i>取得のやり方を動画で見る
+            </summary>
+            <div class="mt-2 text-center">
+              <video src="/img/gemini-key-guide.mp4" controls playsinline preload="none"
+                     style="width:100%;max-width:300px;border-radius:12px;border:1px solid #e6eaf0;"></video>
+            </div>
+          </details>
           <div class="alert alert-light border py-2 mb-3" style="font-size:0.78rem;">
             <i class="bi bi-phone me-1"></i><strong>スマホで「不審なリクエスト」エラーが出た場合</strong><br>
             ① Chromeブラウザ（Safari不可）でGoogleアカウントにログインした状態で開く<br>
@@ -183,6 +194,7 @@
           <label class="form-label fw-semibold">Gemini APIキー <span class="text-danger">*</span></label>
           <input type="text" class="form-control mb-1" id="inputGeminiKey" placeholder="AIzaSy..." autocomplete="off" autocorrect="off" spellcheck="false">
           <div id="geminiKeyErr" class="text-danger mb-1" style="display:none;font-size:0.82rem;">APIキーを入力してください。</div>
+          <div id="geminiKeyStatus" class="mb-1" style="display:none;font-size:0.82rem;"></div>
           <div class="form-text mb-3">AIによる領収書の自動読み取りに必要です。無料で取得できます。</div>
 
           <button class="btn btn-primary w-100" id="btnGoStep4">
@@ -516,6 +528,46 @@
     $('btnBack1').addEventListener('click', () => goStep(1));
 
     // ── Step 3: Gemini APIキー ────────────────────────────
+    let _geminiKeyValid = null; // null=未確認 / true / false
+    // 入力されたキーが本当に有効か、その場で軽量に検証してフィードバックする
+    async function _validateGeminiKey(key) {
+      const st = $('geminiKeyStatus');
+      st.style.display = '';
+      st.innerHTML = '<span class="text-muted"><span class="spinner-border spinner-border-sm me-1" style="width:0.9rem;height:0.9rem;"></span>キーを確認しています…</span>';
+      _geminiKeyValid = null;
+      try {
+        // モデル一覧を取得できれば有効（トークン消費なし）
+        const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models?key=' + encodeURIComponent(key));
+        if (r.ok) {
+          _geminiKeyValid = true;
+          st.innerHTML = '<span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>有効なキーです。AI読み取りが使えます。</span>';
+        } else {
+          _geminiKeyValid = false;
+          const d = await r.json().catch(() => ({}));
+          const msg = /API key not valid|invalid/i.test(d?.error?.message || '')
+            ? 'このキーは無効です。コピーが途中で切れていないか確認してください。'
+            : ('確認できませんでした（' + (r.status) + '）。キーを再確認してください。');
+          st.innerHTML = '<span class="text-danger"><i class="bi bi-x-circle-fill me-1"></i>' + msg + '</span>';
+        }
+      } catch (_) {
+        // ネットワーク等で確認できない場合はブロックしない（未確認扱い）
+        _geminiKeyValid = null;
+        st.innerHTML = '<span class="text-muted"><i class="bi bi-info-circle me-1"></i>キーの自動確認ができませんでした（通信環境をご確認ください）。このまま進めることもできます。</span>';
+      }
+    }
+    let _gkTimer = null;
+    $('inputGeminiKey').addEventListener('input', () => {
+      const v = $('inputGeminiKey').value.trim();
+      if (v) $('geminiKeyErr').style.display = 'none';
+      _geminiKeyValid = null;
+      clearTimeout(_gkTimer);
+      // それらしい形（AIzaSy…・30文字以上）になったら自動検証
+      if (/^AIza[\w-]{20,}$/.test(v)) {
+        _gkTimer = setTimeout(() => _validateGeminiKey(v), 500);
+      } else {
+        $('geminiKeyStatus').style.display = 'none';
+      }
+    });
     $('btnGoStep4').addEventListener('click', () => {
       _geminiKey = $('inputGeminiKey').value.trim();
       if (!_geminiKey) {
@@ -524,10 +576,12 @@
         return;
       }
       $('geminiKeyErr').style.display = 'none';
+      // 明確に「無効」と判定されている場合だけ止める（未確認・通信失敗は通す）
+      if (_geminiKeyValid === false) {
+        $('inputGeminiKey').focus();
+        return;
+      }
       goStep(4);
-    });
-    $('inputGeminiKey').addEventListener('input', () => {
-      if ($('inputGeminiKey').value.trim()) $('geminiKeyErr').style.display = 'none';
     });
     $('btnBack2').addEventListener('click', () => goStep(2));
 
