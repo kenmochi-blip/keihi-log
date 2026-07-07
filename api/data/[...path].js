@@ -1671,6 +1671,39 @@ function _lineConfirmMessage(summaryText) {
   };
 }
 
+/**
+ * 登録先の経費ログ選択メッセージ（Flex）。クイックリプライは小さく目立たないため、
+ * メッセージ内に大きめの色付きボタンを組織ごとに出す（複数経費ログ連携時）。
+ * choices: [{ sheetId, label }]
+ */
+function _lineOrgPickerMessage(choices) {
+  const palette = ['#17a55b', '#0d6efd', '#8a4bd6', '#e0781a', '#0da5a5', '#c0392b'];
+  const buttons = choices.slice(0, 10).map((o, i) => ({
+    type: 'button', style: 'primary', color: palette[i % palette.length], height: 'md',
+    action: {
+      type: 'postback',
+      label: String(o.label).slice(0, 20),
+      data: `action=pickorg&s=${encodeURIComponent(o.sheetId)}`,
+      displayText: o.label,
+    },
+  }));
+  return {
+    type: 'flex',
+    altText: 'どの経費ログに登録しますか？',
+    contents: {
+      type: 'bubble',
+      body: {
+        type: 'box', layout: 'vertical', paddingAll: 'lg',
+        contents: [{ type: 'text', text: 'どの経費ログに登録しますか？', wrap: true, weight: 'bold', size: 'md', color: '#333333' }],
+      },
+      footer: {
+        type: 'box', layout: 'vertical', spacing: 'md', paddingAll: 'lg',
+        contents: buttons,
+      },
+    },
+  };
+}
+
 /** LINEコンテンツAPIで画像バイト列を取得。 */
 async function _lineFetchContent(messageId) {
   const resp = await fetch(`${LINE_API_DATA}/message/${messageId}/content`, {
@@ -1955,8 +1988,7 @@ async function _handleLineImage(userId, replyToken, messageId) {
       sheetId: l.sheetId,
       label: await _lineOrgLabel(l.sheetId).catch(() => '経費ログ'),
     })));
-    const items = choices.map(o => _qpPostback(o.label, `action=pickorg&s=${encodeURIComponent(o.sheetId)}`));
-    return _lineReply(replyToken, _lineText('どの経費ログに登録しますか？', items));
+    return _lineReply(replyToken, _lineOrgPickerMessage(choices));
   }
 
   return _processLineImage(userId, replyToken, messageId, links[0]);
