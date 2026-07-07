@@ -1358,6 +1358,7 @@
             <li><i class="bi bi-check-circle-fill"></i>申請・承認・精算済みステータス管理</li>
             <li><i class="bi bi-check-circle-fill"></i>部署別・メンバー別レポート</li>
             <li><i class="bi bi-check-circle-fill"></i>3段階の権限管理（管理者・閲覧者・一般）</li>
+            <li><i class="bi bi-check-circle-fill" style="color:#06C755;"></i><strong>LINE連携</strong>：領収書をLINEで送るだけで申請（Googleアカウント不要のメンバーもOK）</li>
             <li><i class="bi bi-check-circle-fill"></i>Googleスプレッドシートをすでに業務で使っているチームに最適</li>
           </ul>
           <a href="https://buy.stripe.com/5kQ28r1Ps7ut2kv4io9oc08" class="btn btn-primary w-100 rounded-pill mt-auto">
@@ -1423,6 +1424,11 @@
             <td>権限管理（管理者・閲覧者・一般）</td>
             <td class="text-center"><i class="bi bi-dash text-muted"></i></td>
             <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
+          </tr>
+          <tr>
+            <td>LINE連携（領収書をLINEで送信）</td>
+            <td class="text-center"><i class="bi bi-dash text-muted"></i></td>
+            <td class="text-center"><i class="bi bi-check-circle-fill" style="color:#06C755;"></i></td>
           </tr>
           <tr>
             <td>2週間無料トライアル</td>
@@ -1633,7 +1639,9 @@
             </h2>
             <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
               <div class="accordion-body">
-                はい、管理者だけでなく<strong>利用するメンバー全員がGoogleアカウント（GmailまたはGoogle Workspace）を持っている必要があります</strong>。各メンバーが自分のGoogleアカウントでサインインすることで、誰が申請したかを識別しています。個人用Gmailアカウント、Google Workspaceアカウントどちらでもご利用いただけます。
+                <strong>管理者（初期設定を行う方）はGoogleアカウント（GmailまたはGoogle Workspace）が必須です。</strong>データの保存先となるスプレッドシートとドライブがGoogleアカウント内に作られるためです。個人用Gmail・Google Workspaceのどちらでもご利用いただけます。<br>
+                Webアプリで申請するメンバーは、各自のGoogleアカウントでサインインします（誰が申請したかの識別に使用）。<br>
+                <strong>チームプランのLINE連携を使う場合、メンバーはGoogleアカウントなしでも参加できます</strong>。管理者が発行した連携コードをLINEで一度送信すれば、あとはLINEで領収書を送るだけで申請できます（スマホやPC操作が苦手な方にもおすすめです）。
               </div>
             </div>
           </div>
@@ -1792,7 +1800,8 @@
             <li class="d-flex align-items-baseline gap-2 mb-2"><i class="bi bi-check-circle-fill text-success flex-shrink-0"></i><span>確定申告前に「1年分の領収書の山」と格闘するのをやめたい</span></li>
             <li class="d-flex align-items-baseline gap-2 mb-2"><i class="bi bi-check-circle-fill text-success flex-shrink-0"></i><span>領収書収集・精算申請を、簡素なシステムに置き換えたい</span></li>
             <li class="d-flex align-items-baseline gap-2 mb-2"><i class="bi bi-check-circle-fill text-success flex-shrink-0"></i><span>でも、高額SaaSを入れるほどでもないと感じている</span></li>
-            <li class="d-flex align-items-baseline gap-2"><i class="bi bi-check-circle-fill text-success flex-shrink-0"></i><span>経費データは外部DBに預けたくない</span></li>
+            <li class="d-flex align-items-baseline gap-2 mb-2"><i class="bi bi-check-circle-fill text-success flex-shrink-0"></i><span>経費データは外部DBに預けたくない</span></li>
+            <li class="d-flex align-items-baseline gap-2"><i class="bi bi-check-circle-fill flex-shrink-0" style="color:#06C755;"></i><span>スマホ操作が苦手なメンバーにも、<strong>LINEで領収書を送るだけ</strong>で申請してもらいたい（チームプラン）</span></li>
           </ul>
         </div>
       </div>
@@ -1827,7 +1836,7 @@
           <p class="fw-bold mb-3" style="font-size:0.9rem;color:#1e40af;">freee・マネーフォワードと一緒に使うイメージ</p>
           <div class="d-flex align-items-center justify-content-center gap-2 flex-wrap" style="font-size:0.85rem;">
             <span class="px-3 py-2 rounded-3 fw-bold" style="background:#fff;border:1px solid #bfdbfe;color:#1e40af;">
-              <i class="bi bi-camera me-1"></i>メンバーが領収書を撮影・申請
+              <i class="bi bi-camera me-1"></i>メンバーが領収書を撮影・申請<span class="text-muted fw-normal" style="font-size:0.85em;">（アプリ／LINE）</span>
             </span>
             <i class="bi bi-arrow-right text-primary"></i>
             <span class="px-3 py-2 rounded-3 fw-bold" style="background:#fff;border:1px solid #bfdbfe;color:#1e40af;">
@@ -1931,7 +1940,7 @@
             <div class="step-number-badge">4</div>
           </div>
           <h5>メンバーを招待<br><span class="text-muted fw-normal" style="font-size:0.8em;">（チームプランの場合）</span></h5>
-          <p class="text-muted small">メンバーのGoogleアカウント（メールアドレス）を登録して専用URLを共有するだけ。管理者・閲覧者・一般の3段階で権限を設定できます。</p>
+          <p class="text-muted small">メンバーのメールアドレス（Googleアカウント）を登録して専用URLを共有するだけ。管理者・閲覧者・一般の3段階で権限を設定できます。<strong style="color:#06C755;">LINE連携なら、Googleアカウントがないメンバーも連携コードで招待できます。</strong></p>
         </div>
       </div>
       <div class="col-md-6 col-lg">
