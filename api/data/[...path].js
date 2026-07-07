@@ -2346,21 +2346,23 @@ async function _lineAnalyze(sheetId, buf, mime, categories) {
   "date": "YYYY-MM-DD",
   "shop": "支払先名",
   "invoice": "T+13桁のインボイス番号またはnull",
-  "total_amount": 金額（日本円の場合）またはnull（外貨の場合）,
+  "currency": "この領収書の通貨コード（JPY/USD/EUR/GBP等）。必ず1つ判定する",
+  "total_amount": 税込み合計金額（通貨は currency のもの。円でも外貨でもこの欄に数値を入れる）,
   "category": "勘定科目（単一カテゴリの場合）",
   "category_fallback": true または false,
   "items": [{"amount": 金額（合算後）, "category": "勘定科目", "tax_rate": "課税10%/課税8%/非課税/不課税のいずれか"}] または null,
-  "fx_currency": "USD/EUR等の通貨コードまたはnull",
-  "fx_amount": 外貨金額またはnull,
+  "fx_currency": "外貨の場合の通貨コード（currencyと同じ）。日本円ならnull",
+  "fx_amount": 外貨の場合の合計金額（currencyの通貨）。日本円ならnull,
   "tax_rate": "課税10%/課税8%/混在/非課税/不課税のいずれか",
   "withholding_amount": 源泉徴収税額（整数）またはnull
 }
 
 注意：
-- 金額が日本円なら total_amount に数値を入れ fx_* は null
-- 外貨（USD/EUR等）なら total_amount は必ず null にして、fx_currency（通貨コード）と fx_amount（外貨の合計金額）を埋める。
-  ⚠️ レシートに円で併記された消費税額・参考円換算額などがあっても、その円の値は total_amount に入れない（外貨の合計を fx_amount に入れる）
-- total_amount は「税込み費用計上額（源泉徴収控除前）」を入れること
+- ★最優先で通貨を判定する：金額に付く記号や表記（¥・円→JPY、$・US$・USD→USD、€・EUR→EUR、£・GBP→GBP など）や店舗の所在地から判断し currency に入れる。$表記は米ドル(USD)。判定できないときだけ JPY とする。
+- currency が JPY のとき：total_amount に円の税込み合計を入れ、fx_* は null。
+- currency が JPY 以外（外貨）のとき：total_amount と fx_amount の両方に「その外貨の合計金額」を入れ、fx_currency に通貨コードを入れる。
+  ⚠️ レシートに円で併記された消費税額・参考円換算額があっても、それらは使わない（外貨の合計金額そのものを入れる。例：$40なら 40）
+- total_amount/fx_amount は「税込み費用計上額（源泉徴収控除前）」を入れること
   - 源泉徴収税が差し引かれている場合、合計欄の支払金額（源泉控除後）ではなく、小計＋消費税の合計を使う
 - 複数カテゴリ・税区分が混在する場合は items を使い category は null
 - items の集約ルール：「勘定科目」と「税区分」の組み合わせが同じ明細は1行に合算すること
@@ -2436,9 +2438,22 @@ async function _lineParsedToData(g, categories) {
   const pickCat = (c) => (c && valid.has(c)) ? c : categories[0];
   const txDate = _validDateStr(g.date) ? g.date : _todayJst();
 
+  // 通貨判定：currency（明示）を最優先。無ければ fx_currency、それも無ければ JPY。
+  const _cur = String(g.currency || g.fx_currency || 'JPY').toUpperCase().trim();
+  const _isForeign = !!_cur && !['JPY', 'YEN', 'JP', '円', 'JPY円'].includes(_cur);
+  // 外貨の合計額：fx_amount 優先、無ければ total_amount（Geminiが外貨額をtotalに入れても拾う）
+  const _fxAmt = Number(g.fx_amount) || Number(g.total_amount) || 0;
+
   let amount = 0, category = '', taxRate = '課税10%', note = '';
-  if (Array.isArray(g.items) && g.items.length) {
-    // 分割: "科目:金額:税率/..." 形式（parseSplitCategory と対称）。※明細は円建て前提。
+  if (_isForeign && _fxAmt > 0) {
+    // 外貨: 取引日レートで円換算（明細分割は無視し合計を換算）
+    category = pickCat(g.category);
+    taxRate = g.tax_rate && g.tax_rate !== '混在' ? g.tax_rate : '課税10%';
+    const conv = await _lineFxConvert(_cur, _fxAmt, txDate);
+    if (conv) { amount = conv.jpy; note = conv.note; }
+    else { amount = 0; note = `外貨: ${_cur} ${_fxAmt}（為替レート取得に失敗。「修正する」で金額を入力してください）`; }
+  } else if (Array.isArray(g.items) && g.items.length) {
+    // 円・分割: "科目:金額:税率/..." 形式（parseSplitCategory と対称）
     const parts = g.items.map(it => {
       const cat = pickCat(it.category);
       const amt = Math.round(Number(it.amount) || 0);
@@ -2449,14 +2464,8 @@ async function _lineParsedToData(g, categories) {
     category = parts.map(p => p.amt ? `${p.cat}:${p.amt}:${p.tax}` : p.cat).join('/');
     const taxes = [...new Set(parts.map(p => p.tax))];
     taxRate = taxes.length === 1 ? taxes[0] : '混在';
-  } else if (g.fx_currency && g.fx_amount) {
-    // 外貨: 取引日レートで円換算（Web版と同一ロジック）
-    category = pickCat(g.category);
-    taxRate = g.tax_rate && g.tax_rate !== '混在' ? g.tax_rate : '課税10%';
-    const conv = await _lineFxConvert(g.fx_currency, Number(g.fx_amount), txDate);
-    if (conv) { amount = conv.jpy; note = conv.note; }
-    else { amount = 0; note = `外貨: ${g.fx_currency} ${g.fx_amount}（為替レート取得に失敗。「修正する」で金額を入力してください）`; }
   } else {
+    // 円・単一
     amount = Math.round(Number(g.total_amount) || 0);
     category = pickCat(g.category);
     taxRate = g.tax_rate && g.tax_rate !== '混在' ? g.tax_rate : '課税10%';
