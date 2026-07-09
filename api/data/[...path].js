@@ -2887,7 +2887,7 @@ async function _lineRegister(userId, replyToken, pending) {
       `登録しました（${d.corpPay ? '会社払い' : '申請済'}）。\n${d.date} ${d.place} ¥${Number(d.amount).toLocaleString('ja-JP')}` +
       (d.corpPay ? `\n支払方法: 会社払い${d.paySource ? `（${d.paySource}）` : ''}（精算不要）` : '') +
       (aiAudit ? '\n※確認事項ありのため管理者が内容を確認します。' : '') +
-      (teamUrl ? `\n\n▼Web版はこちら\n${teamUrl}\nGoogleアカウントでメンバー登録済みの方は、Web版からも申請内容の確認・修正ができます（ログインはSafari/Chromeで開いてください）。` : '')
+      (teamUrl ? `\n\n▼Web版はこちら\n${teamUrl}?openExternalBrowser=1\nGoogleアカウントでメンバー登録済みの方は、Web版からも申請内容の確認・修正ができます。` : '')
     ));
   } catch (e) {
     console.error('line register error:', e?.message || e);
