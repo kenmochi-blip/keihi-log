@@ -1851,6 +1851,21 @@ async function _lineOrgLabel(sheetId) {
   return name.slice(0, 20); // クイックリプライのラベル上限
 }
 
+/**
+ * sheetId からそのチームのWebアプリURL（keihi-log.com/{エイリアス}）を返す。
+ * エイリアス未設定時はライセンスキー経由で逆引きし、それも無ければ /{sheetId} を返す
+ * （キャッチオールが /{sheetId} を app に流すため、どちらでも開ける）。
+ */
+async function _lineTeamUrl(sheetId) {
+  let code = await kv.get(`alias_by_sheet:${sheetId}`).catch(() => null);
+  if (!code) {
+    const settKey = `cfg:settings:${sheetId}`;
+    const licKey = (_inProcGet(settKey) || await kv.get(settKey).catch(() => null))?.settings?.B3 || '';
+    if (licKey) code = await kv.get(`license_alias:${licKey}`).catch(() => null);
+  }
+  return `https://keihi-log.com/${code || sheetId}`;
+}
+
 /** チームプランかつ有効なライセンスか（license.js と同じ判定）。 */
 async function _isTeamPlanActive(sheetId) {
   // B3 ライセンスキーを取得（resolveOwnerEmail と同じ経路）
@@ -2867,10 +2882,12 @@ async function _lineRegister(userId, replyToken, pending) {
     _inProcDel(`data:exp:${sheetId}`);
     await kv.del(`data:exp:${sheetId}`).catch(() => {});
     await kv.del(`line:pending:${userId}`).catch(() => {});
+    const teamUrl = await _lineTeamUrl(sheetId).catch(() => '');
     return _lineReply(replyToken, _lineText(
       `登録しました（${d.corpPay ? '会社払い' : '申請済'}）。\n${d.date} ${d.place} ¥${Number(d.amount).toLocaleString('ja-JP')}` +
       (d.corpPay ? `\n支払方法: 会社払い${d.paySource ? `（${d.paySource}）` : ''}（精算不要）` : '') +
-      (aiAudit ? '\n※確認事項ありのため管理者が内容を確認します。' : '')
+      (aiAudit ? '\n※確認事項ありのため管理者が内容を確認します。' : '') +
+      (teamUrl ? `\n\n▼Web版はこちら\n${teamUrl}\nGoogleアカウントでメンバー登録済みの方は、Web版からも申請内容の確認・修正ができます（ログインはSafari/Chromeで開いてください）。` : '')
     ));
   } catch (e) {
     console.error('line register error:', e?.message || e);
