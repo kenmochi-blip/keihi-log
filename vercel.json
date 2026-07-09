@@ -6,6 +6,9 @@
     "api/gemini-proxy.js":   { "maxDuration": 60 }
   },
   "redirects": [
+    { "source": "/x",  "destination": "/?utm_source=x&utm_medium=social&utm_campaign=release",        "permanent": false },
+    { "source": "/f",  "destination": "/?utm_source=facebook&utm_medium=social&utm_campaign=release", "permanent": false },
+    { "source": "/fb", "destination": "/?utm_source=facebook&utm_medium=social&utm_campaign=release", "permanent": false },
     { "source": "/lp",           "destination": "/",         "permanent": true },
     { "source": "/lp.html",      "destination": "/",         "permanent": true },
     { "source": "/index.html",   "destination": "/",         "permanent": true },
