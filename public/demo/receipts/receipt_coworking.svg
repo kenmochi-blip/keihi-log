@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="470" viewBox="0 0 360 470">
+  <rect width="360" height="470" fill="#fff" stroke="#ccc" stroke-width="1"/>
+  <!-- ヘッダー -->
+  <rect width="360" height="60" fill="#2f7fd1"/>
+  <text x="180" y="28" font-family="sans-serif" font-size="17" font-weight="bold" fill="white" text-anchor="middle">コワーキングスペース渋谷</text>
+  <text x="180" y="48" font-family="sans-serif" font-size="11" fill="#d6e8fa" text-anchor="middle">SHIBUYA COWORKING &amp; MEETING</text>
+  <!-- タイトル -->
+  <text x="180" y="90" font-family="sans-serif" font-size="16" font-weight="bold" fill="#2c3e50" text-anchor="middle">領　収　書</text>
+  <line x1="20" y1="100" x2="340" y2="100" stroke="#2f7fd1" stroke-width="2"/>
+  <!-- 宛先 -->
+  <text x="30" y="125" font-family="sans-serif" font-size="13" fill="#333">デモ ユーザー　様</text>
+  <text x="30" y="144" font-family="sans-serif" font-size="10" fill="#888">予約No. CW-2026-0410-07</text>
+  <!-- 明細 -->
+  <rect x="20" y="154" width="320" height="25" fill="#eef4fb"/>
+  <text x="30" y="171" font-family="sans-serif" font-size="11" fill="#666">項目</text>
+  <text x="340" y="171" font-family="sans-serif" font-size="11" fill="#666" text-anchor="end">金額</text>
+  <line x1="20" y1="181" x2="340" y2="181" stroke="#ddd" stroke-width="0.5"/>
+  <text x="30" y="200" font-family="sans-serif" font-size="12" fill="#333">会議室利用料（Bルーム・3時間）</text>
+  <text x="340" y="200" font-family="sans-serif" font-size="12" fill="#333" text-anchor="end">¥2,700</text>
+  <line x1="20" y1="210" x2="340" y2="210" stroke="#f0f0f0" stroke-width="0.5"/>
+  <text x="30" y="229" font-family="sans-serif" font-size="12" fill="#333">ドリンクバー（4名分）</text>
+  <text x="340" y="229" font-family="sans-serif" font-size="12" fill="#333" text-anchor="end">¥580</text>
+  <line x1="20" y1="239" x2="340" y2="239" stroke="#2f7fd1" stroke-width="1.5"/>
+  <!-- 合計 -->
+  <rect x="20" y="252" width="320" height="42" fill="#eef4fb" rx="3"/>
+  <text x="34" y="278" font-family="sans-serif" font-size="12" fill="#2f6db3">合　計（内消費税10% ¥298）</text>
+  <text x="340" y="280" font-family="sans-serif" font-size="22" font-weight="bold" fill="#2f7fd1" text-anchor="end">¥3,280</text>
+  <!-- スタンプ -->
+  <circle cx="72" cy="345" r="34" fill="none" stroke="#c0392b" stroke-width="2" opacity="0.55"/>
+  <text x="72" y="340" font-family="sans-serif" font-size="11" font-weight="bold" fill="#c0392b" text-anchor="middle" opacity="0.55">領　収</text>
+  <text x="72" y="357" font-family="sans-serif" font-size="10" fill="#c0392b" text-anchor="middle" opacity="0.55">済　み</text>
+  <!-- 日付・支払 -->
+  <line x1="20" y1="312" x2="340" y2="312" stroke="#ddd" stroke-width="0.5"/>
+  <text x="140" y="333" font-family="sans-serif" font-size="11" fill="#555">日付：2026年4月10日</text>
+  <text x="140" y="352" font-family="sans-serif" font-size="11" fill="#555">お支払：クレジットカード</text>
+  <text x="140" y="371" font-family="sans-serif" font-size="11" fill="#555">但し：会議室ご利用料として</text>
+  <!-- フッター -->
+  <rect y="438" width="360" height="32" fill="#2f7fd1"/>
+  <text x="180" y="452" font-family="sans-serif" font-size="10" fill="white" text-anchor="middle">〒150-0043 東京都渋谷区道玄坂1-2-3</text>
+  <text x="180" y="465" font-family="sans-serif" font-size="10" fill="white" text-anchor="middle">TEL: 03-5459-0000</text>
+</svg>
