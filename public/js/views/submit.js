@@ -350,10 +350,79 @@ const SubmitView = (() => {
   // ヘルパーHTML生成関数
   function _dateField() {
     const today = new Date().toISOString().split('T')[0];
+    // 手入力（テキスト）を主とし、カレンダーはボタンから開く。AIが年を誤読した場合でも
+    // 直接タイプで直せるようにする。値は常に YYYY-MM-DD（blur/選択時に正規化）。
     return `<div class="mb-2">
       <label class="form-label small fw-semibold">日付 <span class="text-danger">*</span></label>
-      <input type="date" class="form-control form-control-sm" id="inputDate" value="${today}" max="${today}">
+      <div class="input-group input-group-sm" style="position:relative;">
+        <input type="text" class="form-control form-control-sm js-date-text" id="inputDate" value="${today}"
+               inputmode="numeric" autocomplete="off" placeholder="例: 2026-05-05">
+        <button type="button" class="btn btn-outline-secondary px-2 js-date-pick" tabindex="-1" aria-label="カレンダーから選択">
+          <i class="bi bi-calendar3"></i>
+        </button>
+        <input type="date" class="js-date-native" max="${today}" tabindex="-1" aria-hidden="true"
+               style="position:absolute;right:6px;bottom:0;width:1px;height:1px;opacity:0;border:0;padding:0;pointer-events:none;">
+      </div>
     </div>`;
+  }
+
+  /** 全角数字→半角。 */
+  function _toHalfWidthDigits(s) {
+    return String(s).replace(/[０-９]/g, d => String.fromCharCode(d.charCodeAt(0) - 0xFEE0));
+  }
+  /** 手入力の日付を YYYY-MM-DD に正規化（無効なら ''）。2026-5-5 / 2026/5/5 / 20260505 / 5月5日 等を許容。 */
+  function _normalizeDateStr(raw) {
+    if (!raw) return '';
+    const s = _toHalfWidthDigits(String(raw).trim());
+    let m = s.match(/^(\d{4})[-/.年](\d{1,2})[-/.月](\d{1,2})日?$/);
+    if (!m) {
+      const d8 = s.replace(/[^\d]/g, '');
+      if (/^\d{8}$/.test(d8)) m = [null, d8.slice(0, 4), d8.slice(4, 6), d8.slice(6, 8)];
+      else {
+        // 年省略（5月5日 / 5/5）は当年で補完
+        const md = s.match(/^(\d{1,2})[-/.月](\d{1,2})日?$/);
+        if (md) m = [null, String(new Date().getFullYear()), md[1], md[2]];
+      }
+    }
+    if (!m) return '';
+    const y = +m[1], mo = +m[2], da = +m[3];
+    if (mo < 1 || mo > 12 || da < 1 || da > 31) return '';
+    const dt = new Date(y, mo - 1, da);
+    if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== da) return ''; // 2/30 等を弾く
+    const pad = n => String(n).padStart(2, '0');
+    return `${y}-${pad(mo)}-${pad(da)}`;
+  }
+
+  // 日付フィールド（手入力＋カレンダー）のイベントを一度だけ委譲登録。パネルは動的生成され
+  // #inputDate が複数存在しうるため、input-group 単位でクラスセレクタで解決する。
+  if (typeof document !== 'undefined' && !window.__keihiDateBound) {
+    window.__keihiDateBound = true;
+    document.addEventListener('click', e => {
+      const btn = e.target.closest && e.target.closest('.js-date-pick');
+      if (!btn) return;
+      const grp = btn.closest('.input-group'); if (!grp) return;
+      const native = grp.querySelector('.js-date-native');
+      const text = grp.querySelector('.js-date-text');
+      if (!native) return;
+      const n = _normalizeDateStr(text && text.value);
+      if (n) native.value = n;
+      try { native.showPicker(); } catch (_) { try { native.click(); } catch (__) {} }
+    });
+    document.addEventListener('change', e => {
+      const t = e.target;
+      if (t && t.classList && t.classList.contains('js-date-native') && t.value) {
+        const grp = t.closest('.input-group');
+        const text = grp && grp.querySelector('.js-date-text');
+        if (text) text.value = t.value;
+      }
+    });
+    document.addEventListener('blur', e => {
+      const t = e.target;
+      if (t && t.classList && t.classList.contains('js-date-text')) {
+        const n = _normalizeDateStr(t.value);
+        if (n) t.value = n;
+      }
+    }, true);
   }
   function _placeField(placeholder) {
     return `<div class="mb-2">
@@ -1173,7 +1242,7 @@ function _bindSubtypePills(el) {
 
         if (result.fx_currency && result.fx_amount) {
           // 外貨：取引日のレートを取得して換算（取引日 → AI認識日付 → 当日 の順でフォールバック）
-          const txDate = el.querySelector('#inputDate')?.value || result.date || null;
+          const txDate = _normalizeDateStr(el.querySelector('#inputDate')?.value) || result.date || null;
           const baseRate = await _fetchExchangeRate(result.fx_currency, 'JPY', txDate);
           if (baseRate) {
             const markupPct = 3;
@@ -1537,7 +1606,7 @@ function _bindSubtypePills(el) {
 
   function _collectFormData(el) {
     const pnl  = _activePanel(el);
-    const date = pnl.querySelector('#inputDate')?.value;
+    const date = _normalizeDateStr(pnl.querySelector('#inputDate')?.value);
 
     // place は交通費・自家用車では専用フィールドから生成
     let place = '';
@@ -1557,7 +1626,7 @@ function _bindSubtypePills(el) {
       if (!place) { App.showToast(`${placeLabel}を入力してください`, 'danger'); return null; }
     }
 
-    if (!date) { App.showToast('日付を入力してください', 'danger'); return null; }
+    if (!date) { App.showToast('日付を正しく入力してください（例: 2026-05-05）', 'danger'); return null; }
 
     let amount = 0, category = '', note = '';
 
