@@ -1156,6 +1156,7 @@ function _bindSubtypePills(el) {
     if (files.length === 0) return App.showToast('ファイルを選択してから解析してください', 'warning');
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>解析中...';
+    _showDupBanner(el, []); // 前回の重複警告をクリア
     try {
       let result = null;
 
@@ -1298,6 +1299,8 @@ function _bindSubtypePills(el) {
       } else {
         App.showToast('AI解析完了。内容を確認してください', 'success');
       }
+      // 読み取り直後に重複を判定して、登録ボタンを押す前に気づけるようにする
+      _checkDuplicatesEarly(el);
     } catch (err) {
       console.error('[AI解析エラー]', err);
       App.showToast('AI解析エラー: ' + err.message, 'danger');
@@ -1711,26 +1714,14 @@ function _bindSubtypePills(el) {
     };
   }
 
-  function _runAuditChecks(expenses, data, newHashes) {
+  // 重複検知のみ（インボイス／同一画像／同日同額類似取引先）。
+  // 「二重読み込み」を登録前(_checkDuplicatesEarly)と登録時(_runAuditChecks)の両方から呼ぶ単一実装。
+  function _duplicateAlerts(expenses, data, newHashes) {
     const alerts = [];
 
-    // 0. 交際費：参加者名の記載推奨（備考・理由欄が空のときのみ）
-    if (data.category.split('/').some(p => p.split(':')[0] === '交際費') && !data.note) {
-      alerts.push('交際費は備考に参加者名を記載することを推奨します');
-    }
-
-    // 1. 2ヶ月以上前チェックは_handleSubmitで先行実施済みのためここでは省略
-
-    // 1.5. AI解析額との不一致チェック（金額の手修正・誤入力を検知）
-    //     AIが金額を解析できたケース（_aiParsedAmount>0）のみ。0の型（領収書なし/交通費等）や
-    //     解析基準が無い既存データは対象外。
-    if (_aiParsedAmount > 0 && Number(data.amount) !== Math.round(_aiParsedAmount)) {
-      alerts.push(`AI解析額 ¥${Math.round(_aiParsedAmount).toLocaleString('ja-JP')} と申請額 ¥${Number(data.amount).toLocaleString('ja-JP')} が一致しません（金額を手修正した場合はご確認ください）`);
-    }
-
-    // 2. インボイス番号＋金額＋日付の重複チェック（最優先・確実な重複）
-    //    インボイス番号(T番号)は事業者ごとに固定のため、番号＋金額だけでは
-    //    「同じ取引先の毎月同額の請求書」が誤検知される。日付一致も条件にする。
+    // インボイス番号＋金額＋日付の重複チェック（最優先・確実な重複）
+    //   インボイス番号(T番号)は事業者ごとに固定のため、番号＋金額だけでは
+    //   「同じ取引先の毎月同額の請求書」が誤検知される。日付一致も条件にする。
     if (data.invoice && data.invoice.trim()) {
       const invNorm = data.invoice.trim().toUpperCase();
       const invDup = expenses.find(e => {
@@ -1745,8 +1736,8 @@ function _bindSubtypePills(el) {
       }
     }
 
-    // 3. 画像ハッシュ重複チェック
-    if (newHashes.length > 0) {
+    // 画像ハッシュ重複チェック（全く同じ画像ファイルの二重登録）
+    if (newHashes && newHashes.length > 0) {
       const dup = expenses.find(e => {
         if (e.id === _editId) return false;
         return e.imageHash && newHashes.some(h => e.imageHash.split(',').includes(h));
@@ -1754,7 +1745,7 @@ function _bindSubtypePills(el) {
       if (dup) alerts.push(`同一画像が既に申請済み (${dup.date} ${dup.place})`);
     }
 
-    // 4. 同日・同額・類似取引先の重複チェック（揺らぎ許容）
+    // 同日・同額・類似取引先の重複チェック（揺らぎ許容＝同じ領収書を撮り直した二重登録も検知）
     function _similarPlace(a, b) {
       if (!a || !b) return false;
       const na = a.trim().toLowerCase().replace(/[\s　]/g, '');
@@ -1775,6 +1766,88 @@ function _bindSubtypePills(el) {
     }
 
     return alerts;
+  }
+
+  function _runAuditChecks(expenses, data, newHashes) {
+    const alerts = [];
+
+    // 0. 交際費：参加者名の記載推奨（備考・理由欄が空のときのみ）
+    if (data.category.split('/').some(p => p.split(':')[0] === '交際費') && !data.note) {
+      alerts.push('交際費は備考に参加者名を記載することを推奨します');
+    }
+
+    // 1. 2ヶ月以上前チェックは_handleSubmitで先行実施済みのためここでは省略
+
+    // 1.5. AI解析額との不一致チェック（金額の手修正・誤入力を検知）
+    //     AIが金額を解析できたケース（_aiParsedAmount>0）のみ。0の型（領収書なし/交通費等）や
+    //     解析基準が無い既存データは対象外。
+    if (_aiParsedAmount > 0 && Number(data.amount) !== Math.round(_aiParsedAmount)) {
+      alerts.push(`AI解析額 ¥${Math.round(_aiParsedAmount).toLocaleString('ja-JP')} と申請額 ¥${Number(data.amount).toLocaleString('ja-JP')} が一致しません（金額を手修正した場合はご確認ください）`);
+    }
+
+    // 2〜4. 重複検知（共通ロジック）
+    alerts.push(..._duplicateAlerts(expenses, data, newHashes));
+
+    return alerts;
+  }
+
+  /* ── 登録前の重複ヘッズアップ（AI読み取り直後に表示） ── */
+
+  const _escDup = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  // フォームから重複判定に必要な値だけを静かに読む（バリデーション・トーストなし）。
+  function _readDupFields(el) {
+    const pnl = _activePanel(el);
+    const date = _normalizeDateStr(pnl.querySelector('#inputDate')?.value) || '';
+    const place = (pnl.querySelector('#inputPlace')?.value
+      || el.querySelector('#txtCarRoute')?.value
+      || el.querySelector('#txtFrom')?.value || '').trim();
+    const invoice = (pnl.querySelector('#inputInvoice')?.value || '').trim();
+    let amount = 0;
+    const split = pnl.querySelector('#splitLines');
+    if (split && !split.classList.contains('d-none')) {
+      pnl.querySelectorAll('.split-row').forEach(r => {
+        amount += Number((r.querySelector('.split-amount')?.value || '').replace(/[^\d]/g, '')) || 0;
+      });
+    } else {
+      amount = Number((pnl.querySelector('#inputAmount')?.value || '').replace(/[^\d]/g, '')) || 0;
+    }
+    return { date, place, amount, invoice, category: '', note: '' };
+  }
+
+  // アクティブパネルの #submitUnit 直前に重複警告バナーを出す／消す。
+  function _showDupBanner(el, alerts) {
+    const pnl = _activePanel(el);
+    const existing = pnl.querySelector('.dup-warn');
+    if (!alerts || !alerts.length) { if (existing) existing.remove(); return; }
+    let banner = existing;
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.className = 'dup-warn alert alert-warning py-2 px-3 small mb-2';
+      banner.style.borderLeft = '4px solid #ffc107';
+      const unit = pnl.querySelector('#submitUnit');
+      if (unit && unit.parentNode) unit.parentNode.insertBefore(banner, unit);
+      else pnl.appendChild(banner);
+    }
+    banner.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i><strong>重複の可能性があります</strong><br>'
+      + alerts.map(a => '・' + _escDup(a)).join('<br>')
+      + '<br><span class="text-muted">同じ領収書を二重に読み込んでいないかご確認ください（問題なければそのまま登録できます）。</span>';
+  }
+
+  // AI読み取り直後などに、登録ボタンを押す前の時点で重複を判定してバナー表示（ベストエフォート）。
+  async function _checkDuplicatesEarly(el) {
+    try {
+      const data = _readDupFields(el);
+      if (!data.date || !data.amount) { _showDupBanner(el, []); return; }
+      const expenses = await App.getExpenses();
+      let hashes = [];
+      try {
+        if (_compressPromise) { _compressedFiles = await _compressPromise; _compressPromise = null; }
+        const files = ((_compressedFiles.length ? _compressedFiles : _selectedFiles) || []).filter(Boolean);
+        if (files.length && Drive.sha256) hashes = await Promise.all(files.map(f => Drive.sha256(f.base64)));
+      } catch (_) { /* ハッシュ計算失敗は無視（日付・金額・取引先での検知は継続） */ }
+      _showDupBanner(el, _duplicateAlerts(expenses, data, hashes));
+    } catch (_) { /* 事前チェックの失敗は登録操作を妨げない */ }
   }
 
   async function _loadHistory(el, force) {
@@ -2127,6 +2200,7 @@ function _bindSubtypePills(el) {
   }
 
   function _resetForm(el) {
+    el.querySelectorAll('.dup-warn').forEach(b => b.remove()); // 重複警告バナーを消す
     _selectedFiles = []; _compressedFiles = []; _compressPromise = null;
     _aiAutoPromise = null; _prefetchedTime = null; ++_aiAutoVersion;
     _editId = null;

@@ -297,5 +297,5 @@ const Drive = (() => {
     );
   }
 
-  return { createSpreadsheetInFolder, createFolder, moveToFolder, uploadFile, uploadReceiptFile, renameFile, fileToBase64, pdfToImages, pdfBase64ToImages, grantEditorAccess, revokeAccess };
+  return { createSpreadsheetInFolder, createFolder, moveToFolder, uploadFile, uploadReceiptFile, renameFile, fileToBase64, pdfToImages, pdfBase64ToImages, grantEditorAccess, revokeAccess, sha256: _sha256 };
 })();
