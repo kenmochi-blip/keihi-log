@@ -2001,10 +2001,19 @@ async function _handleLineText(userId, replyToken, text) {
   if (pending && pending.step === 'awaiting_value' && pending.editField) {
     return _applyLineEdit(userId, replyToken, pending, text);
   }
+  // 電車代フロー: 出発駅・到着駅の入力待ち
+  if (pending && (pending.step === 'transit_from' || pending.step === 'transit_to')) {
+    return _handleLineTransitText(userId, replyToken, pending, text);
+  }
 
   // 6桁数字 → 連携コード
   if (/^\d{6}$/.test(text)) {
     return _handleLineCode(userId, replyToken, text);
+  }
+
+  // 電車代キーワード
+  if (/電車|でんしゃ|バス|交通費/.test(text)) {
+    return _beginLineTransit(userId, replyToken);
   }
 
   // 未精算キーワード
@@ -2733,6 +2742,98 @@ function _lineSummary(data, alerts) {
   return lines.join('\n');
 }
 
+/* ── 電車代（出発駅→到着駅→往復）フロー ── */
+
+/** Yahoo乗換（既存の /api/transit）で運賃を取得。{ fare } または { error }。 */
+async function _lineTransitFare(from, to) {
+  try {
+    const url = `https://keihi-log.com/api/transit?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
+    const resp = await fetch(url, { signal: AbortSignal.timeout(10000) });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok || !data.fare) return { error: data.error || '運賃を取得できませんでした' };
+    return { fare: Number(data.fare) || 0 };
+  } catch (e) {
+    return { error: e?.name === 'TimeoutError' ? '運賃検索がタイムアウトしました' : '運賃検索に失敗しました' };
+  }
+}
+
+/** 電車代フローの入口：未連携/複数経費ログを判定し、開始 or 組織選択へ。 */
+async function _beginLineTransit(userId, replyToken) {
+  const links = await _lineLinks(userId);
+  if (!links.length) {
+    return _lineReply(replyToken, _lineText('未連携です。まず管理者から受け取った6桁の連携コードを送信してください。'));
+  }
+  _lineEnsureUserMenu(userId).catch(() => {});
+  if (links.length === 1) return _startLineTransit(userId, replyToken, links[0]);
+  // 複数経費ログ：登録先を選ばせてから開始
+  await kv.set(`line:pending:${userId}`, { step: 'awaiting_org_transit' }, { ex: 600 }).catch(() => {});
+  const choices = await Promise.all(links.map(async l => ({
+    sheetId: l.sheetId, label: await _lineOrgLabel(l.sheetId).catch(() => '経費ログ'),
+  })));
+  return _lineReply(replyToken, _lineText('どの経費ログに登録しますか？',
+    choices.map(o => _qpPostback(o.label, `action=pickorgtransit&s=${encodeURIComponent(o.sheetId)}`))));
+}
+
+/** 電車代フロー開始：出発駅を尋ねる（対象の経費ログは選択済み link を pending に保持）。 */
+async function _startLineTransit(userId, replyToken, link) {
+  if (!(await _isTeamPlanActive(link.sheetId))) {
+    return _lineReply(replyToken, _lineText('LINE連携はチームプランでご利用いただけます。管理者にご確認ください。'));
+  }
+  const name = await _lineMemberName(link.sheetId, link.identity);
+  if (name === null) return _lineReply(replyToken, _lineText('メンバー登録が見つかりません。管理者に連携し直しを依頼してください。'));
+  await kv.set(`line:pending:${userId}`, {
+    step: 'transit_from', sheetId: link.sheetId, identity: link.identity,
+  }, { ex: 600 }).catch(() => {});
+  return _lineReply(replyToken, _lineText('🚃 電車・バス代を登録します。\nまず「出発駅（または出発バス停）」を送ってください。\n例: 東京'));
+}
+
+/** 出発駅・到着駅・往復の会話ステップを処理（テキスト受信時に呼ぶ）。 */
+async function _handleLineTransitText(userId, replyToken, pending, text) {
+  const v = String(text || '').trim().slice(0, 50);
+  if (!v) return _lineReply(replyToken, _lineText('駅名・バス停名を送ってください。'));
+  if (pending.step === 'transit_from') {
+    pending.from = v; pending.step = 'transit_to';
+    await kv.set(`line:pending:${userId}`, pending, { ex: 600 }).catch(() => {});
+    return _lineReply(replyToken, _lineText('次に「到着駅（または到着バス停）」を送ってください。\n例: 横浜'));
+  }
+  // transit_to
+  pending.to = v; pending.step = 'transit_round';
+  await kv.set(`line:pending:${userId}`, pending, { ex: 600 }).catch(() => {});
+  return _lineReply(replyToken, _lineText(`「${pending.from} → ${pending.to}」\n片道・往復を選んでください。`, [
+    _qpPostback('片道', 'action=transitround&r=0'),
+    _qpPostback('往復', 'action=transitround&r=1'),
+  ]));
+}
+
+/** 往復選択 → 運賃検索 → 経費データを組み立てて確認カードを提示。 */
+async function _lineTransitConfirm(userId, replyToken, pending, round) {
+  const { sheetId, identity, from, to } = pending;
+  if (!from || !to) return _lineReply(replyToken, _lineText('入力が途中で切れました。もう一度「電車」と送ってやり直してください。'));
+  const { fare, error } = await _lineTransitFare(from, to);
+  if (error || !fare) {
+    return _lineReply(replyToken, _lineText(`運賃を取得できませんでした（${error || '該当なし'}）。\n駅名・バス停名をご確認のうえ、もう一度「電車」と送ってお試しください。`));
+  }
+  const amount = round ? fare * 2 : fare;
+  const master = await readMasterCached(sheetId).catch(() => ({ categories: [] }));
+  const category = (master.categories || []).includes('旅費交通費') ? '旅費交通費'
+    : (master.categories || []).find(c => /交通|旅費/.test(c)) || (master.categories?.[0] || '旅費交通費');
+  const data = {
+    type: '電車/バス',
+    date: _todayJst(),
+    place: `${from} ${round ? '↔' : '→'} ${to}`,
+    amount, category, taxRate: '課税10%',
+    note: '', corpPay: false, paySource: '', invoice: '', withholding: 0, imageLink: '',
+  };
+  const expenses = await readExpensesViaSA(sheetId).catch(() => []);
+  const alerts = _serverAuditChecks(expenses, data, []);
+  await kv.set(`line:pending:${userId}`, {
+    data, sheetId, identity, alerts, aiAmount: amount, imageHash: '', imageLink: '', imageStored: false, step: 'confirm',
+  }, { ex: 600 }).catch(() => {});
+  return _lineReply(replyToken, _lineConfirmMessage(
+    _lineSummary(data, alerts) + `\n（運賃 ¥${fare.toLocaleString('ja-JP')}${round ? ' ×2（往復）' : ''}）`
+  ));
+}
+
 /* ── postback（登録/修正/やめる/項目選択） ── */
 
 async function _handleLinePostback(userId, replyToken, dataStr) {
@@ -2774,8 +2875,28 @@ async function _handleLinePostback(userId, replyToken, dataStr) {
   }
   if (action === 'history')   return _handleLineHistory(userId, replyToken);
   if (action === 'unsettled') return _handleLineUnsettled(userId, replyToken);
+  if (action === 'transit')   return _beginLineTransit(userId, replyToken);
 
   const pending = await kv.get(`line:pending:${userId}`).catch(() => null);
+
+  // 電車代: 登録先の経費ログ選択 → フロー開始
+  if (action === 'pickorgtransit') {
+    if (!pending || pending.step !== 'awaiting_org_transit') {
+      return _lineReply(replyToken, _lineText('時間切れです。もう一度「電車」と送ってやり直してください。'));
+    }
+    const sheetId = params.get('s');
+    const links = await _lineLinks(userId);
+    const link = links.find(l => l.sheetId === sheetId);
+    if (!link) return _lineReply(replyToken, _lineText('選択した経費ログが見つかりません。もう一度「電車」と送ってください。'));
+    return _startLineTransit(userId, replyToken, link);
+  }
+  // 電車代: 片道/往復の選択 → 運賃検索して確認カードへ
+  if (action === 'transitround') {
+    if (!pending || pending.step !== 'transit_round') {
+      return _lineReply(replyToken, _lineText('時間切れです。もう一度「電車」と送ってやり直してください。'));
+    }
+    return _lineTransitConfirm(userId, replyToken, pending, params.get('r') === '1');
+  }
 
   // 複数経費ログ: 登録先の組織を選択 → その経費ログで解析を続行
   if (action === 'pickorg') {
@@ -2948,7 +3069,7 @@ async function _lineRegister(userId, replyToken, pending) {
   const row = [
     _nowJst(),                                  // A: 申請日時（サーバー時刻）
     name,                                       // B: 名前
-    '領収書',                                   // C: タイプ
+    d.type || '領収書',                         // C: タイプ（電車/バス等も対応）
     d.date,                                     // D: 日付
     d.place,                                    // E: 支払先
     d.amount,                                   // F: 金額
