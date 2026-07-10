@@ -2366,7 +2366,7 @@ async function lineLinks(req, res) {
  * ※ 管理者のみ。LINE_CHANNEL_ACCESS_TOKEN を使用（無料操作・通数カウント外）。
  */
 // リッチメニューの画像/レイアウト/挙動を変えたら上げる（自動で再設定＆再割当される）
-const RICHMENU_VERSION = 'v15';
+const RICHMENU_VERSION = 'v16';
 let _richmenuEnsured = false; // ウォームインスタンス内キャッシュ
 
 /** 1つのリッチメニューを作成＋画像アップロードし richMenuId を返す（失敗で null）。 */
@@ -2406,9 +2406,9 @@ async function _setupRichMenuViaApi() {
   const mainId = await _createRichMenu(H, {
     size: { width: 2500, height: 843 }, selected: true, name: 'keihi-log-main', chatBarText: 'メニュー',
     areas: [
-      // 左＝領収書（全高）、中＝電車代（全高）、右列を上下2分割（上＝過去の申請／下＝未精算）
-      { bounds: { x: 0,    y: 0,   width: 833, height: 843 }, action: { type: 'postback', data: 'action=sendreceipt', displayText: '領収書を送る' } },
-      { bounds: { x: 833,  y: 0,   width: 834, height: 843 }, action: { type: 'postback', data: 'action=transit',     displayText: '電車代' } },
+      // 左＝電車代（全高）、中＝領収書（全高）、右列を上下2分割（上＝過去の申請／下＝未精算）
+      { bounds: { x: 0,    y: 0,   width: 833, height: 843 }, action: { type: 'postback', data: 'action=transit',     displayText: '電車代' } },
+      { bounds: { x: 833,  y: 0,   width: 834, height: 843 }, action: { type: 'postback', data: 'action=sendreceipt', displayText: '領収書を送る' } },
       { bounds: { x: 1667, y: 0,   width: 833, height: 421 }, action: { type: 'postback', data: 'action=history',     displayText: '過去の申請' } },
       { bounds: { x: 1667, y: 421, width: 833, height: 422 }, action: { type: 'postback', data: 'action=unsettled',   displayText: '未精算' } },
     ],
