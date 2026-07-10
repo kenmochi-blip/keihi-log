@@ -2362,7 +2362,7 @@ async function lineLinks(req, res) {
  * ※ 管理者のみ。LINE_CHANNEL_ACCESS_TOKEN を使用（無料操作・通数カウント外）。
  */
 // リッチメニューの画像/レイアウト/挙動を変えたら上げる（自動で再設定＆再割当される）
-const RICHMENU_VERSION = 'v9';
+const RICHMENU_VERSION = 'v10';
 let _richmenuEnsured = false; // ウォームインスタンス内キャッシュ
 
 /** 1つのリッチメニューを作成＋画像アップロードし richMenuId を返す（失敗で null）。 */
@@ -2718,6 +2718,12 @@ function _parseLooseDate(text) {
 }
 
 /** 確認画面のテキスト（解析結果＋監査アラート）。 */
+// YYYY-MM-DD → 「2026年7月10日」。LINEがハイフン日付を電話番号と誤認しリンク化するのを防ぐ。
+function _fmtDateJa(s) {
+  const m = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(String(s || ''));
+  return m ? `${m[1]}年${Number(m[2])}月${Number(m[3])}日` : String(s || '');
+}
+
 function _lineSummary(data, alerts) {
   const yen = (n) => '¥' + Number(n || 0).toLocaleString('ja-JP');
   const catLabel = data.category.split('/').map(seg => {
@@ -2726,7 +2732,7 @@ function _lineSummary(data, alerts) {
   }).join(' / ');
   const lines = [
     '【内容を確認してください】',
-    `日付: ${data.date}`,
+    `日付: ${_fmtDateJa(data.date)}`,
     `支払先: ${data.place || '(不明)'}`,
     `金額: ${yen(data.amount)}`,
     `科目: ${catLabel || '(未設定)'}`,
@@ -3105,7 +3111,7 @@ async function _lineRegister(userId, replyToken, pending) {
     const teamUrl = await _lineTeamUrl(sheetId).catch(() => '');
     const statusLabel = d.corpPay ? '会社払い' : (isAdmin ? '登録済' : '申請済');
     return _lineReply(replyToken, _lineText(
-      `登録しました（${statusLabel}）。\n${d.date} ${d.place} ¥${Number(d.amount).toLocaleString('ja-JP')}` +
+      `登録しました（${statusLabel}）。\n${_fmtDateJa(d.date)} ${d.place} ¥${Number(d.amount).toLocaleString('ja-JP')}` +
       (d.corpPay ? `\n支払方法: 会社払い${d.paySource ? `（${d.paySource}）` : ''}（精算不要）` : '') +
       (aiAudit ? '\n※確認事項ありのため管理者が内容を確認します。' : '') +
       (teamUrl ? `\n\n▼Web版はこちら\n${teamUrl}?openExternalBrowser=1\nGoogleアカウントでメンバー登録済みの方は、Web版からも申請内容の確認・修正ができます。` : '')
@@ -3143,7 +3149,7 @@ async function _handleLineUnsettled(userId, replyToken) {
     grandTotal += total; grandCount += mine.length;
     const N = multi ? 5 : 10;
     const shown = mine.slice(0, N).map(e =>
-      `・${e.date} ${String(e.place || '').slice(0, 16)} ¥${Number(e.amount).toLocaleString('ja-JP')}`
+      `・${_fmtDateJa(e.date)} ${String(e.place || '').slice(0, 16)} ¥${Number(e.amount).toLocaleString('ja-JP')}`
     );
     const more = mine.length > N ? `\n…ほか${mine.length - N}件` : '';
     const head = multi
@@ -3185,7 +3191,7 @@ async function _handleLineHistory(userId, replyToken) {
     mine.sort((a, b) => String(b.appliedAt || b.date || '').localeCompare(String(a.appliedAt || a.date || '')));
     const N = multi ? 8 : 15;
     const shown = mine.slice(0, N).map(e =>
-      `・${e.date} ${String(e.place || '').slice(0, 14)} ¥${Number(e.amount).toLocaleString('ja-JP')}【${_expStatusLabel(e)}】`
+      `・${_fmtDateJa(e.date)} ${String(e.place || '').slice(0, 14)} ¥${Number(e.amount).toLocaleString('ja-JP')}【${_expStatusLabel(e)}】`
     );
     const head = multi
       ? `【${await _lineOrgLabel(sheetId).catch(() => '')}】直近${Math.min(N, mine.length)}件（全${mine.length}件）`
