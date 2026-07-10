@@ -1842,7 +1842,7 @@ async function _handleLineEvent(ev) {
 
   if (ev.type === 'follow') {
     // 未連携は既定の「認証コードを入力」メニュー（折りたたみ＝入力欄が見える）のまま。
-    // 既に連携済みのユーザーが再追加した場合だけ MAIN（3ボタン）へ割り当てる。
+    // 既に連携済みのユーザーが再追加した場合だけ MAIN（4ボタン）へ割り当てる。
     if (userId) {
       const _l = await _lineLink(userId).catch(() => null);
       if (_l) _lineEnsureUserMenu(userId).catch(() => {});
@@ -2362,7 +2362,7 @@ async function lineLinks(req, res) {
  * ※ 管理者のみ。LINE_CHANNEL_ACCESS_TOKEN を使用（無料操作・通数カウント外）。
  */
 // リッチメニューの画像/レイアウト/挙動を変えたら上げる（自動で再設定＆再割当される）
-const RICHMENU_VERSION = 'v7';
+const RICHMENU_VERSION = 'v8';
 let _richmenuEnsured = false; // ウォームインスタンス内キャッシュ
 
 /** 1つのリッチメニューを作成＋画像アップロードし richMenuId を返す（失敗で null）。 */
@@ -2382,7 +2382,7 @@ async function _createRichMenu(H, def, pngB64) {
 /**
  * 2種類のメニューを作成する。
  *   LINK（未連携・既定）: 認証コード入力の案内。selected:false で折りたたみ＝入力欄が見える。
- *   MAIN（連携済み・per-user）: 3ボタン（領収書を送る/過去の申請/未精算）。selected:true で展開。
+ *   MAIN（連携済み・per-user）: 4ボタン（領収書を送る/過去の申請/未精算/電車代）。selected:true で展開。
  * LINK を全ユーザー既定に設定し、MAIN は連携時に per-user 割当する。
  */
 async function _setupRichMenuViaApi() {
@@ -2398,13 +2398,14 @@ async function _setupRichMenuViaApi() {
     }
   } catch (_) {}
 
-  // 連携済み用（3ボタン・展開）
+  // 連携済み用（4ボタン・展開）
   const mainId = await _createRichMenu(H, {
     size: { width: 2500, height: 843 }, selected: true, name: 'keihi-log-main', chatBarText: 'メニュー',
     areas: [
-      { bounds: { x: 0,    y: 0, width: 833, height: 843 }, action: { type: 'postback', data: 'action=sendreceipt', displayText: '領収書を送る' } },
-      { bounds: { x: 833,  y: 0, width: 834, height: 843 }, action: { type: 'postback', data: 'action=history',     displayText: '過去の申請' } },
-      { bounds: { x: 1667, y: 0, width: 833, height: 843 }, action: { type: 'postback', data: 'action=unsettled',   displayText: '未精算' } },
+      { bounds: { x: 0,    y: 0, width: 625, height: 843 }, action: { type: 'postback', data: 'action=sendreceipt', displayText: '領収書を送る' } },
+      { bounds: { x: 625,  y: 0, width: 625, height: 843 }, action: { type: 'postback', data: 'action=history',     displayText: '過去の申請' } },
+      { bounds: { x: 1250, y: 0, width: 625, height: 843 }, action: { type: 'postback', data: 'action=unsettled',   displayText: '未精算' } },
+      { bounds: { x: 1875, y: 0, width: 625, height: 843 }, action: { type: 'postback', data: 'action=transit',     displayText: '電車代' } },
     ],
   }, RICHMENU_PNG_BASE64);
   if (!mainId) return false;
@@ -2447,7 +2448,7 @@ async function _ensureRichMenu() {
 }
 
 /**
- * 連携済みユーザーに MAIN（3ボタン）メニューを per-user 割当する（1ユーザー1回・バージョン別フラグ）。
+ * 連携済みユーザーに MAIN（4ボタン）メニューを per-user 割当する（1ユーザー1回・バージョン別フラグ）。
  * 既定は LINK メニューなので、割当に失敗しても「メニューが消える」ことはない（安全）。
  */
 async function _lineEnsureUserMenu(userId) {
