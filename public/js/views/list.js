@@ -34,19 +34,9 @@ const ListView = (() => {
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h5 class="fw-bold mb-0"><i class="bi bi-list-ul me-2 text-primary"></i>一覧表</h5>
     <div class="d-flex gap-2">
-      <div class="btn-group no-print">
-        <button class="btn btn-outline-secondary btn-sm" id="btnExportCsv">
-          <i class="bi bi-download me-1"></i>CSV
-        </button>
-        <button class="btn btn-outline-secondary btn-sm dropdown-toggle dropdown-toggle-split px-2"
-          data-bs-toggle="dropdown" aria-expanded="false"></button>
-        <ul class="dropdown-menu dropdown-menu-end">
-          <li><h6 class="dropdown-header" style="font-size:0.7rem;">会計ソフト形式 <a href="/faq#q702" class="text-muted" style="font-size:0.75rem;" title="CSVエクスポートについて"><i class="bi bi-question-circle"></i></a></h6></li>
-          <li><a class="dropdown-item small" href="#" id="btnExportFreee">freee 支出取引（Excel）</a></li>
-          <li><a class="dropdown-item small" href="#" id="btnExportYayoi">弥生 仕訳日記帳</a></li>
-          <li><a class="dropdown-item small" href="#" id="btnExportMfc">MFクラウド 仕訳帳</a></li>
-        </ul>
-      </div>
+      <button class="btn btn-outline-secondary btn-sm no-print" id="btnExportCsv">
+        <i class="bi bi-download me-1"></i>CSV
+      </button>
       <button class="btn btn-outline-secondary btn-sm no-print" id="btnRefreshList">
         <i class="bi bi-arrow-clockwise"></i>
       </button>
@@ -228,9 +218,6 @@ const ListView = (() => {
         } catch (err) { App.showToast(App.friendlyError(err, 'load'), 'danger'); }
       });
       el.querySelector('#btnExportCsv')?.addEventListener('click', () => _exportCsv(el));
-      el.querySelector('#btnExportFreee')?.addEventListener('click', e => { e.preventDefault(); _exportFreee(el); });
-      el.querySelector('#btnExportYayoi')?.addEventListener('click', e => { e.preventDefault(); _exportYayoi(el); });
-      el.querySelector('#btnExportMfc')?.addEventListener('click', e => { e.preventDefault(); _exportMfc(el); });
       ['filterType','filterStatus','filterKeyword','filterMember','filterPaySource','filterCustomFlag'].forEach(id => {
         el.querySelector(`#${id}`)?.addEventListener('input', () => { _shownCount = 50; _renderTable(el); });
       });
@@ -340,9 +327,6 @@ const ListView = (() => {
     });
 
     el.querySelector('#btnExportCsv')?.addEventListener('click', () => _exportCsv(el));
-    el.querySelector('#btnExportFreee')?.addEventListener('click', e => { e.preventDefault(); _exportFreee(el); });
-    el.querySelector('#btnExportYayoi')?.addEventListener('click', e => { e.preventDefault(); _exportYayoi(el); });
-    el.querySelector('#btnExportMfc')?.addEventListener('click', e => { e.preventDefault(); _exportMfc(el); });
 
     el.querySelectorAll('#listSortBtns [data-sort]').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -848,169 +832,6 @@ const ListView = (() => {
     return e.taxRate || '課税10%';
   }
 
-  // taxRate に応じた消費税額と各会計ソフト用の税区分文字列を返す
-  function _taxInfo(amount, taxRate) {
-    const r = taxRate || '課税10%';
-    if (r === '課税8%') return { tax: Math.floor(amount * 8 / 108),  freeeKbn: '課対仕入8%（軽）', yayoiKbn: '課対仕入8%', mfcKbn: '課税仕入8%(軽)' };
-    if (r === '非課税')  return { tax: 0, freeeKbn: '非課税仕入',    yayoiKbn: '非課税',           mfcKbn: '非課税仕入' };
-    if (r === '不課税')  return { tax: 0, freeeKbn: '対象外',        yayoiKbn: '対象外',           mfcKbn: '対象外' };
-    // 課税10%・混在はどちらも10%で処理
-    return { tax: Math.floor(amount * 10 / 110), freeeKbn: '課対仕入10%', yayoiKbn: '課対仕入10%', mfcKbn: '課税仕入10%' };
-  }
-
-  // freee「支出取引」インポート用テンプレート（21列）に合わせて .xlsx を出力する。
-  // 会社払い=決済済み（決済口座=支払元）、個人立替=未決済（決済列は空）として表現。
-  function _exportFreee(el) {
-    const filtered = _getFiltered(el);
-    const header = ['収支区分','管理番号','発生日','決済期日','取引先','取引先コード','勘定科目','税区分',
-      '金額','税計算区分','税額','備考','品目','部門','メモタグ（複数指定可、カンマ区切り）',
-      '決済日','決済口座','決済金額','セグメント1','セグメント2','セグメント3'];
-    const aoa = [header];
-    // 1レコード(1明細)を freee 1行に変換
-    const pushRow = (e, cat, kbn, amount, tax, memo, corpSrc, dateIso) => {
-      const settled = !!corpSrc; // 会社払い=決済済み
-      aoa.push([
-        '支出',                     // 収支区分
-        '',                         // 管理番号
-        { d: dateIso },             // 発生日
-        '',                         // 決済期日
-        e.place || '',              // 取引先
-        '',                         // 取引先コード
-        cat,                        // 勘定科目
-        kbn,                        // 税区分
-        amount,                     // 金額(税込)
-        '税込',                     // 税計算区分
-        tax,                        // 税額
-        memo,                       // 備考
-        '', '', '',                 // 品目 / 部門 / メモタグ
-        settled ? { d: dateIso } : '', // 決済日
-        settled ? corpSrc : '',     // 決済口座（会社払いの支払元）
-        settled ? amount : '',      // 決済金額
-        '', '', '',                 // セグメント1-3
-      ]);
-    };
-    filtered.forEach(e => {
-      const totalAmt = Number(e.amount) || 0;
-      const corpSrc  = _corpPaySource(e);
-      const applicant = App.getMemberName(e.email, e.name);
-      const memo = [e.note, `申請者:${applicant}`].filter(Boolean).join(' / ');
-      const splitParts = App.parseSplitCategory(e.category);
-      const isSplit = splitParts.length > 1 && splitParts.every(p => p.amount !== null);
-      if (isSplit) {
-        splitParts.forEach(p => {
-          const { tax, freeeKbn } = _taxInfo(p.amount, p.taxRate || _effectiveTaxRate(e));
-          pushRow(e, p.cat, freeeKbn, p.amount, tax, memo, corpSrc, e.date);
-        });
-      } else {
-        const { tax, freeeKbn } = _taxInfo(totalAmt, _effectiveTaxRate(e));
-        pushRow(e, App.categoryLabel(e.category), freeeKbn, totalAmt, tax, memo, corpSrc, e.date);
-      }
-      const wh = Number(e.withholding) || 0;
-      if (wh > 0) {
-        pushRow(e, '預り金', '対象外', -wh, 0, `源泉徴収 / 申請者:${applicant}`, corpSrc, e.date);
-      }
-    });
-    if (!window.XlsxLite) { App.showToast('エクスポート用モジュールの読み込みに失敗しました', 'danger'); return; }
-    window.XlsxLite.download(`freee支出取引_${new Date().toISOString().split('T')[0]}.xlsx`, '支出取引', aoa);
-  }
-
-  function _exportYayoi(el) {
-    const filtered = _getFiltered(el);
-    const _isoToSlash = s => s ? String(s).replace(/^(\d{4})-(\d{2})-(\d{2}).*/, '$1/$2/$3') : '';
-    const header = ['伝票No.','決算','取引日','借方勘定科目','借方補助科目','借方税区分','借方金額','借方消費税額','貸方勘定科目','貸方補助科目','貸方税区分','貸方金額','貸方消費税額','摘要','番号'];
-    const rows = [];
-    let slipNo = 0;
-    filtered.forEach(e => {
-      slipNo++;
-      const totalAmt  = Number(e.amount) || 0;
-      const corpSrc   = _corpPaySource(e);
-      const creditSub = corpSrc ? corpSrc : `個人（${App.getMemberName(e.email, e.name)}）`;
-      const summary   = `${e.place}${e.note ? ' ' + e.note : ''}`;
-      const wh = Number(e.withholding) || 0;
-      const splitParts = App.parseSplitCategory(e.category);
-      const isSplit = splitParts.length > 1 && splitParts.every(p => p.amount !== null);
-      if (isSplit) {
-        splitParts.forEach((p, i) => {
-          const { tax, yayoiKbn } = _taxInfo(p.amount, p.taxRate || _effectiveTaxRate(e));
-          const payAmt = i === 0 && wh > 0 ? p.amount - wh : p.amount;
-          rows.push([slipNo, '', _isoToSlash(e.date),
-            p.cat, '', yayoiKbn, p.amount, tax,
-            '未払金', creditSub, '', payAmt, '',
-            summary, e.id]);
-        });
-        if (wh > 0) rows.push([slipNo, '', _isoToSlash(e.date), '', '', '', '', '',
-          '預り金', '源泉徴収', '', wh, '', `${e.place}（源泉徴収）`, e.id]);
-      } else {
-        const { tax, yayoiKbn } = _taxInfo(totalAmt, _effectiveTaxRate(e));
-        if (wh > 0) {
-          const payAmt = totalAmt - wh;
-          rows.push([slipNo, '', _isoToSlash(e.date),
-            App.categoryLabel(e.category), '', yayoiKbn, totalAmt, tax,
-            '未払金', creditSub, '', payAmt, '', summary, e.id]);
-          rows.push([slipNo, '', _isoToSlash(e.date), '', '', '', '', '',
-            '預り金', '源泉徴収', '', wh, '', `${e.place}（源泉徴収）`, e.id]);
-        } else {
-          rows.push([slipNo, '', _isoToSlash(e.date),
-            App.categoryLabel(e.category), '', yayoiKbn, totalAmt, tax,
-            '未払金', creditSub, '', totalAmt, '', summary, e.id]);
-        }
-      }
-    });
-    const csv = [header, ...rows].map(r =>
-      r.map(v => `"${String(v || '').replace(/"/g, '""')}"`).join(',')
-    ).join('\n');
-    _downloadCsv(csv, `弥生仕訳_${new Date().toISOString().split('T')[0]}.csv`);
-  }
-
-  function _exportMfc(el) {
-    const filtered = _getFiltered(el);
-    const _isoToSlash = s => s ? String(s).replace(/^(\d{4})-(\d{2})-(\d{2}).*/, '$1/$2/$3') : '';
-    const header = ['取引日','借方勘定科目','借方補助科目','借方税区分','借方金額','貸方勘定科目','貸方補助科目','貸方税区分','貸方金額','摘要','メモ'];
-    const rows = [];
-    filtered.forEach(e => {
-      const totalAmt  = Number(e.amount) || 0;
-      const corpSrc   = _corpPaySource(e);
-      const creditSub = corpSrc ? corpSrc : `個人（${App.getMemberName(e.email, e.name)}）`;
-      const summary   = `${e.place}${e.note ? ' ' + e.note : ''}`;
-      const wh = Number(e.withholding) || 0;
-      const splitParts = App.parseSplitCategory(e.category);
-      const isSplit = splitParts.length > 1 && splitParts.every(p => p.amount !== null);
-      if (isSplit) {
-        splitParts.forEach((p, i) => {
-          const { mfcKbn } = _taxInfo(p.amount, p.taxRate || _effectiveTaxRate(e));
-          const payAmt = i === 0 && wh > 0 ? p.amount - wh : p.amount;
-          rows.push([_isoToSlash(e.date),
-            p.cat, '', mfcKbn, p.amount,
-            '未払金', creditSub, '', payAmt,
-            summary, e.id]);
-        });
-        if (wh > 0) rows.push([_isoToSlash(e.date),
-          '未払金', creditSub, '', wh,
-          '預り金', '源泉徴収', '', wh,
-          `${e.place}（源泉徴収）`, e.id]);
-      } else {
-        const { mfcKbn } = _taxInfo(totalAmt, _effectiveTaxRate(e));
-        if (wh > 0) {
-          const payAmt = totalAmt - wh;
-          rows.push([_isoToSlash(e.date),
-            App.categoryLabel(e.category), '', mfcKbn, totalAmt,
-            '未払金', creditSub, '', payAmt, summary, e.id]);
-          rows.push([_isoToSlash(e.date),
-            '未払金', creditSub, '', wh,
-            '預り金', '源泉徴収', '', wh,
-            `${e.place}（源泉徴収）`, e.id]);
-        } else {
-          rows.push([_isoToSlash(e.date),
-            App.categoryLabel(e.category), '', mfcKbn, totalAmt,
-            '未払金', creditSub, '', totalAmt, summary, e.id]);
-        }
-      }
-    });
-    const csv = [header, ...rows].map(r =>
-      r.map(v => `"${String(v || '').replace(/"/g, '""')}"`).join(',')
-    ).join('\n');
-    _downloadCsv(csv, `MFクラウド仕訳_${new Date().toISOString().split('T')[0]}.csv`);
-  }
 
   function _escape(s) {
     return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
