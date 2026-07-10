@@ -101,12 +101,97 @@ export default async function handler(req, res) {
         return await lineRichMenu(req, res);
       case 'linelinks':
         return await lineLinks(req, res);
+      case 'setupdone':
+        return await setupDoneEmail(req, res);
       default:
         return res.status(404).json({ error: 'not_found', resource });
     }
   } catch (e) {
     console.error('data router error:', e);
     return res.status(500).json({ error: 'server_error' });
+  }
+}
+
+/**
+ * セットアップ完了メールを送る（POST /api/data/setupdone）。
+ * 乱用防止のため、送信先は Google ID トークンで認証されたユーザー本人のメールのみ。
+ * body: { url, companyName }。url は keihi-log.com のチームURLに限定。
+ */
+async function setupDoneEmail(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
+  const me = await verifyIdToken(req);
+  if (!me || !me.email) return res.status(401).json({ error: 'unauthorized' });
+  if (!process.env.RESEND_API_KEY) return res.status(200).json({ ok: false, skipped: 'no_mailer' });
+
+  let body = {};
+  try { body = (await _body(req)) || {}; } catch (_) {}
+  const url = String(body.url || '').trim().slice(0, 300);
+  const company = String(body.companyName || '').trim().slice(0, 100);
+  if (!/^https:\/\/keihi-log\.com\/[A-Za-z0-9_-]+/.test(url)) {
+    return res.status(400).json({ error: 'invalid_url' });
+  }
+
+  const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const teamName = company ? `${esc(company)} の経費ログ` : '経費ログ';
+  const safeUrl = esc(url);
+  const html = `<!DOCTYPE html><html lang="ja"><body style="margin:0;background:#f4f6f9;font-family:-apple-system,'Hiragino Sans','Noto Sans JP',sans-serif;color:#2b3a4d;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f9;padding:24px 0;"><tr><td align="center">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.06);">
+  <tr><td style="background:linear-gradient(135deg,#0d6efd,#0a52c9);padding:28px 32px;color:#fff;">
+    <div style="font-size:20px;font-weight:800;">経費ログ</div>
+    <div style="font-size:22px;font-weight:800;margin-top:10px;">セットアップが完了しました 🎉</div>
+  </td></tr>
+  <tr><td style="padding:28px 32px;">
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.7;"><strong>${teamName}</strong> の初期設定が完了しました。<br>このメールは管理者ご自身用の控えです。下記URLをブックマークし、メンバーへ共有してください。</p>
+
+    <p style="margin:0 0 8px;font-size:13px;color:#6c757d;">▼ チーム専用URL（このURLからログインします）</p>
+    <p style="margin:0 0 20px;"><a href="${safeUrl}" style="font-size:16px;font-weight:700;color:#0d6efd;word-break:break-all;">${safeUrl}</a></p>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 26px;"><tr><td style="border-radius:8px;background:#0d6efd;">
+      <a href="${safeUrl}" style="display:inline-block;padding:12px 28px;color:#fff;font-weight:700;font-size:15px;text-decoration:none;border-radius:8px;">アプリを開く</a>
+    </td></tr></table>
+
+    <div style="border-top:1px solid #eef1f5;padding-top:20px;">
+      <p style="margin:0 0 10px;font-size:15px;font-weight:700;">メンバーの始め方</p>
+      <ol style="margin:0 0 20px;padding-left:20px;font-size:14px;line-height:1.8;color:#42506a;">
+        <li>上のチーム専用URLをメンバーに共有</li>
+        <li>メンバーが「Googleでログイン」→ すぐに申請できます</li>
+        <li>（チームプラン）LINE連携なら、GoogleアカウントがなくてもLINEで申請できます</li>
+      </ol>
+
+      <p style="margin:0 0 10px;font-size:15px;font-weight:700;">メンバーを追加するには</p>
+      <p style="margin:0 0 20px;font-size:14px;line-height:1.8;color:#42506a;">アプリの <strong>設定タブ → メンバー管理</strong> から、メンバーのメールアドレスを登録します（管理者・閲覧者・一般の3段階で権限を設定できます）。LINE専用メンバーはメール欄を空欄にして追加できます。</p>
+
+      <p style="margin:0 0 8px;font-size:14px;line-height:1.8;">
+        📘 <a href="https://keihi-log.com/faq" style="color:#0d6efd;">よくある質問（FAQ）</a><br>
+        📗 <a href="https://keihi-log.com/guide" style="color:#0d6efd;">メンバー向け 使い方ガイド</a>
+      </p>
+    </div>
+  </td></tr>
+  <tr><td style="background:#f8f9fa;padding:18px 32px;font-size:12px;color:#8a97a8;line-height:1.7;">
+    お困りのことがあれば <a href="mailto:support@keihi-log.com" style="color:#0d6efd;">support@keihi-log.com</a> までお気軽にご連絡ください。<br>経費ログ
+  </td></tr>
+</table></td></tr></table></body></html>`;
+
+  try {
+    const r = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: process.env.RESEND_FROM_EMAIL || 'support@keihi-log.com',
+        to: [me.email],
+        subject: '【経費ログ】セットアップが完了しました',
+        html,
+      }),
+    });
+    if (!r.ok) {
+      const t = await r.text().catch(() => '');
+      console.error('setupdone mail failed:', r.status, t.slice(0, 200));
+      return res.status(200).json({ ok: false });
+    }
+    return res.status(200).json({ ok: true });
+  } catch (e) {
+    console.error('setupdone mail error:', e?.message || e);
+    return res.status(200).json({ ok: false });
   }
 }
 

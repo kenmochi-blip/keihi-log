@@ -758,6 +758,20 @@ ${o}
           ? `${location.origin}/${finalAlias}`
           : `${location.origin}/${ssId}`;
         $('shareUrlInput').value = shareUrl;
+        // セットアップ完了メールを管理者本人宛に送信（ベストエフォート・非ブロッキング）
+        if (!_isDemo) {
+          (async () => {
+            try {
+              const idToken = await Auth.getIdToken();
+              if (!idToken) return;
+              await fetch('/api/data/setupdone', {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${idToken}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: shareUrl, companyName: _companyName }),
+              });
+            } catch (_) { /* メール失敗はセットアップ完了に影響させない */ }
+          })();
+        }
         $('qrImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(shareUrl)}`;
         $('btnOpenApp').onclick = () => { window.location.href = _isDemo ? '/app?demo' : shareUrl; };
         if (saShareFailed) $('saShareWarn').style.display = '';
