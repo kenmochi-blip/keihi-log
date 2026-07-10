@@ -2848,6 +2848,13 @@ async function _lineRegister(userId, replyToken, pending) {
   const name = await _lineMemberName(sheetId, identity);
   if (name === null) return _lineReply(replyToken, _lineText('メンバー登録が見つかりません。管理者にご確認ください。'));
 
+  // 管理者の登録は自動承認（Web版 submit.js の confirmed: App.isAdmin() と同じ挙動）。
+  //   admins/ownerと一致すれば承認列(J)=true=「登録済」、一般メンバーは false=「申請済」。
+  const idLower = String(identity).toLowerCase();
+  const master = await readMasterCached(sheetId).catch(() => null);
+  const ownerEmail = await resolveOwnerEmail(sheetId).catch(() => '');
+  const isAdmin = !!master && ((master.admins || []).includes(idLower) || (!!ownerEmail && idLower === ownerEmail));
+
   const d = pending.data;
   const aiAudit = (pending.alerts && pending.alerts.length) ? ('⛔ ' + pending.alerts.join(' / ')) : '';
   const imageLink = pending.imageLink || '';
@@ -2863,7 +2870,7 @@ async function _lineRegister(userId, replyToken, pending) {
     d.category,                                 // G: 勘定科目
     d.note || '',                               // H: 備考
     imageLink ? `=HYPERLINK("${imageLink}","証票")` : '', // I: 証票
-    false,                                      // J: 承認（LINEからは常に未承認）
+    isAdmin,                                    // J: 承認（管理者は自動承認＝登録済／一般は申請済）
     aiAudit,                                    // K: 監査
     settlement,                                 // L: 精算日（会社払い時は「会社払い（支払元）」）
     d.invoice || '',                            // M: インボイス
@@ -2883,8 +2890,9 @@ async function _lineRegister(userId, replyToken, pending) {
     await kv.del(`data:exp:${sheetId}`).catch(() => {});
     await kv.del(`line:pending:${userId}`).catch(() => {});
     const teamUrl = await _lineTeamUrl(sheetId).catch(() => '');
+    const statusLabel = d.corpPay ? '会社払い' : (isAdmin ? '登録済' : '申請済');
     return _lineReply(replyToken, _lineText(
-      `登録しました（${d.corpPay ? '会社払い' : '申請済'}）。\n${d.date} ${d.place} ¥${Number(d.amount).toLocaleString('ja-JP')}` +
+      `登録しました（${statusLabel}）。\n${d.date} ${d.place} ¥${Number(d.amount).toLocaleString('ja-JP')}` +
       (d.corpPay ? `\n支払方法: 会社払い${d.paySource ? `（${d.paySource}）` : ''}（精算不要）` : '') +
       (aiAudit ? '\n※確認事項ありのため管理者が内容を確認します。' : '') +
       (teamUrl ? `\n\n▼Web版はこちら\n${teamUrl}?openExternalBrowser=1\nGoogleアカウントでメンバー登録済みの方は、Web版からも申請内容の確認・修正ができます。` : '')
