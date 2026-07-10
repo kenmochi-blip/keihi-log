@@ -1854,6 +1854,10 @@ async function _handleLineEvent(ev) {
 
   if (!userId) return;
 
+  // メニュー再生成（バージョンバンプ）後も、連携済みユーザーにはMAINメニューを確実に割当。
+  // fire-and-forgetだとVercelが200返却後に凍結して割当POSTが完了しないため await する。
+  await _lineEnsureUserMenu(userId).catch(() => {});
+
   if (ev.type === 'postback') {
     return _handleLinePostback(userId, replyToken, ev.postback?.data || '');
   }
@@ -2362,7 +2366,7 @@ async function lineLinks(req, res) {
  * ※ 管理者のみ。LINE_CHANNEL_ACCESS_TOKEN を使用（無料操作・通数カウント外）。
  */
 // リッチメニューの画像/レイアウト/挙動を変えたら上げる（自動で再設定＆再割当される）
-const RICHMENU_VERSION = 'v12';
+const RICHMENU_VERSION = 'v13';
 let _richmenuEnsured = false; // ウォームインスタンス内キャッシュ
 
 /** 1つのリッチメニューを作成＋画像アップロードし richMenuId を返す（失敗で null）。 */
@@ -2455,7 +2459,10 @@ async function _ensureRichMenu() {
 async function _lineEnsureUserMenu(userId) {
   if (!userId || !_lineToken()) return;
   const flagKey = `line:menu:${RICHMENU_VERSION}:${userId}`;
-  if (await kv.get(flagKey).catch(() => null)) return;
+  if (await kv.get(flagKey).catch(() => null)) return; // 当バージョンで割当済み（軽量ショートサーキット）
+  // 未連携ユーザーには MAIN を割り当てない（LINK＝認証コード入力メニューのまま）
+  const link = await _lineLink(userId).catch(() => null);
+  if (!link) return;
   const rmid = await kv.get('line:richmenuid:main').catch(() => null);
   if (!rmid) return;
   try {
