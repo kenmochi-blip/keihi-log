@@ -2012,7 +2012,7 @@ async function _handleLineText(userId, replyToken, text) {
   }
 
   // 電車代キーワード
-  if (/電車|でんしゃ|バス|交通費/.test(text)) {
+  if (/電車|でんしゃ|交通費/.test(text)) {
     return _beginLineTransit(userId, replyToken);
   }
 
@@ -2362,7 +2362,7 @@ async function lineLinks(req, res) {
  * ※ 管理者のみ。LINE_CHANNEL_ACCESS_TOKEN を使用（無料操作・通数カウント外）。
  */
 // リッチメニューの画像/レイアウト/挙動を変えたら上げる（自動で再設定＆再割当される）
-const RICHMENU_VERSION = 'v8';
+const RICHMENU_VERSION = 'v9';
 let _richmenuEnsured = false; // ウォームインスタンス内キャッシュ
 
 /** 1つのリッチメニューを作成＋画像アップロードし richMenuId を返す（失敗で null）。 */
@@ -2402,10 +2402,11 @@ async function _setupRichMenuViaApi() {
   const mainId = await _createRichMenu(H, {
     size: { width: 2500, height: 843 }, selected: true, name: 'keihi-log-main', chatBarText: 'メニュー',
     areas: [
-      { bounds: { x: 0,    y: 0, width: 625, height: 843 }, action: { type: 'postback', data: 'action=sendreceipt', displayText: '領収書を送る' } },
-      { bounds: { x: 625,  y: 0, width: 625, height: 843 }, action: { type: 'postback', data: 'action=history',     displayText: '過去の申請' } },
-      { bounds: { x: 1250, y: 0, width: 625, height: 843 }, action: { type: 'postback', data: 'action=unsettled',   displayText: '未精算' } },
-      { bounds: { x: 1875, y: 0, width: 625, height: 843 }, action: { type: 'postback', data: 'action=transit',     displayText: '電車代' } },
+      // 左＝領収書を送る（全高）、中＝電車代（全高）、右列を上下2分割（上＝過去の申請／下＝未精算）
+      { bounds: { x: 0,    y: 0,   width: 833, height: 843 }, action: { type: 'postback', data: 'action=sendreceipt', displayText: '領収書を送る' } },
+      { bounds: { x: 833,  y: 0,   width: 834, height: 843 }, action: { type: 'postback', data: 'action=transit',     displayText: '電車代' } },
+      { bounds: { x: 1667, y: 0,   width: 833, height: 421 }, action: { type: 'postback', data: 'action=history',     displayText: '過去の申請' } },
+      { bounds: { x: 1667, y: 421, width: 833, height: 422 }, action: { type: 'postback', data: 'action=unsettled',   displayText: '未精算' } },
     ],
   }, RICHMENU_PNG_BASE64);
   if (!mainId) return false;
@@ -2745,14 +2746,14 @@ function _lineSummary(data, alerts) {
 
 /* ── 電車代（出発駅→到着駅→往復）フロー ── */
 
-/** Yahoo乗換（既存の /api/transit）で運賃を取得。{ fare } または { error }。 */
+/** Yahoo乗換（既存の /api/transit）で運賃を取得。{ fare, yahooUrl } または { error }。 */
 async function _lineTransitFare(from, to) {
   try {
     const url = `https://keihi-log.com/api/transit?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
     const resp = await fetch(url, { signal: AbortSignal.timeout(10000) });
     const data = await resp.json().catch(() => ({}));
     if (!resp.ok || !data.fare) return { error: data.error || '運賃を取得できませんでした' };
-    return { fare: Number(data.fare) || 0 };
+    return { fare: Number(data.fare) || 0, yahooUrl: data.yahooUrl || '' };
   } catch (e) {
     return { error: e?.name === 'TimeoutError' ? '運賃検索がタイムアウトしました' : '運賃検索に失敗しました' };
   }
@@ -2785,7 +2786,7 @@ async function _startLineTransit(userId, replyToken, link) {
   await kv.set(`line:pending:${userId}`, {
     step: 'transit_from', sheetId: link.sheetId, identity: link.identity,
   }, { ex: 600 }).catch(() => {});
-  return _lineReply(replyToken, _lineText('🚃 電車・バス代を登録します。\nまず「出発駅（または出発バス停）」を送ってください。\n例: 東京'));
+  return _lineReply(replyToken, _lineText('🚃 電車代を登録します。\nまず「出発駅」を送ってください。\n例: 東京'));
 }
 
 /** 出発駅・到着駅・往復の会話ステップを処理（テキスト受信時に呼ぶ）。 */
@@ -2795,7 +2796,7 @@ async function _handleLineTransitText(userId, replyToken, pending, text) {
   if (pending.step === 'transit_from') {
     pending.from = v; pending.step = 'transit_to';
     await kv.set(`line:pending:${userId}`, pending, { ex: 600 }).catch(() => {});
-    return _lineReply(replyToken, _lineText('次に「到着駅（または到着バス停）」を送ってください。\n例: 横浜'));
+    return _lineReply(replyToken, _lineText('次に「到着駅」を送ってください。\n例: 横浜'));
   }
   // transit_to
   pending.to = v; pending.step = 'transit_round';
@@ -2810,9 +2811,9 @@ async function _handleLineTransitText(userId, replyToken, pending, text) {
 async function _lineTransitConfirm(userId, replyToken, pending, round) {
   const { sheetId, identity, from, to } = pending;
   if (!from || !to) return _lineReply(replyToken, _lineText('入力が途中で切れました。もう一度「電車」と送ってやり直してください。'));
-  const { fare, error } = await _lineTransitFare(from, to);
+  const { fare, error, yahooUrl } = await _lineTransitFare(from, to);
   if (error || !fare) {
-    return _lineReply(replyToken, _lineText(`運賃を取得できませんでした（${error || '該当なし'}）。\n駅名・バス停名をご確認のうえ、もう一度「電車」と送ってお試しください。`));
+    return _lineReply(replyToken, _lineText(`運賃を取得できませんでした（${error || '該当なし'}）。\n駅名をご確認のうえ、もう一度「電車」と送ってお試しください。`));
   }
   const amount = round ? fare * 2 : fare;
   const master = await readMasterCached(sheetId).catch(() => ({ categories: [] }));
@@ -2830,9 +2831,11 @@ async function _lineTransitConfirm(userId, replyToken, pending, round) {
   await kv.set(`line:pending:${userId}`, {
     data, sheetId, identity, alerts, aiAmount: amount, imageHash: '', imageLink: '', imageStored: false, step: 'confirm',
   }, { ex: 600 }).catch(() => {});
-  return _lineReply(replyToken, _lineConfirmMessage(
+  const messages = [_lineConfirmMessage(
     _lineSummary(data, alerts) + `\n（運賃 ¥${fare.toLocaleString('ja-JP')}${round ? ' ×2（往復）' : ''}）`
-  ));
+  )];
+  if (yahooUrl) messages.unshift(_lineText(`🔗 Yahoo!乗換で経路・運賃を確認\n${yahooUrl}`));
+  return _lineReply(replyToken, messages);
 }
 
 /* ── postback（登録/修正/やめる/項目選択） ── */
@@ -2932,6 +2935,7 @@ async function _handleLinePostback(userId, replyToken, dataStr) {
       _qpPostback('支払先',   'action=editfield&f=place'),
       _qpPostback('金額',     'action=editfield&f=amount'),
       _qpPostback('科目',     'action=editfield&f=category'),
+      _qpPostback('備考',     'action=editfield&f=note'),
       _qpPostback('支払方法', 'action=paymethod'),
       _qpPostback('戻る',     'action=editback'),
     ]));
@@ -2956,7 +2960,7 @@ async function _handleLinePostback(userId, replyToken, dataStr) {
     pending.step = 'awaiting_value';
     pending.editField = f;
     await kv.set(`line:pending:${userId}`, pending, { ex: 600 }).catch(() => {});
-    const labels = { date: '日付（例: 2026-05-05 / 20260505 / 5月5日）', place: '支払先', amount: '金額（数字）', category: '科目' };
+    const labels = { date: '日付（例: 2026-05-05 / 20260505 / 5月5日）', place: '支払先', amount: '金額（数字）', category: '科目', note: '備考' };
     return _lineReply(replyToken, _lineText(`新しい「${labels[f] || f}」を送ってください。`));
   }
   if (action === 'setcat') {
@@ -3026,6 +3030,8 @@ async function _applyLineEdit(userId, replyToken, pending, text) {
     }
   } else if (f === 'category') {
     d.category = text.slice(0, 60);
+  } else if (f === 'note') {
+    d.note = text.slice(0, 200);
   }
   delete pending.step; delete pending.editField;
   pending.alerts = await _reauditPending(userId, pending);
