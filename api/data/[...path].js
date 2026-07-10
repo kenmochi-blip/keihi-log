@@ -2792,7 +2792,7 @@ async function _startLineTransit(userId, replyToken, link) {
 /** 出発駅・到着駅・往復の会話ステップを処理（テキスト受信時に呼ぶ）。 */
 async function _handleLineTransitText(userId, replyToken, pending, text) {
   const v = String(text || '').trim().slice(0, 50);
-  if (!v) return _lineReply(replyToken, _lineText('駅名・バス停名を送ってください。'));
+  if (!v) return _lineReply(replyToken, _lineText('駅名を送ってください。'));
   if (pending.step === 'transit_from') {
     pending.from = v; pending.step = 'transit_to';
     await kv.set(`line:pending:${userId}`, pending, { ex: 600 }).catch(() => {});
