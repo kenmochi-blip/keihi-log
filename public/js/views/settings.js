@@ -895,10 +895,10 @@ const SettingsView = (() => {
         ? '<span class="badge bg-success bg-opacity-75 ms-1" style="font-size:0.6rem;"><i class="bi bi-chat-dots-fill me-1"></i>LINE専用</span>'
         : _escape(m.email);
       const connectedBadge = (!isLineOnly && isConnected)
-        ? '<span class="badge bg-success ms-1" style="font-size:0.6rem;"><i class="bi bi-chat-dots-fill me-1"></i>LINE接続済</span>'
+        ? '<span class="badge bg-success ms-1" style="font-size:0.6rem;">LINE接続済</span>'
         : '';
       const lineBtn = (!isLineOnly && !isConnected)
-        ? `<button class="btn btn-outline-success btn-sm btn-line-code text-nowrap flex-shrink-0 d-inline-flex align-items-center gap-1" data-index="${i}" title="このメンバーのLINE連携を設定"><img src="/img/LINE_Brand_icon.png" width="14" height="14" alt="" style="border-radius:3px;">LINE</button>`
+        ? `<button class="btn btn-outline-success btn-sm btn-line-code flex-shrink-0" data-index="${i}" title="このメンバーのLINE連携を設定"><img src="/img/LINE_Brand_icon.png" width="16" height="16" alt="LINE" style="border-radius:3px;display:block;"></button>`
         : '';
       return `
       <div class="d-flex align-items-center gap-2 py-2 border-bottom">
