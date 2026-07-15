@@ -892,10 +892,10 @@ const SettingsView = (() => {
       const isConnected = _lineLinkedSet.has(String(m.email || '').toLowerCase());
       // ① Googleのみ・未接続 → LINEボタン表示 / ② Google+接続済 → 「LINE接続済」バッジ / ③ LINE専用 → バッジのみ
       const idLabel = isLineOnly
-        ? '<span class="badge bg-success bg-opacity-75 ms-1" style="font-size:0.6rem;"><i class="bi bi-chat-dots-fill me-1"></i>LINE専用</span>'
+        ? '<span class="badge ms-1" style="font-size:0.6rem;background:#06C755;"><i class="bi bi-chat-dots-fill me-1"></i>LINE専用</span>'
         : _escape(m.email);
       const connectedBadge = (!isLineOnly && isConnected)
-        ? '<span class="badge bg-success ms-1" style="font-size:0.6rem;">LINE接続済</span>'
+        ? '<span class="badge ms-1" style="font-size:0.6rem;background:#06C755;">LINE接続済</span>'
         : '';
       const lineBtn = (!isLineOnly && !isConnected)
         ? `<button class="btn btn-sm btn-line-code flex-shrink-0 p-0 border-0 d-inline-flex align-items-center" data-index="${i}" title="このメンバーのLINE連携を設定"><img src="/img/LINE_Brand_icon.png" width="31" height="31" alt="LINE" style="display:block;"></button>`
