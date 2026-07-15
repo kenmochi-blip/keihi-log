@@ -673,9 +673,15 @@ ${logText}
     await _addEmailLicense(kv, email, licenseKey);
     console.log(`License manually issued: ${licenseKey} for ${email}`);
 
+    // セットアップリンク用ランダムコードを生成・保存（双方向マッピング）
+    // これが無いと /setup を開いてもライセンスキーが自動入力されない（Stripe発行時と同様の仕組み）
+    const setupCode = crypto.randomBytes(5).toString('hex'); // 10文字の16進数
+    await kv.set(`lic_ref:${setupCode}`, licenseKey);
+    await kv.set(`license_ref:${licenseKey}`, setupCode);
+
     if (process.env.RESEND_API_KEY) {
       const from     = process.env.RESEND_FROM_EMAIL || 'noreply@' + (process.env.VERCEL_PROJECT_PRODUCTION_URL || 'example.com');
-      const setupUrl = 'https://keihi-log.com/setup';
+      const setupUrl = `https://keihi-log.com/${setupCode}`;
 
       await _sendEmail(from, email, '【経費ログ】ライセンスキーのご案内', `
 <p>${licenseData.company} 様</p>
