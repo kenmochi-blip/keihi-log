@@ -10,6 +10,21 @@
   <meta property="og:description" content="領収書を撮るだけでAIが自動入力。Googleアカウントで使う経費記録アプリ。">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://keihi-log.com/">
+  <!-- TWA(Playアプリ)判定: Playアプリ内(?src=twaで起動)ではGoogle Play課金ポリシー対応のため
+       Stripe決済導線を非表示にする。通常のWebブラウザ利用には一切影響しない。 -->
+  <script>
+    (function(){try{
+      if(/[?&]src=twa/.test(location.search) || sessionStorage.getItem('keihi_twa')==='1'){
+        sessionStorage.setItem('keihi_twa','1');
+        document.documentElement.classList.add('is-twa');
+      }
+    }catch(e){}})();
+  </script>
+  <style>
+    html.is-twa #trialBannerUpgradeBtn,
+    html.is-twa #portalSection,
+    html.is-twa a[href*="buy.stripe.com"]{ display:none !important; }
+  </style>
   <!-- Sentry エラー監視: dsn をSentryダッシュボードのDSNに差し替えてください -->
   <script src="https://browser.sentry-cdn.com/8.0.0/bundle.min.js" crossorigin="anonymous"></script>
   <script>
