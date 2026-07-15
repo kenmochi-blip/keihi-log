@@ -898,7 +898,7 @@ const SettingsView = (() => {
         ? '<span class="badge bg-success ms-1" style="font-size:0.6rem;">LINE接続済</span>'
         : '';
       const lineBtn = (!isLineOnly && !isConnected)
-        ? `<button class="btn btn-sm btn-line-code flex-shrink-0" data-index="${i}" title="このメンバーのLINE連携を設定"><img src="/img/LINE_Brand_icon.png" width="20" height="20" alt="LINE" style="display:block;"></button>`
+        ? `<button class="btn btn-sm btn-line-code flex-shrink-0 p-0 border-0 d-inline-flex align-items-center" data-index="${i}" title="このメンバーのLINE連携を設定"><img src="/img/LINE_Brand_icon.png" width="31" height="31" alt="LINE" style="display:block;"></button>`
         : '';
       return `
       <div class="d-flex align-items-center gap-2 py-2 border-bottom">
