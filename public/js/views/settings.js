@@ -14,6 +14,11 @@ const SettingsView = (() => {
     const licKey = isDemo ? 'KL-XXXXXXXXXXXXXXXXXXXX（デモ）' : (localStorage.getItem('keihi_license_key') || '');
     const email  = Auth.getUserEmail();
     const isAdmin = App.isAdmin();
+    // 共有URL（経費ログWebアプリURL）を算出（初期設定の直上のセクションで使用）
+    const _alias = isDemo ? '' : (localStorage.getItem('keihi_alias') || '');
+    const _pathTok = location.pathname.match(/^\/([a-zA-Z0-9_-]{3,43})$/)?.[1];
+    const _effAlias = (_pathTok && _pathTok !== 'app' && _pathTok !== 'faq') ? _pathTok : _alias;
+    const shareUrl = _effAlias ? `${location.origin}/${_effAlias}` : (ssId ? `${location.origin}/${ssId}` : '');
 
     return `
 <div class="pt-3">
@@ -48,6 +53,44 @@ const SettingsView = (() => {
       <div id="folderOpenLinkWrap"></div>
     </div>
   </div>` : ''}
+
+  <!-- 経費ログWebアプリURL（管理者・シート設定済み・初期設定の直上） -->
+  ${isAdmin && ssId ? `
+  <div class="card mb-3">
+    <div class="card-body">
+      <div class="settings-section-title">経費ログWebアプリURL</div>
+      <div class="settings-step-hint mb-2">
+        メンバー管理に氏名・メールアドレス・権限を登録してから、このURLをメンバーに連絡してください。
+      </div>
+      <div class="input-group input-group-sm mb-2">
+        <input type="text" class="form-control form-control-sm" id="shareUrlDisplay"
+          value="${_escape(shareUrl)}" readonly>
+        <button class="btn btn-outline-secondary btn-sm" id="btnCopyShareUrl">
+          <i class="bi bi-clipboard"></i>
+        </button>
+      </div>
+      <div class="form-text mb-2"><i class="bi bi-exclamation-circle me-1 text-warning"></i>LINEのアプリ内リンクから開くとGoogleログインがブロックされます。Safari・ChromeなどのブラウザアプリのURLバーに貼り付けて開くよう案内してください。</div>
+      <div class="accordion" id="qrAcc">
+        <div class="accordion-item border-0">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed py-1 px-0 bg-transparent shadow-none text-primary"
+              style="font-size:0.8rem;" type="button"
+              data-bs-toggle="collapse" data-bs-target="#qrBody">
+              <i class="bi bi-qr-code me-1"></i>QRコードを表示
+            </button>
+          </h2>
+          <div id="qrBody" class="accordion-collapse collapse">
+            <div class="accordion-body px-0 py-2 text-center">
+              <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(shareUrl)}"
+                alt="QRコード" width="180" height="180" class="rounded border">
+              <div class="text-muted mt-1" style="font-size:0.7rem;">スクリーンショットしてメールなどで共有できます</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  ` : ''}
 
   <!-- 初期設定（末尾・SSを開くの上） -->
   <div class="accordion mb-3" id="initSettingsAcc">
@@ -225,43 +268,19 @@ const SettingsView = (() => {
     </div>
   </div>
 
-  <!-- メンバー招待URL（管理者のみ・メンバー管理の下） -->
-  ${ssId ? `
+  <!-- カスタムフラグ（管理者のみ・勘定科目の上） -->
   <div class="card mb-3">
     <div class="card-body">
-      <div class="settings-section-title">経費ログWebアプリURL</div>
-      <div class="settings-step-hint mb-2">
-        上のメンバー管理に氏名・メールアドレス・権限を登録してから、このURLをメンバーに連絡してください。
+      <div class="settings-section-title d-flex justify-content-between align-items-center">
+        <span>カスタムフラグ <a href="/faq#q109" class="text-muted ms-1" style="font-size:0.78rem;" title="FAQを見る"><i class="bi bi-question-circle"></i></a></span>
+        <button class="btn btn-outline-primary btn-sm" id="btnAddCustomFlag"><i class="bi bi-plus me-1"></i>追加</button>
       </div>
-      <div class="input-group input-group-sm mb-2">
-        <input type="text" class="form-control form-control-sm" id="shareUrlDisplay"
-          value="${_escape(shareUrl)}" readonly>
-        <button class="btn btn-outline-secondary btn-sm" id="btnCopyShareUrl">
-          <i class="bi bi-clipboard"></i>
-        </button>
-      </div>
-      <div class="form-text mb-2"><i class="bi bi-exclamation-circle me-1 text-warning"></i>LINEのアプリ内リンクから開くとGoogleログインがブロックされます。Safari・ChromeなどのブラウザアプリのURLバーに貼り付けて開くよう案内してください。</div>
-      <div class="accordion" id="qrAcc">
-        <div class="accordion-item border-0">
-          <h2 class="accordion-header">
-            <button class="accordion-button collapsed py-1 px-0 bg-transparent shadow-none text-primary"
-              style="font-size:0.8rem;" type="button"
-              data-bs-toggle="collapse" data-bs-target="#qrBody">
-              <i class="bi bi-qr-code me-1"></i>QRコードを表示
-            </button>
-          </h2>
-          <div id="qrBody" class="accordion-collapse collapse">
-            <div class="accordion-body px-0 py-2 text-center">
-              <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(shareUrl)}"
-                alt="QRコード" width="180" height="180" class="rounded border">
-              <div class="text-muted mt-1" style="font-size:0.7rem;">スクリーンショットしてメールなどで共有できます</div>
-            </div>
-          </div>
-        </div>
+      <p class="text-muted small mb-2">部門・プロジェクト等、申請時に自由に使えるタグを定義します。</p>
+      <div id="customFlagList" class="mt-2">
+        <div class="text-muted small text-center py-2">読み込み中...</div>
       </div>
     </div>
   </div>
-  ` : ''}
 
   <!-- 勘定科目（管理者のみ） -->
   <div class="card mb-3">
@@ -284,20 +303,6 @@ const SettingsView = (() => {
         <button class="btn btn-outline-primary btn-sm" id="btnAddPaySource"><i class="bi bi-plus me-1"></i>追加</button>
       </div>
       <div id="paySourceList" class="mt-2">
-        <div class="text-muted small text-center py-2">読み込み中...</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- カスタムフラグ（管理者のみ） -->
-  <div class="card mb-3">
-    <div class="card-body">
-      <div class="settings-section-title d-flex justify-content-between align-items-center">
-        <span>カスタムフラグ <a href="/faq#q109" class="text-muted ms-1" style="font-size:0.78rem;" title="FAQを見る"><i class="bi bi-question-circle"></i></a></span>
-        <button class="btn btn-outline-primary btn-sm" id="btnAddCustomFlag"><i class="bi bi-plus me-1"></i>追加</button>
-      </div>
-      <p class="text-muted small mb-2">部門・プロジェクト等、申請時に自由に使えるタグを定義します。</p>
-      <div id="customFlagList" class="mt-2">
         <div class="text-muted small text-center py-2">読み込み中...</div>
       </div>
     </div>
