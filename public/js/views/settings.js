@@ -215,6 +215,9 @@ const SettingsView = (() => {
             <i class="bi bi-arrow-up-circle me-1"></i>プランを切り替える
           </button>
         </div>
+        <div id="soloExtraMemberWarn" class="d-none mt-2 alert alert-warning py-2 px-3 small mb-0">
+          <i class="bi bi-exclamation-triangle me-1"></i>ソロプランでは<strong>オーナー以外のメンバーはご利用いただけません</strong>（ログインしても操作できません）。全員で使うにはチームプランに変更してください。
+        </div>
       </div>
       <div id="memberList" class="mt-2">
         <div class="text-muted small text-center py-2">読み込み中...</div>
@@ -1340,14 +1343,19 @@ const SettingsView = (() => {
     const btn  = el.querySelector('#btnAddMember');
     const hint = el.querySelector('#memberPlanHint');
     if (!btn) return;
+    const warn = el.querySelector('#soloExtraMemberWarn');
     if (isSolo) {
       btn.disabled = true;
       btn.classList.replace('btn-outline-primary', 'btn-outline-secondary');
       hint?.classList.remove('d-none');
+      // オーナー以外の余剰メンバーが残っている場合（トライアル中に追加など）は警告を出す
+      const extra = (_master?.members?.length || 0) > 1;
+      warn?.classList.toggle('d-none', !extra);
     } else {
       btn.disabled = false;
       btn.classList.replace('btn-outline-secondary', 'btn-outline-primary');
       hint?.classList.add('d-none');
+      warn?.classList.add('d-none');
     }
     // LINE連携もチームプラン限定（ソロは行のLINEボタンを無効化）
     el.querySelectorAll('.btn-line-code').forEach(b => { b.disabled = isSolo; });

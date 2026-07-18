@@ -229,6 +229,19 @@ async function _authorize(req, res) {
   const isMember = isAdmin || isViewer || master.members.some(m => m.email === me.email);
   if (!isMember) { res.status(403).json({ error: 'not_a_member' }); return null; }
 
+  // ソロプラン（有料・非トライアル）はオーナー1名のみ利用可。
+  // トライアル中はチーム扱いで自由に使えるが、ソロで有料転換すると、トライアル中に追加した
+  // 余剰メンバー（オーナー／管理者以外）はここで拒否される（LINE と同様の実行時ガード）。
+  // ※ オーナー・管理者は常に許可（購入メールとログインメールが異なるケースでのロックアウト防止）。
+  if (!isAdmin && !isOwner) {
+    const { active, isTrial, plan } = await _readPlanInfo(sheetId);
+    if (active && !isTrial && plan === 'solo') {
+      res.status(403).json({ error: 'solo_owner_only',
+        message: 'このアカウントはソロプランのため、オーナー以外のメンバーはご利用いただけません。メンバーで使うにはチームプランへの変更が必要です。' });
+      return null;
+    }
+  }
+
   return { me, isAdmin, isViewer, master, sheetId, ownerEmail };
 }
 
@@ -1955,8 +1968,9 @@ async function _lineTeamUrl(sheetId) {
   return `https://keihi-log.com/${code || sheetId}`;
 }
 
-/** チームプランかつ有効なライセンスか（license.js と同じ判定）。 */
-async function _isTeamPlanActive(sheetId) {
+/** ライセンスのプラン情報を返す。{active, isTrial, plan}（license.js と同じ判定）。
+ *  ライセンスが読めない/失効/停止の場合は active:false を返す（＝制限を掛けずアクセスは通すフェイルオープン）。 */
+async function _readPlanInfo(sheetId) {
   // B3 ライセンスキーを取得（resolveOwnerEmail と同じ経路）
   const settKey = `cfg:settings:${sheetId}`;
   let licKey = (_inProcGet(settKey) || await kv.get(settKey).catch(() => null))?.settings?.B3 || '';
@@ -1967,15 +1981,21 @@ async function _isTeamPlanActive(sheetId) {
       licKey = r.data.values?.[0]?.[0] || '';
     } catch (_) {}
   }
-  if (!licKey) return false;
+  if (!licKey) return { active: false, isTrial: false, plan: 'solo' };
   const data = await kv.get(`license:${licKey}`).catch(() => null);
-  if (!data || data.suspended) return false;
-  if (data.expiresAt && new Date(data.expiresAt) < new Date()) return false;
+  if (!data || data.suspended) return { active: false, isTrial: false, plan: 'solo' };
+  if (data.expiresAt && new Date(data.expiresAt) < new Date()) return { active: false, isTrial: false, plan: 'solo' };
   const isTrial = data.trial === true ||
     (!('trial' in data) && data.stripeSessionId && data.createdAt && data.expiresAt &&
       (new Date(data.expiresAt) - new Date(data.createdAt)) / 86400000 <= 35);
   const plan = isTrial ? 'team' : (data.plan || 'solo');
-  return plan === 'team';
+  return { active: true, isTrial, plan };
+}
+
+/** チームプランかつ有効なライセンスか（license.js と同じ判定）。 */
+async function _isTeamPlanActive(sheetId) {
+  const { active, plan } = await _readPlanInfo(sheetId);
+  return active && plan === 'team';
 }
 
 /** identity（メール or 合成ID）が現在もマスタ表のメンバーか再検証し、名前を返す。 */

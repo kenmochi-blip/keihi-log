@@ -29,7 +29,10 @@ const Sheets = (() => {
         headers: { Authorization: `Bearer ${idToken}` },
       })
     );
-    if (!resp.ok) throw new Error(`proxy ${resource} ${resp.status}`);
+    if (!resp.ok) {
+      const e = await resp.json().catch(() => ({}));
+      throw new Error(`[${resp.status}] ${e.error || 'proxy_' + resource}${e.message ? ': ' + e.message : ''}`);
+    }
     return resp.json();
   }
 
@@ -379,7 +382,9 @@ const Sheets = (() => {
     try {
       await _proxyGet('settings', ssId);
       return true;
-    } catch (_) {
+    } catch (e) {
+      // ソロプランでオーナー以外が弾かれた場合は理由を上位に伝える（専用案内を出すため）
+      if (String(e?.message || '').includes('solo_owner_only')) throw e;
       return false;
     }
   }

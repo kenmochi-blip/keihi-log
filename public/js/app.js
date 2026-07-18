@@ -100,16 +100,27 @@ const App = (() => {
       const probe = _proxyOn ? null : await Auth.authFetch(
         `https://sheets.googleapis.com/v4/spreadsheets/${ssId}?fields=spreadsheetId`
       ).catch(() => null);
-      if (probe?.ok) {
-        _markSheetAccessVerified(ssId);
-      } else if (_proxyOn && await Sheets.verifyProxyAccess(ssId).catch(() => false)) {
-        // B'プロキシでメンバー確認できれば続行。以降のデータ読み書きはプロキシ経由。
+      let _proxyOk = false, _soloBlocked = false;
+      if (!probe?.ok && _proxyOn) {
+        // B'プロキシでメンバー確認。ソロプランでオーナー以外が弾かれた場合は専用案内を出す。
+        try { if (await Sheets.verifyProxyAccess(ssId)) _proxyOk = true; }
+        catch (e) { if (String(e?.message || '').includes('solo_owner_only')) _soloBlocked = true; }
+      }
+      if (probe?.ok || _proxyOk) {
         _markSheetAccessVerified(ssId);
       } else {
-        // drive.file では共有シートにアクセスできない（管理者以外）
-        // → プロキシ経由のメンバーアクセス実装までは案内のみ表示
         const _mainEl = document.getElementById('appMain');
-        if (_mainEl) _mainEl.innerHTML = `
+        if (_mainEl) _mainEl.innerHTML = _soloBlocked
+          ? `
+          <div class="text-center py-5 px-3">
+            <i class="bi bi-person-fill-lock text-warning" style="font-size:3rem;"></i>
+            <h5 class="mt-3 fw-bold">ソロプランのため利用できません</h5>
+            <p class="text-muted mb-3" style="font-size:0.9rem; line-height:1.8;">
+              このアカウントは<strong>ソロプラン</strong>のため、オーナー以外のメンバーはご利用いただけません。<br>
+              チーム全員で使うには、管理者がチームプランへ変更する必要があります。
+            </p>
+          </div>`
+          : `
           <div class="text-center py-5 px-3">
             <i class="bi bi-exclamation-circle text-warning" style="font-size:3rem;"></i>
             <h5 class="mt-3 fw-bold">シートにアクセスできません</h5>
