@@ -1325,13 +1325,14 @@
             </span></div>
           </div>
           <ul class="check-list list-unstyled mb-4">
-            <li><i class="bi bi-check-circle-fill"></i>ソロプランのすべての機能</li>
-            <li><i class="bi bi-check-circle-fill"></i>チーム全員で使える</li>
-            <li><i class="bi bi-check-circle-fill"></i>申請・承認・精算済みステータス管理</li>
-            <li><i class="bi bi-check-circle-fill"></i>部署別・メンバー別レポート</li>
-            <li><i class="bi bi-check-circle-fill"></i>3段階の権限管理（管理者・閲覧者・一般）</li>
+            <li><i class="bi bi-check-circle-fill"></i>AI領収書解析（撮影・アップロードで自動入力）</li>
+            <li><i class="bi bi-check-circle-fill"></i>交通費・自家用車（走行距離）経費に対応</li>
             <li><i class="bi bi-check-circle-fill"></i>領収書を<strong>LINE</strong>で送るだけで申請できる</li>
-            <li><i class="bi bi-check-circle-fill"></i>Googleスプレッドシートをすでに業務で使っているチームに最適</li>
+            <li><i class="bi bi-check-circle-fill"></i>申請・承認・精算済みステータス管理</li>
+            <li><i class="bi bi-check-circle-fill"></i>3段階の権限管理（管理者・閲覧者・一般）</li>
+            <li><i class="bi bi-check-circle-fill"></i>部署別・メンバー別の集計・レポート</li>
+            <li><i class="bi bi-check-circle-fill"></i>CSVエクスポート（会計ソフト取込）・電帳法対応</li>
+            <li><i class="bi bi-check-circle-fill"></i>チーム全員で使える（人数ごとの課金なし）</li>
           </ul>
           <a href="https://buy.stripe.com/5kQ28r1Ps7ut2kv4io9oc08" class="btn btn-primary w-100 rounded-pill mt-auto">
             使ってみる（２週間は無料トライアル）
@@ -1352,7 +1353,8 @@
               ソロプラン <span class="text-primary">330</span><span class="text-muted" style="font-size:0.8rem;">円 / 月（税込）</span>
             </div>
             <div class="text-muted" style="font-size:0.82rem;line-height:1.7;">
-              ユーザーが<strong>1名</strong>で、<strong>LINE連携機能が不要</strong>な場合はこちら。AI領収書解析・集計・CSV・電帳法対応などの基本機能はそのままお使いいただけます。
+              ユーザーが<strong>1名</strong>の方向け。AI領収書解析・集計・CSV・電帳法対応などの基本機能はそのままお使いいただけます。<br>
+              <span style="font-size:0.76rem;">※ 承認フロー・権限管理・LINE連携はチームプラン限定です。</span>
             </div>
           </div>
           <a href="https://buy.stripe.com/5kQ28r1Ps7ut2kv4io9oc08" class="btn btn-outline-primary rounded-pill btn-sm flex-shrink-0">
@@ -1362,77 +1364,7 @@
       </div>
     </div>
 
-    <!-- Comparison Table -->
-    <h3 class="text-center fw-bold mb-4 mt-5">プラン比較表</h3>
-    <div class="table-responsive">
-      <table class="table table-pricing mb-0">
-        <thead>
-          <tr>
-            <th>機能</th>
-            <th class="text-center">ソロプラン</th>
-            <th class="text-center">チームプラン</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>月額（税込）</td>
-            <td class="text-center fw-bold">330円</td>
-            <td class="text-center fw-bold">825円</td>
-          </tr>
-          <tr>
-            <td>AI領収書解析</td>
-            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
-            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
-          </tr>
-          <tr>
-            <td>Googleスプレッドシート保存</td>
-            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
-            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
-          </tr>
-          <tr>
-            <td>集計・レポート</td>
-            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
-            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
-          </tr>
-          <tr>
-            <td>CSVエクスポート（会計ソフト取込用）</td>
-            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
-            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
-          </tr>
-          <tr>
-            <td>電帳法対応可能</td>
-            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
-            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
-          </tr>
-          <tr>
-            <td>ユーザー数</td>
-            <td class="text-center">1名</td>
-            <td class="text-center">チーム全員</td>
-          </tr>
-          <tr>
-            <td>申請・承認・精算済みステータス管理</td>
-            <td class="text-center"><i class="bi bi-dash text-muted"></i></td>
-            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
-          </tr>
-          <tr>
-            <td>権限管理（管理者・閲覧者・一般）</td>
-            <td class="text-center"><i class="bi bi-dash text-muted"></i></td>
-            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
-          </tr>
-          <tr>
-            <td>LINE連携（領収書をLINEで送信）</td>
-            <td class="text-center"><i class="bi bi-dash text-muted"></i></td>
-            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
-          </tr>
-          <tr>
-            <td>2週間無料トライアル</td>
-            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
-            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <p class="text-center text-muted small mt-4">
+    <p class="text-center text-muted small mt-5">
       🌽 日本文化の持続的な発展に貢献するため、本サービスの売上金の10％を一般社団法人日本文化コンテンツ推進委員会の運営基金に拠出しております。
     </p>
   </div>
