@@ -8,1505 +8,932 @@
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
   gtag('config', 'G-XCNC24BTGP');
+  gtag('config', 'AW-17756412877'); // Google広告（クリック計測・コンバージョンリンカー）
 </script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>経費ログ｜領収書を撮影して自動記録・経費精算をまるごとデジタル化</title>
+<meta name="robots" content="noindex, nofollow"><!-- テスト用プレビュー（検索インデックス除外） -->
+<title>【テスト版】経費ログ｜料金プラン修正案プレビュー</title>
 <meta name="description" content="領収書を撮影するだけでAIが金額・日付・支払先を自動記録。経費申請・承認・集計をブラウザで完結。データはGoogleスプレッドシートに保存されるため安全・低コスト。電帳法対応可能。月額330円〜。">
+<!-- OGP / Twitter Card -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="経費ログ">
 <meta property="og:title" content="経費ログ｜領収書を撮影して自動記録・経費精算をまるごとデジタル化">
 <meta property="og:description" content="領収書を撮影するだけでAIが金額・日付・支払先を自動記録。経費申請・承認・集計をブラウザで完結。データはGoogleスプレッドシートに保存。電帳法対応可能。月額330円〜。">
 <meta property="og:url" content="https://keihi-log.com/">
-<meta property="og:image" content="https://keihi-log.com/icons/icon-512.png">
+<meta property="og:image" content="https://keihi-log.com/img/ogp-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="経費ログ｜領収書を撮るだけでAIが経費精算を自動化">
 <meta property="og:locale" content="ja_JP">
-<meta name="twitter:card" content="summary">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="経費ログ｜領収書を撮影して自動記録">
 <meta name="twitter:description" content="領収書を撮るだけでAIが自動記録。経費精算をまるごとデジタル化。月額330円〜。">
-<meta name="twitter:image" content="https://keihi-log.com/icons/icon-512.png">
+<meta name="twitter:image" content="https://keihi-log.com/img/ogp-card.png">
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="apple-touch-icon" href="/icons/icon-192.png">
-<link rel="canonical" href="https://keihi-log.com/" />
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
-/* ===================================================
-   DESIGN TOKENS
-   =================================================== */
-:root {
-  --clr-dark:    #0B1120;
-  --clr-dark2:   #111827;
-  --clr-dark3:   #1e293b;
-  --clr-blue:    #2563EB;
-  --clr-blue-lt: #3B82F6;
-  --clr-accent:  #60A5FA;
-  --clr-green:   #10B981;
-  --clr-text:    #1e293b;
-  --clr-muted:   #64748b;
-  --clr-border:  #e2e8f0;
-  --clr-bg:      #F8FAFF;
-  --radius-lg:   16px;
-  --radius-xl:   24px;
-  --shadow-sm:   0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
-  --shadow-md:   0 4px 16px rgba(0,0,0,.10);
-  --shadow-lg:   0 12px 40px rgba(0,0,0,.14);
-  --shadow-blue: 0 8px 28px rgba(37,99,235,.25);
-}
-
-/* ===================================================
-   BASE
-   =================================================== */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; overflow-x: hidden; }
-body {
-  font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
-  font-size: 1rem;
-  color: var(--clr-text);
-  background: #fff;
-  -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
-  max-width: 100%;
-}
-img { max-width: 100%; display: block; }
-a { color: inherit; text-decoration: none; }
-
-.container {
-  width: 100%;
-  max-width: 1120px;
-  margin: 0 auto;
-  padding: 0 1.25rem;
-}
-@media (min-width: 768px) { .container { padding: 0 2rem; } }
-
-/* ===================================================
-   SCROLL ANIMATIONS
-   =================================================== */
-.reveal {
-  opacity: 0;
-  transform: translateY(28px);
-  transition: opacity .6s ease, transform .6s ease;
-}
-.reveal.visible {
-  opacity: 1;
-  transform: none;
-}
-.reveal-delay-1 { transition-delay: .1s; }
-.reveal-delay-2 { transition-delay: .2s; }
-.reveal-delay-3 { transition-delay: .3s; }
-.reveal-delay-4 { transition-delay: .4s; }
-
-/* ===================================================
-   NAVBAR
-   =================================================== */
-.nav {
-  position: fixed;
-  top: 0; left: 0; right: 0;
-  z-index: 900;
-  background: rgba(11,17,32,.92);
-  backdrop-filter: blur(14px);
-  border-bottom: 1px solid rgba(255,255,255,.06);
-  transition: background .3s;
-}
-.nav.scrolled {
-  background: rgba(11,17,32,.98);
-}
-.nav-inner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 60px;
-}
-.nav-brand {
-  display: flex;
-  align-items: center;
-  gap: .5rem;
-  color: #fff;
-  font-weight: 900;
-  font-size: 1.15rem;
-  letter-spacing: -.01em;
-}
-.nav-brand img {
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
-}
-.nav-links {
-  display: none;
-  align-items: center;
-  gap: 1.75rem;
-  list-style: none;
-}
-@media (min-width: 768px) { .nav-links { display: flex; } }
-.nav-links a {
-  color: rgba(255,255,255,.7);
-  font-size: .9rem;
-  font-weight: 500;
-  transition: color .2s;
-}
-.nav-links a:hover { color: #fff; }
-.nav-cta {
-  display: flex;
-  align-items: center;
-  gap: .75rem;
-}
-.btn-nav-demo {
-  color: rgba(255,255,255,.75);
-  font-size: .88rem;
-  font-weight: 500;
-  padding: .45rem .9rem;
-  border: 1px solid rgba(255,255,255,.18);
-  border-radius: 8px;
-  transition: all .2s;
-}
-.btn-nav-demo:hover {
-  color: #fff;
-  border-color: rgba(255,255,255,.45);
-}
-.btn-nav-signup {
-  background: var(--clr-blue);
-  color: #fff;
-  font-size: .88rem;
-  font-weight: 700;
-  padding: .45rem 1.1rem;
-  border-radius: 8px;
-  transition: background .2s, box-shadow .2s;
-}
-.btn-nav-signup:hover {
-  background: #1d4ed8;
-  box-shadow: var(--shadow-blue);
-}
-
-/* Mobile menu */
-.nav-hamburger {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  width: 24px;
-  cursor: pointer;
-  background: none;
-  border: none;
-  padding: 0;
-}
-@media (min-width: 768px) { .nav-hamburger { display: none; } }
-.nav-hamburger span {
-  display: block;
-  height: 2px;
-  background: rgba(255,255,255,.8);
-  border-radius: 2px;
-  transition: all .25s;
-}
-.nav-mobile {
-  display: none;
-  padding: .75rem 1.25rem 1rem;
-  border-top: 1px solid rgba(255,255,255,.06);
-}
-.nav-mobile.open { display: block; }
-.nav-mobile a {
-  display: block;
-  color: rgba(255,255,255,.8);
-  font-size: .95rem;
-  padding: .6rem 0;
-  border-bottom: 1px solid rgba(255,255,255,.05);
-}
-.nav-mobile .btn-signup-mobile {
-  display: block;
-  margin-top: .75rem;
-  background: var(--clr-blue);
-  color: #fff;
-  font-weight: 700;
-  text-align: center;
-  padding: .7rem 1rem;
-  border-radius: 8px;
-  -webkit-tap-highlight-color: transparent;
-}
-
-/* ===================================================
-   HERO
-   =================================================== */
-.hero {
-  background: var(--clr-dark);
-  padding: 120px 0 80px;
-  position: relative;
-  overflow: hidden;
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-}
-/* Mesh gradient blobs */
-.hero-blob1, .hero-blob2 {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(80px);
-  pointer-events: none;
-}
-.hero-blob1 {
-  width: 600px; height: 600px;
-  top: -100px; right: -150px;
-  background: radial-gradient(circle, rgba(37,99,235,.25) 0%, transparent 70%);
-}
-.hero-blob2 {
-  width: 400px; height: 400px;
-  bottom: -100px; left: -80px;
-  background: radial-gradient(circle, rgba(16,185,129,.12) 0%, transparent 70%);
-}
-/* Subtle grid */
-.hero::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
-  background-size: 48px 48px;
-}
-.hero-content {
-  position: relative;
-  z-index: 1;
-}
-.hero-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 3rem;
-  align-items: center;
-}
-@media (min-width: 900px) {
-  .hero-grid { grid-template-columns: 1fr 1fr; gap: 4rem; }
-}
-.hero-eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: .5rem;
-  background: rgba(37,99,235,.15);
-  border: 1px solid rgba(37,99,235,.35);
-  color: var(--clr-accent);
-  font-size: .82rem;
-  font-weight: 700;
-  letter-spacing: .04em;
-  padding: .35rem .9rem;
-  border-radius: 50px;
-  margin-bottom: 1.5rem;
-}
-.hero h1 {
-  color: #fff;
-  font-size: clamp(2rem, 5.5vw, 3.5rem);
-  font-weight: 900;
-  line-height: 1.2;
-  letter-spacing: -.02em;
-  margin-bottom: 1.25rem;
-}
-.hero h1 em {
-  font-style: normal;
-  background: linear-gradient(120deg, var(--clr-accent), #818cf8);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-.hero-lead {
-  color: rgba(255,255,255,.65);
-  font-size: 1.05rem;
-  line-height: 1.75;
-  margin-bottom: 2rem;
-  font-weight: 400;
-}
-.hero-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: .75rem;
-  margin-bottom: 2rem;
-}
-.btn-hero-primary {
-  display: inline-flex;
-  align-items: center;
-  gap: .5rem;
-  background: var(--clr-blue);
-  color: #fff;
-  font-weight: 700;
-  font-size: 1rem;
-  padding: .85rem 2rem;
-  border-radius: 10px;
-  box-shadow: var(--shadow-blue);
-  transition: all .2s;
-  -webkit-tap-highlight-color: transparent;
-}
-.btn-hero-primary:hover {
-  background: #1d4ed8;
-  transform: translateY(-2px);
-  box-shadow: 0 14px 40px rgba(37,99,235,.4);
-}
-.btn-hero-secondary {
-  display: inline-flex;
-  align-items: center;
-  gap: .5rem;
-  background: rgba(255,255,255,.07);
-  border: 1px solid rgba(255,255,255,.15);
-  color: rgba(255,255,255,.85);
-  font-weight: 600;
-  font-size: 1rem;
-  padding: .85rem 1.5rem;
-  border-radius: 10px;
-  transition: all .2s;
-  -webkit-tap-highlight-color: transparent;
-}
-.btn-hero-secondary:hover {
-  background: rgba(255,255,255,.12);
-  color: #fff;
-}
-.hero-trust {
-  display: flex;
-  flex-direction: column;
-  gap: .4rem;
-}
-.hero-trust-item {
-  color: rgba(255,255,255,.55);
-  font-size: .85rem;
-  display: flex;
-  align-items: center;
-  gap: .4rem;
-}
-.hero-trust-item i { color: var(--clr-green); }
-
-/* Hero screenshot */
-.hero-visual {
-  position: relative;
-}
-.hero-screen-wrap {
-  background: #1e2d45;
-  border: 1px solid rgba(255,255,255,.1);
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 32px 80px rgba(0,0,0,.5);
-}
-.hero-screen-bar {
-  background: #151e2e;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  padding: 0 14px;
-  gap: 6px;
-  border-bottom: 1px solid rgba(255,255,255,.05);
-}
-.hero-screen-dot {
-  width: 10px; height: 10px;
-  border-radius: 50%;
-}
-.hero-screen-dot.r { background: #ff5f57; }
-.hero-screen-dot.y { background: #febc2e; }
-.hero-screen-dot.g { background: #28c840; }
-.hero-url-bar {
-  flex: 1;
-  margin-left: 12px;
-  background: rgba(255,255,255,.06);
-  border-radius: 4px;
-  height: 20px;
-  max-width: 240px;
-  display: flex;
-  align-items: center;
-  padding: 0 8px;
-}
-.hero-url-bar span {
-  color: rgba(255,255,255,.35);
-  font-size: 10px;
-}
-.hero-carousel {
-  position: relative;
-  overflow: hidden;
-}
-.hero-slides {
-  display: flex;
-  transition: transform .5s cubic-bezier(.4,0,.2,1);
-}
-.hero-slide {
-  min-width: 100%;
-}
-.hero-slide img {
-  width: 100%;
-  height: 320px;
-  object-fit: contain;
-  object-position: top;
-  background: #fff;
-}
-@media (min-width: 900px) {
-  .hero-slide img { height: 380px; }
-}
-.hero-slide-label {
-  text-align: center;
-  color: rgba(255,255,255,.4);
-  font-size: .78rem;
-  padding: .5rem 0 .75rem;
-}
-.hero-dots {
-  display: flex;
-  justify-content: center;
-  gap: 6px;
-  padding-bottom: .5rem;
-}
-.hero-dot {
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: rgba(255,255,255,.25);
-  cursor: pointer;
-  transition: background .25s;
-  border: none;
-  padding: 0;
-}
-.hero-dot.active { background: var(--clr-accent); }
-
-/* Floating badge */
-.hero-float-badge {
-  position: absolute;
-  bottom: -16px;
-  left: -20px;
-  background: rgba(16,185,129,.12);
-  border: 1px solid rgba(16,185,129,.3);
-  border-radius: 12px;
-  padding: .65rem 1rem;
-  display: flex;
-  align-items: center;
-  gap: .6rem;
-  backdrop-filter: blur(8px);
-  animation: floatBadge 3.5s ease-in-out infinite;
-}
-@keyframes floatBadge {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
-}
-.hero-float-icon {
-  width: 32px; height: 32px;
-  background: var(--clr-green);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1rem;
-  flex-shrink: 0;
-}
-.hero-float-text {
-  font-size: .78rem;
-  color: rgba(255,255,255,.85);
-  font-weight: 600;
-}
-.hero-float-text small {
-  display: block;
-  color: var(--clr-green);
-  font-weight: 700;
-  font-size: .78rem;
-}
-
-/* ===================================================
-   STATS BAND
-   =================================================== */
-.stats-band {
-  background: var(--clr-dark2);
-  border-top: 1px solid rgba(255,255,255,.05);
-  border-bottom: 1px solid rgba(255,255,255,.05);
-  padding: 2.5rem 0;
-}
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-}
-@media (min-width: 640px) { .stats-grid { grid-template-columns: repeat(4, 1fr); } }
-.stat-item {
-  text-align: center;
-  padding: 1rem;
-  border-right: 1px solid rgba(255,255,255,.06);
-}
-.stat-item:last-child { border-right: none; }
-.stat-num {
-  font-size: clamp(1.75rem, 3.5vw, 2.5rem);
-  font-weight: 900;
-  color: #fff;
-  letter-spacing: -.03em;
-  line-height: 1;
-}
-.stat-num span {
-  color: var(--clr-accent);
-}
-.stat-label {
-  color: rgba(255,255,255,.45);
-  font-size: .8rem;
-  margin-top: .35rem;
-  font-weight: 500;
-}
-
-/* ===================================================
-   SECTION COMMONS
-   =================================================== */
-.section {
-  padding: 6rem 0;
-}
-.section-alt { background: var(--clr-bg); }
-.section-dark {
-  background: var(--clr-dark);
-  color: #fff;
-}
-.section-eyebrow {
-  display: inline-block;
-  font-size: .78rem;
-  font-weight: 700;
-  letter-spacing: .1em;
-  text-transform: uppercase;
-  color: var(--clr-blue);
-  margin-bottom: .75rem;
-}
-.section-dark .section-eyebrow { color: var(--clr-accent); }
-.section-title {
-  font-size: clamp(1.65rem, 4vw, 2.5rem);
-  font-weight: 900;
-  letter-spacing: -.025em;
-  line-height: 1.25;
-  margin-bottom: .75rem;
-}
-.section-lead {
-  font-size: 1.05rem;
-  color: var(--clr-muted);
-  line-height: 1.7;
-}
-.section-dark .section-lead { color: rgba(255,255,255,.55); }
-.section-header {
-  margin-bottom: 3rem;
-}
-.section-header.center { text-align: center; }
-
-/* ===================================================
-   PROBLEM
-   =================================================== */
-.problem-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-}
-@media (min-width: 768px) { .problem-grid { grid-template-columns: repeat(4, 1fr); gap: 1.25rem; } }
-.problem-card {
-  background: #fff;
-  border: 1px solid var(--clr-border);
-  border-radius: var(--radius-lg);
-  padding: 1.75rem 1.5rem;
-  text-align: center;
-  transition: box-shadow .25s, transform .25s;
-}
-.problem-card:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-3px);
-}
-.problem-icon {
-  width: 56px; height: 56px;
-  border-radius: 14px;
-  background: #FEF2F2;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.5rem;
-  margin: 0 auto 1rem;
-  color: #EF4444;
-}
-.problem-card h5 {
-  font-size: .95rem;
-  font-weight: 700;
-  margin-bottom: .5rem;
-  color: var(--clr-text);
-}
-.problem-card p {
-  font-size: .82rem;
-  color: var(--clr-muted);
-  line-height: 1.65;
-}
-.problem-arrow {
-  text-align: center;
-  margin-top: 2.5rem;
-  padding-top: 2rem;
-  border-top: 1px solid var(--clr-border);
-}
-.problem-arrow p {
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: var(--clr-blue);
-}
-
-/* ===================================================
-   FEATURES
-   =================================================== */
-.features-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1rem;
-}
-@media (min-width: 640px) { .features-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (min-width: 1024px) { .features-grid { grid-template-columns: repeat(3, 1fr); } }
-.feature-card {
-  background: #fff;
-  border: 1px solid var(--clr-border);
-  border-radius: var(--radius-lg);
-  padding: 2rem;
-  transition: box-shadow .25s, border-color .25s, transform .25s;
-  display: flex;
-  flex-direction: column;
-}
-.feature-card:hover {
-  box-shadow: 0 12px 32px rgba(37,99,235,.1);
-  border-color: rgba(37,99,235,.3);
-  transform: translateY(-3px);
-}
-.feature-icon {
-  width: 48px; height: 48px;
-  border-radius: 12px;
-  background: #EFF6FF;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.35rem;
-  color: var(--clr-blue);
-  margin-bottom: 1.25rem;
-  flex-shrink: 0;
-}
-.feature-card h4 {
-  font-size: 1rem;
-  font-weight: 700;
-  margin-bottom: .6rem;
-  color: var(--clr-text);
-}
-.feature-card p {
-  font-size: .88rem;
-  color: var(--clr-muted);
-  line-height: 1.7;
-  flex: 1;
-}
-
-/* ===================================================
-   BYOK
-   =================================================== */
-.byok-wrap {
-  background: #fff;
-  border: 1px solid var(--clr-border);
-  border-radius: var(--radius-xl);
-  overflow: hidden;
-  box-shadow: var(--shadow-sm);
-}
-.byok-inner {
-  display: grid;
-  grid-template-columns: 1fr;
-}
-@media (min-width: 768px) {
-  .byok-inner { grid-template-columns: 1fr 1fr; }
-}
-.byok-left {
-  background: linear-gradient(135deg, #0d1b35 0%, #1a2d52 100%);
-  padding: 3rem 2.5rem;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-start;
-}
-.byok-left .section-eyebrow { color: var(--clr-accent); }
-.byok-left .section-title { color: #fff; font-size: clamp(1.4rem, 3vw, 2rem); }
-.byok-left .section-lead { color: rgba(255,255,255,.55); margin-bottom: 0; }
-.byok-right {
-  padding: 2.5rem;
-}
-.byok-reason {
-  display: flex;
-  gap: 1rem;
-  padding: 1.25rem 0;
-  border-bottom: 1px solid var(--clr-border);
-}
-.byok-reason:last-child { border-bottom: none; }
-.byok-reason-num {
-  width: 32px; height: 32px;
-  background: var(--clr-blue);
-  color: #fff;
-  border-radius: 8px;
-  font-size: .8rem;
-  font-weight: 900;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  margin-top: .1rem;
-}
-.byok-reason h5 {
-  font-size: .95rem;
-  font-weight: 700;
-  margin-bottom: .3rem;
-  color: var(--clr-text);
-}
-.byok-reason p {
-  font-size: .82rem;
-  color: var(--clr-muted);
-  line-height: 1.65;
-  margin: 0;
-}
-
-/* ===================================================
-   DENCHOU
-   =================================================== */
-.denchou-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 3rem;
-  align-items: center;
-}
-@media (min-width: 768px) { .denchou-grid { grid-template-columns: 1fr 1fr; } }
-.denchou-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: .4rem;
-  background: #ECFDF5;
-  color: var(--clr-green);
-  border: 1px solid rgba(16,185,129,.25);
-  font-size: .82rem;
-  font-weight: 700;
-  padding: .35rem .9rem;
-  border-radius: 50px;
-  margin-bottom: 1rem;
-}
-.denchou-grid h2 {
-  font-size: clamp(1.5rem, 3.5vw, 2.25rem);
-  font-weight: 900;
-  letter-spacing: -.025em;
-  line-height: 1.3;
-  margin-bottom: 1rem;
-  color: var(--clr-text);
-}
-.denchou-grid p { color: var(--clr-muted); line-height: 1.75; }
-.check-list {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: .9rem;
-}
-.check-item {
-  display: flex;
-  align-items: flex-start;
-  gap: .75rem;
-}
-.check-item-icon {
-  width: 22px; height: 22px;
-  background: var(--clr-green);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  margin-top: .15rem;
-}
-.check-item-icon i { font-size: .7rem; color: #fff; }
-.check-item h6 {
-  font-size: .95rem;
-  font-weight: 700;
-  margin-bottom: .2rem;
-  color: var(--clr-text);
-}
-.check-item p {
-  font-size: .82rem;
-  color: var(--clr-muted);
-  margin: 0;
-  line-height: 1.6;
-}
-
-/* ===================================================
-   STEPS
-   =================================================== */
-.steps-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0;
-  position: relative;
-}
-@media (min-width: 640px) {
-  .steps-grid {
-    grid-template-columns: repeat(5, 1fr);
-    gap: 0;
+  :root {
+    --brand-h: 217;          /* hue of #0d6efd */
+    --brand-s: 97%;
+    --brand-l: 52%;
+    --brand:   hsl(var(--brand-h), var(--brand-s), var(--brand-l));
+    --bs-primary: var(--brand);
+    --bs-primary-rgb: 13, 110, 253;
   }
-}
-.step-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 1.5rem 1rem;
-  position: relative;
-}
-@media (min-width: 640px) {
-  .step-item::after {
+  html {
+    overflow-x: hidden;
+  }
+  body {
+    font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: #212529;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    max-width: 100%;
+  }
+
+  /* ===== Logo ===== */
+  .logo-svg {
+    width: 32px;
+    height: 32px;
+    vertical-align: -7px;
+    margin-right: 6px;
+  }
+  .logo-footer {
+    width: 40px;
+    height: 40px;
+    vertical-align: -10px;
+    margin-right: 8px;
+  }
+
+  /* ===== Hero ===== */
+  .hero {
+    background: linear-gradient(135deg, var(--brand) 0%, hsl(var(--brand-h), var(--brand-s), 42%) 100%);
+    color: #fff;
+    padding: 6rem 0 5rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
     content: '';
     position: absolute;
-    top: 2.35rem;
-    right: 0;
-    width: 50%;
-    height: 1px;
-    background: linear-gradient(to right, var(--clr-border), var(--clr-border));
-    transform: translateX(50%);
-    z-index: 0;
+    top: -50%;
+    right: -10%;
+    width: 600px;
+    height: 600px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 50%;
   }
-  .step-item:last-child::after { display: none; }
-}
-.step-num {
-  width: 44px; height: 44px;
-  border-radius: 50%;
-  background: var(--clr-blue);
-  color: #fff;
-  font-weight: 900;
-  font-size: 1rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 1rem;
-  position: relative;
-  z-index: 1;
-  box-shadow: var(--shadow-blue);
-  flex-shrink: 0;
-}
-.step-item h5 {
-  font-size: .92rem;
-  font-weight: 700;
-  margin-bottom: .4rem;
-  color: var(--clr-text);
-}
-.step-item p {
-  font-size: .8rem;
-  color: var(--clr-muted);
-  line-height: 1.6;
-}
+  .hero::after {
+    content: '';
+    position: absolute;
+    bottom: -30%;
+    left: -10%;
+    width: 400px;
+    height: 400px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 50%;
+  }
+  .hero-content {
+    position: relative;
+    z-index: 1;
+  }
+  .hero h1 {
+    font-weight: 900;
+    font-size: clamp(1.8rem, 5vw, 3rem);
+    line-height: 1.3;
+    margin-bottom: 1.5rem;
+  }
+  @media (min-width: 992px) {
+    .nowrap-lg { white-space: nowrap; }
+  }
+  .hero .lead {
+    font-size: 1.15rem;
+    opacity: 0.95;
+  }
+  .badge-hero {
+    background: rgba(255,255,255,0.2);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.4);
+    padding: 0.5rem 1rem;
+    border-radius: 50px;
+    font-size: 0.9rem;
+    display: inline-block;
+    margin-bottom: 1.5rem;
+  }
+  .btn-cta {
+    background-color: #fff;
+    color: var(--brand);
+    font-weight: 700;
+    padding: 0.85rem 2rem;
+    border-radius: 50px;
+    border: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+  }
+  .btn-cta:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+    color: hsl(var(--brand-h), var(--brand-s), 42%);
+  }
+  .btn-cta:focus, .btn-cta:focus-visible,
+  .btn-cta:active {
+    background-color: #fff !important;
+    color: var(--brand) !important;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.15) !important;
+    outline: none !important;
+    transform: none !important;
+  }
+  /* LP上のすべてのリンクボタン：タップハイライト消去 + フォーカスring消去 */
+  a.btn, .btn {
+    -webkit-tap-highlight-color: transparent;
+  }
+  a.btn:focus, a.btn:focus-visible,
+  a.btn:active {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+  .btn-cta-outline {
+    background: transparent;
+    color: #fff;
+    border: 2px solid #fff;
+    font-weight: 700;
+    padding: 0.75rem 1.75rem;
+    border-radius: 50px;
+    transition: all 0.3s ease;
+  }
+  .btn-cta-outline:hover {
+    background: #fff;
+    color: var(--brand);
+  }
+  .btn-cta-outline:focus, .btn-cta-outline:focus-visible,
+  .btn-cta-outline:active {
+    background: transparent;
+    color: #fff;
+    outline: none;
+    box-shadow: none;
+  }
 
-/* ===================================================
-   PRICING
-   =================================================== */
-.pricing-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1.5rem;
-  margin-bottom: 3rem;
-}
-@media (min-width: 640px) { .pricing-grid { grid-template-columns: repeat(2, 1fr); max-width: 680px; margin-left: auto; margin-right: auto; } }
-.price-card {
-  background: #fff;
-  border: 1.5px solid var(--clr-border);
-  border-radius: var(--radius-xl);
-  padding: 2.5rem 2rem;
-  display: flex;
-  flex-direction: column;
-  transition: box-shadow .25s, transform .25s;
-  position: relative;
-}
-.price-card:hover { box-shadow: var(--shadow-md); transform: translateY(-3px); }
-.price-card.featured {
-  border-color: var(--clr-blue);
-  box-shadow: 0 0 0 1px var(--clr-blue), var(--shadow-blue);
-}
-.price-popular {
-  position: absolute;
-  top: -13px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--clr-blue);
-  color: #fff;
-  font-size: .78rem;
-  font-weight: 700;
-  padding: .3rem .9rem;
-  border-radius: 50px;
-  white-space: nowrap;
-}
-.price-card h3 {
-  font-size: 1.15rem;
-  font-weight: 900;
-  color: var(--clr-text);
-  margin-bottom: .25rem;
-}
-.price-sub {
-  font-size: .82rem;
-  color: var(--clr-muted);
-  margin-bottom: 1.5rem;
-}
-.price-amount-row {
-  display: flex;
-  align-items: baseline;
-  gap: .25rem;
-  margin-bottom: 1.5rem;
-}
-.price-amount {
-  font-size: 3rem;
-  font-weight: 900;
-  letter-spacing: -.04em;
-  color: var(--clr-blue);
-  line-height: 1;
-}
-.price-unit {
-  font-size: .9rem;
-  color: var(--clr-muted);
-}
-.price-features {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: .75rem;
-  margin-bottom: 2rem;
-  flex: 1;
-}
-.price-features li {
-  display: flex;
-  align-items: flex-start;
-  gap: .5rem;
-  font-size: .88rem;
-  color: var(--clr-text);
-}
-.price-features li i {
-  color: var(--clr-green);
-  font-size: .85rem;
-  margin-top: .2rem;
-  flex-shrink: 0;
-}
-.btn-price {
-  display: block;
-  text-align: center;
-  background: var(--clr-blue);
-  color: #fff;
-  font-weight: 700;
-  font-size: .95rem;
-  padding: .85rem 1rem;
-  border-radius: 10px;
-  transition: background .2s, box-shadow .2s;
-  -webkit-tap-highlight-color: transparent;
-}
-.btn-price:hover { background: #1d4ed8; box-shadow: var(--shadow-blue); }
-.btn-price-outline {
-  display: block;
-  text-align: center;
-  border: 1.5px solid var(--clr-blue);
-  color: var(--clr-blue);
-  font-weight: 700;
-  font-size: .95rem;
-  padding: .85rem 1rem;
-  border-radius: 10px;
-  transition: all .2s;
-  -webkit-tap-highlight-color: transparent;
-}
-.btn-price-outline:hover { background: #EFF6FF; }
-.pricing-note {
-  text-align: center;
-  font-size: .82rem;
-  color: var(--clr-muted);
-  margin-top: .75rem;
-}
+  /* ===== Hero Mockup ===== */
+  .hero-mockup {
+    position: relative;
+    max-width: 480px;
+    margin: 0 auto;
+    filter: drop-shadow(0 20px 40px rgba(0,0,0,0.25));
+  }
+  .mockup-window {
+    background: #fff;
+    border-radius: 14px;
+    overflow: hidden;
+    color: #212529;
+    transform: perspective(1000px) rotateY(-6deg) rotateX(3deg);
+    transition: transform 0.4s ease;
+  }
+  .hero-mockup:hover .mockup-window {
+    transform: perspective(1000px) rotateY(-2deg) rotateX(1deg);
+  }
+  .mockup-titlebar {
+    background: #f1f3f5;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-bottom: 1px solid #dee2e6;
+  }
+  .mockup-dot {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+  }
+  .mockup-dot.red { background: #ff5f57; }
+  .mockup-dot.yellow { background: #febc2e; }
+  .mockup-dot.green { background: #28c840; }
+  .mockup-url {
+    flex: 1;
+    background: #fff;
+    border-radius: 4px;
+    padding: 2px 10px;
+    font-size: 11px;
+    color: #6c757d;
+    margin-left: 12px;
+    text-align: center;
+  }
+  .mockup-body {
+    padding: 18px;
+  }
+  .mockup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .mockup-header h6 {
+    margin: 0;
+    font-weight: 700;
+    font-size: 14px;
+  }
+  .mockup-pill {
+    background: #d1e7dd;
+    color: #0a3622;
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 50px;
+    font-weight: 600;
+  }
+  .receipt-row {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    background: #f8f9fa;
+    font-size: 12px;
+  }
+  .receipt-row .icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: #e7f1ff;
+    color: var(--brand);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
+    flex-shrink: 0;
+    font-size: 14px;
+  }
+  .receipt-row .info {
+    flex: 1;
+    min-width: 0;
+  }
+  .receipt-row .info .title {
+    font-weight: 600;
+    font-size: 12px;
+  }
+  .receipt-row .info .meta {
+    color: #6c757d;
+    font-size: 10px;
+  }
+  .receipt-row .amount {
+    font-weight: 700;
+    font-size: 12px;
+  }
+  .receipt-row .status {
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 6px;
+  }
+  .status-ok { background: #d1e7dd; color: #0a3622; }
+  .status-wait { background: #fff3cd; color: #664d03; }
+  .mockup-chart {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 12px;
+    margin-top: 10px;
+  }
+  .mockup-chart-bars {
+    display: flex;
+    align-items: end;
+    gap: 6px;
+    height: 60px;
+  }
+  .chart-bar {
+    flex: 1;
+    background: linear-gradient(180deg, #0d6efd 0%, #6ea8fe 100%);
+    border-radius: 4px 4px 0 0;
+  }
 
-/* Comparison table */
-.compare-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: .88rem;
-}
-.compare-table thead th {
-  background: var(--clr-dark);
-  color: #fff;
-  padding: 1rem;
-  text-align: center;
-  font-weight: 700;
-}
-.compare-table thead th:first-child { text-align: left; }
-.compare-table tbody td {
-  padding: .9rem 1rem;
-  border-bottom: 1px solid var(--clr-border);
-  color: var(--clr-text);
-  text-align: center;
-}
-.compare-table tbody td:first-child { text-align: left; font-weight: 500; }
-.compare-table tbody tr:last-child td { border-bottom: none; }
-.compare-table tbody tr:hover td { background: var(--clr-bg); }
-.compare-wrap {
-  background: #fff;
-  border: 1px solid var(--clr-border);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  box-shadow: var(--shadow-sm);
-}
+  /* Floating receipt card */
+  .floating-receipt {
+    position: absolute;
+    top: 30px;
+    right: -10px;
+    background: #fff;
+    color: #212529;
+    border-radius: 12px;
+    padding: 12px 14px;
+    box-shadow: 0 12px 28px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 2;
+    animation: float 4s ease-in-out infinite;
+  }
+  .floating-receipt .ai-badge {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #0d6efd, #6610f2);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+  .floating-receipt .text-block {
+    font-size: 11px;
+  }
+  .floating-receipt .text-block strong {
+    font-size: 12px;
+    color: var(--brand);
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+  @media (max-width: 991px) {
+    .hero-mockup { margin-top: 3rem; max-width: 400px; }
+    .floating-receipt { right: 0px; top: 15px; }
+  }
 
-/* ===================================================
-   FIT SECTION
-   =================================================== */
-.fit-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1.25rem;
-}
-@media (min-width: 640px) { .fit-grid { grid-template-columns: 1fr 1fr; } }
-.fit-card {
-  background: #fff;
-  border: 1px solid var(--clr-border);
-  border-radius: var(--radius-lg);
-  padding: 2rem;
-  box-shadow: var(--shadow-sm);
-}
-.fit-card-header {
-  display: flex;
-  align-items: center;
-  gap: .75rem;
-  margin-bottom: 1.25rem;
-}
-.fit-icon {
-  width: 36px; height: 36px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1rem;
-  flex-shrink: 0;
-}
-.fit-icon.ok { background: #D1FAE5; color: #059669; }
-.fit-icon.ng { background: #FEE2E2; color: #DC2626; }
-.fit-card h3 { font-size: 1rem; font-weight: 700; }
-.fit-list {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: .65rem;
-}
-.fit-list li {
-  display: flex;
-  align-items: flex-start;
-  gap: .5rem;
-  font-size: .88rem;
-  color: var(--clr-text);
-  line-height: 1.55;
-}
-.fit-list li i { font-size: .9rem; flex-shrink: 0; margin-top: .15rem; }
-.fit-list li i.ok { color: #059669; }
-.fit-list li i.ng { color: #DC2626; }
-.fit-flow {
-  margin-top: 2rem;
-  background: #EFF6FF;
-  border: 1px solid rgba(37,99,235,.15);
-  border-radius: var(--radius-lg);
-  padding: 1.5rem;
-  text-align: center;
-}
-.fit-flow-label {
-  font-size: .82rem;
-  font-weight: 700;
-  color: var(--clr-blue);
-  margin-bottom: 1rem;
-}
-.fit-flow-steps {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: .5rem;
-}
-.fit-flow-step {
-  background: #fff;
-  border: 1px solid rgba(37,99,235,.2);
-  color: #1e40af;
-  font-size: .82rem;
-  font-weight: 600;
-  padding: .5rem .9rem;
-  border-radius: 8px;
-}
-.fit-flow-arrow { color: var(--clr-blue); font-size: .9rem; }
+  /* ===== Sections ===== */
+  section {
+    padding: 5rem 0;
+  }
+  .section-title {
+    font-weight: 900;
+    text-align: center;
+    margin-bottom: 1rem;
+    font-size: clamp(1.5rem, 4vw, 2.25rem);
+  }
+  .section-subtitle {
+    text-align: center;
+    color: #6c757d;
+    margin-bottom: 3rem;
+    font-size: 1.05rem;
+  }
 
-/* ===================================================
-   SECURITY
-   =================================================== */
-.security-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1.25rem;
-}
-@media (min-width: 640px) { .security-grid { grid-template-columns: repeat(3, 1fr); } }
-.security-card {
-  background: rgba(255,255,255,.05);
-  border: 1px solid rgba(255,255,255,.1);
-  border-radius: var(--radius-lg);
-  padding: 2rem 1.5rem;
-  text-align: center;
-  transition: background .25s, border-color .25s;
-}
-.security-card:hover {
-  background: rgba(255,255,255,.08);
-  border-color: rgba(255,255,255,.18);
-}
-.security-icon {
-  width: 56px; height: 56px;
-  border-radius: 14px;
-  background: rgba(59,130,246,.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.6rem;
-  color: var(--clr-accent);
-  margin: 0 auto 1.25rem;
-}
-.security-card h5 {
-  font-size: .95rem;
-  font-weight: 700;
-  color: #fff;
-  margin-bottom: .5rem;
-}
-.security-card p {
-  font-size: .82rem;
-  color: rgba(255,255,255,.5);
-  line-height: 1.65;
-}
+  /* ===== Problem ===== */
+  .problem-section {
+    background: #f8f9fa;
+  }
+  .problem-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 2rem 1.5rem;
+    height: 100%;
+    border: 1px solid #e9ecef;
+    transition: all 0.3s ease;
+  }
+  .problem-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  }
+  .problem-illust {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 1rem;
+    display: block;
+  }
 
-/* ===================================================
-   FAQ
-   =================================================== */
-.faq-list {
-  display: flex;
-  flex-direction: column;
-  gap: .75rem;
-  max-width: 800px;
-  margin: 0 auto;
-}
-.faq-item {
-  background: #fff;
-  border: 1px solid var(--clr-border);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  transition: border-color .2s;
-}
-.faq-item.open { border-color: var(--clr-blue); }
-.faq-question {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 1.15rem 1.5rem;
-  cursor: pointer;
-  user-select: none;
-  -webkit-tap-highlight-color: transparent;
-}
-.faq-q-text {
-  font-size: .95rem;
-  font-weight: 600;
-  color: var(--clr-text);
-  line-height: 1.5;
-}
-.faq-toggle {
-  width: 28px; height: 28px;
-  border-radius: 50%;
-  background: var(--clr-bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: background .2s, transform .3s;
-  font-size: .85rem;
-  color: var(--clr-muted);
-}
-.faq-item.open .faq-toggle {
-  background: var(--clr-blue);
-  color: #fff;
-  transform: rotate(45deg);
-}
-.faq-answer {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height .35s ease;
-}
-.faq-answer-inner {
-  padding: 0 1.5rem 1.25rem;
-  font-size: .88rem;
-  color: var(--clr-muted);
-  line-height: 1.75;
-}
+  /* ===== Steps ===== */
+  .step-card {
+    text-align: center;
+    padding: 1.5rem 1rem;
+    height: 100%;
+    position: relative;
+  }
+  .step-illust-wrap {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    margin: 0 auto 1rem;
+  }
+  .step-illust {
+    width: 100%;
+    height: 100%;
+  }
+  .step-number-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--brand);
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+  .step-arrow {
+    position: absolute;
+    top: 60px;
+    right: -8px;
+    color: var(--brand);
+    font-size: 1.5rem;
+    z-index: 1;
+  }
+  @media (max-width: 991px) {
+    .step-arrow { display: none; }
+  }
 
-/* ===================================================
-   CTA BAND
-   =================================================== */
-.cta-band {
-  background: linear-gradient(135deg, #1a2d52 0%, #0f1729 100%);
-  padding: 5rem 0;
-  text-align: center;
-  position: relative;
-  overflow: hidden;
-}
-.cta-band::before {
-  content: '';
-  position: absolute;
-  top: -60%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 700px; height: 700px;
-  background: radial-gradient(circle, rgba(37,99,235,.2) 0%, transparent 65%);
-  pointer-events: none;
-}
-.cta-band h2 {
-  color: #fff;
-  font-size: clamp(1.6rem, 4vw, 2.5rem);
-  font-weight: 900;
-  letter-spacing: -.025em;
-  margin-bottom: 1rem;
-  position: relative;
-}
-.cta-band p {
-  color: rgba(255,255,255,.6);
-  font-size: 1rem;
-  margin-bottom: 2rem;
-  position: relative;
-}
-.cta-band-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: .75rem;
-  position: relative;
-}
-.btn-cta-primary {
-  display: inline-flex;
-  align-items: center;
-  gap: .5rem;
-  background: var(--clr-blue);
-  color: #fff;
-  font-weight: 700;
-  font-size: 1rem;
-  padding: .9rem 2.25rem;
-  border-radius: 10px;
-  box-shadow: var(--shadow-blue);
-  transition: all .2s;
-  -webkit-tap-highlight-color: transparent;
-}
-.btn-cta-primary:hover { background: #1d4ed8; transform: translateY(-2px); }
-.btn-cta-ghost {
-  display: inline-flex;
-  align-items: center;
-  gap: .5rem;
-  color: rgba(255,255,255,.7);
-  font-weight: 600;
-  font-size: 1rem;
-  padding: .9rem 1.5rem;
-  border: 1px solid rgba(255,255,255,.2);
-  border-radius: 10px;
-  transition: all .2s;
-  -webkit-tap-highlight-color: transparent;
-}
-.btn-cta-ghost:hover { color: #fff; border-color: rgba(255,255,255,.45); }
-.cta-band-note {
-  color: rgba(255,255,255,.4);
-  font-size: .82rem;
-  margin-top: 1rem;
-  position: relative;
-}
+  /* ===== Features ===== */
+  .feature-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 2rem;
+    height: 100%;
+    border: 1px solid #e9ecef;
+    transition: all 0.3s ease;
+    display: flex;
+    gap: 1.25rem;
+  }
+  .feature-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(13,110,253,0.12);
+    border-color: var(--brand);
+  }
+  .feature-illust {
+    width: 100px;
+    height: 100px;
+    flex-shrink: 0;
+  }
+  .feature-content {
+    flex: 1;
+  }
 
-/* Demo inline CTA */
-.demo-cta {
-  background: var(--clr-blue);
-  padding: 3rem 0;
-  text-align: center;
-}
-.demo-cta h3 { color: #fff; font-size: 1.15rem; font-weight: 700; margin-bottom: .5rem; }
-.demo-cta p { color: rgba(255,255,255,.75); font-size: .9rem; margin-bottom: 1.25rem; }
-.btn-demo-cta {
-  display: inline-flex;
-  align-items: center;
-  gap: .5rem;
-  background: #fff;
-  color: var(--clr-blue);
-  font-weight: 700;
-  font-size: .95rem;
-  padding: .75rem 1.75rem;
-  border-radius: 10px;
-  transition: all .2s;
-  -webkit-tap-highlight-color: transparent;
-}
-.btn-demo-cta:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(0,0,0,.2); }
+  /* ===== BYOK ===== */
+  .byok-section {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e7f1ff 100%);
+  }
+  .byok-card {
+    background: #fff;
+    border-radius: 20px;
+    padding: 2.5rem;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+  }
+  .byok-illust {
+    width: 100%;
+    max-width: 280px;
+    height: auto;
+    margin: 0 auto;
+    display: block;
+  }
+  .price-highlight {
+    color: var(--brand);
+    font-weight: 900;
+    font-size: 1.3rem;
+  }
 
-/* ===================================================
-   FOOTER
-   =================================================== */
-.footer {
-  background: #090e1a;
-  padding: 3.5rem 0 1.5rem;
-  border-top: 1px solid rgba(255,255,255,.04);
-}
-.footer-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2rem;
-  margin-bottom: 2.5rem;
-}
-@media (min-width: 640px) { .footer-grid { grid-template-columns: 2fr 1fr 1fr; } }
-.footer-brand { grid-column: 1 / -1; }
-@media (min-width: 640px) { .footer-brand { grid-column: auto; } }
-.footer-brand-name {
-  display: flex;
-  align-items: center;
-  gap: .5rem;
-  color: #fff;
-  font-weight: 900;
-  font-size: 1.05rem;
-  margin-bottom: .75rem;
-}
-.footer-brand-name img { width: 28px; height: 28px; border-radius: 6px; }
-.footer-desc {
-  color: rgba(255,255,255,.35);
-  font-size: .82rem;
-  line-height: 1.7;
-}
-.footer-col h5 {
-  color: rgba(255,255,255,.5);
-  font-size: .75rem;
-  font-weight: 700;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  margin-bottom: 1rem;
-}
-.footer-links {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: .55rem;
-}
-.footer-links a {
-  color: rgba(255,255,255,.35);
-  font-size: .82rem;
-  transition: color .2s;
-}
-.footer-links a:hover { color: rgba(255,255,255,.7); }
-.footer-bottom {
-  border-top: 1px solid rgba(255,255,255,.05);
-  padding-top: 1.5rem;
-  text-align: center;
-  color: rgba(255,255,255,.2);
-  font-size: .78rem;
-}
+  /* ===== 電帳法 ===== */
+  .denchou-section {
+    background: #fff;
+  }
+  .denchou-illust {
+    width: 100%;
+    max-width: 360px;
+    height: auto;
+    margin: 0 auto;
+    display: block;
+  }
+  .check-list li {
+    padding: 0.6rem 0;
+    display: flex;
+    align-items: start;
+  }
+  .check-list .bi-check-circle-fill {
+    color: #198754;
+    margin-right: 0.75rem;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+    margin-top: 0.15rem;
+  }
 
-/* ===================================================
-   RESPONSIVE HELPERS
-   =================================================== */
-@media (max-width: 639px) {
-  .section { padding: 4rem 0; }
-  .hero { min-height: auto; padding: 90px 0 60px; }
-  .stat-item { border-right: none; border-bottom: 1px solid rgba(255,255,255,.06); }
-  .stat-item:last-child { border-bottom: none; }
-  .compare-table { font-size: .78rem; }
-  .compare-table thead th, .compare-table tbody td { padding: .65rem .75rem; }
-}
+  /* ===== Pricing ===== */
+  .pricing-section {
+    background: #f8f9fa;
+  }
+  .price-card {
+    background: #fff;
+    border-radius: 20px;
+    padding: 2.5rem 2rem;
+    height: 100%;
+    border: 2px solid #e9ecef;
+    transition: all 0.3s ease;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  .price-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.1);
+  }
+  .price-card.featured {
+    border-color: var(--brand);
+    box-shadow: 0 8px 32px rgba(13,110,253,0.15);
+  }
+  .featured-badge {
+    position: absolute;
+    top: -14px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--brand);
+    color: #fff;
+    padding: 0.35rem 1rem;
+    border-radius: 50px;
+    font-size: 0.85rem;
+    font-weight: 700;
+  }
+  .price-illust {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 1rem;
+    display: block;
+  }
+  .price-amount {
+    font-size: 2.5rem;
+    font-weight: 900;
+    color: var(--brand);
+  }
+  .price-period {
+    color: #6c757d;
+    font-size: 1rem;
+  }
+  .price-annual {
+    background: #e7f1ff;
+    color: var(--brand);
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    margin-top: 0.5rem;
+    display: inline-block;
+  }
+  .table-pricing {
+    background: #fff;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+  }
+  .table-pricing thead {
+    background: var(--brand);
+    color: #fff;
+  }
+  .table-pricing th, .table-pricing td {
+    padding: 1rem;
+    vertical-align: middle;
+  }
 
-/* Tap highlight removal */
-a, button { -webkit-tap-highlight-color: transparent; }
+  /* ===== FAQ ===== */
+  .accordion-button:not(.collapsed) {
+    background: #e7f1ff;
+    color: var(--brand);
+    box-shadow: none;
+  }
+  .accordion-button:focus {
+    box-shadow: none;
+    border-color: rgba(13,110,253,0.25);
+  }
+  .accordion-item {
+    border-radius: 12px !important;
+    margin-bottom: 0.75rem;
+    border: 1px solid #e9ecef;
+    overflow: hidden;
+  }
+
+  /* ===== Security ===== */
+  .security-section {
+    background: linear-gradient(135deg, var(--brand) 0%, hsl(var(--brand-h), var(--brand-s), 42%) 100%);
+    color: #fff;
+  }
+  .security-section .section-title,
+  .security-section .section-subtitle {
+    color: #fff;
+  }
+  .security-card {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 16px;
+    padding: 2rem;
+    height: 100%;
+    backdrop-filter: blur(10px);
+  }
+  .security-illust {
+    width: 90px;
+    height: 90px;
+    margin: 0 auto 1rem;
+    display: block;
+  }
+
+  /* ===== Final CTA ===== */
+  .final-cta {
+    background: #fff;
+    padding: 5rem 0;
+    text-align: center;
+  }
+
+  /* ===== Demo CTA Banner ===== */
+  .demo-cta-banner {
+    background: linear-gradient(135deg, var(--brand) 0%, hsl(var(--brand-h), var(--brand-s), 42%) 100%);
+    color: #fff;
+    padding: 2.5rem 0;
+    text-align: center;
+  }
+  .demo-cta-banner h3 {
+    font-weight: 700;
+    font-size: 1.25rem;
+    margin-bottom: 0.5rem;
+  }
+  .demo-cta-banner p {
+    opacity: 0.9;
+    margin-bottom: 1.25rem;
+    font-size: 0.95rem;
+  }
+
+  /* ===== Footer ===== */
+  .footer {
+    background: #0d2d5a;
+    background: linear-gradient(160deg, #0d2d5a 0%, #163866 100%);
+    color: #adb5bd;
+    padding: 3rem 0 1.5rem;
+    border-top: 3px solid rgba(110, 168, 254, 0.5);
+  }
+  .footer a {
+    color: #adb5bd;
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .footer a:hover {
+    color: #6ea8fe;
+  }
+  .footer h5 {
+    color: #6ea8fe;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+  .footer-bottom {
+    border-top: 1px solid rgba(255,255,255,0.08);
+    padding-top: 1.5rem;
+    margin-top: 2rem;
+    text-align: center;
+    font-size: 0.9rem;
+  }
+
+  /* ===== Navbar ===== */
+  .navbar-custom {
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+  }
+  .navbar-custom .navbar-brand {
+    font-weight: 900;
+    color: var(--brand);
+    font-size: 1.35rem;
+  }
+  .navbar-custom .nav-link {
+    color: #495057;
+    font-weight: 500;
+  }
+  .navbar-custom .nav-link:hover {
+    color: var(--brand);
+  }
+  /* モバイル展開時のドロップダウンに背景を付ける */
+  @media (max-width: 991.98px) {
+    #navMenu.show, #navMenu.collapsing {
+      background: #fff;
+      border-radius: 0 0 .75rem .75rem;
+      box-shadow: 0 8px 20px rgba(0,0,0,.12);
+      padding: .25rem .5rem .75rem;
+      margin: .25rem -.75rem 0;
+    }
+    #navMenu .nav-link {
+      padding: .6rem .75rem;
+      border-radius: .4rem;
+    }
+    #navMenu .nav-link:hover {
+      background: #f0f4ff;
+    }
+    #navMenu .nav-item.ms-lg-2 {
+      padding: .25rem .75rem 0;
+    }
+  }
+
+  /* ===== Hero Carousel ===== */
+  .hero-carousel {
+    width: 240px;
+    padding-bottom: 44px;
+  }
+  .hero-screen-frame {
+    width: 240px;
+    height: 400px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.3);
+    background: #fff;
+    margin: 0 auto;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+  }
+  .hero-screen-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: top;
+    display: block;
+  }
+  .hero-screen-label {
+    text-align: center;
+    color: rgba(255,255,255,0.7);
+    font-size: 0.8rem;
+    margin-top: 10px;
+    margin-bottom: 0;
+  }
+  .hero-carousel .carousel-indicators {
+    bottom: 0;
+    margin-bottom: 0;
+  }
+  .hero-carousel .carousel-indicators button {
+    width: 8px !important;
+    height: 8px !important;
+    border-radius: 50% !important;
+    border: none !important;
+    opacity: 0.5;
+    padding: 0 !important;
+    flex: none !important;
+  }
+  .hero-carousel .carousel-indicators button.active {
+    opacity: 1;
+  }
+  @media (min-width: 992px) {
+    .hero-carousel { width: 280px; }
+    .hero-screen-frame { width: 280px; height: 467px; }
+  }
+
+  @media (max-width: 768px) {
+    .hero {
+      padding: 5rem 0 3rem;
+    }
+    section {
+      padding: 3.5rem 0;
+    }
+    .byok-card, .price-card {
+      padding: 1.75rem 1.5rem;
+    }
+    .feature-card {
+      flex-direction: column;
+      text-align: center;
+    }
+    .feature-illust {
+      margin: 0 auto;
+    }
+  }
 </style>
+  <link rel="canonical" href="https://keihi-log.com/" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "経費ログ",
+    "url": "https://keihi-log.com/",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web",
+    "description": "領収書を撮影するだけでAIが金額・日付・支払先を自動記録。経費申請・承認・集計をブラウザで完結できる経費管理Webアプリ。電帳法対応可能。",
+    "offers": {
+      "@type": "Offer",
+      "price": "330",
+      "priceCurrency": "JPY",
+      "priceSpecification": {
+        "@type": "UnitPriceSpecification",
+        "price": "330",
+        "priceCurrency": "JPY",
+        "unitText": "月"
+      }
+    },
+    "featureList": [
+      "AI領収書解析・自動記録",
+      "経費申請・承認ワークフロー",
+      "Googleスプレッドシート連携",
+      "電子帳簿保存法対応",
+      "外貨換算",
+      "インボイス番号自動抽出"
+    ],
+    "screenshot": "https://keihi-log.com/icons/icon-192.png",
+    "softwareVersion": "2.0",
+    "publisher": {
+      "@type": "Organization",
+      "name": "Smart&Smooth",
+      "url": "https://smartandsmooth.com"
+    }
+  }
+  </script>
 </head>
 <body>
 
-<!-- ===================================================
-     NAVBAR
-     =================================================== -->
-<nav class="nav" id="mainNav">
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-custom fixed-top">
   <div class="container">
-    <div class="nav-inner">
-      <a class="nav-brand" href="/lp-test">
-        <img src="/icons/icon-192.png" alt="経費ログ">
-        経費ログ
-      </a>
-      <ul class="nav-links">
-        <li><a href="#features">機能</a></li>
-        <li><a href="#pricing">料金</a></li>
-        <li><a href="#byok">低価格の理由</a></li>
-        <li><a href="#faq">FAQ</a></li>
+    <a class="navbar-brand d-flex align-items-center" href="#">
+      <img class="logo-svg" src="/icons/icon-192.png" alt="" width="32" height="32">
+      経費ログ
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navMenu">
+      <ul class="navbar-nav ms-auto align-items-end align-items-lg-center text-end text-lg-start">
+        <li class="nav-item"><a class="nav-link" href="#howto">使い方</a></li>
+        <li class="nav-item"><a class="nav-link" href="#line" style="color:#06C755;font-weight:700;">LINE連携</a></li>
+        <li class="nav-item"><a class="nav-link" href="#features">機能</a></li>
+        <li class="nav-item"><a class="nav-link" href="#pricing">料金</a></li>
+        <li class="nav-item"><a class="nav-link" href="#byok">低価格の理由</a></li>
+        <li class="nav-item"><a class="nav-link" href="#faq">FAQ</a></li>
+        <li class="nav-item ms-lg-2 mt-2 mt-lg-0">
+          <a class="btn btn-primary rounded-pill px-3" href="https://keihi-log.com/app?demo">
+            デモ画面を見る
+          </a>
+        </li>
       </ul>
-      <div class="nav-cta">
-        <a class="btn-nav-demo" href="/app?demo">デモを見る</a>
-        <a class="btn-nav-signup" href="https://buy.stripe.com/5kQ28r1Ps7ut2kv4io9oc08">無料で試す</a>
-      </div>
-      <button class="nav-hamburger" id="hamburger" aria-label="メニューを開く">
-        <span></span><span></span><span></span>
-      </button>
-    </div>
-    <div class="nav-mobile" id="navMobile">
-      <a href="#features">機能</a>
-      <a href="#pricing">料金</a>
-      <a href="#byok">低価格の理由</a>
-      <a href="#faq">FAQ</a>
-      <a href="/app?demo">デモを見る（無料・登録不要）</a>
-      <a class="btn-signup-mobile" href="https://buy.stripe.com/5kQ28r1Ps7ut2kv4io9oc08">2週間無料で試す（カード不要）</a>
     </div>
   </div>
 </nav>
 
-<!-- ===================================================
-     HERO
-     =================================================== -->
-<header class="hero">
-  <div class="hero-blob1"></div>
-  <div class="hero-blob2"></div>
+<!-- ============================================ -->
+<!-- Hero                                         -->
+<!-- ============================================ -->
+<header class="hero" style="margin-top: 56px;">
   <div class="container hero-content">
-    <div class="hero-grid">
-      <!-- Text -->
-      <div>
-        <span class="hero-eyebrow">
-          <i class="bi bi-stars"></i>
-          公認会計士が設計 · カード登録不要で2週間無料
+    <div class="row align-items-center">
+      <div class="col-lg-6 text-center text-lg-start">
+        <span class="badge-hero">
+          <i class="bi bi-stars me-1"></i>公認会計士が設計 · 2週間無料トライアル（カード登録不要）
         </span>
         <h1>
-          領収書を撮って<br>
-          <em>AIが自動記録。</em><br>
-          経費精算が変わる。
+          領収書を撮って自動記録<br>
+          経費精算は<br>「経費ログ」で完結
         </h1>
-        <p class="hero-lead">
-          申請・承認・集計をブラウザで一気通貫。<br>
-          データはあなた自身のGoogleスプレッドシートに安全保管。<br>
-          月額330円から使える、小規模チーム向け経費管理ツール。
+        <p class="lead mb-4">
+          AI領収書解析・申請・承認・集計をブラウザで一気通貫<br>
+          データはあなたのGoogleスプレッドシートに安全保管
         </p>
-        <div class="hero-actions">
-          <a class="btn-hero-primary" href="https://buy.stripe.com/5kQ28r1Ps7ut2kv4io9oc08">
-            2週間無料で試す <i class="bi bi-arrow-right"></i>
-          </a>
-          <a class="btn-hero-secondary" href="/app?demo">
-            <i class="bi bi-play-circle"></i> デモを見る
+        <div class="mb-3">
+          <a href="#pricing" id="btnHeroSignup" class="btn btn-cta btn-lg px-5">
+            今すぐ使ってみる <i class="bi bi-arrow-right ms-1"></i>
           </a>
         </div>
-        <div class="hero-trust">
-          <span class="hero-trust-item"><i class="bi bi-check-circle-fill"></i>クレジットカード登録不要</span>
-          <span class="hero-trust-item"><i class="bi bi-check-circle-fill"></i>同意なく自動課金されることは一切なし</span>
-          <span class="hero-trust-item"><i class="bi bi-check-circle-fill"></i>2週間後も継続はユーザーが自発的に選ぶ</span>
+        <div class="d-flex gap-3 justify-content-center justify-content-lg-start">
+          <a href="https://keihi-log.com/app?demo" class="btn btn-cta-outline">
+            <i class="bi bi-play-circle me-1"></i>デモを見る
+          </a>
+          <a href="#features" class="btn btn-cta-outline">
+            機能を見る <i class="bi bi-arrow-right ms-1"></i>
+          </a>
+        </div>
+        <div class="mt-4 small opacity-90">
+          <i class="bi bi-check-circle me-1"></i>クレジットカード不要で2週間お試し<br>
+          <i class="bi bi-check-circle me-1"></i>継続利用される場合は有料プランへお切替え下さい<br>
+          <i class="bi bi-check-circle me-1"></i>同意なく自動課金されることは一切ありません
         </div>
       </div>
 
-      <!-- Visual -->
-      <div class="hero-visual">
-        <div class="hero-screen-wrap">
-          <div class="hero-screen-bar">
-            <div class="hero-screen-dot r"></div>
-            <div class="hero-screen-dot y"></div>
-            <div class="hero-screen-dot g"></div>
-            <div class="hero-url-bar"><span>keihi-log.com/app</span></div>
-          </div>
-          <div class="hero-carousel" id="heroCarousel">
-            <div class="hero-slides" id="heroSlides">
-              <div class="hero-slide">
-                <img src="/img/demo-submit.png" alt="スタート画面" fetchpriority="high">
-                <p class="hero-slide-label">スタート画面</p>
+      <!-- Hero Screenshots Carousel -->
+      <div class="col-lg-6 mt-5 mt-lg-0 d-flex align-items-center justify-content-center">
+        <div id="heroCarousel" class="carousel slide hero-carousel" data-bs-ride="carousel" data-bs-interval="3000">
+          <div class="carousel-inner">
+            <div class="carousel-item active">
+              <div class="hero-screen-frame">
+                <img src="/img/demo-submit.png" class="hero-screen-img" alt="スタート画面" fetchpriority="high">
               </div>
-              <div class="hero-slide">
-                <img src="/img/demo-form.png" alt="入力フォーム" loading="lazy">
-                <p class="hero-slide-label">入力フォーム</p>
+              <p class="hero-screen-label">スタート画面</p>
+            </div>
+            <div class="carousel-item">
+              <div class="hero-screen-frame">
+                <img src="/img/demo-form.png" class="hero-screen-img" alt="入力フォーム" loading="lazy">
               </div>
-              <div class="hero-slide">
-                <img src="/img/demo-list.png" alt="一覧表" loading="lazy">
-                <p class="hero-slide-label">一覧表</p>
+              <p class="hero-screen-label">入力フォーム</p>
+            </div>
+            <div class="carousel-item">
+              <div class="hero-screen-frame">
+                <img src="/img/demo-list.png" class="hero-screen-img" alt="一覧表" loading="lazy">
               </div>
-              <div class="hero-slide">
-                <img src="/img/demo-summary.png" alt="集計表" loading="lazy">
-                <p class="hero-slide-label">集計表</p>
+              <p class="hero-screen-label">一覧表</p>
+            </div>
+            <div class="carousel-item">
+              <div class="hero-screen-frame">
+                <img src="/img/demo-summary.png" class="hero-screen-img" alt="集計表" loading="lazy">
               </div>
+              <p class="hero-screen-label">集計表</p>
             </div>
           </div>
-          <div class="hero-dots" id="heroDots">
-            <button class="hero-dot active" data-idx="0"></button>
-            <button class="hero-dot" data-idx="1"></button>
-            <button class="hero-dot" data-idx="2"></button>
-            <button class="hero-dot" data-idx="3"></button>
-          </div>
-        </div>
-        <div class="hero-float-badge">
-          <div class="hero-float-icon">✓</div>
-          <div class="hero-float-text">
-            <small>AI解析 完了</small>
-            ¥2,640 · 接待交際費
+          <div class="carousel-indicators">
+            <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="0" class="active"></button>
+            <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="1"></button>
+            <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="2"></button>
+            <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="3"></button>
           </div>
         </div>
       </div>
@@ -1514,564 +941,1175 @@ a, button { -webkit-tap-highlight-color: transparent; }
   </div>
 </header>
 
-<!-- ===================================================
-     STATS BAND
-     =================================================== -->
-<div class="stats-band">
+<!-- ============================================ -->
+<!-- Problem                                      -->
+<!-- ============================================ -->
+<section class="problem-section">
   <div class="container">
-    <div class="stats-grid">
-      <div class="stat-item reveal">
-        <div class="stat-num"><span>330</span>円〜</div>
-        <div class="stat-label">月額（税込）</div>
-      </div>
-      <div class="stat-item reveal reveal-delay-1">
-        <div class="stat-num"><span>15</span>分</div>
-        <div class="stat-label">初期設定の目安時間</div>
-      </div>
-      <div class="stat-item reveal reveal-delay-2">
-        <div class="stat-num"><span>500</span>件</div>
-        <div class="stat-label">AI解析・無料枠（1日）</div>
-      </div>
-      <div class="stat-item reveal reveal-delay-3">
-        <div class="stat-num"><span>0</span>円</div>
-        <div class="stat-label">2週間トライアル費用</div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ===================================================
-     PROBLEM
-     =================================================== -->
-<section class="section section-alt" id="problem">
-  <div class="container">
-    <div class="section-header center">
-      <span class="section-eyebrow">PROBLEM</span>
-      <h2 class="section-title reveal">経費精算、こんな悩みありませんか？</h2>
-    </div>
-    <div class="problem-grid">
-      <div class="problem-card reveal">
-        <div class="problem-icon"><i class="bi bi-file-earmark-text"></i></div>
-        <h5>領収書の手入力が面倒</h5>
-        <p>月末にまとめて手入力。金額や日付の打ち間違いも多発…。</p>
-      </div>
-      <div class="problem-card reveal reveal-delay-1">
-        <div class="problem-icon"><i class="bi bi-files"></i></div>
-        <h5>Excelが煩雑</h5>
-        <p>テンプレートが乱立。誰の最新ファイルかわからなくなる。</p>
-      </div>
-      <div class="problem-card reveal reveal-delay-2">
-        <div class="problem-icon"><i class="bi bi-currency-yen"></i></div>
-        <h5>SaaSは高い</h5>
-        <p>数千円/月のサービスが多く、小規模チームには負担が大きい。</p>
-      </div>
-      <div class="problem-card reveal reveal-delay-3">
-        <div class="problem-icon"><i class="bi bi-shield-exclamation"></i></div>
-        <h5>電帳法が不安</h5>
-        <p>電子帳簿保存法に対応できているか、根拠を持って答えられない。</p>
-      </div>
-    </div>
-    <div class="problem-arrow reveal">
-      <p><i class="bi bi-arrow-down-circle-fill" style="margin-right:.5rem;"></i>「経費ログ」がすべて解決します</p>
-    </div>
-  </div>
-</section>
-
-<!-- ===================================================
-     FEATURES
-     =================================================== -->
-<section class="section" id="features">
-  <div class="container">
-    <div class="section-header center">
-      <span class="section-eyebrow">FEATURES</span>
-      <h2 class="section-title reveal">経費管理に必要なすべてが、ここに</h2>
-      <p class="section-lead reveal">領収書の撮影から申請・承認・集計まで、ひとつのツールで完結します</p>
-    </div>
-    <div class="features-grid">
-      <div class="feature-card reveal">
-        <div class="feature-icon"><i class="bi bi-camera-fill"></i></div>
-        <h4>AI領収書解析</h4>
-        <p>スマホで撮影するだけ。GeminiのAIが金額・支払先・日付・税区分・勘定科目を自動読み取り、申請フォームに自動入力します。手入力ゼロを実現。</p>
-      </div>
-      <div class="feature-card reveal reveal-delay-1">
-        <div class="feature-icon"><i class="bi bi-cloud-check-fill"></i></div>
-        <h4>データは自分のGoogleアカウントへ</h4>
-        <p>経費明細はGoogleスプレッドシートに、証憑画像はGoogleドライブに保存。当社サーバーにデータは保管されません。ベンダーロックインなし。</p>
-      </div>
-      <div class="feature-card reveal reveal-delay-2">
-        <div class="feature-icon"><i class="bi bi-bar-chart-fill"></i></div>
-        <h4>集計・レポート</h4>
-        <p>勘定科目別・部署別・月次の集計を自動生成。リアルタイムで支出状況を確認できます。</p>
-      </div>
-      <div class="feature-card reveal">
-        <div class="feature-icon"><i class="bi bi-shield-fill-check"></i></div>
-        <h4>電帳法対応可能</h4>
-        <p>サーバー時刻記録・ハッシュ管理・インボイス番号の自動抽出に対応。電子帳簿保存法の要件を満たした運用が可能な仕組みを標準搭載。</p>
-      </div>
-      <div class="feature-card reveal reveal-delay-1">
-        <div class="feature-icon"><i class="bi bi-train-front-fill"></i></div>
-        <h4>交通費・各種経費に対応</h4>
-        <p>出発駅・到着駅を入力するだけで運賃を自動検索。自家用車（距離精算）や立替にも対応。あらゆる経費を一元管理。</p>
-      </div>
-      <div class="feature-card reveal reveal-delay-2">
-        <div class="feature-icon"><i class="bi bi-file-earmark-arrow-down-fill"></i></div>
-        <h4>会計ソフト連携CSV出力</h4>
-        <p>freee・弥生・MFクラウド会計の取り込み形式に対応したCSVを出力可能。月次の仕訳入力作業を大幅に削減できます。</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- Demo CTA -->
-<div class="demo-cta">
-  <div class="container">
-    <h3><i class="bi bi-play-circle-fill" style="margin-right:.5rem;"></i>実際の操作感をデモで確認</h3>
-    <p>登録なし・カード不要。本番と同じ画面でAI解析も体験できます。</p>
-    <a class="btn-demo-cta" href="/app?demo">
-      <i class="bi bi-arrow-right-circle-fill"></i>デモ画面を見る（無料・登録不要）
-    </a>
-  </div>
-</div>
-
-<!-- ===================================================
-     WHY CHEAP (BYOK)
-     =================================================== -->
-<section class="section section-alt" id="byok">
-  <div class="container">
-    <div class="section-header center reveal">
-      <span class="section-eyebrow">PRICING REASON</span>
-      <h2 class="section-title">なぜ月額330円を実現できるのか？</h2>
-    </div>
-    <div class="byok-wrap reveal">
-      <div class="byok-inner">
-        <div class="byok-left">
-          <span class="section-eyebrow">2つの仕組み</span>
-          <h2 class="section-title" style="color:#fff;font-size:clamp(1.35rem,2.5vw,1.85rem);">業界の常識を覆す<br>コスト構造</h2>
-          <p class="section-lead" style="color:rgba(255,255,255,.5);margin-top:.75rem;">AIコストを当社が負担せず、データベースも持たない。その分をまるごと価格に還元しています。</p>
+    <h2 class="section-title">経費の記録や精算、こんなお悩みありませんか？</h2>
+    <div class="row g-4">
+      <div class="col-md-6 col-lg-3">
+        <div class="problem-card text-center">
+          <!-- Illust: tired person with paper -->
+          <svg class="problem-illust" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="40" cy="40" r="38" fill="#fff5f5"/>
+            <rect x="22" y="22" width="36" height="44" rx="3" fill="#fff" stroke="#dc3545" stroke-width="2"/>
+            <line x1="28" y1="32" x2="52" y2="32" stroke="#dc3545" stroke-width="1.5" opacity="0.5"/>
+            <line x1="28" y1="38" x2="48" y2="38" stroke="#dc3545" stroke-width="1.5" opacity="0.5"/>
+            <line x1="28" y1="44" x2="52" y2="44" stroke="#dc3545" stroke-width="1.5" opacity="0.5"/>
+            <line x1="28" y1="50" x2="44" y2="50" stroke="#dc3545" stroke-width="1.5" opacity="0.5"/>
+            <line x1="28" y1="56" x2="50" y2="56" stroke="#dc3545" stroke-width="1.5" opacity="0.5"/>
+            <!-- sweat drops -->
+            <ellipse cx="60" cy="18" rx="3" ry="5" fill="#74c0fc"/>
+            <ellipse cx="68" cy="26" rx="2.5" ry="4" fill="#74c0fc"/>
+          </svg>
+          <h5>領収書の入力が面倒</h5>
+          <p class="text-muted small mb-0">月末にまとめて手入力。金額や日付の打ち間違いも多発…。</p>
         </div>
-        <div class="byok-right">
-          <div class="byok-reason">
-            <div class="byok-reason-num">①</div>
-            <div>
-              <h5>BYOK（Bring Your Own Key）方式</h5>
-              <p>お客様自身のGoogle AI Studio APIキーを設定してAI解析を利用する仕組みです。無料枠は1日500リクエスト。領収書1枚につき1回なので、通常業務なら追加費用はゼロ。無料アカウントのまま利用でき、超過しても課金されません。</p>
-            </div>
-          </div>
-          <div class="byok-reason">
-            <div class="byok-reason-num">②</div>
-            <div>
-              <h5>データはお客様のGoogleスプレッドシートへ</h5>
-              <p>当社はデータベースサーバーを運営しません。経費データはお客様のGoogleスプレッドシートに直接保存されます。データベース運営コストがゼロになる分、価格に還元できています。解約後もデータはそのまま残ります。</p>
-            </div>
-          </div>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <div class="problem-card text-center">
+          <!-- Illust: messy excel files -->
+          <svg class="problem-illust" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="40" cy="40" r="38" fill="#fff5f5"/>
+            <rect x="18" y="20" width="24" height="30" rx="2" fill="#fff" stroke="#dc3545" stroke-width="2" transform="rotate(-8 30 35)"/>
+            <rect x="28" y="26" width="24" height="30" rx="2" fill="#fff" stroke="#dc3545" stroke-width="2"/>
+            <rect x="38" y="30" width="24" height="30" rx="2" fill="#fff" stroke="#dc3545" stroke-width="2" transform="rotate(6 50 45)"/>
+            <line x1="44" y1="38" x2="56" y2="38" stroke="#dc3545" stroke-width="1.5" opacity="0.6" transform="rotate(6 50 45)"/>
+            <line x1="44" y1="44" x2="58" y2="44" stroke="#dc3545" stroke-width="1.5" opacity="0.6" transform="rotate(6 50 45)"/>
+            <line x1="44" y1="50" x2="54" y2="50" stroke="#dc3545" stroke-width="1.5" opacity="0.6" transform="rotate(6 50 45)"/>
+          </svg>
+          <h5>Excelが煩雑</h5>
+          <p class="text-muted small mb-0">テンプレートが乱立。誰の最新ファイルかわからなくなる。</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <div class="problem-card text-center">
+          <!-- Illust: expensive money -->
+          <svg class="problem-illust" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="40" cy="40" r="38" fill="#fff5f5"/>
+            <circle cx="40" cy="40" r="18" fill="#dc3545"/>
+            <text x="40" y="48" text-anchor="middle" fill="#fff" font-size="20" font-weight="900">¥</text>
+            <!-- Upward arrows -->
+            <path d="M58 28 L62 22 L66 28 M62 22 L62 36" stroke="#dc3545" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M14 32 L18 26 L22 32 M18 26 L18 40" stroke="#dc3545" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <h5>SaaSは高い</h5>
+          <p class="text-muted small mb-0">数千円/月のサービスが多く、小規模チームには負担が大きい。</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <div class="problem-card text-center">
+          <!-- Illust: shield with warning -->
+          <svg class="problem-illust" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="40" cy="40" r="38" fill="#fff5f5"/>
+            <path d="M40 18 L58 24 L58 42 Q58 56 40 64 Q22 56 22 42 L22 24 Z" fill="#fff" stroke="#dc3545" stroke-width="2"/>
+            <line x1="40" y1="32" x2="40" y2="44" stroke="#dc3545" stroke-width="3.5" stroke-linecap="round"/>
+            <circle cx="40" cy="50" r="2" fill="#dc3545"/>
+          </svg>
+          <h5>電帳法が不安</h5>
+          <p class="text-muted small mb-0">電子帳簿保存法に対応できているか、根拠を持って答えられない。</p>
         </div>
       </div>
     </div>
-  </div>
-</section>
-
-<!-- ===================================================
-     電帳法
-     =================================================== -->
-<section class="section" id="denchou">
-  <div class="container">
-    <div class="denchou-grid">
-      <div class="reveal">
-        <div class="denchou-badge"><i class="bi bi-shield-fill-check"></i>電子帳簿保存法対応</div>
-        <h2>電帳法対応可能な仕組みを、<br>標準搭載。</h2>
-        <p style="color:var(--clr-muted);line-height:1.75;margin-top:.75rem;">2024年1月から本格運用となった電子帳簿保存法。経費ログなら、対応に必要な要件を標準機能で網羅しています。</p>
-      </div>
-      <ul class="check-list reveal reveal-delay-1">
-        <li class="check-item">
-          <div class="check-item-icon"><i class="bi bi-check-lg"></i></div>
-          <div>
-            <h6>サーバー時刻による申請日時記録</h6>
-            <p>クライアント時刻ではなくサーバー時刻を使用し、申請日時の改ざんを防止</p>
-          </div>
-        </li>
-        <li class="check-item">
-          <div class="check-item-icon"><i class="bi bi-check-lg"></i></div>
-          <div>
-            <h6>ハッシュ値による改ざん検知</h6>
-            <p>ファイルごとにハッシュ値を記録し、改ざんを検知</p>
-          </div>
-        </li>
-        <li class="check-item">
-          <div class="check-item-icon"><i class="bi bi-check-lg"></i></div>
-          <div>
-            <h6>インボイス番号の自動抽出</h6>
-            <p>適格請求書発行事業者の登録番号をAIが自動で抽出・記録</p>
-          </div>
-        </li>
-        <li class="check-item">
-          <div class="check-item-icon"><i class="bi bi-check-lg"></i></div>
-          <div>
-            <h6>検索機能の確保</h6>
-            <p>取引年月日・取引金額・取引先での検索が可能</p>
-          </div>
-        </li>
-      </ul>
+    <div class="text-center mt-5">
+      <p class="h5 text-primary">
+        <i class="bi bi-arrow-down-circle-fill me-2"></i>「経費ログ」がすべて解決します
+      </p>
     </div>
   </div>
 </section>
 
-<!-- ===================================================
-     STEPS
-     =================================================== -->
-<section class="section section-alt" id="steps">
+<!-- ============================================ -->
+<!-- 使い方（操作デモ）                            -->
+<!-- ============================================ -->
+<section id="howto">
   <div class="container">
-    <div class="section-header center">
-      <span class="section-eyebrow">HOW TO START</span>
-      <h2 class="section-title reveal">最短15分で使い始められる</h2>
-      <p class="section-lead reveal">かんたん5ステップで経費申請がスタートできます</p>
-    </div>
-    <div class="steps-grid">
-      <div class="step-item reveal">
-        <div class="step-num">1</div>
-        <h5>Googleでログイン</h5>
-        <p>普段お使いのGoogleアカウントでサインイン。新規登録は不要です。</p>
-      </div>
-      <div class="step-item reveal reveal-delay-1">
-        <div class="step-num">2</div>
-        <h5>APIキーを取得</h5>
-        <p>Google AI Studioで無料のAPIキーを発行。数クリックで完了します。</p>
-      </div>
-      <div class="step-item reveal reveal-delay-2">
-        <div class="step-num">3</div>
-        <h5>シート＆フォルダを自動作成</h5>
-        <p>スプレッドシートとDriveフォルダをワンクリックで自動生成。</p>
-      </div>
-      <div class="step-item reveal reveal-delay-3">
-        <div class="step-num">4</div>
-        <h5>メンバーを招待</h5>
-        <p>チームプランの場合のみ。メールアドレスを登録して専用URLを共有。</p>
-      </div>
-      <div class="step-item reveal reveal-delay-4">
-        <div class="step-num">5</div>
-        <h5>申請スタート</h5>
-        <p>領収書を撮影してアップロード。AIが自動入力し、申請完了。</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ===================================================
-     PRICING
-     =================================================== -->
-<section class="section" id="pricing">
-  <div class="container">
-    <div class="section-header center">
-      <span class="section-eyebrow">PRICING</span>
-      <h2 class="section-title reveal">シンプルな2プランのみ</h2>
-      <p class="section-lead reveal">人数ごとの課金なし・定額でご利用いただけます</p>
-    </div>
-    <div class="pricing-grid">
-      <div class="price-card reveal">
-        <h3>ソロプラン</h3>
-        <p class="price-sub">個人事業主・フリーランス向け</p>
-        <div class="price-amount-row">
-          <span class="price-amount">330</span>
-          <span class="price-unit">円 / 月（税込）</span>
+    <h2 class="section-title">使い方はかんたん</h2>
+    <p class="section-subtitle">レシートを撮って、AIで読み取るだけ。面倒な手入力はほぼゼロです</p>
+    <div class="d-flex flex-column flex-md-row align-items-center justify-content-center gap-4 gap-md-5 mt-4">
+      <img src="/img/sample.gif" alt="領収書を撮影して経費を登録するまでの操作デモ" loading="lazy"
+           width="600" height="800"
+           style="width:100%;max-width:290px;height:auto;border-radius:22px;box-shadow:0 14px 44px rgba(13,110,253,0.16);">
+      <div style="max-width:440px;width:100%;">
+        <div class="d-flex align-items-start gap-3 mb-3">
+          <span class="badge bg-primary flex-shrink-0" style="width:34px;height:34px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:1.05rem;">1</span>
+          <span class="pt-1">レシート・領収書を用意する</span>
         </div>
-        <ul class="price-features">
-          <li><i class="bi bi-check-circle-fill"></i>AI領収書解析</li>
-          <li><i class="bi bi-check-circle-fill"></i>交通費・自家用車経費対応</li>
-          <li><i class="bi bi-check-circle-fill"></i>Googleスプレッドシート保存</li>
-          <li><i class="bi bi-check-circle-fill"></i>集計・レポート機能</li>
-          <li><i class="bi bi-check-circle-fill"></i>会計ソフト連携CSV出力</li>
-          <li><i class="bi bi-check-circle-fill"></i>電帳法対応可能</li>
-          <li><i class="bi bi-check-circle-fill"></i>1ユーザー</li>
-        </ul>
-        <a class="btn-price-outline" href="https://buy.stripe.com/5kQ28r1Ps7ut2kv4io9oc08">2週間無料で試す</a>
-        <p class="pricing-note">カード登録不要・自動課金なし</p>
-      </div>
-      <div class="price-card featured reveal reveal-delay-1">
-        <span class="price-popular"><i class="bi bi-star-fill" style="margin-right:.3rem;"></i>人気No.1</span>
-        <h3>チームプラン</h3>
-        <p class="price-sub">中小企業・チーム向け</p>
-        <div class="price-amount-row">
-          <span class="price-amount">825</span>
-          <span class="price-unit">円 / 月（税込）</span>
+        <div class="d-flex align-items-start gap-3 mb-3">
+          <span class="badge bg-primary flex-shrink-0" style="width:34px;height:34px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:1.05rem;">2</span>
+          <span class="pt-1">アプリを開いてカメラを起動する</span>
         </div>
-        <ul class="price-features">
-          <li><i class="bi bi-check-circle-fill"></i>ソロプランのすべての機能</li>
-          <li><i class="bi bi-check-circle-fill"></i>チーム全員で使える（定額）</li>
-          <li><i class="bi bi-check-circle-fill"></i>申請・承認・精算済みステータス管理</li>
-          <li><i class="bi bi-check-circle-fill"></i>部署別・メンバー別レポート</li>
-          <li><i class="bi bi-check-circle-fill"></i>3段階の権限管理（管理者・閲覧者・一般）</li>
-          <li><i class="bi bi-check-circle-fill"></i>Googleスプレッドシートを業務で使うチームに最適</li>
-        </ul>
-        <a class="btn-price" href="https://buy.stripe.com/5kQ28r1Ps7ut2kv4io9oc08">2週間無料で試す</a>
-        <p class="pricing-note">カード登録不要・自動課金なし</p>
+        <div class="d-flex align-items-start gap-3 mb-3">
+          <span class="badge bg-primary flex-shrink-0" style="width:34px;height:34px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:1.05rem;">3</span>
+          <span class="pt-1">写真を撮る</span>
+        </div>
+        <div class="d-flex align-items-start gap-3 mb-3">
+          <span class="badge bg-primary flex-shrink-0" style="width:34px;height:34px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:1.05rem;">4</span>
+          <span class="pt-1"><strong>「AIで読み取る」をタップ</strong> → 金額・日付・支払先を自動入力</span>
+        </div>
+        <div class="d-flex align-items-start gap-3 mb-1">
+          <span class="badge bg-primary flex-shrink-0" style="width:34px;height:34px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:1.05rem;">5</span>
+          <span class="pt-1">内容を確認して「登録する」で完了</span>
+        </div>
+        <p class="text-muted small mt-3 mb-0"><i class="bi bi-chat-dots-fill me-1 text-success"></i>チームプランなら<strong>LINEで送るだけ</strong>でも登録できます。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- LINE連携                                      -->
+<!-- ============================================ -->
+<section id="line" style="background:linear-gradient(180deg,#f1fbf5 0%,#e7f8ee 100%);">
+  <div class="container">
+    <div class="text-center">
+      <div class="mb-3">
+        <img src="/img/LINE_Brand_icon.png" width="64" height="64" alt="LINE"
+             style="border-radius:14px;filter:drop-shadow(0 8px 20px rgba(6,199,85,0.28));">
+      </div>
+      <span class="badge rounded-pill px-3 py-2 mb-3" style="background:#06C755;color:#fff;font-weight:700;font-size:0.85rem;">
+        <i class="bi bi-people-fill me-1"></i>チームプラン限定
+      </span>
+      <h2 class="section-title">使うのは、いつもの<span style="color:#06C755;">LINE</span>だけ。</h2>
+      <p class="section-subtitle">領収書を撮って公式アカウントに送るだけ。<br class="d-none d-md-inline">
+        専用アプリを開く必要も、操作を覚える必要もありません。</p>
+    </div>
+
+    <div class="row g-4 justify-content-center mt-2">
+      <div class="col-md-4">
+        <div class="feature-card h-100 text-center" style="border-top:4px solid #06C755;">
+          <div class="feature-content">
+            <div style="font-size:2.4rem;line-height:1;">📸</div>
+            <div class="badge rounded-pill mb-2 mt-2" style="background:#e7f8ee;color:#06C755;font-weight:700;">STEP 1</div>
+            <h4>LINEで写真を送る</h4>
+            <p class="text-muted mb-0">経費ログの公式アカウントに、領収書の写真を送信するだけ。トークに送る、いつもの操作です。</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="feature-card h-100 text-center" style="border-top:4px solid #06C755;">
+          <div class="feature-content">
+            <div style="font-size:2.4rem;line-height:1;">🤖</div>
+            <div class="badge rounded-pill mb-2 mt-2" style="background:#e7f8ee;color:#06C755;font-weight:700;">STEP 2</div>
+            <h4>AIが自動で読み取り</h4>
+            <p class="text-muted mb-0">金額・日付・支払先・税区分・勘定科目をAIが自動で解析します。</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="feature-card h-100 text-center" style="border-top:4px solid #06C755;">
+          <div class="feature-content">
+            <div style="font-size:2.4rem;line-height:1;">✅</div>
+            <div class="badge rounded-pill mb-2 mt-2" style="background:#e7f8ee;color:#06C755;font-weight:700;">STEP 3</div>
+            <h4>確認して登録</h4>
+            <p class="text-muted mb-0">読み取り結果を確認して「登録する」を押すだけ。その場で経費申請が完了します。</p>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div class="compare-wrap reveal" style="margin-top:1rem;">
-      <div style="padding:1.25rem 1.5rem;border-bottom:1px solid var(--clr-border);">
-        <h3 style="font-size:1rem;font-weight:700;color:var(--clr-text);">プラン比較表</h3>
+    <div class="row g-3 justify-content-center mt-4">
+      <div class="col-sm-6 col-lg-3">
+        <div class="d-flex align-items-start gap-2"><i class="bi bi-check-circle-fill" style="color:#06C755;"></i>
+          <span><strong>アプリのインストール不要</strong><br><span class="small text-muted">普段使いのLINEだけで完結</span></span></div>
       </div>
-      <div style="overflow-x:auto;">
-        <table class="compare-table">
-          <thead>
-            <tr>
-              <th>機能</th>
-              <th>ソロ</th>
-              <th>チーム</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr><td>月額（税込）</td><td><strong>330円</strong></td><td><strong>825円</strong></td></tr>
-            <tr><td>AI領収書解析</td><td><i class="bi bi-check-circle-fill" style="color:#10B981;"></i></td><td><i class="bi bi-check-circle-fill" style="color:#10B981;"></i></td></tr>
-            <tr><td>Googleスプレッドシート保存</td><td><i class="bi bi-check-circle-fill" style="color:#10B981;"></i></td><td><i class="bi bi-check-circle-fill" style="color:#10B981;"></i></td></tr>
-            <tr><td>集計・レポート</td><td><i class="bi bi-check-circle-fill" style="color:#10B981;"></i></td><td><i class="bi bi-check-circle-fill" style="color:#10B981;"></i></td></tr>
-            <tr><td>会計ソフト連携CSV出力</td><td><i class="bi bi-check-circle-fill" style="color:#10B981;"></i></td><td><i class="bi bi-check-circle-fill" style="color:#10B981;"></i></td></tr>
-            <tr><td>電帳法対応可能</td><td><i class="bi bi-check-circle-fill" style="color:#10B981;"></i></td><td><i class="bi bi-check-circle-fill" style="color:#10B981;"></i></td></tr>
-            <tr><td>ユーザー数</td><td>1名</td><td>チーム全員</td></tr>
-            <tr><td>申請・承認ワークフロー</td><td><i class="bi bi-dash" style="color:#94a3b8;"></i></td><td><i class="bi bi-check-circle-fill" style="color:#10B981;"></i></td></tr>
-            <tr><td>権限管理（3段階）</td><td><i class="bi bi-dash" style="color:#94a3b8;"></i></td><td><i class="bi bi-check-circle-fill" style="color:#10B981;"></i></td></tr>
-            <tr><td>2週間無料トライアル</td><td><i class="bi bi-check-circle-fill" style="color:#10B981;"></i></td><td><i class="bi bi-check-circle-fill" style="color:#10B981;"></i></td></tr>
-          </tbody>
-        </table>
+      <div class="col-sm-6 col-lg-3">
+        <div class="d-flex align-items-start gap-2"><i class="bi bi-check-circle-fill" style="color:#06C755;"></i>
+          <span><strong>ITが苦手な人でもすぐ</strong><br><span class="small text-muted">新しい操作を覚える必要なし</span></span></div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div class="d-flex align-items-start gap-2"><i class="bi bi-check-circle-fill" style="color:#06C755;"></i>
+          <span><strong>履歴・未精算もLINEで</strong><br><span class="small text-muted">申請状況をトークで確認</span></span></div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div class="d-flex align-items-start gap-2"><i class="bi bi-check-circle-fill" style="color:#06C755;"></i>
+          <span><strong>複数の経費ログに対応</strong><br><span class="small text-muted">送信時に登録先を選べる</span></span></div>
       </div>
     </div>
-    <p style="text-align:center;font-size:.78rem;color:var(--clr-muted);margin-top:1rem;">
-      🌽 売上金の10％を一般社団法人日本文化コンテンツ推進委員会の運営基金に拠出しております。
+
+    <p class="text-center text-muted small mt-4 mb-0">
+      ※ LINE連携はチームプランでご利用いただけます。管理者が発行する連携コードを一度送信すれば利用開始できます。
     </p>
   </div>
 </section>
 
-<!-- ===================================================
-     FIT
-     =================================================== -->
-<section class="section section-alt" id="fit">
+<!-- ============================================ -->
+<!-- Features                                     -->
+<!-- ============================================ -->
+<section id="features" style="background: #f8f9fa;">
   <div class="container">
-    <div class="section-header center">
-      <span class="section-eyebrow">FOR WHO</span>
-      <h2 class="section-title reveal">こんな方に向いています</h2>
-      <p class="section-lead reveal">経費ログは「社内の経費申請フローをデジタル化するツール」です。<br>会計ソフトや家計簿アプリとは役割が異なります。</p>
-    </div>
-    <div class="fit-grid">
-      <div class="fit-card reveal">
-        <div class="fit-card-header">
-          <div class="fit-icon ok"><i class="bi bi-check-lg"></i></div>
-          <h3>向いている方</h3>
+    <h2 class="section-title">主な機能</h2>
+    <p class="section-subtitle">経費管理に必要なすべてが、ここに揃っています</p>
+    <div class="row g-4">
+      <div class="col-md-6">
+        <div class="feature-card">
+          <svg class="feature-illust" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <rect x="20" y="15" width="44" height="60" rx="3" fill="#e7f1ff" stroke="#0d6efd" stroke-width="2"/>
+            <line x1="26" y1="26" x2="58" y2="26" stroke="#0d6efd" stroke-width="2" opacity="0.6"/>
+            <line x1="26" y1="34" x2="50" y2="34" stroke="#0d6efd" stroke-width="2" opacity="0.6"/>
+            <line x1="26" y1="42" x2="56" y2="42" stroke="#0d6efd" stroke-width="2" opacity="0.6"/>
+            <line x1="26" y1="50" x2="46" y2="50" stroke="#0d6efd" stroke-width="2" opacity="0.6"/>
+            <!-- AI sparkle -->
+            <circle cx="72" cy="62" r="20" fill="#0d6efd"/>
+            <path d="M72 50 L74 58 L82 60 L74 62 L72 70 L70 62 L62 60 L70 58 Z" fill="#fff"/>
+            <circle cx="82" cy="50" r="3" fill="#fff"/>
+          </svg>
+          <div class="feature-content">
+            <h4>AI領収書解析</h4>
+            <p class="text-muted mb-0">スマホで撮影するだけ。GeminiのAIが金額・支払先・日付・税区分・勘定科目を自動で読み取り、申請フォームに自動入力します。手入力ゼロを実現。</p>
+          </div>
         </div>
-        <ul class="fit-list">
-          <li><i class="bi bi-check-circle-fill ok"></i>領収書はスマホ撮影して、その場で記録・保管したい</li>
-          <li><i class="bi bi-check-circle-fill ok"></i>確定申告前に「1年分の領収書の山」と格闘するのをやめたい</li>
-          <li><i class="bi bi-check-circle-fill ok"></i>領収書収集・精算申請を簡素なシステムに置き換えたい</li>
-          <li><i class="bi bi-check-circle-fill ok"></i>でも高額SaaSを入れるほどでもないと感じている</li>
-          <li><i class="bi bi-check-circle-fill ok"></i>経費データは外部DBに預けたくない</li>
+      </div>
+      <div class="col-md-6">
+        <div class="feature-card">
+          <svg class="feature-illust" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <!-- cloud -->
+            <path d="M25 60 Q15 60 15 50 Q15 42 23 41 Q24 30 36 30 Q44 30 47 36 Q52 32 58 34 Q66 36 66 44 Q76 44 76 54 Q76 62 68 62 Z" 
+                  fill="#0d6efd" opacity="0.15"/>
+            <!-- spreadsheet -->
+            <rect x="28" y="44" width="44" height="40" rx="3" fill="#fff" stroke="#0d6efd" stroke-width="2"/>
+            <rect x="28" y="44" width="44" height="8" fill="#0F9D58"/>
+            <line x1="42" y1="52" x2="42" y2="84" stroke="#0d6efd" stroke-width="1.5" opacity="0.4"/>
+            <line x1="56" y1="52" x2="56" y2="84" stroke="#0d6efd" stroke-width="1.5" opacity="0.4"/>
+            <line x1="28" y1="62" x2="72" y2="62" stroke="#0d6efd" stroke-width="1.5" opacity="0.4"/>
+            <line x1="28" y1="72" x2="72" y2="72" stroke="#0d6efd" stroke-width="1.5" opacity="0.4"/>
+            <!-- check -->
+            <circle cx="78" cy="32" r="10" fill="#198754"/>
+            <path d="M73 32 L77 36 L83 30" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <div class="feature-content">
+            <h4>データはすべて自分のGoogleアカウントへ</h4>
+            <p class="text-muted mb-0">経費明細はGoogleスプレッドシートに、領収書・証憑画像はGoogleドライブに保存。当社サーバーにデータは保管されません。ベンダーロックインなし、エクスポートも自由。</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="feature-card">
+          <svg class="feature-illust" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <rect x="14" y="14" width="72" height="72" rx="6" fill="#e7f1ff"/>
+            <!-- bars -->
+            <rect x="24" y="58" width="10" height="20" fill="#0d6efd" rx="1"/>
+            <rect x="38" y="46" width="10" height="32" fill="#6ea8fe" rx="1"/>
+            <rect x="52" y="38" width="10" height="40" fill="#0d6efd" rx="1"/>
+            <rect x="66" y="26" width="10" height="52" fill="#6ea8fe" rx="1"/>
+            <!-- trend line -->
+            <path d="M28 56 L42 44 L56 36 L70 24" stroke="#dc3545" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="28" cy="56" r="2.5" fill="#dc3545"/>
+            <circle cx="42" cy="44" r="2.5" fill="#dc3545"/>
+            <circle cx="56" cy="36" r="2.5" fill="#dc3545"/>
+            <circle cx="70" cy="24" r="2.5" fill="#dc3545"/>
+          </svg>
+          <div class="feature-content">
+            <h4>集計・レポート</h4>
+            <p class="text-muted mb-0">勘定科目別・部署別・月次の集計を自動生成。期末に慌てて集計する必要はもうありません。リアルタイムで支出状況を確認できます。</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="feature-card">
+          <svg class="feature-illust" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <!-- shield -->
+            <path d="M50 12 L78 22 L78 50 Q78 72 50 86 Q22 72 22 50 L22 22 Z" fill="#0d6efd"/>
+            <path d="M50 18 L72 26 L72 50 Q72 68 50 78 Q28 68 28 50 L28 26 Z" fill="#fff"/>
+            <path d="M38 50 L46 58 L62 42" stroke="#198754" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <text x="50" y="74" text-anchor="middle" fill="#0d6efd" font-size="9" font-weight="900">電帳法</text>
+          </svg>
+          <div class="feature-content">
+            <h4>電帳法対応可能</h4>
+            <p class="text-muted mb-0">サーバー時刻記録・ハッシュ管理・インボイス番号の自動抽出に対応。電子帳簿保存法の要件を満たした運用が可能な仕組みを標準搭載しています。</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="feature-card">
+          <svg class="feature-illust" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <rect x="14" y="14" width="72" height="72" rx="6" fill="#e7f1ff"/>
+            <!-- train -->
+            <rect x="22" y="34" width="22" height="26" rx="3" fill="#0d6efd"/>
+            <rect x="25" y="38" width="6" height="5" rx="1" fill="#fff"/>
+            <rect x="33" y="38" width="6" height="5" rx="1" fill="#fff"/>
+            <circle cx="27" cy="54" r="3" fill="#fff"/>
+            <circle cx="39" cy="54" r="3" fill="#fff"/>
+            <line x1="20" y1="60" x2="46" y2="60" stroke="#6ea8fe" stroke-width="2"/>
+            <!-- car -->
+            <rect x="56" y="47" width="15" height="9" rx="2" fill="#6ea8fe"/>
+            <rect x="52" y="54" width="24" height="10" rx="2" fill="#6ea8fe"/>
+            <rect x="58" y="49" width="8" height="6" rx="1" fill="#e7f1ff"/>
+            <circle cx="57" cy="64" r="3" fill="#0d6efd"/>
+            <circle cx="71" cy="64" r="3" fill="#0d6efd"/>
+            <!-- magnifier -->
+            <circle cx="76" cy="30" r="7" fill="none" stroke="#198754" stroke-width="2.5"/>
+            <line x1="81" y1="35" x2="86" y2="41" stroke="#198754" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+          <div class="feature-content">
+            <h4>交通費・各種経費に対応</h4>
+            <p class="text-muted mb-0">電車・バスは出発駅・到着駅を入力するだけで運賃を自動検索。自家用車（距離精算）や領収書なしの立替にも対応。あらゆる経費を一元管理できます。</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="feature-card">
+          <svg class="feature-illust" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <rect x="14" y="14" width="72" height="72" rx="6" fill="#e7f1ff"/>
+            <!-- CSV/table -->
+            <rect x="24" y="28" width="52" height="44" rx="3" fill="#fff" stroke="#0d6efd" stroke-width="1.5"/>
+            <rect x="24" y="28" width="52" height="9" fill="#0d6efd"/>
+            <line x1="24" y1="47" x2="76" y2="47" stroke="#0d6efd" stroke-width="1" opacity="0.4"/>
+            <line x1="24" y1="57" x2="76" y2="57" stroke="#0d6efd" stroke-width="1" opacity="0.4"/>
+            <line x1="24" y1="67" x2="76" y2="67" stroke="#0d6efd" stroke-width="1" opacity="0.4"/>
+            <line x1="44" y1="37" x2="44" y2="72" stroke="#0d6efd" stroke-width="1" opacity="0.4"/>
+            <line x1="60" y1="37" x2="60" y2="72" stroke="#0d6efd" stroke-width="1" opacity="0.4"/>
+            <!-- download arrow -->
+            <circle cx="76" cy="76" r="12" fill="#198754"/>
+            <line x1="76" y1="70" x2="76" y2="79" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M72 76 L76 80 L80 76" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <div class="feature-content">
+            <h4>CSVエクスポート</h4>
+            <p class="text-muted mb-0">日付・支払先・金額・勘定科目・税区分・インボイス番号などを網羅した汎用CSVを出力。freee・マネーフォワード・弥生などのCSVインポート機能で、列を対応づけて取り込めます。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Demo CTA 3 -->
+<section class="demo-cta-banner">
+  <div class="container">
+    <h3><i class="bi bi-play-circle me-2"></i>実際の操作感をデモで確認</h3>
+    <p>登録なし・カード不要。本番と同じ画面でAI解析も体験できます。</p>
+    <a href="https://keihi-log.com/app?demo" class="btn btn-light btn-lg rounded-pill px-4 fw-bold" style="color: var(--brand);">
+      デモ画面を見る（無料・登録不要）
+    </a>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- Pricing                                      -->
+<!-- ============================================ -->
+<section id="pricing" class="pricing-section">
+  <div class="container">
+    <h2 class="section-title">料金プラン</h2>
+    <p class="section-subtitle">中小企業・チームに最適。人数ごとの課金なし・1チーム定額でご利用いただけます。</p>
+
+    <div class="row g-4 justify-content-center align-items-center mb-5">
+      <!-- チームプラン（メイン） -->
+      <div class="col-md-9 col-lg-6">
+        <div class="price-card featured">
+          <span class="featured-badge"><i class="bi bi-star-fill me-1"></i>人気No.1</span>
+          <svg class="price-illust" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="40" cy="40" r="38" fill="#e7f1ff"/>
+            <!-- 中央の人 -->
+            <circle cx="40" cy="27" r="8" fill="#0d6efd"/>
+            <rect x="30" y="37" width="20" height="18" rx="6" fill="#0d6efd"/>
+            <!-- 左の人 -->
+            <circle cx="22" cy="30" r="6.5" fill="#6ea8fe"/>
+            <rect x="13" y="39" width="16" height="15" rx="5" fill="#6ea8fe"/>
+            <!-- 右の人 -->
+            <circle cx="58" cy="30" r="6.5" fill="#6ea8fe"/>
+            <rect x="51" y="39" width="16" height="15" rx="5" fill="#6ea8fe"/>
+          </svg>
+          <h3 class="text-center fw-bold mb-3">チームプラン</h3>
+          <p class="text-center text-muted small">中小企業・チーム向け（人数ごとの課金なし・1チーム定額）</p>
+          <div class="mt-2 mb-4">
+            <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:baseline;">
+              <span class="price-period" aria-hidden="true" style="visibility:hidden;justify-self:end;">円 / 月（税込）</span>
+              <span class="price-amount">825</span>
+              <span class="price-period" style="justify-self:start;">円 / 月（税込）</span>
+            </div>
+            <div class="mt-3 text-center"><span class="rounded-3 py-2 px-3 d-inline-flex align-items-center gap-2" style="background:linear-gradient(135deg,#0d6efd,#3d8bfd);color:#fff;font-size:0.88rem;font-weight:700;letter-spacing:0.02em;box-shadow:0 3px 10px rgba(13,110,253,0.35);">
+              <i class="bi bi-people-fill" style="font-size:1rem;"></i>
+              チームで使える・1チーム定額
+            </span></div>
+          </div>
+          <ul class="check-list list-unstyled mb-4">
+            <li><i class="bi bi-check-circle-fill"></i>ソロプランのすべての機能</li>
+            <li><i class="bi bi-check-circle-fill"></i>チーム全員で使える</li>
+            <li><i class="bi bi-check-circle-fill"></i>申請・承認・精算済みステータス管理</li>
+            <li><i class="bi bi-check-circle-fill"></i>部署別・メンバー別レポート</li>
+            <li><i class="bi bi-check-circle-fill"></i>3段階の権限管理（管理者・閲覧者・一般）</li>
+            <li><i class="bi bi-check-circle-fill"></i>領収書を<strong>LINE</strong>で送るだけで申請できる</li>
+            <li><i class="bi bi-check-circle-fill"></i>Googleスプレッドシートをすでに業務で使っているチームに最適</li>
+          </ul>
+          <a href="https://buy.stripe.com/5kQ28r1Ps7ut2kv4io9oc08" class="btn btn-primary w-100 rounded-pill mt-auto">
+            使ってみる（２週間は無料トライアル）
+          </a>
+          <p class="text-muted text-center mt-2 mb-0" style="font-size:0.75rem;line-height:1.5;">
+            <i class="bi bi-info-circle me-1"></i>利用開始には管理者のGoogleアカウント（Gmail／Google Workspace）でのログインが必要になります
+          </p>
+        </div>
+      </div>
+      <!-- ソロプラン（小さめの導線） -->
+      <div class="col-md-7 col-lg-4">
+        <div class="price-card" style="padding:1.75rem 1.5rem;border:1px solid #e3e8ef;box-shadow:none;background:#fbfcfe;">
+          <h4 class="text-center fw-bold mb-1" style="font-size:1.15rem;">ソロプラン</h4>
+          <p class="text-center text-muted mb-3" style="font-size:0.78rem;">個人事業主・フリーランス向け</p>
+          <div class="text-center mb-3">
+            <span style="font-size:2rem;font-weight:800;color:#0d6efd;line-height:1;">330</span>
+            <span class="text-muted" style="font-size:0.85rem;">円 / 月（税込）</span>
+          </div>
+          <p class="text-muted mb-3" style="font-size:0.85rem;line-height:1.8;">
+            ユーザーが<strong>1名</strong>で、<strong>LINE連携機能が不要</strong>な場合はこちら。<br>
+            AI領収書解析・スプレッドシート保存・集計・CSV・電帳法対応などの基本機能はそのままお使いいただけます。
+          </p>
+          <a href="https://buy.stripe.com/5kQ28r1Ps7ut2kv4io9oc08" class="btn btn-outline-primary w-100 rounded-pill btn-sm mt-auto">
+            ソロプランで使ってみる
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Comparison Table -->
+    <h3 class="text-center fw-bold mb-4 mt-5">プラン比較表</h3>
+    <div class="table-responsive">
+      <table class="table table-pricing mb-0">
+        <thead>
+          <tr>
+            <th>機能</th>
+            <th class="text-center">ソロプラン</th>
+            <th class="text-center">チームプラン</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>月額（税込）</td>
+            <td class="text-center fw-bold">330円</td>
+            <td class="text-center fw-bold">825円</td>
+          </tr>
+          <tr>
+            <td>AI領収書解析</td>
+            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
+            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
+          </tr>
+          <tr>
+            <td>Googleスプレッドシート保存</td>
+            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
+            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
+          </tr>
+          <tr>
+            <td>集計・レポート</td>
+            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
+            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
+          </tr>
+          <tr>
+            <td>CSVエクスポート（会計ソフト取込用）</td>
+            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
+            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
+          </tr>
+          <tr>
+            <td>電帳法対応可能</td>
+            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
+            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
+          </tr>
+          <tr>
+            <td>ユーザー数</td>
+            <td class="text-center">1名</td>
+            <td class="text-center">チーム全員</td>
+          </tr>
+          <tr>
+            <td>申請・承認・精算済みステータス管理</td>
+            <td class="text-center"><i class="bi bi-dash text-muted"></i></td>
+            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
+          </tr>
+          <tr>
+            <td>権限管理（管理者・閲覧者・一般）</td>
+            <td class="text-center"><i class="bi bi-dash text-muted"></i></td>
+            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
+          </tr>
+          <tr>
+            <td>LINE連携（領収書をLINEで送信）</td>
+            <td class="text-center"><i class="bi bi-dash text-muted"></i></td>
+            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
+          </tr>
+          <tr>
+            <td>2週間無料トライアル</td>
+            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
+            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="text-center text-muted small mt-4">
+      🌽 日本文化の持続的な発展に貢献するため、本サービスの売上金の10％を一般社団法人日本文化コンテンツ推進委員会の運営基金に拠出しております。
+    </p>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- BYOK                                         -->
+<!-- ============================================ -->
+<section id="byok" class="byok-section">
+  <div class="container">
+    <h2 class="section-title">なぜこの価格を実現できるのか？</h2>
+    <p class="section-subtitle">2つの仕組みで、月額330円〜を実現しました</p>
+    <div class="byok-card">
+      <div class="row align-items-center">
+        <div class="col-lg-5 text-center mb-4 mb-lg-0">
+          <svg class="byok-illust" viewBox="0 0 280 200" xmlns="http://www.w3.org/2000/svg">
+            <!-- App box -->
+            <rect x="20" y="60" width="100" height="80" rx="8" fill="#fff" stroke="#0d6efd" stroke-width="2.5"/>
+            <text x="70" y="95" text-anchor="middle" fill="#0d6efd" font-size="12" font-weight="700">経費ログ</text>
+            <rect x="35" y="105" width="70" height="6" rx="2" fill="#0d6efd" opacity="0.3"/>
+            <rect x="35" y="115" width="50" height="6" rx="2" fill="#0d6efd" opacity="0.3"/>
+
+            <!-- Key bridge -->
+            <line x1="120" y1="100" x2="160" y2="100" stroke="#0d6efd" stroke-width="2" stroke-dasharray="4 3"/>
+            <g transform="translate(135, 88)">
+              <circle cx="6" cy="6" r="6" fill="#ffc107" stroke="#fd7e14" stroke-width="1.5"/>
+              <rect x="10" y="4" width="14" height="4" fill="#ffc107" stroke="#fd7e14" stroke-width="1.5"/>
+              <rect x="18" y="8" width="3" height="3" fill="#fd7e14"/>
+              <rect x="22" y="8" width="2" height="3" fill="#fd7e14"/>
+            </g>
+
+            <!-- Google AI Studio -->
+            <rect x="160" y="60" width="100" height="80" rx="8" fill="#fff" stroke="#4285F4" stroke-width="2.5"/>
+            <circle cx="210" cy="90" r="12" fill="#4285F4"/>
+            <path d="M216 90 L208 90 L208 94 L213 94 Q212 97 208 97 Q204 97 204 90 Q204 84 208 84 Q210 84 212 85" 
+                  stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <text x="210" y="118" text-anchor="middle" fill="#4285F4" font-size="9" font-weight="700">Google AI</text>
+            <text x="210" y="130" text-anchor="middle" fill="#4285F4" font-size="9" font-weight="700">Studio</text>
+
+            <!-- Free badge -->
+            <g transform="translate(110, 20)">
+              <rect width="60" height="22" rx="11" fill="#198754"/>
+              <text x="30" y="15" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">無料枠OK</text>
+            </g>
+            <!-- Sparkles -->
+            <circle cx="40" cy="40" r="2" fill="#0d6efd" opacity="0.5"/>
+            <circle cx="240" cy="45" r="2" fill="#4285F4" opacity="0.5"/>
+            <circle cx="50" cy="170" r="2" fill="#0d6efd" opacity="0.5"/>
+            <circle cx="230" cy="170" r="2" fill="#4285F4" opacity="0.5"/>
+          </svg>
+          <h4 class="mt-3">BYOK方式とは？</h4>
+          <p class="text-muted">お客様自身のGoogle AI Studio APIキーを設定して、AI解析機能をご利用いただく仕組みです。</p>
+        </div>
+        <div class="col-lg-7">
+          <p class="fw-bold mb-2" style="color:#0d6efd;">① BYOK（Bring Your Own Key）方式</p>
+          <ul class="check-list list-unstyled mb-4">
+            <li>
+              <i class="bi bi-check-circle-fill"></i>
+              <div>
+                <strong>APIキーはご自身で取得・設定</strong><br>
+                <span class="text-muted small">Google AI Studioで「APIキーを作成」を押してコピーするだけ。約3分で完了します</span>
+              </div>
+            </li>
+            <li>
+              <i class="bi bi-check-circle-fill"></i>
+              <div>
+                <strong>通常利用は無料枠で収まる</strong><br>
+                <span class="text-muted small">無料枠は1日500リクエスト。領収書1枚につき1回なので、ほとんどのチームは追加費用なしで使えます</span>
+              </div>
+            </li>
+            <li>
+              <i class="bi bi-check-circle-fill"></i>
+              <div>
+                <strong>高額請求の心配ゼロ</strong><br>
+                <span class="text-muted small">APIキーは無料アカウントのまま利用OK。課金登録をしない限り、無料枠を超えても料金が発生することはありません</span>
+              </div>
+            </li>
+          </ul>
+          <p class="fw-bold mb-2" style="color:#0d6efd;">② データをお客様自身のGoogleスプレッドシートに保存</p>
+          <ul class="check-list list-unstyled">
+            <li>
+              <i class="bi bi-check-circle-fill"></i>
+              <div>
+                <strong>当社がデータベースサーバーを持たない</strong><br>
+                <span class="text-muted small">経費データはお客様のGoogleスプレッドシートに直接保存されます。当社側にデータベースを運営するコストが発生しないため、その分を価格に還元できています</span>
+              </div>
+            </li>
+            <li>
+              <i class="bi bi-check-circle-fill"></i>
+              <div>
+                <strong>データの完全な所有権はお客様に</strong><br>
+                <span class="text-muted small">サービスを解約してもデータはスプレッドシートにそのまま残ります。ベンダーロックインなし・エクスポートも自由</span>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- 電帳法                                       -->
+<!-- ============================================ -->
+<section class="denchou-section">
+  <div class="container">
+    <div class="row align-items-center g-4">
+      <div class="col-lg-6">
+        <div class="text-center text-lg-start">
+          <span class="badge bg-success-subtle text-success px-3 py-2 rounded-pill mb-3">
+            <i class="bi bi-shield-fill-check me-1"></i>電子帳簿保存法対応
+          </span>
+          <h2 class="fw-bold mb-3">電帳法対応可能な仕組みを、<br>標準搭載。</h2>
+          <p class="text-muted mb-4">
+            2024年1月から本格運用となった電子帳簿保存法。経費ログなら、対応に必要な要件を標準機能で網羅。法改正への対応も自動で更新されます。
+          </p>
+          <!-- Illustration -->
+          <svg class="denchou-illust" viewBox="0 0 360 220" xmlns="http://www.w3.org/2000/svg">
+            <rect x="80" y="30" width="200" height="160" rx="8" fill="#e7f1ff"/>
+            <rect x="100" y="50" width="160" height="120" rx="6" fill="#fff" stroke="#0d6efd" stroke-width="2"/>
+            <rect x="110" y="62" width="100" height="8" rx="2" fill="#0d6efd" opacity="0.6"/>
+            <rect x="110" y="78" width="140" height="6" rx="2" fill="#0d6efd" opacity="0.3"/>
+            <rect x="110" y="90" width="120" height="6" rx="2" fill="#0d6efd" opacity="0.3"/>
+            <rect x="110" y="102" width="130" height="6" rx="2" fill="#0d6efd" opacity="0.3"/>
+            <rect x="110" y="120" width="60" height="20" rx="4" fill="#198754"/>
+            <text x="140" y="134" text-anchor="middle" fill="#fff" font-size="9" font-weight="700">サーバー時刻</text>
+            <rect x="180" y="120" width="60" height="20" rx="4" fill="#0d6efd"/>
+            <text x="210" y="134" text-anchor="middle" fill="#fff" font-size="9" font-weight="700">ハッシュ</text>
+            <g transform="translate(252, 80)">
+              <path d="M20 0 L40 8 L40 28 Q40 44 20 52 Q0 44 0 28 L0 8 Z" fill="#198754"/>
+              <path d="M12 26 L18 32 L30 18" stroke="#fff" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            </g>
+          </svg>
+        </div>
+      </div>
+      <div class="col-lg-6">
+        <ul class="check-list list-unstyled">
+          <li>
+            <i class="bi bi-check-circle-fill"></i>
+            <div>
+              <strong>サーバー時刻による申請日時記録</strong><br>
+              <span class="text-muted small">クライアント時刻ではなくサーバー時刻を使用し、申請日時の改ざんを防止</span>
+            </div>
+          </li>
+          <li>
+            <i class="bi bi-check-circle-fill"></i>
+            <div>
+              <strong>ハッシュ値による改ざん検知</strong><br>
+              <span class="text-muted small">ファイルごとにハッシュ値を記録し、改ざんを検知</span>
+            </div>
+          </li>
+          <li>
+            <i class="bi bi-check-circle-fill"></i>
+            <div>
+              <strong>インボイス番号の自動抽出</strong><br>
+              <span class="text-muted small">適格請求書発行事業者の登録番号をAIが自動で抽出・記録</span>
+            </div>
+          </li>
+          <li>
+            <i class="bi bi-check-circle-fill"></i>
+            <div>
+              <strong>検索機能の確保</strong><br>
+              <span class="text-muted small">取引年月日・取引金額・取引先での検索が可能</span>
+            </div>
+          </li>
         </ul>
       </div>
-      <div class="fit-card reveal reveal-delay-1">
-        <div class="fit-card-header">
-          <div class="fit-icon ng"><i class="bi bi-x-lg"></i></div>
-          <h3>向いていない方</h3>
+    </div>
+  </div>
+</section>
+
+<!-- Demo CTA 2 -->
+<section class="demo-cta-banner">
+  <div class="container">
+    <h3><i class="bi bi-play-circle me-2"></i>設定完了後のアプリ画面をデモで確認</h3>
+    <p>申請・一覧・集計まで、稼働後の実際の画面をそのまま体験できます。</p>
+    <a href="https://keihi-log.com/app?demo" class="btn btn-light btn-lg rounded-pill px-4 fw-bold" style="color: var(--brand);">
+      デモ画面を見る（無料・登録不要）
+    </a>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- FAQ                                          -->
+<!-- ============================================ -->
+<section id="faq">
+  <div class="container">
+    <h2 class="section-title">よくあるご質問</h2>
+    <p class="section-subtitle">疑問はここで解消してください</p>
+    <div class="row justify-content-center">
+      <div class="col-lg-9">
+        <div class="accordion" id="faqAccordion">
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                <i class="bi bi-question-circle me-2 text-primary"></i>Googleアカウントは必須ですか？
+              </button>
+            </h2>
+            <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+              <div class="accordion-body">
+                <strong>管理者（初期設定を行う方）はGoogleアカウント（GmailまたはGoogle Workspace）が必須です。</strong>データの保存先となるスプレッドシートとドライブがGoogleアカウント内に作られるためです。個人用Gmail・Google Workspaceのどちらでもご利用いただけます。<br>
+                Webアプリで申請するメンバーは、各自のGoogleアカウントでサインインします（誰が申請したかの識別に使用）。<br>
+                <strong>チームプランのLINE連携を使う場合、メンバーはGoogleアカウントなしでも参加できます</strong>。管理者が発行した連携コードをLINEで一度送信すれば、あとはLINEで領収書を送るだけで申請できます（スマホやPC操作が苦手な方にもおすすめです）。
+              </div>
+            </div>
+          </div>
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                <i class="bi bi-question-circle me-2 text-primary"></i>データの保存先はどこですか？
+              </button>
+            </h2>
+            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+              <div class="accordion-body">
+                すべてのデータは、<strong>初期設定を行った管理者ご自身のGoogleドライブ</strong>内のスプレッドシートに保存されます（メンバー個々のドライブではなく、管理者のドライブに集約されます）。当社サーバーには経費明細データを保管しません。管理者がデータの完全な所有権を持ち続けることができます。
+              </div>
+            </div>
+          </div>
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                <i class="bi bi-question-circle me-2 text-primary"></i>Google AI StudioのAPIキーの設定は難しくないですか？
+              </button>
+            </h2>
+            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+              <div class="accordion-body">
+                ご安心ください。Google AI Studioにアクセスし、「APIキーを作成」ボタンを押してコピーするだけです。所要時間は約3分。アプリの設定画面に貼り付ければ完了です。無料アカウントで1日500リクエストまで使えます。領収書1枚あたりAPIリクエストは1回なので、通常の業務量であれば無料枠で十分収まります。
+              </div>
+            </div>
+          </div>
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
+                <i class="bi bi-question-circle me-2 text-primary"></i>解約はいつでもできますか？
+              </button>
+            </h2>
+            <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+              <div class="accordion-body">
+                はい、いつでもStripeカスタマーポータルから解約手続きが可能です。解約後は当月末までご利用いただけます。既にお支払いいただいた料金の返金は原則として行っておりません。解約後もデータは管理者のGoogleドライブに残り続けますので、過去の経費記録を失う心配はありません。
+              </div>
+            </div>
+          </div>
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq5">
+                <i class="bi bi-question-circle me-2 text-primary"></i>電子帳簿保存法には完全対応していますか？
+              </button>
+            </h2>
+            <div id="faq5" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+              <div class="accordion-body">
+                サーバー時刻による申請日時記録・ハッシュ値による改ざん検知・インボイス番号の自動抽出など、電子帳簿保存法の主要な要件に対応可能な仕組みを標準搭載しています。ただし「完全対応」の可否は運用方法・社内規程によっても異なるため、自社の顧問税理士にご確認ください。
+              </div>
+            </div>
+          </div>
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq6">
+                <i class="bi bi-question-circle me-2 text-primary"></i>Excelへのエクスポートはできますか？
+              </button>
+            </h2>
+            <div id="faq6" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+              <div class="accordion-body">
+                はい。日付・支払先・金額・勘定科目・税区分・インボイス番号などを網羅した汎用CSVを出力できます。freee・マネーフォワード・弥生などはいずれもCSVインポート機能を備えているため、この汎用CSVを取り込む列に対応づけてインポートできます（初回に列の対応づけが必要です）。各社の様式変更に左右されない安定運用のため、特定ソフト専用の様式出力は行っていません。なお、データ本体はGoogleスプレッドシートにあるため、シートから直接 .xlsx でダウンロードすることも可能です。
+              </div>
+            </div>
+          </div>
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq7">
+                <i class="bi bi-question-circle me-2 text-primary"></i>無料トライアル中にクレジットカード登録は必要ですか？
+              </button>
+            </h2>
+            <div id="faq7" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+              <div class="accordion-body">
+                いいえ、クレジットカードは不要です。2週間は無料でお使いいただけます。試用期間が終了しても自動的に課金されることは一切ありません。継続してご利用いただく場合は、アプリ内の設定画面から有料プランへ切り替えてください。
+              </div>
+            </div>
+          </div>
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq8">
+                <i class="bi bi-question-circle me-2 text-primary"></i>チームプランで何名まで利用できますか？
+              </button>
+            </h2>
+            <div id="faq8" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+              <div class="accordion-body">
+                メンバー数に関わらず月額825円（税込）の定額です。小〜中規模のチームでの利用に適しており、大規模な組織向け経費管理システムとは設計思想が異なる点をご了承ください。
+              </div>
+            </div>
+          </div>
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq9">
+                <i class="bi bi-question-circle me-2 text-primary"></i>複数の組織でそれぞれ使いたい場合はどうすればよいですか？
+              </button>
+            </h2>
+            <div id="faq9" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+              <div class="accordion-body">
+                同じメールアドレスで最大3組織分までお申し込みいただけます。ライセンスは申し込みごとに個別に発行されるため、それぞれ別のチームURLが生成されます。各チームのURLにアクセスするだけで自動的に切り替わります。
+              </div>
+            </div>
+          </div>
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq10">
+                <i class="bi bi-question-circle me-2 text-primary"></i>一度解約後、また使いたくなった場合はどうすればよいですか？
+              </button>
+            </h2>
+            <div id="faq10" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+              <div class="accordion-body">
+                同じメールアドレスで再度お申し込みいただけます。以前のライセンスキーがそのまま再アクティブ化されるため、設定の変更は不要です。スプレッドシートのデータも引き続きお使いいただけます。トライアル期間の再付与はなく、再申し込みから即課金となります。
+              </div>
+            </div>
+          </div>
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq11">
+                <i class="bi bi-shield-lock me-2 text-primary"></i>運営側（開発者）はユーザーのデータを見られますか？
+              </button>
+            </h2>
+            <div id="faq11" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+              <div class="accordion-body">
+                <p class="mb-2">経費データと領収書画像は、<strong>お客様自身のGoogleスプレッドシート・Googleドライブに保存</strong>されます。当社のデータベースに保存・蓄積することは一切ありません。</p>
+                <p class="mb-2">ただし、メンバーの方が安全にデータをやり取りできるようにするため、<strong>申請・閲覧などの処理時に、データは当社のサーバー（同期処理用）を一時的に経由します</strong>。これは通信を仲介するためのもので、内容を保存・記録・閲覧することはありません。技術的には経由する瞬間にデータに触れられる状態にはなりますが、当社はその内容を取得・保管しない設計とし、規程・運用でこれを担保しています。</p>
+                <p class="mb-0">「処理上もデータを一切当社サーバーに通したくない」という場合に向けて、お客様自身のGoogleアカウント内ですべての処理を完結させる<strong>自社完結モード（Google Apps Script方式）</strong>もご用意しています。よりセキュリティを重視される企業向けのオプションです。ご希望の場合はお問い合わせください。</p>
+              </div>
+            </div>
+          </div>
         </div>
-        <ul class="fit-list">
-          <li><i class="bi bi-x-circle-fill ng"></i>銀行口座・クレジットカードの明細を自動取得したい</li>
-          <li><i class="bi bi-x-circle-fill ng"></i>借入金・売上・給与などの帳簿管理をしたい</li>
-          <li><i class="bi bi-x-circle-fill ng"></i>仕訳や確定申告まで一括でやりたい</li>
-          <li><i class="bi bi-x-circle-fill ng"></i>会計ソフトそのものを置き換えたい</li>
-          <li><i class="bi bi-x-circle-fill ng"></i>社内ポリシーでGoogleサービスの利用が制限されている</li>
-        </ul>
-        <p style="font-size:.78rem;color:#94a3b8;border-top:1px solid var(--clr-border);margin-top:1rem;padding-top:.75rem;">
-          <i class="bi bi-info-circle" style="margin-right:.3rem;"></i>帳簿管理・確定申告には freee・マネーフォワードなどの会計ソフトをご利用ください。経費ログはCSVエクスポートでこれらと連携できます。
+        <p class="text-center mt-4" style="font-size:0.85rem;">
+          <a href="/faq" style="color:#6c757d;">その他のよくある質問はこちら →</a>
         </p>
       </div>
     </div>
-    <div class="fit-flow reveal">
-      <p class="fit-flow-label">freee・マネーフォワードと一緒に使うイメージ</p>
-      <div class="fit-flow-steps">
-        <span class="fit-flow-step"><i class="bi bi-camera" style="margin-right:.3rem;"></i>メンバーが領収書を撮影・申請</span>
-        <span class="fit-flow-arrow">→</span>
-        <span class="fit-flow-step"><i class="bi bi-check2-circle" style="margin-right:.3rem;"></i>管理者が承認・精算</span>
-        <span class="fit-flow-arrow">→</span>
-        <span class="fit-flow-step"><i class="bi bi-download" style="margin-right:.3rem;"></i>CSVで会計ソフトへ</span>
-      </div>
-    </div>
   </div>
 </section>
 
-<!-- ===================================================
-     SECURITY
-     =================================================== -->
-<section class="section section-dark" id="security">
-  <div class="container">
-    <div class="section-header center">
-      <span class="section-eyebrow">SECURITY</span>
-      <h2 class="section-title reveal" style="color:#fff;">あなたのデータは、あなたのもの。</h2>
-      <p class="section-lead reveal">経費ログはデータを持たない設計で、プライバシーとセキュリティを根本から保護します。</p>
-    </div>
-    <div class="security-grid">
-      <div class="security-card reveal">
-        <div class="security-icon"><i class="bi bi-cloud-arrow-up-fill"></i></div>
-        <h5>データはすべてあなたのGoogleへ</h5>
-        <p>経費明細はGoogleスプレッドシートに、証憑画像はGoogleドライブに保存。当社サーバーには一切保管しません。</p>
-      </div>
-      <div class="security-card reveal reveal-delay-1">
-        <div class="security-icon"><i class="bi bi-unlock-fill"></i></div>
-        <h5>ベンダーロックインなし</h5>
-        <p>解約後もデータはあなたのGoogleドライブに残り続けます。乗り換えやエクスポートも自由自在。</p>
-      </div>
-      <div class="security-card reveal reveal-delay-2">
-        <div class="security-icon"><i class="bi bi-google"></i></div>
-        <h5>Googleの堅牢な認証基盤</h5>
-        <p>ログインはGoogleアカウント認証。2段階認証など、Googleのセキュリティ機能をそのまま活用できます。</p>
-      </div>
-    </div>
-  </div>
-</section>
 
-<!-- ===================================================
-     FAQ
-     =================================================== -->
-<section class="section" id="faq">
+<!-- ============================================ -->
+<!-- Fit section                                  -->
+<!-- ============================================ -->
+<section id="fit" style="background:#f8f9fa;">
   <div class="container">
-    <div class="section-header center">
-      <span class="section-eyebrow">FAQ</span>
-      <h2 class="section-title reveal">よくあるご質問</h2>
-    </div>
-    <div class="faq-list" id="faqList">
-      <div class="faq-item reveal">
-        <div class="faq-question">
-          <span class="faq-q-text">Googleアカウントは必須ですか？</span>
-          <div class="faq-toggle"><i class="bi bi-plus"></i></div>
-        </div>
-        <div class="faq-answer">
-          <div class="faq-answer-inner">はい、管理者だけでなく<strong>利用するメンバー全員がGoogleアカウント（GmailまたはGoogle Workspace）を持っている必要があります</strong>。各メンバーが自分のGoogleアカウントでサインインすることで、誰が申請したかを識別しています。個人用Gmailアカウント、Google Workspaceアカウントどちらでもご利用いただけます。</div>
-        </div>
-      </div>
-      <div class="faq-item reveal">
-        <div class="faq-question">
-          <span class="faq-q-text">データの保存先はどこですか？</span>
-          <div class="faq-toggle"><i class="bi bi-plus"></i></div>
-        </div>
-        <div class="faq-answer">
-          <div class="faq-answer-inner">すべてのデータは、お客様自身のGoogleドライブ内のGoogleスプレッドシートに保存されます。当社サーバーには経費明細データを保管しません。お客様がデータの完全な所有権を持ち続けることができます。</div>
-        </div>
-      </div>
-      <div class="faq-item reveal">
-        <div class="faq-question">
-          <span class="faq-q-text">Google AI StudioのAPIキーの設定は難しくないですか？</span>
-          <div class="faq-toggle"><i class="bi bi-plus"></i></div>
-        </div>
-        <div class="faq-answer">
-          <div class="faq-answer-inner">ご安心ください。Google AI Studioにアクセスし、「APIキーを作成」ボタンを押してコピーするだけです。所要時間は約3分。アプリの設定画面に貼り付ければ完了です。無料アカウントで1日500リクエストまで使えます。</div>
+    <h2 class="section-title">こんな方に向いています</h2>
+    <p class="section-subtitle">経費ログは「社内の経費申請フローをデジタル化するツール」です。<br>会計ソフトや家計簿アプリとは役割が異なります。</p>
+
+    <div class="row g-4 justify-content-center mb-5">
+      <!-- 向いている -->
+      <div class="col-md-6 col-lg-5">
+        <div class="h-100 p-4 rounded-4 border-0" style="background:#fff;box-shadow:0 2px 12px rgba(0,0,0,.06);">
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <span style="width:32px;height:32px;background:#d1fae5;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <i class="bi bi-check-lg text-success"></i>
+            </span>
+            <h3 class="fw-bold mb-0" style="font-size:1rem;">向いている方</h3>
+          </div>
+          <ul class="list-unstyled mb-0" style="font-size:0.9rem;line-height:1.7;">
+            <li class="d-flex align-items-baseline gap-2 mb-2"><i class="bi bi-check-circle-fill text-success flex-shrink-0"></i><span>領収書はスマホ撮影して、保管も記録もその場で完結させたい</span></li>
+            <li class="d-flex align-items-baseline gap-2 mb-2"><i class="bi bi-check-circle-fill text-success flex-shrink-0"></i><span>確定申告前に「1年分の領収書の山」と格闘するのをやめたい</span></li>
+            <li class="d-flex align-items-baseline gap-2 mb-2"><i class="bi bi-check-circle-fill text-success flex-shrink-0"></i><span>領収書収集・精算申請を、簡素なシステムに置き換えたい</span></li>
+            <li class="d-flex align-items-baseline gap-2 mb-2"><i class="bi bi-check-circle-fill text-success flex-shrink-0"></i><span>でも、高額SaaSを入れるほどでもないと感じている</span></li>
+            <li class="d-flex align-items-baseline gap-2 mb-2"><i class="bi bi-check-circle-fill text-success flex-shrink-0"></i><span>経費データは外部DBに預けたくない</span></li>
+            <li class="d-flex align-items-baseline gap-2"><i class="bi bi-check-circle-fill text-success flex-shrink-0"></i><span>スマホ操作が苦手なメンバーにも、LINEで領収書を送るだけで申請してもらいたい</span></li>
+          </ul>
         </div>
       </div>
-      <div class="faq-item reveal">
-        <div class="faq-question">
-          <span class="faq-q-text">無料トライアル中にクレジットカード登録は必要ですか？</span>
-          <div class="faq-toggle"><i class="bi bi-plus"></i></div>
-        </div>
-        <div class="faq-answer">
-          <div class="faq-answer-inner">いいえ、クレジットカードは不要です。2週間は無料でお使いいただけます。試用期間が終了しても自動的に課金されることは一切ありません。継続してご利用いただく場合は、アプリ内の設定画面から有料プランへ切り替えてください。</div>
-        </div>
-      </div>
-      <div class="faq-item reveal">
-        <div class="faq-question">
-          <span class="faq-q-text">解約はいつでもできますか？</span>
-          <div class="faq-toggle"><i class="bi bi-plus"></i></div>
-        </div>
-        <div class="faq-answer">
-          <div class="faq-answer-inner">はい、いつでもStripeカスタマーポータルから解約手続きが可能です。解約後は当月末までご利用いただけます。解約後もデータはお客様自身のGoogleドライブに残り続けますので、過去の経費記録を失う心配はありません。</div>
-        </div>
-      </div>
-      <div class="faq-item reveal">
-        <div class="faq-question">
-          <span class="faq-q-text">チームプランで何名まで利用できますか？</span>
-          <div class="faq-toggle"><i class="bi bi-plus"></i></div>
-        </div>
-        <div class="faq-answer">
-          <div class="faq-answer-inner">メンバー数に関わらず月額825円（税込）の定額です。小〜中規模のチームでの利用に適しており、大規模な組織向け経費管理システムとは設計思想が異なる点をご了承ください。</div>
-        </div>
-      </div>
-      <div class="faq-item reveal">
-        <div class="faq-question">
-          <span class="faq-q-text">複数の組織でそれぞれ使いたい場合はどうすればよいですか？</span>
-          <div class="faq-toggle"><i class="bi bi-plus"></i></div>
-        </div>
-        <div class="faq-answer">
-          <div class="faq-answer-inner">同じメールアドレスで最大3組織分までお申し込みいただけます。ライセンスは申し込みごとに個別に発行されるため、それぞれ別のチームURLが生成されます。</div>
-        </div>
-      </div>
-      <div class="faq-item reveal">
-        <div class="faq-question">
-          <span class="faq-q-text">電子帳簿保存法には完全対応していますか？</span>
-          <div class="faq-toggle"><i class="bi bi-plus"></i></div>
-        </div>
-        <div class="faq-answer">
-          <div class="faq-answer-inner">サーバー時刻による申請日時記録・ハッシュ値による改ざん検知・インボイス番号の自動抽出など、電子帳簿保存法の主要な要件に対応可能な仕組みを標準搭載しています。ただし「完全対応」の可否は運用方法・社内規程によっても異なるため、自社の顧問税理士にご確認ください。</div>
-        </div>
-      </div>
-      <div class="faq-item reveal">
-        <div class="faq-question">
-          <span class="faq-q-text">運営側（開発者）はユーザーのデータを見られますか？</span>
-          <div class="faq-toggle"><i class="bi bi-plus"></i></div>
-        </div>
-        <div class="faq-answer">
-          <div class="faq-answer-inner">
-            <p style="margin-bottom:.75rem;">経費データと領収書画像は、<strong>お客様自身のGoogleスプレッドシート・Googleドライブに保存</strong>されます。当社のデータベースに保存・蓄積することは一切ありません。</p>
-            <p style="margin:0;">メンバーが安全にデータをやり取りできるようにするため、<strong>申請・閲覧などの処理時にデータは当社のサーバーを一時的に経由します</strong>。これは通信を仲介するためのもので、内容を保存・記録・閲覧することはありません。</p>
+      <!-- 向いていない -->
+      <div class="col-md-6 col-lg-5">
+        <div class="h-100 p-4 rounded-4 border-0" style="background:#fff;box-shadow:0 2px 12px rgba(0,0,0,.06);">
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <span style="width:32px;height:32px;background:#fee2e2;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <i class="bi bi-x-lg text-danger"></i>
+            </span>
+            <h3 class="fw-bold mb-0" style="font-size:1rem;">向いていない方</h3>
+          </div>
+          <ul class="list-unstyled mb-0" style="font-size:0.9rem;line-height:1.7;">
+            <li class="d-flex align-items-baseline gap-2 mb-2"><i class="bi bi-x-circle-fill text-danger flex-shrink-0"></i><span>銀行口座・クレジットカードの明細を自動取得したい</span></li>
+            <li class="d-flex align-items-baseline gap-2 mb-2"><i class="bi bi-x-circle-fill text-danger flex-shrink-0"></i><span>借入金の返済・売上・給与などの帳簿管理をしたい</span></li>
+            <li class="d-flex align-items-baseline gap-2 mb-2"><i class="bi bi-x-circle-fill text-danger flex-shrink-0"></i><span>仕訳や確定申告まで一括でやりたい</span></li>
+            <li class="d-flex align-items-baseline gap-2 mb-2"><i class="bi bi-x-circle-fill text-danger flex-shrink-0"></i><span>会計ソフトそのものを置き換えたい</span></li>
+            <li class="d-flex align-items-baseline gap-2 mb-2"><i class="bi bi-x-circle-fill text-danger flex-shrink-0"></i><span>大企業並みのセキュリティレベルが必要な方</span></li>
+            <li class="d-flex align-items-baseline gap-2"><i class="bi bi-x-circle-fill text-danger flex-shrink-0"></i><span>社内ポリシー等でGoogleサービスの利用が制限されている方</span></li>
+          </ul>
+          <div class="mt-3 pt-3 border-top" style="font-size:0.82rem;color:#64748b;">
+            <i class="bi bi-info-circle me-1"></i>帳簿管理・確定申告には freee・マネーフォワードなどの会計ソフトをご利用ください。経費ログはCSVエクスポートでこれらとの連携が可能です。
           </div>
         </div>
       </div>
     </div>
-    <p style="text-align:center;margin-top:1.5rem;font-size:.85rem;color:var(--clr-muted);">
-      <a href="/faq" style="color:var(--clr-blue);">その他のよくある質問はこちら →</a>
+
+    <!-- 位置づけ図 -->
+    <div class="row justify-content-center">
+      <div class="col-lg-9">
+        <div class="p-4 rounded-4 text-center" style="background:#eff6ff;border:1px solid #bfdbfe;">
+          <p class="fw-bold mb-3" style="font-size:0.9rem;color:#1e40af;">freee・マネーフォワードなどの会計ソフトと一緒に使うイメージ</p>
+          <div class="d-flex align-items-center justify-content-center gap-2 flex-wrap" style="font-size:0.85rem;">
+            <span class="px-3 py-2 rounded-3 fw-bold" style="background:#fff;border:1px solid #bfdbfe;color:#1e40af;">
+              <i class="bi bi-camera me-1"></i>メンバーが領収書を撮影・申請<span class="text-muted fw-normal" style="font-size:0.85em;">（アプリ／LINE）</span>
+            </span>
+            <i class="bi bi-arrow-right text-primary"></i>
+            <span class="px-3 py-2 rounded-3 fw-bold" style="background:#fff;border:1px solid #bfdbfe;color:#1e40af;">
+              <i class="bi bi-check2-circle me-1"></i>管理者が承認・精算
+            </span>
+            <i class="bi bi-arrow-right text-primary"></i>
+            <span class="px-3 py-2 rounded-3 fw-bold" style="background:#fff;border:1px solid #bfdbfe;color:#1e40af;">
+              <i class="bi bi-download me-1"></i>CSVで会計ソフトへ
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- Steps                                        -->
+<!-- ============================================ -->
+<section id="steps">
+  <div class="container">
+    <h2 class="section-title">かんたん5ステップで始められる</h2>
+    <p class="section-subtitle">初期設定も含めて最短15分で経費申請がスタートできます</p>
+    <div class="row g-4">
+      <div class="col-md-6 col-lg">
+        <div class="step-card">
+          <div class="step-illust-wrap">
+            <!-- Google login -->
+            <svg class="step-illust" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="60" cy="60" r="56" fill="#e7f1ff"/>
+              <circle cx="60" cy="60" r="28" fill="#fff" stroke="#0d6efd" stroke-width="3"/>
+              <path d="M68 56 L60 56 L60 62 L66 62 Q65 68 60 68 Q53 68 53 60 Q53 52 60 52 Q63 52 66 54"
+                    stroke="#4285F4" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+              <circle cx="92" cy="38" r="10" fill="#fff" stroke="#198754" stroke-width="2.5"/>
+              <path d="M87 38 L90.5 41.5 L97 35" stroke="#198754" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <div class="step-number-badge">1</div>
+          </div>
+          <h5>Googleでログイン</h5>
+          <p class="text-muted small">普段お使いのGoogleアカウントでサインイン。新規登録は不要です。</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg">
+        <div class="step-card">
+          <div class="step-illust-wrap">
+            <!-- API key -->
+            <svg class="step-illust" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="60" cy="60" r="56" fill="#fff8e1"/>
+              <circle cx="48" cy="58" r="14" fill="none" stroke="#fd7e14" stroke-width="4"/>
+              <circle cx="48" cy="58" r="6" fill="#ffc107"/>
+              <rect x="58" y="56" width="28" height="6" rx="2" fill="#fd7e14"/>
+              <rect x="76" y="62" width="5" height="7" rx="1" fill="#fd7e14"/>
+              <rect x="84" y="62" width="5" height="7" rx="1" fill="#fd7e14"/>
+              <circle cx="88" cy="36" r="10" fill="#4285F4"/>
+              <path d="M84 36 L87.5 39.5 L94 33" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <div class="step-number-badge">2</div>
+          </div>
+          <h5>APIキーを取得</h5>
+          <p class="text-muted small">Google AI Studioで無料のAPIキーを発行。画面の案内に沿って数クリックで完了します。</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg">
+        <div class="step-card">
+          <div class="step-illust-wrap">
+            <!-- Spreadsheet creation -->
+            <svg class="step-illust" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="60" cy="60" r="56" fill="#e7f1ff"/>
+              <rect x="36" y="32" width="48" height="56" rx="4" fill="#fff" stroke="#0d6efd" stroke-width="2.5"/>
+              <rect x="36" y="32" width="48" height="10" rx="4" fill="#0F9D58"/>
+              <line x1="36" y1="54" x2="84" y2="54" stroke="#0d6efd" stroke-width="1.5" opacity="0.5"/>
+              <line x1="36" y1="66" x2="84" y2="66" stroke="#0d6efd" stroke-width="1.5" opacity="0.5"/>
+              <line x1="36" y1="78" x2="84" y2="78" stroke="#0d6efd" stroke-width="1.5" opacity="0.5"/>
+              <line x1="52" y1="42" x2="52" y2="88" stroke="#0d6efd" stroke-width="1.5" opacity="0.5"/>
+              <line x1="68" y1="42" x2="68" y2="88" stroke="#0d6efd" stroke-width="1.5" opacity="0.5"/>
+              <circle cx="90" cy="44" r="10" fill="#198754"/>
+              <line x1="90" y1="40" x2="90" y2="48" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+              <line x1="86" y1="44" x2="94" y2="44" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+            <div class="step-number-badge">3</div>
+          </div>
+          <h5>シート＆専用フォルダを自動作成</h5>
+          <p class="text-muted small">スプレッドシートとDriveフォルダをワンクリックで自動生成。あなた自身のGoogleアカウント内に作成されます。データの所有権はお客様にあります。</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg">
+        <div class="step-card">
+          <div class="step-illust-wrap">
+            <!-- Team invite -->
+            <svg class="step-illust" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="60" cy="60" r="56" fill="#e7f1ff"/>
+              <circle cx="45" cy="50" r="10" fill="#0d6efd"/>
+              <path d="M30 80 Q30 65 45 65 Q60 65 60 80 Z" fill="#0d6efd"/>
+              <circle cx="75" cy="50" r="10" fill="#6ea8fe"/>
+              <path d="M60 80 Q60 65 75 65 Q90 65 90 80 Z" fill="#6ea8fe"/>
+              <circle cx="92" cy="38" r="10" fill="#198754"/>
+              <line x1="92" y1="34" x2="92" y2="42" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+              <line x1="88" y1="38" x2="96" y2="38" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+            <div class="step-number-badge">4</div>
+          </div>
+          <h5>メンバーを招待<br><span class="text-muted fw-normal" style="font-size:0.8em;">（チームプランの場合）</span></h5>
+          <p class="text-muted small">メンバーのメールアドレス（Googleアカウント）を登録して専用URLを共有するだけ。管理者・閲覧者・一般の3段階で権限を設定できます。<strong style="color:#06C755;">LINE連携なら、Googleアカウントがないメンバーも連携コードで招待できます。</strong></p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg">
+        <div class="step-card">
+          <div class="step-illust-wrap">
+            <!-- Camera + receipt -->
+            <svg class="step-illust" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="60" cy="60" r="56" fill="#e7f1ff"/>
+              <path d="M38 30 L66 30 L66 70 L62 67 L58 70 L54 67 L50 70 L46 67 L42 70 L38 67 Z"
+                    fill="#fff" stroke="#0d6efd" stroke-width="2"/>
+              <line x1="44" y1="40" x2="60" y2="40" stroke="#0d6efd" stroke-width="1.5" opacity="0.5"/>
+              <line x1="44" y1="46" x2="58" y2="46" stroke="#0d6efd" stroke-width="1.5" opacity="0.5"/>
+              <line x1="44" y1="52" x2="60" y2="52" stroke="#0d6efd" stroke-width="1.5" opacity="0.5"/>
+              <rect x="64" y="62" width="28" height="22" rx="3" fill="#0d6efd"/>
+              <rect x="72" y="58" width="12" height="6" rx="1" fill="#0d6efd"/>
+              <circle cx="78" cy="73" r="6" fill="#fff"/>
+              <circle cx="78" cy="73" r="3" fill="#0d6efd"/>
+            </svg>
+            <div class="step-number-badge">5</div>
+          </div>
+          <h5>申請スタート</h5>
+          <p class="text-muted small">領収書を撮影してアップロード。AIが金額・日付・支払先を自動入力。交通費は駅名入力で料金も自動検索。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- Security                                     -->
+<!-- ============================================ -->
+<section class="security-section">
+  <div class="container">
+    <h2 class="section-title">セキュリティと安心感</h2>
+    <p class="section-subtitle">あなたのデータは、あなたのもの。</p>
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="security-card text-center">
+          <svg class="security-illust" viewBox="0 0 90 90" xmlns="http://www.w3.org/2000/svg">
+            <!-- cloud -->
+            <path d="M22 56 Q12 56 12 46 Q12 38 22 37 Q22 26 36 26 Q44 26 48 32 Q54 28 60 30 Q70 32 70 42 Q80 42 80 52 Q80 60 70 60 Z" fill="#fff" opacity="0.95"/>
+            <!-- user inside -->
+            <circle cx="46" cy="44" r="6" fill="#0d6efd"/>
+            <path d="M36 60 Q36 52 46 52 Q56 52 56 60 Z" fill="#0d6efd"/>
+          </svg>
+          <h5>データはすべてあなたのGoogleドライブへ</h5>
+          <p class="small mb-0">経費明細はGoogleスプレッドシートに、領収書・証憑画像はGoogleドライブに保存。当社サーバーには一切保管しません。</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="security-card text-center">
+          <svg class="security-illust" viewBox="0 0 90 90" xmlns="http://www.w3.org/2000/svg">
+            <rect x="22" y="40" width="46" height="34" rx="4" fill="#fff"/>
+            <path d="M32 40 L32 28 Q32 18 45 18 Q58 18 58 28 L58 40" stroke="#fff" stroke-width="4" fill="none"/>
+            <circle cx="45" cy="55" r="4" fill="#0d6efd"/>
+            <rect x="43" y="58" width="4" height="8" fill="#0d6efd"/>
+          </svg>
+          <h5>ベンダーロックインなし</h5>
+          <p class="small mb-0">解約後もデータはあなたのGoogleドライブに残り続けます。乗り換えやエクスポートも自由自在。</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="security-card text-center">
+          <svg class="security-illust" viewBox="0 0 90 90" xmlns="http://www.w3.org/2000/svg">
+            <path d="M45 12 L72 22 L72 46 Q72 66 45 78 Q18 66 18 46 L18 22 Z" fill="#fff"/>
+            <circle cx="45" cy="44" r="10" fill="none" stroke="#0d6efd" stroke-width="3"/>
+            <path d="M52 44 L45 44 L45 49 L50 49 Q49 52 45 52 Q40 52 40 44 Q40 39 45 39 Q47 39 49 40" 
+                  stroke="#0d6efd" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+            <path d="M37 56 L45 64 L57 50" stroke="#198754" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <h5>Googleの堅牢な認証基盤</h5>
+          <p class="small mb-0">ログインはGoogleアカウント認証。2段階認証など、Googleのセキュリティ機能をそのまま活用できます。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- ユーザーの声                                  -->
+<!-- ============================================ -->
+<section style="background:#fff;padding:80px 0;display:none;">
+  <div class="container">
+    <h2 class="section-title">ユーザーの声</h2>
+    <p class="section-subtitle">実際にご利用いただいている方々からのコメント</p>
+    <div class="row g-4 justify-content-center">
+      <div class="col-md-4">
+        <div class="card border-0 h-100 p-4" style="background:#f8f9fa;border-radius:16px;">
+          <div class="mb-3" style="color:#f5a623;font-size:1.1rem;">★★★★★</div>
+          <p class="mb-4" style="line-height:1.7;">「コメントが入ります。」</p>
+          <div class="d-flex align-items-center gap-3 mt-auto">
+            <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0" style="width:44px;height:44px;font-size:1.1rem;">A</div>
+            <div>
+              <div class="fw-bold small">お名前</div>
+              <div class="text-muted small">肩書き・職種</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card border-0 h-100 p-4" style="background:#f8f9fa;border-radius:16px;">
+          <div class="mb-3" style="color:#f5a623;font-size:1.1rem;">★★★★★</div>
+          <p class="mb-4" style="line-height:1.7;">「コメントが入ります。」</p>
+          <div class="d-flex align-items-center gap-3 mt-auto">
+            <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0" style="width:44px;height:44px;font-size:1.1rem;">B</div>
+            <div>
+              <div class="fw-bold small">お名前</div>
+              <div class="text-muted small">肩書き・職種</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card border-0 h-100 p-4" style="background:#f8f9fa;border-radius:16px;">
+          <div class="mb-3" style="color:#f5a623;font-size:1.1rem;">★★★★★</div>
+          <p class="mb-4" style="line-height:1.7;">「コメントが入ります。」</p>
+          <div class="d-flex align-items-center gap-3 mt-auto">
+            <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0" style="width:44px;height:44px;font-size:1.1rem;">C</div>
+            <div>
+              <div class="fw-bold small">お名前</div>
+              <div class="text-muted small">肩書き・職種</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- Final CTA                                    -->
+<!-- ============================================ -->
+<section class="final-cta">
+  <div class="container">
+    <img src="/icons/icon-192.png" width="80" height="80" class="mb-3" alt="" loading="lazy">
+    <h2 class="fw-bold mb-3">今すぐ、経費精算をラクにしませんか？</h2>
+    <p class="text-muted mb-4 lead">まずはデモ画面で実際の操作を確認してみてください。</p>
+    <a href="https://keihi-log.com/app?demo" class="btn btn-primary btn-lg rounded-pill px-5 mb-3">
+      <i class="bi bi-play-circle me-2"></i>デモ画面を見る（無料・登録不要）
+    </a>
+    <p class="text-muted small mt-1">
+      <i class="bi bi-shield-check me-1 text-success"></i>2週間無料・クレジットカード不要
+      <i class="bi bi-shield-check me-1 text-success ms-2"></i>同意なく自動課金されることは一切ありません
     </p>
   </div>
 </section>
 
-<!-- ===================================================
-     FINAL CTA
-     =================================================== -->
-<div class="cta-band">
-  <div class="container">
-    <h2>今すぐ、経費精算をラクにしませんか？</h2>
-    <p>まずはデモ画面で実際の操作を確認してみてください。</p>
-    <div class="cta-band-actions">
-      <a class="btn-cta-primary" href="https://buy.stripe.com/5kQ28r1Ps7ut2kv4io9oc08">
-        2週間無料で試す <i class="bi bi-arrow-right"></i>
-      </a>
-      <a class="btn-cta-ghost" href="/app?demo">
-        <i class="bi bi-play-circle"></i> デモを見る
-      </a>
-    </div>
-    <p class="cta-band-note">
-      <i class="bi bi-shield-check" style="margin-right:.35rem;"></i>クレジットカード不要 · 自動課金なし · いつでも解約可能
-    </p>
-  </div>
-</div>
-
-<!-- ===================================================
-     FOOTER
-     =================================================== -->
+<!-- ============================================ -->
+<!-- Footer                                       -->
+<!-- ============================================ -->
 <footer class="footer">
   <div class="container">
-    <div class="footer-grid">
-      <div class="footer-brand">
-        <div class="footer-brand-name">
-          <img src="/icons/icon-192.png" alt="経費ログ">
+    <div class="row g-4">
+      <div class="col-md-4">
+        <h5>
+          <img class="logo-footer" src="/icons/icon-192.png" alt="" width="40" height="40" loading="lazy">
           経費ログ
-        </div>
-        <p class="footer-desc">AI領収書解析・経費申請・承認・集計をブラウザで完結。<br>データはあなたのGoogleスプレッドシートへ。</p>
+        </h5>
+        <p class="small">
+          AI領収書解析・経費申請・承認・集計をブラウザで完結。<br>
+          データはあなたのGoogleスプレッドシートへ。
+        </p>
       </div>
-      <div class="footer-col">
+      <div class="col-6 col-md-2">
         <h5>サービス</h5>
-        <ul class="footer-links">
+        <ul class="list-unstyled small">
           <li><a href="#features">機能</a></li>
           <li><a href="#byok">低価格の理由</a></li>
           <li><a href="#pricing">料金プラン</a></li>
           <li><a href="#faq">FAQ</a></li>
         </ul>
       </div>
-      <div class="footer-col">
+      <div class="col-md-3">
         <h5>運営会社</h5>
-        <ul class="footer-links">
-          <li><a href="#">合同会社Smart&amp;Smooth</a></li>
+        <ul class="list-unstyled small">
+          <li>合同会社Smart&amp;Smooth</li>
           <li><a href="/privacy">プライバシーポリシー</a></li>
           <li><a href="/terms">利用規約</a></li>
           <li><a href="/tokusho">特定商取引法に基づく表記</a></li>
@@ -2084,85 +2122,101 @@ a, button { -webkit-tap-highlight-color: transparent; }
   </div>
 </footer>
 
+<!-- リリース通知モーダル -->
+<div class="modal fade" id="notifyModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:400px;">
+    <div class="modal-content text-center p-1">
+      <div class="modal-body py-4 px-4">
+        <div style="font-size:2.2rem;">🚀</div>
+        <h5 class="fw-bold mt-2 mb-1">6月下旬リリース予定</h5>
+        <p class="text-muted mb-3" style="font-size:0.88rem;">
+          現在鋭意開発中です。<br>リリース時にメールでお知らせします。<br>
+          デモ画面は今すぐお試しいただけます。
+        </p>
+        <!-- 登録フォーム -->
+        <div id="notifyForm">
+          <div class="input-group mb-2">
+            <input type="email" class="form-control" id="notifyEmail"
+              placeholder="メールアドレス" autocomplete="email">
+            <button class="btn btn-primary" id="btnNotifySubmit" type="button">
+              通知を受け取る
+            </button>
+          </div>
+          <div id="notifyMsg" class="form-text" style="min-height:1.2em;"></div>
+        </div>
+        <!-- 登録完了メッセージ -->
+        <div id="notifyDone" class="d-none">
+          <div class="alert alert-success py-2 mb-2" style="font-size:0.88rem;">
+            <i class="bi bi-check-circle me-1"></i>登録しました！リリース時にご連絡します。
+          </div>
+        </div>
+        <!-- デモリンク -->
+        <a href="/app?demo" class="btn btn-outline-primary rounded-pill px-4 mt-1 w-100">
+          <i class="bi bi-play-circle me-1"></i>デモ画面を試す（登録不要・無料）
+        </a>
+      </div>
+      <div class="modal-footer border-0 justify-content-center pt-0 pb-3">
+        <button type="button" class="btn btn-link text-muted" data-bs-dismiss="modal">閉じる</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" defer></script>
 <script>
-// ── Navbar scroll ──────────────────────────────────────────────
-var nav = document.getElementById('mainNav');
-window.addEventListener('scroll', function() {
-  nav.classList.toggle('scrolled', window.scrollY > 60);
-}, { passive: true });
 
-// ── Mobile menu ────────────────────────────────────────────────
-var hamburger = document.getElementById('hamburger');
-var navMobile = document.getElementById('navMobile');
-hamburger.addEventListener('click', function() {
-  navMobile.classList.toggle('open');
-});
-navMobile.querySelectorAll('a').forEach(function(a) {
-  a.addEventListener('click', function() { navMobile.classList.remove('open'); });
-});
-document.addEventListener('click', function(e) {
-  if (!e.target.closest('nav')) navMobile.classList.remove('open');
-}, { passive: true });
-
-// ── Hero carousel ──────────────────────────────────────────────
-var slides = document.getElementById('heroSlides');
-var dots = document.querySelectorAll('.hero-dot');
-var current = 0;
-var total = dots.length;
-var timer;
-
-function goTo(idx) {
-  current = (idx + total) % total;
-  slides.style.transform = 'translateX(-' + (current * 100) + '%)';
-  dots.forEach(function(d, i) { d.classList.toggle('active', i === current); });
-}
-function next() { goTo(current + 1); }
-
-dots.forEach(function(d) {
-  d.addEventListener('click', function() {
-    clearInterval(timer);
-    goTo(parseInt(d.dataset.idx));
-    timer = setInterval(next, 3500);
+  // ── スマホ：ナビリンクタップ or メニュー外タップでメニューを閉じる ──
+  function closeNavMenu() {
+    var navMenu = document.getElementById('navMenu');
+    if (navMenu.classList.contains('show')) {
+      bootstrap.Collapse.getOrCreateInstance(navMenu).hide();
+    }
+  }
+  document.querySelectorAll('#navMenu .nav-link').forEach(function(link) {
+    link.addEventListener('click', closeNavMenu);
   });
-});
-timer = setInterval(next, 3500);
+  ['click', 'touchstart'].forEach(function(type) {
+    document.addEventListener(type, function(e) {
+      if (!e.target.closest('nav')) closeNavMenu();
+    }, { passive: true });
+  });
 
-// ── Scroll reveal ──────────────────────────────────────────────
-var reveals = document.querySelectorAll('.reveal');
-var observer = new IntersectionObserver(function(entries) {
-  entries.forEach(function(e) {
-    if (e.isIntersecting) {
-      e.target.classList.add('visible');
-      observer.unobserve(e.target);
+  // ── bfcacheに入る前後にフォーカスを解除 ──────────────
+  window.addEventListener('pagehide', function() {
+    document.querySelectorAll('a.btn, button').forEach(function(el) { el.blur(); });
+    if (document.activeElement) document.activeElement.blur();
+  });
+  window.addEventListener('pageshow', function() {
+    setTimeout(function() {
+      document.querySelectorAll('a.btn, button').forEach(function(el) { el.blur(); });
+      if (document.activeElement) document.activeElement.blur();
+    }, 0);
+  });
+
+  // ── リリース通知メール登録 ──────────────────────────────
+  document.getElementById('btnNotifySubmit').addEventListener('click', async function() {
+    var email = document.getElementById('notifyEmail').value.trim();
+    var msg = document.getElementById('notifyMsg');
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      msg.innerHTML = '<span style="color:#dc2626;">有効なメールアドレスを入力してください</span>';
+      return;
+    }
+    this.disabled = true;
+    msg.innerHTML = '';
+    try {
+      var resp = await fetch('/api/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email })
+      });
+      if (!resp.ok) throw new Error('failed');
+      document.getElementById('notifyForm').classList.add('d-none');
+      document.getElementById('notifyDone').classList.remove('d-none');
+    } catch (e) {
+      msg.innerHTML = '<span style="color:#dc2626;">エラーが発生しました。再度お試しください。</span>';
+      this.disabled = false;
     }
   });
-}, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
-reveals.forEach(function(el) { observer.observe(el); });
-
-// ── FAQ accordion ──────────────────────────────────────────────
-document.querySelectorAll('.faq-question').forEach(function(q) {
-  q.addEventListener('click', function() {
-    var item = q.closest('.faq-item');
-    var answer = item.querySelector('.faq-answer');
-    var isOpen = item.classList.contains('open');
-
-    // close all
-    document.querySelectorAll('.faq-item.open').forEach(function(open) {
-      open.classList.remove('open');
-      open.querySelector('.faq-answer').style.maxHeight = '0';
-    });
-
-    if (!isOpen) {
-      item.classList.add('open');
-      answer.style.maxHeight = answer.querySelector('.faq-answer-inner').scrollHeight + 'px';
-    }
-  });
-});
-
-// ── bfcache blur ───────────────────────────────────────────────
-window.addEventListener('pagehide', function() {
-  document.querySelectorAll('a, button').forEach(function(el) { el.blur(); });
-});
 </script>
 </body>
 </html>
