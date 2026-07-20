@@ -228,5 +228,28 @@ const Demo = (() => {
     confirmedAt: '2026年1月1日',
   };
 
-  return { enable, disable, isActive, getRole, setRole, getUserEmail, MASTER, EXPENSES, SHEET_ID, COMPANY_NAME, REGULATION };
+  // ── デモ証票SVGの日付スライド ─────────────────────────────
+  // 一覧の日付を _shiftMonths ヶ月ずらしているのに合わせ、証票画像(SVG)内の
+  // 「YYYY年M月D日」表記も同じだけずらし、画像内の日付と一覧を一致させる。
+  function shiftSvgDates(text) {
+    if (!_shiftMonths) return text;
+    return text.replace(/(\d{4})年(\d{1,2})月(\d{1,2})日/g, (_, y, m, d) => {
+      const s = _shiftYMD(`${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
+      const [ny, nm, nd] = s.split('-').map(Number);
+      return `${ny}年${nm}月${nd}日`;
+    });
+  }
+  const _receiptBlobCache = {};
+  /** デモ証票SVGを日付スライドして Blob URL を返す（キャッシュ・失敗時は元パス）。 */
+  async function shiftedReceiptUrl(path) {
+    if (!_shiftMonths) return path;
+    if (_receiptBlobCache[path]) return _receiptBlobCache[path];
+    const res = await fetch(path);
+    const text = shiftSvgDates(await res.text());
+    const url = URL.createObjectURL(new Blob([text], { type: 'image/svg+xml' }));
+    _receiptBlobCache[path] = url;
+    return url;
+  }
+
+  return { enable, disable, isActive, getRole, setRole, getUserEmail, MASTER, EXPENSES, SHEET_ID, COMPANY_NAME, REGULATION, shiftSvgDates, shiftedReceiptUrl };
 })();

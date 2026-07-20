@@ -962,7 +962,14 @@ const ListView = (() => {
         pdfWrap.style.display = 'none';
         if (pdfFrame) pdfFrame.src = '';
         img.style.display = 'block';
-        img.src = url;
+        // デモの証票SVGは、一覧の日付スライドに合わせて画像内の日付もずらして表示する
+        if (typeof Demo !== 'undefined' && Demo.isActive() && Demo.shiftedReceiptUrl && /^demo\/receipts\/.*\.svg$/i.test(url)) {
+          Demo.shiftedReceiptUrl(url)
+            .then(u => { if (_urls[_cur] === url) img.src = u; })
+            .catch(() => { if (_urls[_cur] === url) img.src = url; });
+        } else {
+          img.src = url;
+        }
       }
       navBar.style.display = urls.length > 1 ? 'block' : 'none';
       if (pageEl) pageEl.textContent = `${_cur + 1} / ${urls.length}`;
