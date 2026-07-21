@@ -63,6 +63,7 @@
     .status-dot.active   { color: #16a34a; } .status-dot.active::before   { background: #16a34a; }
     .status-dot.expired  { color: #d97706; } .status-dot.expired::before  { background: #d97706; }
     .status-dot.suspended{ color: #dc2626; } .status-dot.suspended::before{ background: #dc2626; }
+    .status-dot.canceling{ color: #ea580c; } .status-dot.canceling::before{ background: #ea580c; }
     .action-btn { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 5px; border: 1px solid var(--border); background: transparent; color: var(--text-mute); cursor: pointer; transition: all 0.15s; font-size: 0.8rem; }
     .action-btn:hover.upgrade { background: #fef3c7; border-color: #fbbf24; color: #92400e; }
     .action-btn:hover.delete  { background: #fee2e2; border-color: #fca5a5; color: #991b1b; }
@@ -458,6 +459,7 @@
             <select class="filter-select" id="filterStatus">
               <option value="">全ステータス</option>
               <option value="active">有効</option>
+              <option value="canceling">解約予定</option>
               <option value="expired">期限切れ</option>
               <option value="suspended">停止中</option>
             </select>
@@ -1589,6 +1591,7 @@
     function getStatus(lic) {
       if (lic.suspended) return 'suspended';
       if (lic.expiresAt && new Date(lic.expiresAt) < new Date()) return 'expired';
+      if (lic.cancelScheduled) return 'canceling';  // 期間末解約の予約済み（期限までは有効）
       return 'active';
     }
 
@@ -1613,7 +1616,7 @@
         return true;
       });
       document.getElementById('filteredCount').textContent = (text || status) ? `${filtered.length} / ${_all.length}件` : `${_all.length}件`;
-      const statusLabel = { active: '有効', expired: '期限切れ', suspended: '停止中' };
+      const statusLabel = { active: '有効', expired: '期限切れ', suspended: '停止中', canceling: '解約予定' };
       const planLabel   = { solo: 'ソロ', team: 'チーム' };
       const tbody = document.getElementById('licenseTable');
       tbody.innerHTML = filtered.map(l => {
@@ -1637,7 +1640,7 @@
           <td style="font-size:0.78rem;color:var(--text-sub);white-space:nowrap;">${expFmt}${intervalBadge}</td>
           <td class="usage-num ${usageThis > 0 ? 'active' : 'zero'}">${usageThis || '—'}</td>
           <td class="usage-num zero">${usageLast || '—'}</td>
-          <td style="text-align:center;"><span class="status-dot ${st}">${statusLabel[st]}</span></td>
+          <td style="text-align:center;"><span class="status-dot ${st}">${statusLabel[st]}${st === 'canceling' && l.cancelAt ? `<span style="color:var(--text-mute);font-weight:400;">〜${l.cancelAt.slice(5).replace('-', '/')}</span>` : ''}</span></td>
           <td>${_referrerCell(l)}</td>
           <td class="pe-last" style="text-align:right;white-space:nowrap;">
             ${!isStripe && !l.upgradedAt ? `<button class="action-btn upgrade btn-upgrade me-1" data-key="${esc(l.key)}" title="有料転換"><i class="bi bi-arrow-up-circle"></i></button>` : ''}
@@ -1655,7 +1658,7 @@
 
     function exportCsv() {
       const header = ['発行日','氏名','ビジネス名','メール','ライセンスキー','チームURL','プラン','有効期限','今月申請数','先月申請数','ステータス'];
-      const statusLabel = { active: '有効', expired: '期限切れ', suspended: '停止中' };
+      const statusLabel = { active: '有効', expired: '期限切れ', suspended: '停止中', canceling: '解約予定' };
       const planLabel   = { solo: 'ソロ', team: 'チーム' };
       const rows = _all.map(l => [
         l.createdAt?.split('T')[0]||'', l.customerName||l.company||'', l.businessName||'',
