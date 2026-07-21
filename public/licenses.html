@@ -1532,12 +1532,14 @@
     }
     // 当月/前月/累計 × 新規トライアル/有料切替/失効/解約 のマトリクス
     function updateMatrix() {
-      const _all = _statsList(); // リセット日時以降のみ集計
+      // 起点（統計リセット日時）判定は「その出来事が起きた日」で行う。作成日ではない。
+      // 例：起点より前に作成 → 起点より後に解約、も“今の解約”として正しく数える。
       const now = new Date();
       const curYm  = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
       const prevD  = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       const prevYm = `${prevD.getFullYear()}-${String(prevD.getMonth() + 1).padStart(2, '0')}`;
       const inMonth = (dt, ym) => (dt || '').slice(0, 7) === ym;
+      const afterEpoch = dt => !!dt && (!_statsEpoch || dt >= _statsEpoch); // イベント日が統計起点以降か
 
       const trialDate  = l => l.createdAt || '';                    // 新規トライアル＝新規登録
       const paidDate   = l => l.convertedAt || l.upgradedAt || '';  // 有料切り替え
@@ -1548,8 +1550,8 @@
         return l.expiresAt;
       };
 
-      const count    = (fn, ym) => _all.filter(l => inMonth(fn(l), ym)).length;
-      const countCum = (fn)     => _all.filter(l => !!fn(l)).length;
+      const count    = (fn, ym) => _all.filter(l => { const d = fn(l); return inMonth(d, ym) && afterEpoch(d); }).length;
+      const countCum = (fn)     => _all.filter(l => afterEpoch(fn(l))).length;
       const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
 
       set('mxTrialCur',  count(trialDate, curYm));  set('mxTrialPrev',  count(trialDate, prevYm));  set('mxTrialCum',  countCum(trialDate));
@@ -1560,13 +1562,17 @@
 
     // 解約理由の集計（Stripeのcancellation_details.feedback）
     function updateCancelReasons() {
-      const _all = _statsList(); // リセット日時以降のみ集計
       const labels = {
         too_expensive: '高すぎる', missing_features: '機能不足', switched_service: '他サービスへ移行',
         unused: '使わなくなった', customer_service: 'サポート不満', too_complex: '複雑すぎる',
         low_quality: '品質不満', other: 'その他', '': '（理由なし）',
       };
-      const cancelled = _all.filter(l => l.canceledAt || l.cancelScheduled || l.cancelReason);
+      // 解約日（無ければ作成日）が統計起点以降のものを集計。作成が古くても“今の解約”を数える。
+      const cancelled = _all.filter(l => {
+        if (!(l.canceledAt || l.cancelScheduled || l.cancelReason)) return false;
+        const d = l.canceledAt || l.createdAt || '';
+        return !_statsEpoch || d >= _statsEpoch;
+      });
       const counts = {};
       cancelled.forEach(l => { const r = l.cancelReason || ''; counts[r] = (counts[r] || 0) + 1; });
       const total = cancelled.length;
