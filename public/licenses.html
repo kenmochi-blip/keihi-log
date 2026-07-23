@@ -474,7 +474,7 @@
                 <th style="width:180px;">顧客</th>
                 <th style="width:140px;">チームURL</th>
                 <th style="width:56px;">種別</th>
-                <th style="width:60px;">プラン</th>
+                <th style="width:72px;">プラン</th>
                 <th style="width:130px;">有効期限</th>
                 <th style="width:48px;text-align:right;">今月</th>
                 <th style="width:48px;text-align:right;">先月</th>
@@ -1642,7 +1642,7 @@
           <td>${_customerCell(l)}</td>
           <td style="font-size:0.75rem;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${l.alias ? `<a href="https://keihi-log.com/${esc(l.alias)}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;" title="keihi-log.com/${esc(l.alias)}">${esc(l.alias)}<i class="bi bi-box-arrow-up-right ms-1" style="font-size:0.65rem;"></i></a>` : '<span style="color:var(--text-mute);">未設定</span>'}</td>
           <td>${isStripe ? '<span class="tag tag-stripe">Stripe</span>' : '<span class="tag tag-manual">手動</span>'}</td>
-          <td><span class="tag tag-${plan}">${planLabel[plan]}</span>${l.trial ? '<span style="font-size:0.6rem;background:#fef3c7;color:#92400e;border:1px solid #fbbf24;padding:1px 5px;border-radius:3px;margin-left:3px;">トライアル</span>' : ''}</td>
+          <td><span class="tag tag-${plan}">${planLabel[plan]}</span>${l.trial ? '<span style="font-size:0.6rem;background:#fef3c7;color:#92400e;border:1px solid #fbbf24;padding:1px 5px;border-radius:3px;margin-left:3px;white-space:nowrap;">トライアル</span>' : ''}</td>
           <td style="font-size:0.78rem;color:var(--text-sub);white-space:nowrap;">${expFmt}${intervalBadge}</td>
           <td class="usage-num ${usageThis > 0 ? 'active' : 'zero'}">${usageThis || '—'}</td>
           <td class="usage-num zero">${usageLast || '—'}</td>
