@@ -58,7 +58,7 @@
     .tag-manual  { background: #f1f5f9; color: #64748b; border: 1px solid var(--border); }
     .tag-solo    { background: #f1f5f9; color: #475569; }
     .tag-team    { background: #ede9fe; color: #6d28d9; }
-    .status-dot  { display: inline-flex; align-items: center; gap: 5px; font-size: 0.75rem; font-weight: 500; }
+    .status-dot  { display: inline-flex; align-items: center; gap: 5px; font-size: 0.75rem; font-weight: 500; white-space: nowrap; }
     .status-dot::before { content:''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
     .status-dot.active   { color: #16a34a; } .status-dot.active::before   { background: #16a34a; }
     .status-dot.expired  { color: #d97706; } .status-dot.expired::before  { background: #d97706; }
@@ -478,7 +478,7 @@
                 <th style="width:130px;">有効期限</th>
                 <th style="width:48px;text-align:right;">今月</th>
                 <th style="width:48px;text-align:right;">先月</th>
-                <th style="width:80px;text-align:center;">状態</th>
+                <th style="width:104px;text-align:center;">状態</th>
                 <th style="width:120px;">紹介者</th>
                 <th class="pe-last" style="width:56px;text-align:right;"></th>
               </tr>
