@@ -139,6 +139,18 @@ export default async function handler(req, res) {
     await kv.set(`alias_by_sheet:${sheetId}`, code);
     await kv.set(`alias_lic:${code}`, licenseKey);
     if (companyName) await kv.set(`alias_company:${code}`, companyName);
+
+    // Stripeサブスクの description に「組織名（keihi-log.com/code）」を即時反映。
+    // Stripe の更新リマインドメール・請求書・ポータルで「どの経費ログか」を識別できるようにする。
+    // 有料（サブスクあり）のライセンスのみ対象。descriptionのみ更新なので顧客通知は飛ばない。
+    if (licData.stripeSubscriptionId && process.env.STRIPE_SECRET_KEY) {
+      try {
+        const Stripe = (await import('stripe')).default;
+        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY.trim());
+        const org = companyName || licData.businessName || licData.company || licData.customerName || licData.email || '経費ログ';
+        await stripe.subscriptions.update(licData.stripeSubscriptionId, { description: `${org}（keihi-log.com/${code}）`.slice(0, 500) });
+      } catch (e) { console.warn('[alias] stripe desc sync failed:', e.message); }
+    }
     return res.status(200).json({ ok: true });
   }
 

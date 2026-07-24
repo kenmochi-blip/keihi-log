@@ -464,6 +464,7 @@
               <option value="suspended">停止中</option>
             </select>
             <button class="btn-ghost" id="btnCsvExport"><i class="bi bi-download"></i>CSV</button>
+            <button class="btn-ghost" id="btnSyncStripeDesc" title="既存の有料サブスクのStripe説明欄に「組織名（keihi-log.com/URL）」を一括反映"><i class="bi bi-arrow-repeat"></i>Stripe説明同期</button>
           </div>
         </div>
         <div style="overflow-x:auto;">
@@ -674,6 +675,7 @@
     document.getElementById('filterText').addEventListener('input', render);
     document.getElementById('filterStatus').addEventListener('change', render);
     document.getElementById('btnCsvExport').addEventListener('click', exportCsv);
+    document.getElementById('btnSyncStripeDesc').addEventListener('click', syncStripeDesc);
     document.getElementById('monthPicker').value = new Date().toISOString().slice(0, 7);
     document.getElementById('monthPicker').addEventListener('change', updateMonthly);
 
@@ -1660,6 +1662,23 @@
       tbody.querySelectorAll('.btn-delete').forEach(btn => btn.addEventListener('click', () => deleteLicense(btn.dataset.key)));
       tbody.querySelectorAll('.referrer-select').forEach(sel => sel.addEventListener('change', () => setReferrer(sel.dataset.key, sel.value)));
       document.getElementById('noResult').classList.toggle('d-none', filtered.length > 0);
+    }
+
+    async function syncStripeDesc() {
+      if (!confirm('既存の有料サブスクのStripe説明欄に「組織名（keihi-log.com/URL）」を一括反映します。よろしいですか？')) return;
+      const btn = document.getElementById('btnSyncStripeDesc');
+      const orig = btn.innerHTML;
+      btn.disabled = true; btn.innerHTML = '<i class="bi bi-arrow-repeat"></i>同期中…';
+      try {
+        const resp = await fetch('/api/admin-licenses?sync_stripe_desc=1', { method: 'POST' });
+        const d = await resp.json().catch(() => ({}));
+        if (!resp.ok) { alert('失敗しました: ' + (d.error || resp.status)); return; }
+        alert(`Stripe説明を同期しました。\n対象サブスク更新: ${d.updated} 件 / 対象外（サブスクなし）: ${d.skipped} 件 / 失敗: ${d.failed} 件`);
+      } catch (e) {
+        alert('通信エラー: ' + e.message);
+      } finally {
+        btn.disabled = false; btn.innerHTML = orig;
+      }
     }
 
     function exportCsv() {

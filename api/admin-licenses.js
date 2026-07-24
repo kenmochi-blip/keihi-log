@@ -13,6 +13,7 @@
 
 import { kv } from '@vercel/kv';
 import crypto from 'crypto';
+import Stripe from 'stripe';
 import { rateLimit } from './_rateLimit.js';
 import { sheetsClient, getSaAuth, isSaConfigured } from './_sa.js';
 
@@ -38,6 +39,37 @@ export default async function handler(req, res) {
     const entries = await Promise.all(keys.map(k => kv.get(k)));
     entries.sort((a, b) => (a?.registeredAt || '').localeCompare(b?.registeredAt || ''));
     return res.status(200).json({ total: entries.length, entries });
+  }
+
+  // Stripeサブスク description の一括バックフィル（既存の有料ライセンスへ「組織名（keihi-log.com/URL）」を反映）
+  // Stripe の更新リマインドメール・請求書・ポータルで「どの経費ログか」を識別できるようにする一回きりの補正。
+  if (req.query.sync_stripe_desc != null && req.method === 'POST') {
+    if (!process.env.STRIPE_SECRET_KEY) return res.status(400).json({ error: 'no_stripe_key' });
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY.trim());
+    const keys = [];
+    let cursor = 0;
+    do {
+      const [next, batch] = await kv.scan(cursor, { match: 'license:*', count: 100 });
+      keys.push(...batch);
+      cursor = Number(next);
+    } while (cursor !== 0);
+    let updated = 0, skipped = 0, failed = 0;
+    for (const k of keys) {
+      const licKey = k.replace('license:', '');
+      const data = await kv.get(k).catch(() => null);
+      if (!data || !data.stripeSubscriptionId) { skipped++; continue; }
+      const code = await kv.get(`license_alias:${licKey}`).catch(() => null);
+      const org  = data.businessName || data.company || data.customerName || data.email || '経費ログ';
+      const desc = (code ? `${org}（keihi-log.com/${code}）` : org).slice(0, 500);
+      try {
+        await stripe.subscriptions.update(data.stripeSubscriptionId, { description: desc });
+        updated++;
+      } catch (e) {
+        failed++;
+        console.warn('[admin] desc backfill failed', licKey, e.message);
+      }
+    }
+    return res.status(200).json({ ok: true, total: keys.length, updated, skipped, failed });
   }
 
   // 紹介者マスタ管理

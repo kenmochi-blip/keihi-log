@@ -239,6 +239,7 @@ async function _issueNewLicense(session) {
   // サブスクリプションIDからライセンスキーを逆引き（更新・停止処理用）
   if (session.subscription) {
     await kv.set(`stripe_sub:${session.subscription}`, licenseKey);
+    await _syncSubDescription(session.subscription, licenseKey, licenseData);
   }
 
   // セットアップリンク用ランダムコードを生成・保存（双方向マッピング）
@@ -290,7 +291,10 @@ async function _reactivateLicense(key, oldData, session, email, name, businessNa
   await kv.set(`license:${key}`, updated);
   await kv.set(`session:${session.id}`, key, { ex: SESSION_TTL });
   await kv.set(`email_to_license:${email}`, key);
-  if (session.subscription) await kv.set(`stripe_sub:${session.subscription}`, key);
+  if (session.subscription) {
+    await kv.set(`stripe_sub:${session.subscription}`, key);
+    await _syncSubDescription(session.subscription, key, updated);
+  }
   await kv.set(emailLicensesKey, [...new Set([...allLicenseKeys, key])]);
   console.log(`License reactivated: ${key} for ${email} until ${expiresAtStr}`);
 
@@ -351,7 +355,10 @@ async function _convertLicense(key, oldData, session, email, name, businessName,
   await kv.set(`license:${key}`, updated);
   await kv.set(`session:${session.id}`, key, { ex: SESSION_TTL });
   if (email) await kv.set(`email_to_license:${email}`, key);
-  if (session.subscription) await kv.set(`stripe_sub:${session.subscription}`, key);
+  if (session.subscription) {
+    await kv.set(`stripe_sub:${session.subscription}`, key);
+    await _syncSubDescription(session.subscription, key, updated);
+  }
   // セッションのメールが取れなかった場合はトライアル申込み時のメールにフォールバック
   const toEmail = email || oldData.email || '';
   console.log(`License converted to paid: ${key} for ${toEmail} until ${expiresAtStr}`);
@@ -387,6 +394,7 @@ async function _upgradeLicense(key, oldData, session, email, name, plan, interva
   await kv.set(`session:${session.id}`, key, { ex: 60 * 60 * 24 * 30 });
   if (session.subscription) {
     await kv.set(`stripe_sub:${session.subscription}`, key);
+    await _syncSubDescription(session.subscription, key, updated);
   }
   // セッションのメールが取れなかった場合は既存ライセンスのメールにフォールバック
   const toEmail = email || oldData.email || '';
@@ -721,8 +729,28 @@ async function _renewLicense(invoice) {
   // （プラン変更イベント等が並行して plan を書き換えた場合に、古い plan で上書きしないため）
   const latest = (await kv.get(`license:${key}`).catch(() => null)) || data;
   await kv.set(`license:${key}`, { ...latest, expiresAt: newExpiry.toISOString().split('T')[0], trial: false });
+  // 更新のたびに Stripe サブスクの description（組織名＋URL）も最新化（識別用・通知は飛ばない）
+  await _syncSubDescription(invoice.subscription, key, latest);
   console.log('[webhook] License renewed:', key, 'until', newExpiry.toISOString().split('T')[0],
     'billing_reason:', invoice.billing_reason || 'renewal', 'periodEnd:', periodEnd || '(fallback)');
+}
+
+// Stripeサブスクの description に「組織名（keihi-log.com/alias）」を反映する。
+// これにより Stripe の更新リマインドメール・ダッシュボード・請求書・カスタマーポータルで
+// 「どの経費ログ（どの組織/URL）の分か」を識別できるようになる（複数org運用時の取り違え防止）。
+// description のみの更新なので顧客への通知メールは飛ばない。失敗しても本処理は止めない。
+async function _syncSubDescription(subscriptionId, key, data) {
+  if (!subscriptionId || !key || !process.env.STRIPE_SECRET_KEY) return;
+  try {
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY.trim());
+    const code = await kv.get(`license_alias:${key}`).catch(() => null);
+    const org  = (data && (data.businessName || data.company || data.customerName || data.email)) || '経費ログ';
+    const desc = (code ? `${org}（keihi-log.com/${code}）` : org).slice(0, 500);
+    await stripe.subscriptions.update(subscriptionId, { description: desc });
+    console.log(`[webhook] sub description synced: ${subscriptionId} → ${desc}`);
+  } catch (e) {
+    console.warn('[webhook] sub description sync failed:', e.message);
+  }
 }
 
 // 価格IDからプラン（solo/team）を判定する。metadata.plan 優先、なければ商品名で判定。
