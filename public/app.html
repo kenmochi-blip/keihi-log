@@ -183,7 +183,8 @@
         <a id="receiptViewerErrorLink" href="#" target="_blank" rel="noopener" class="btn btn-light btn-sm">別タブで開く <i class="bi bi-box-arrow-up-right ms-1"></i></a>
       </div>
       <div id="receiptViewerPdf" style="display:none;width:100%;height:100%;flex-direction:column;align-items:center;">
-        <iframe id="receiptViewerPdfFrame" src="" title="証票PDF" style="flex:1 1 auto;width:100%;border:none;background:#fff;border-radius:4px;"></iframe>
+        <div id="receiptViewerPdfCanvas" style="display:none;flex:1 1 auto;width:100%;overflow:auto;-webkit-overflow-scrolling:touch;flex-direction:column;align-items:center;gap:8px;padding-bottom:8px;"></div>
+        <iframe id="receiptViewerPdfFrame" src="" title="証票PDF" style="display:none;flex:1 1 auto;width:100%;border:none;background:#fff;border-radius:4px;"></iframe>
         <a id="receiptViewerPdfLink" href="#" target="_blank" rel="noopener" class="btn btn-light btn-sm mt-2 flex-shrink-0">別タブで開く <i class="bi bi-box-arrow-up-right ms-1"></i></a>
       </div>
     </div>
@@ -225,7 +226,7 @@
   <script src="js/license.js?v=20260627"></script>
   <script src="js/setup.js?v=20260612"></script>
   <script src="js/views/submit.js?v=20260710dup"></script>
-  <script src="js/views/list.js?v=20260718demo"></script>
+  <script src="js/views/list.js?v=20260725pdfjs"></script>
   <script src="js/views/summary.js?v=20260628b"></script>
   <script src="js/views/settings.js?v=20260718b"></script>
   <script src="js/router.js?v=20260627"></script>

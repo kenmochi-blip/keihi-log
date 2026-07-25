@@ -875,6 +875,7 @@ const ListView = (() => {
     const img      = document.getElementById('receiptViewerImg');
     const pdfWrap  = document.getElementById('receiptViewerPdf');
     const pdfFrame = document.getElementById('receiptViewerPdfFrame');
+    const pdfCanvasWrap = document.getElementById('receiptViewerPdfCanvas');
     const pdfLink  = document.getElementById('receiptViewerPdfLink');
     const closeBtn  = document.getElementById('receiptViewerClose');
     const navBar    = document.getElementById('receiptViewerNav');
@@ -902,44 +903,111 @@ const ListView = (() => {
       if (_pdfBlobUrl) { URL.revokeObjectURL(_pdfBlobUrl); _pdfBlobUrl = null; }
     }
 
-    // PDFをインライン表示。frameSrc は iframe に流すURL（Blob URL可）、
-    // origUrl は「別タブで開く」フォールバック用の元URL。
+    // 描画中のキャンバスを片付ける
+    function _clearPdfCanvas() {
+      if (pdfCanvasWrap) { pdfCanvasWrap.innerHTML = ''; pdfCanvasWrap.style.display = 'none'; }
+    }
+
+    // iframe フォールバック表示（PDF.js が使えない/描画失敗した場合の最終手段）。
+    // モバイルChromeではインライン描画されないことがあるため「別タブで開く」も併記。
     function _showPdf(frameSrc, origUrl) {
       img.style.display = 'none';
       if (errWrap) errWrap.style.display = 'none';
-      if (pdfFrame && frameSrc) pdfFrame.src = frameSrc;
+      _clearPdfCanvas();
+      if (pdfFrame) { pdfFrame.style.display = 'block'; if (frameSrc) pdfFrame.src = frameSrc; }
       pdfLink.href = _fallbackHref(origUrl || frameSrc);  // iOS Safari等の保険
       pdfWrap.style.display = 'flex';
     }
 
-    // PDFは元URLを直接 iframe に流すとインライン描画されない（添付ダウンロード扱い・
-    // フレーミング制限など）ことがあるため、GETで取得して Blob URL 化してから描画する。
-    // これは X-Frame-Options / Content-Disposition の影響を受けず確実にインライン表示できる。
-    async function _showPdfInline(url) {
-      if (pdfFrame) pdfFrame.src = 'about:blank';  // 直前のPDFの残像を消す
-      _showPdf('', url);            // まず枠と「別タブで開く」フォールバックを用意
-      try {
-        const r = await fetch(url);
-        if (viewer.style.display === 'none' || _urls[_cur] !== url) return;
-        if (r.ok) {
-          const raw = await r.blob();
-          if (viewer.style.display === 'none' || _urls[_cur] !== url) return;
-          // type が空/不正だとブラウザ内蔵ビューアが起動しないため application/pdf を明示
-          const blob = raw.type === 'application/pdf' ? raw : new Blob([raw], { type: 'application/pdf' });
-          _revokePdfBlob();
-          _pdfBlobUrl = URL.createObjectURL(blob);
-          _showPdf(_pdfBlobUrl, url);
-          return;
-        }
-      } catch (_) { /* 取得失敗時は元URLを直接流すフォールバックへ */ }
-      if (viewer.style.display === 'none' || _urls[_cur] !== url) return;
-      _showPdf(url, url);          // 最後の保険：元URLを直接 iframe へ
+    // PDF.js を遅延ロード（PDFを開くときだけ・1回のみ）。CDNは jsdelivr。
+    const _PDFJS_VER = '3.11.174';
+    let _pdfLibPromise = null;
+    function _loadPdfJs() {
+      if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+      if (_pdfLibPromise) return _pdfLibPromise;
+      _pdfLibPromise = new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${_PDFJS_VER}/build/pdf.min.js`;
+        s.onload = () => {
+          try {
+            window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+              `https://cdn.jsdelivr.net/npm/pdfjs-dist@${_PDFJS_VER}/build/pdf.worker.min.js`;
+            resolve(window.pdfjsLib);
+          } catch (e) { reject(e); }
+        };
+        s.onerror = () => { _pdfLibPromise = null; reject(new Error('pdfjs load failed')); };
+        document.head.appendChild(s);
+      });
+      return _pdfLibPromise;
     }
+
+    const _MAX_PDF_PAGES = 30;  // 多ページ請求書のメモリ暴発を防ぐ上限
+    // PDFを PDF.js で canvas に描画してインライン表示する。iframe と違いモバイルでも確実に表示できる。
+    // preBlob を渡すと再フェッチせずそれを使う（img失敗→Content-Type判定経由の再利用）。
+    async function _renderPdfViaCanvas(url, preBlob) {
+      img.style.display = 'none';
+      if (errWrap) errWrap.style.display = 'none';
+      if (pdfFrame) { pdfFrame.style.display = 'none'; pdfFrame.src = 'about:blank'; }
+      pdfLink.href = _fallbackHref(url);
+      pdfWrap.style.display = 'flex';
+      if (pdfCanvasWrap) {
+        pdfCanvasWrap.style.display = 'flex';
+        pdfCanvasWrap.innerHTML = '<div style="color:#fff;padding:24px;font-size:0.9rem;">読み込み中…</div>';
+      }
+
+      let pdfjsLib;
+      try { pdfjsLib = await _loadPdfJs(); }
+      catch (_) { return _showPdf(url, url); }  // ライブラリ取得失敗 → iframeフォールバック
+      if (viewer.style.display === 'none' || _urls[_cur] !== url) return;
+
+      try {
+        let buf;
+        if (preBlob) {
+          buf = await preBlob.arrayBuffer();
+        } else {
+          const resp = await fetch(url);
+          if (viewer.style.display === 'none' || _urls[_cur] !== url) return;
+          buf = await resp.arrayBuffer();
+        }
+        if (viewer.style.display === 'none' || _urls[_cur] !== url) return;
+        const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+        if (viewer.style.display === 'none' || _urls[_cur] !== url) { try { pdf.destroy(); } catch (_) {} return; }
+        if (!pdfCanvasWrap) return _showPdf(url, url);
+        pdfCanvasWrap.innerHTML = '';
+        const nPages = Math.min(pdf.numPages, _MAX_PDF_PAGES);
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const cssW = Math.min((pdfCanvasWrap.clientWidth || 800), 1000);
+        for (let i = 1; i <= nPages; i++) {
+          if (viewer.style.display === 'none' || _urls[_cur] !== url) { try { pdf.destroy(); } catch (_) {} return; }
+          const page = await pdf.getPage(i);
+          const base = page.getViewport({ scale: 1 });
+          const vp = page.getViewport({ scale: (cssW / base.width) * dpr });
+          const canvas = document.createElement('canvas');
+          canvas.width = vp.width; canvas.height = vp.height;
+          canvas.style.cssText = `width:100%;max-width:${cssW}px;height:auto;background:#fff;border-radius:4px;`;
+          pdfCanvasWrap.appendChild(canvas);
+          await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+        }
+        if (pdf.numPages > nPages) {
+          const more = document.createElement('div');
+          more.style.cssText = 'color:#fff;padding:12px;font-size:0.78rem;text-align:center;';
+          more.textContent = `全${pdf.numPages}ページ中${nPages}ページを表示（残りは「別タブで開く」から）`;
+          pdfCanvasWrap.appendChild(more);
+        }
+      } catch (_) {
+        if (viewer.style.display === 'none' || _urls[_cur] !== url) return;
+        _showPdf(url, url);  // 描画失敗 → iframeフォールバック
+      }
+    }
+
+    // 後方互換の入口（_show から呼ばれる）
+    function _showPdfInline(url) { return _renderPdfViaCanvas(url); }
 
     // 読み込み不能時のエラーカード
     function _showError(url) {
       img.style.display = 'none';
       pdfWrap.style.display = 'none';
+      _clearPdfCanvas();
       if (pdfFrame) pdfFrame.src = '';
       if (errWrap) {
         errWrap.style.display = 'block';
@@ -952,6 +1020,7 @@ const ListView = (() => {
       _retry = 0;
       _pzReset();
       _revokePdfBlob();
+      _clearPdfCanvas();
       const url = urls[_cur];
       const isPdf = url.toLowerCase().includes('pdf') || url.includes('application%2Fpdf');
       if (errWrap) errWrap.style.display = 'none';
@@ -988,6 +1057,7 @@ const ListView = (() => {
       img.src = '';
       if (pdfFrame) pdfFrame.src = '';
       _revokePdfBlob();
+      _clearPdfCanvas();
       pdfWrap.style.display = 'none';
       if (errWrap) errWrap.style.display = 'none';
       document.body.style.overflow = '';
@@ -1008,6 +1078,7 @@ const ListView = (() => {
         img.src = '';
         if (pdfFrame) pdfFrame.src = '';
         _revokePdfBlob();
+        _clearPdfCanvas();
         pdfWrap.style.display = 'none';
         if (errWrap) errWrap.style.display = 'none';
         document.body.style.overflow = '';
@@ -1035,9 +1106,8 @@ const ListView = (() => {
         if (ct.includes('pdf')) {
           const blob = await r.blob();
           if (viewer.style.display === 'none' || _urls[_cur] !== u) return;
-          _revokePdfBlob();
-          _pdfBlobUrl = URL.createObjectURL(blob);   // Blob URL は X-Frame-Options の影響を受けず確実に描画
-          _showPdf(_pdfBlobUrl, u);
+          // 取得済みのblobを渡して再フェッチせずPDF.jsでcanvas描画（モバイルでも確実に表示）
+          await _renderPdfViaCanvas(u, blob);
           return;
         }
       } catch (_) { /* 取得失敗時は下のリトライ/エラー処理へ */ }
