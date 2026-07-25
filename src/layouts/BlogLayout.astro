@@ -374,13 +374,20 @@ const jsonLd = {
   <div id="read-progress"></div>
 
   <!-- ナビバー -->
-  <nav class="blog-nav py-2 px-3 px-md-4 d-flex align-items-center justify-content-between sticky-top">
+  <nav class="blog-nav py-2 px-3 px-md-4 d-flex align-items-center justify-content-between sticky-top flex-wrap row-gap-2">
     <a href="/" class="brand">
       <img class="logo-svg" src="/icons/icon-192.png" alt="" width="32" height="32" />
       経費ログ
     </a>
-    <div class="d-flex gap-3 align-items-center">
-      <a href="/blog/" class="nav-link-sm">ブログ</a>
+    <div class="d-flex gap-3 align-items-center flex-wrap justify-content-end">
+      <a href="/#howto" class="nav-link-sm d-none d-md-inline">使い方</a>
+      <a href="/#line" class="nav-link-sm d-none d-md-inline" style="color:#06C755;font-weight:700;">LINE連携</a>
+      <a href="/#features" class="nav-link-sm d-none d-md-inline">機能</a>
+      <a href="/#pricing" class="nav-link-sm d-none d-md-inline">料金</a>
+      <a href="/#byok" class="nav-link-sm d-none d-lg-inline">低価格の理由</a>
+      <a href="/faq" class="nav-link-sm d-none d-sm-inline">FAQ</a>
+      <a href="/blog/" class="nav-link-sm" style="color:var(--brand);font-weight:700;">ブログ</a>
+      <a href="https://keihi-log.com/app?demo" class="btn btn-outline-primary btn-sm rounded-pill px-3 d-none d-sm-inline-block" style="font-size:0.82rem;">デモ画面を見る</a>
       <a href="/#pricing" class="btn btn-primary btn-sm rounded-pill px-3" style="font-size:0.82rem;">無料で試す</a>
     </div>
   </nav>
