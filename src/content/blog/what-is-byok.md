@@ -1,7 +1,7 @@
 ---
 title: "BYOKって何？ 経費アプリが低価格で成り立つ仕組み"
 description: "「Bring Your Own Key」というBYOK方式について、経費精算アプリの料金がなぜ抑えられるのかという観点でやさしく解説します。"
-pubDate: 2026-08-04
+pubDate: 2026-07-07
 tags: ["BYOK", "低価格の理由"]
 author: owner
 ---
