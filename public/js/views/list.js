@@ -919,26 +919,52 @@ const ListView = (() => {
       pdfWrap.style.display = 'flex';
     }
 
-    // PDF.js を遅延ロード（PDFを開くときだけ・1回のみ）。CDNは jsdelivr。
+    // PDF.js を遅延ロード（PDFを開くときだけ・1回のみ）。
+    // 同一オリジンで自ホスト（/vendor/pdfjs）。CDN依存を排し、モバイルでの読み込み失敗
+    // （間欠的に「開かない」原因）を防ぐ。取得失敗時は一度だけ再試行する。
     const _PDFJS_VER = '3.11.174';
+    const _PDFJS_BASE = '/vendor/pdfjs';
     let _pdfLibPromise = null;
     function _loadPdfJs() {
       if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
       if (_pdfLibPromise) return _pdfLibPromise;
       _pdfLibPromise = new Promise((resolve, reject) => {
-        const s = document.createElement('script');
-        s.src = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${_PDFJS_VER}/build/pdf.min.js`;
-        s.onload = () => {
-          try {
-            window.pdfjsLib.GlobalWorkerOptions.workerSrc =
-              `https://cdn.jsdelivr.net/npm/pdfjs-dist@${_PDFJS_VER}/build/pdf.worker.min.js`;
-            resolve(window.pdfjsLib);
-          } catch (e) { reject(e); }
+        let tries = 0;
+        const attempt = () => {
+          tries++;
+          const s = document.createElement('script');
+          s.src = `${_PDFJS_BASE}/pdf.min.js?v=${_PDFJS_VER}`;
+          s.onload = () => {
+            try {
+              window.pdfjsLib.GlobalWorkerOptions.workerSrc = `${_PDFJS_BASE}/pdf.worker.min.js?v=${_PDFJS_VER}`;
+              resolve(window.pdfjsLib);
+            } catch (e) { reject(e); }
+          };
+          s.onerror = () => {
+            s.remove();
+            if (tries < 2) setTimeout(attempt, 400);
+            else { _pdfLibPromise = null; reject(new Error('pdfjs load failed')); }
+          };
+          document.head.appendChild(s);
         };
-        s.onerror = () => { _pdfLibPromise = null; reject(new Error('pdfjs load failed')); };
-        document.head.appendChild(s);
+        attempt();
       });
       return _pdfLibPromise;
+    }
+
+    // 証票の実体を取得（コールドスタート等の一過性失敗をリトライ）
+    async function _fetchPdfBuf(url, tries) {
+      let lastErr;
+      for (let i = 0; i < (tries || 1); i++) {
+        try {
+          const resp = await fetch(url);
+          if (viewer.style.display === 'none' || _urls[_cur] !== url) return null;
+          if (resp.ok) return await resp.arrayBuffer();
+          lastErr = new Error('http ' + resp.status);
+        } catch (e) { lastErr = e; }
+        await new Promise(r => setTimeout(r, 400 * (i + 1)));
+      }
+      throw lastErr || new Error('fetch failed');
     }
 
     const _MAX_PDF_PAGES = 30;  // 多ページ請求書のメモリ暴発を防ぐ上限
@@ -965,11 +991,9 @@ const ListView = (() => {
         if (preBlob) {
           buf = await preBlob.arrayBuffer();
         } else {
-          const resp = await fetch(url);
-          if (viewer.style.display === 'none' || _urls[_cur] !== url) return;
-          buf = await resp.arrayBuffer();
+          buf = await _fetchPdfBuf(url, 3);   // コールドスタート対策で最大3回リトライ
         }
-        if (viewer.style.display === 'none' || _urls[_cur] !== url) return;
+        if (!buf || viewer.style.display === 'none' || _urls[_cur] !== url) return;
         const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
         if (viewer.style.display === 'none' || _urls[_cur] !== url) { try { pdf.destroy(); } catch (_) {} return; }
         if (!pdfCanvasWrap) return _showPdf(url, url);
