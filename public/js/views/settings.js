@@ -898,9 +898,11 @@ const SettingsView = (() => {
       // LINE専用メンバー（メールなし・合成ID）は生IDを見せず「LINE専用」と表示
       const isLineOnly = String(m.email || '').startsWith('line:');
       const isConnected = _lineLinkedSet.has(String(m.email || '').toLowerCase());
-      // ① Googleのみ・未接続 → LINEボタン表示 / ② Google+接続済 → 「LINE接続済」バッジ / ③ LINE専用 → バッジのみ
+      // ① Googleのみ・未接続 → LINEボタン表示 / ② Google+接続済 → 「LINE接続済」バッジ / ③ LINE専用 → 接続済/未接続でバッジを出し分け
       const idLabel = isLineOnly
-        ? '<span class="badge ms-1" style="font-size:0.6rem;background:#06C755;"><i class="bi bi-chat-dots-fill me-1"></i>LINE専用</span>'
+        ? (isConnected
+            ? '<span class="badge ms-1" style="font-size:0.6rem;background:#06C755;"><i class="bi bi-check-circle-fill me-1"></i>LINE専用・接続済</span>'
+            : '<span class="badge ms-1" style="font-size:0.6rem;background:#adb5bd;"><i class="bi bi-hourglass-split me-1"></i>LINE専用・未接続</span>')
         : _escape(m.email);
       const connectedBadge = (!isLineOnly && isConnected)
         ? '<span class="badge ms-1" style="font-size:0.6rem;background:#06C755;">LINE接続済</span>'
