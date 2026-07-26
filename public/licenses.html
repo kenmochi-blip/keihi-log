@@ -1441,7 +1441,8 @@
         ? `<div class="customer-biz">${name}</div>` : '';
       const emailEsc = esc(email);
       if (compact) return `<div class="customer-name" title="${emailEsc || ''}">${displayName}</div>${subLine}`;
-      return `<div style="display:flex;align-items:center;gap:4px;"><div><div class="customer-name">${displayName}</div>${subLine}</div>${emailEsc ? `<button class="email-btn" onclick="copyEmail(this,'${emailEsc}')" title="${emailEsc}"><i class="bi bi-envelope" style="font-size:0.7rem;"></i><span class="email-tooltip">${emailEsc}</span></button>` : ''}</div>`;
+      const editBtn = `<button class="email-btn" onclick="editEmail('${esc(l.key)}','${emailEsc}')" title="登録メールアドレスを修正"><i class="bi bi-pencil" style="font-size:0.62rem;"></i></button>`;
+      return `<div style="display:flex;align-items:center;gap:4px;"><div><div class="customer-name">${displayName}</div>${subLine}</div>${emailEsc ? `<button class="email-btn" onclick="copyEmail(this,'${emailEsc}')" title="${emailEsc}"><i class="bi bi-envelope" style="font-size:0.7rem;"></i><span class="email-tooltip">${emailEsc}</span></button>` : ''}${editBtn}</div>`;
     }
 
     function copyEmail(btn, email) {
@@ -1449,6 +1450,27 @@
         btn.classList.add('email-copied'); btn.title = 'コピーしました';
         setTimeout(() => { btn.classList.remove('email-copied'); btn.title = email; }, 1500);
       });
+    }
+
+    async function editEmail(key, currentEmail) {
+      const next = prompt('登録メールアドレスを修正します（Google/Stripe側の実際の値と一致させてください）', currentEmail || '');
+      if (next === null) return;
+      const email = next.trim();
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { alert('メールアドレスの形式が正しくありません'); return; }
+      if (email.toLowerCase() === (currentEmail || '').toLowerCase()) return;
+      try {
+        const resp = await fetch('/api/admin-licenses', {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key, action: 'set_email', email }),
+        });
+        const d = await resp.json().catch(() => ({}));
+        if (!resp.ok) { alert('失敗しました: ' + (d.error || resp.status)); return; }
+        const idx = _all.findIndex(l => l.key === key);
+        if (idx !== -1) _all[idx] = { ..._all[idx], email: d.email };
+        render();
+      } catch (e) {
+        alert('通信エラー: ' + e.message);
+      }
     }
     function copyKey(el, key) {
       navigator.clipboard.writeText(key).then(() => {

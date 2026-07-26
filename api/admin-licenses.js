@@ -611,6 +611,34 @@ ${logText}
     const data = await kv.get(`license:${key}`).catch(() => null);
     if (!data) return res.status(404).json({ error: 'not found' });
 
+    if (action === 'set_email') {
+      // 登録メールアドレスの手動修正用（例: Stripe決済時に+エイリアス等で誤って入力された場合）。
+      // Googleログインの isOwner 判定は完全一致のため、+エイリアス等が入っていると永久に一致しない。
+      const newEmail = String(req.body?.email || '').trim().toLowerCase();
+      if (!newEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
+        return res.status(400).json({ error: 'invalid_email' });
+      }
+      const oldEmail = (data.email || '').toLowerCase();
+      if (oldEmail === newEmail) return res.status(200).json({ ok: true, email: data.email });
+
+      if (oldEmail) {
+        const arr = await _getEmailLicenses(kv, oldEmail);
+        const updated = arr.filter(k => k !== key);
+        if (updated.length > 0) {
+          await kv.set(`email_licenses:${oldEmail}`, updated);
+          await kv.set(`email_to_license:${oldEmail}`, updated[0]);
+        } else {
+          await kv.del(`email_licenses:${oldEmail}`).catch(() => {});
+          await kv.del(`email_to_license:${oldEmail}`).catch(() => {});
+        }
+      }
+      await _addEmailLicense(kv, newEmail, key);
+      const updatedLicense = { ...data, email: newEmail };
+      await kv.set(`license:${key}`, updatedLicense);
+      console.log(`License email changed: ${key} ${data.email || '(none)'} -> ${newEmail}`);
+      return res.status(200).json({ ok: true, email: newEmail });
+    }
+
     if (action === 'set_referrer') {
       const { referrer } = req.body;
       const updated = { ...data };
