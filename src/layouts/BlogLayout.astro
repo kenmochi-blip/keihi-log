@@ -258,13 +258,11 @@ const jsonLd = {
       margin: 0 0 1.8rem;
     }
     .article-body :global(.table-scroll table) {
-      width: auto;
-      min-width: 560px;
+      width: 100%;
+      min-width: 620px;
+      table-layout: fixed;
       margin: 0;
     }
-    .article-body :global(.table-scroll th),
-    .article-body :global(.table-scroll td) { white-space: nowrap; }
-    .article-body :global(.table-scroll td.wrap) { white-space: normal; }
     .article-body :global(thead th) {
       background: #f3f5f9;
       color: #3a4048;

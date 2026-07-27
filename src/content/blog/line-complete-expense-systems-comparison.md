@@ -23,12 +23,13 @@ author: owner
 
 <div class="table-scroll">
 <table>
+<colgroup><col style="width:24%"><col style="width:16%"><col style="width:60%"></colgroup>
 <thead><tr><th>サービス</th><th>LINE対応状況</th><th>備考</th></tr></thead>
 <tbody>
 <tr><td>楽楽精算</td><td>非対応</td><td class="wrap">専用アプリでの撮影・OCR読み取りが基本</td></tr>
 <tr><td>バクラク経費精算</td><td>非対応</td><td class="wrap">Slack連携はあるが、LINEの記載は見当たらない</td></tr>
 <tr><td>ジョブカン経費精算</td><td>非対応</td><td class="wrap">専用アプリでの申請が基本</td></tr>
-<tr><td>TOKIUM経費精算</td><td>非対応</td><td class="wrap">領収書を撮って郵送するアナログ運用が特徴で、専用アプリ完結型</td></tr>
+<tr><td>TOKIUM経費精算</td><td>非対応</td><td class="wrap">スマホアプリでの撮影・申請が基本（原本は郵送で預けるオプションサービスもあり）</td></tr>
 <tr><td>マネーフォワード クラウド経費</td><td>部分対応</td><td class="wrap">LINE Payでの立替精算（送金）に対応。申請・承認の通知はLINE/LINE WORKSともに非対応と明記</td></tr>
 <tr><td>freee経費精算</td><td>部分対応</td><td class="wrap">公式LINEアカウントに領収書を送ると電子帳簿保存用に保存される機能はあるが、経費の申請・承認ワークフローとは別物</td></tr>
 <tr><td>経費BANK</td><td>部分対応（拡張中）</td><td class="wrap">LINE WORKS（法人向けの別チャットツール）との連携オプション。2025年4月からフェーズ1（通知・承認確認）、同年9月からフェーズ2（LINE WORKS上での申請）を提供開始。申請側の本格対応は「フェーズ3・2026年1月以降予定」とされていたが、本稿執筆時点で正式なリリース発表は確認できず</td></tr>
