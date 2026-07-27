@@ -738,15 +738,26 @@ async function _renewLicense(invoice) {
 // Stripeサブスクの description に「組織名（keihi-log.com/alias）」を反映する。
 // これにより Stripe の更新リマインドメール・ダッシュボード・請求書・カスタマーポータルで
 // 「どの経費ログ（どの組織/URL）の分か」を識別できるようになる（複数org運用時の取り違え防止）。
-// description のみの更新なので顧客への通知メールは飛ばない。失敗しても本処理は止めない。
+// あわせて invoice_settings.custom_fields にも「組織」「URL」を設定する。custom_fields は
+// サブスクから生成される毎月の請求書（PDF・ホスト型請求書ページ）に、ラベル付きの項目として
+// 確実に表示されるため、description（自由記述・請求書本文の一部）よりも月次請求で見つけやすい。
+// どちらも description/custom_fields のみの更新なので顧客への通知メールは飛ばない。失敗しても本処理は止めない。
 async function _syncSubDescription(subscriptionId, key, data) {
   if (!subscriptionId || !key || !process.env.STRIPE_SECRET_KEY) return;
   try {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY.trim());
     const code = await kv.get(`license_alias:${key}`).catch(() => null);
     const org  = (data && (data.businessName || data.company || data.customerName || data.email)) || '経費ログ';
-    const desc = (code ? `${org}（keihi-log.com/${code}）` : org).slice(0, 500);
-    await stripe.subscriptions.update(subscriptionId, { description: desc });
+    const url  = code ? `keihi-log.com/${code}` : '';
+    const desc = (url ? `${org}（${url}）` : org).slice(0, 500);
+    const customFields = [
+      { name: '組織', value: org.slice(0, 30) },
+      ...(url ? [{ name: 'URL', value: url.slice(0, 30) }] : []),
+    ];
+    await stripe.subscriptions.update(subscriptionId, {
+      description: desc,
+      invoice_settings: { custom_fields: customFields },
+    });
     console.log(`[webhook] sub description synced: ${subscriptionId} → ${desc}`);
   } catch (e) {
     console.warn('[webhook] sub description sync failed:', e.message);
