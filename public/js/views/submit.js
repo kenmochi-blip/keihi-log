@@ -656,6 +656,7 @@ function _bindSubtypePills(el) {
         el.querySelector('#heroDefault')?.classList.add('d-none');
         el.querySelector('#heroPreview')?.classList.remove('d-none');
         el.querySelector('#btnAnalyze')?.classList.remove('d-none');
+        _setPreAiDim(el, true);
       }
 
       for (const file of files) {
@@ -670,6 +671,7 @@ function _bindSubtypePills(el) {
         el.querySelector('#heroDefault')?.classList.remove('d-none');
         el.querySelector('#heroPreview')?.classList.add('d-none');
         el.querySelector('#btnAnalyze')?.classList.add('d-none');
+        _setPreAiDim(el, false);
         return;
       }
 
@@ -794,6 +796,7 @@ function _bindSubtypePills(el) {
           el.querySelector('#heroDefault')?.classList.remove('d-none');
           el.querySelector('#heroPreview')?.classList.add('d-none');
           el.querySelector('#btnAnalyze')?.classList.add('d-none');
+          _setPreAiDim(el, false);
         }
       }
     });
@@ -1332,9 +1335,24 @@ function _bindSubtypePills(el) {
     }
   }
 
+  /** 写真選択直後・AI読み取り前の一時的なグレーアウト。
+   *  「その他のタイプの申請」カード・履歴・下部ナビを薄くして、AIで読み取るボタンに注目を集める。
+   *  submitUnit（登録ボタン）はまだフォームが空なので表示しない。 */
+  function _setPreAiDim(el, on) {
+    el.querySelector('#subtypeCard')?.classList.toggle('subtype-dimmed', on);
+    const hs = el.querySelector('#historySection');
+    if (hs) hs.classList.toggle('history-inactive', on);
+    const ns = el.querySelector('#navShortcuts');
+    if (ns) {
+      ns.style.opacity = on ? '0.35' : '';
+      ns.style.pointerEvents = on ? 'none' : '';
+    }
+  }
+
   function _showReceiptFields(el) {
     el.querySelector('#receiptFields')?.classList.remove('d-none');
     el.querySelector('#subtypeCard')?.classList.add('d-none');
+    el.querySelector('#subtypeCard')?.classList.remove('subtype-dimmed');
     _setSubmitUnitVisible(el, true);
   }
 
@@ -2225,6 +2243,7 @@ function _bindSubtypePills(el) {
     el.querySelector('#heroDefault')?.classList.remove('d-none');
     el.querySelector('#heroPreview')?.classList.add('d-none');
     el.querySelector('#subtypeCard')?.classList.remove('d-none');
+    el.querySelector('#subtypeCard')?.classList.remove('subtype-dimmed');
     el.querySelector('#regulationAcc')?.classList.remove('d-none');
     _setSubmitUnitVisible(el, false);
     el.querySelector('#receiptFields')?.classList.add('d-none');

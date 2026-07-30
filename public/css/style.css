@@ -142,6 +142,15 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
   transition: opacity 0.2s;
 }
 
+/* 写真選択直後、AI読み取り前：その他のタイプの申請カードを一時的にグレーアウトし、
+   「AIで読み取る」ボタンへの注目を誘導する */
+#subtypeCard.subtype-dimmed {
+  opacity: 0.35;
+  pointer-events: none;
+  user-select: none;
+  transition: opacity 0.2s;
+}
+
 /* 履歴カード */
 .history-card {
   background: #fff;
