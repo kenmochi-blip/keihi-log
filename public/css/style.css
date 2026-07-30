@@ -513,18 +513,6 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
   box-shadow: 0 1px 6px rgba(0,0,0,0.08);
   border: 2px dashed transparent;
   transition: border-color 0.15s, background 0.15s;
-  /* 初期画面（heroDefault）と撮影後画面（heroPreview、証票1枚）の高さをそろえ、
-     下にある「その他のタイプの申請」の縦位置が撮影前後で動かないようにする。
-     余った高さは中身を縦方向中央寄せして埋め、下に不自然な空白を作らない。 */
-  min-height: 456px;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-.hero-zone #heroDefault,
-.hero-zone #heroPreview {
-  width: 100%;
 }
 .hero-zone.drag-over { border-color: #0d6efd; background: #f0f5ff; }
 .hero-icon-wrap {
