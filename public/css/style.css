@@ -186,8 +186,8 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 /* ファイルプレビュー */
 .file-preview-item {
   position: relative;
-  width: 72px;
-  height: 72px;
+  width: 108px;
+  height: 108px;
   border-radius: 6px;
   overflow: hidden;
   border: 1px solid #dee2e6;
@@ -513,6 +513,10 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
   box-shadow: 0 1px 6px rgba(0,0,0,0.08);
   border: 2px dashed transparent;
   transition: border-color 0.15s, background 0.15s;
+  /* 初期画面（heroDefault）と撮影後画面（heroPreview、証票1枚）の高さをそろえ、
+     下にある「その他のタイプの申請」の縦位置が撮影前後で動かないようにする */
+  min-height: 456px;
+  box-sizing: border-box;
 }
 .hero-zone.drag-over { border-color: #0d6efd; background: #f0f5ff; }
 .hero-icon-wrap {

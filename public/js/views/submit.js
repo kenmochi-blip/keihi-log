@@ -781,7 +781,7 @@ function _bindSubtypePills(el) {
     div.dataset.idx = idx;
     if (mimeType === 'application/pdf') {
       div.innerHTML = `<div class="file-icon d-flex align-items-center justify-content-center bg-light text-danger">
-        <i class="bi bi-filetype-pdf" style="font-size:1.5rem;"></i></div>`;
+        <i class="bi bi-filetype-pdf" style="font-size:2.25rem;"></i></div>`;
     } else {
       div.innerHTML = `<img src="${base64}" alt="preview">`;
     }
