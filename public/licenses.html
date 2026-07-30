@@ -1570,7 +1570,8 @@
       const cancelDate = l => l.canceledAt || '';                   // 解約リクエスト
       const expireDate = l => {                                     // 失効＝期限切れ（解約以外）
         if (!l.expiresAt || l.canceledAt) return '';
-        if (new Date(l.expiresAt) >= new Date()) return '';
+        const todayStr = new Date().toISOString().split('T')[0];
+        if (l.expiresAt >= todayStr) return '';                     // 期限日当日はまだ有効扱い
         return l.expiresAt;
       };
 
@@ -1620,7 +1621,10 @@
 
     function getStatus(lic) {
       if (lic.suspended) return 'suspended';
-      if (lic.expiresAt && new Date(lic.expiresAt) < new Date()) return 'expired';
+      // 日付文字列同士の比較にする（new Date(expiresAt) はUTC 0時になるため、期限日当日の
+      // 日中（JSTで朝9時以降）に「期限切れ」と誤表示されるのを防ぐ。期限日当日はまだ有効扱い）。
+      const todayStr = new Date().toISOString().split('T')[0];
+      if (lic.expiresAt && lic.expiresAt < todayStr) return 'expired';
       if (lic.cancelScheduled) return 'canceling';  // 期間末解約の予約済み（期限までは有効）
       return 'active';
     }
