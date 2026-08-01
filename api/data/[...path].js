@@ -79,6 +79,8 @@ export default async function handler(req, res) {
         return await masters(req, res);
       case 'settings':
         return await settings(req, res);
+      case 'templates':
+        return await templates(req, res);
       case 'receipt':
         return await receipt(req, res);
       case 'gemini':
@@ -733,6 +735,101 @@ async function settingsWrite(req, res) {
     })().catch(() => {});
   }
   return res.status(200).json({ ok: true });
+}
+
+/**
+ * 定期経費テンプレート（家賃・新聞代・通信費など、口座振替で毎月定額の経費を
+ * 素早く登録するためのひな形）。
+ *   GET    /api/data/templates?sheetId=XXX            一覧取得
+ *   POST   /api/data/templates?sheetId=XXX  body:{payee,amount,category,type,note}      新規作成
+ *   PUT    /api/data/templates?sheetId=XXX  body:{id,payee,amount,category,type,note}   編集
+ *   DELETE /api/data/templates?sheetId=XXX&id=YYY                                        削除
+ * 「定期経費テンプレート」シートはB'移行前に作られた既存チームには存在しないため、
+ * 初回アクセス時に無ければ自動作成する（新規チームのセットアップ手順は変更不要）。
+ */
+async function templates(req, res) {
+  const authz = await _authorize(req, res);
+  if (!authz) return;
+  const { me, isAdmin, sheetId } = authz;
+
+  await _ensureTemplatesSheet(sheetId);
+
+  if (req.method === 'GET') {
+    const list = await readTemplatesViaSA(sheetId);
+    return res.status(200).json({ templates: list });
+  }
+
+  if (req.method === 'POST') {
+    const body = await _body(req);
+    const payee = String(body?.payee || '').trim();
+    const amount = Number(body?.amount) || 0;
+    if (!payee || amount <= 0) return res.status(400).json({ error: 'invalid_template' });
+    const id = _uuid();
+    const row = [id, payee, amount, String(body?.category || ''), String(body?.type || '領収書なし'),
+      String(body?.note || ''), me.email];
+    await prependRowViaSA(sheetId, '定期経費テンプレート', row);
+    return res.status(200).json({ ok: true, id });
+  }
+
+  if (req.method === 'PUT') {
+    const body = await _body(req);
+    const id = String(body?.id || '');
+    if (!id) return res.status(400).json({ error: 'id_required' });
+    const list = await readTemplatesViaSA(sheetId);
+    const idx = list.findIndex(t => t.id === id);
+    if (idx === -1) return res.status(404).json({ error: 'not_found' });
+    if (!isAdmin && list[idx].email !== me.email) return res.status(403).json({ error: 'forbidden' });
+    const payee = String(body?.payee || '').trim();
+    const amount = Number(body?.amount) || 0;
+    if (!payee || amount <= 0) return res.status(400).json({ error: 'invalid_template' });
+    const row = [id, payee, amount, String(body?.category || ''), String(body?.type || '領収書なし'),
+      String(body?.note || ''), list[idx].email];
+    await updateRangeViaSA(sheetId, `定期経費テンプレート!A${idx + 2}:G${idx + 2}`, [row]);
+    return res.status(200).json({ ok: true });
+  }
+
+  if (req.method === 'DELETE') {
+    const id = String(_query(req).get('id') || '');
+    if (!id) return res.status(400).json({ error: 'id_required' });
+    const list = await readTemplatesViaSA(sheetId);
+    const idx = list.findIndex(t => t.id === id);
+    if (idx === -1) return res.status(404).json({ error: 'not_found' });
+    if (!isAdmin && list[idx].email !== me.email) return res.status(403).json({ error: 'forbidden' });
+    await deleteRowViaSA(sheetId, '定期経費テンプレート', idx + 2);
+    return res.status(200).json({ ok: true });
+  }
+
+  return res.status(405).json({ error: 'method_not_allowed' });
+}
+
+/** 「定期経費テンプレート」シートが無ければヘッダー付きで作成する（既存チーム向けの遅延マイグレーション）。 */
+async function _ensureTemplatesSheet(sheetId) {
+  const sheets = sheetsClient();
+  const gid = await _sheetGid(sheets, sheetId, '定期経費テンプレート');
+  if (gid !== null) return;
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId: sheetId,
+    requestBody: { requests: [{ addSheet: { properties: { title: '定期経費テンプレート' } } }] },
+  });
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: sheetId,
+    range: '定期経費テンプレート!A1:G1',
+    valueInputOption: 'RAW',
+    requestBody: { values: [['id', '支払先', '金額', '勘定科目', 'タイプ', '備考', '登録者Email']] },
+  });
+}
+
+/** 定期経費テンプレート A2:G を SA で読み、オブジェクト配列に変換する。 */
+async function readTemplatesViaSA(sheetId) {
+  const sheets = sheetsClient();
+  const resp = await sheets.spreadsheets.values.get({
+    spreadsheetId: sheetId, range: '定期経費テンプレート!A2:G',
+  });
+  const rows = resp.data.values || [];
+  return rows.filter(r => r[0]).map(r => ({
+    id: r[0] || '', payee: r[1] || '', amount: Number(r[2]) || 0,
+    category: r[3] || '', type: r[4] || '領収書なし', note: r[5] || '', email: r[6] || '',
+  }));
 }
 
 /* ───────────────────────── 証票（領収書）プロキシ ───────────────────────── */

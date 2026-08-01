@@ -93,6 +93,23 @@ const Sheets = (() => {
     return _proxyGet('linelinks', ssId || _ssId());
   }
 
+  /** 定期経費テンプレート一覧を取得（家賃・新聞代など、口座振替の定額経費のひな形）。 */
+  function getTemplates(ssId) {
+    return _proxyGet('templates', ssId || _ssId());
+  }
+  /** 定期経費テンプレートを新規作成。 */
+  function createTemplate(tpl, ssId) {
+    return _proxyWrite('templates', ssId || _ssId(), 'POST', tpl);
+  }
+  /** 定期経費テンプレートを編集（admin または登録者本人）。 */
+  function editTemplate(id, tpl, ssId) {
+    return _proxyWrite('templates', ssId || _ssId(), 'PUT', { id, ...tpl });
+  }
+  /** 定期経費テンプレートを削除（admin または登録者本人）。 */
+  function deleteTemplate(id, ssId) {
+    return _proxyWrite('templates', ssId || _ssId(), 'DELETE', undefined, `&id=${encodeURIComponent(id)}`);
+  }
+
   /** 一時的なサーバーエラー時に指数バックオフでリトライする fetch ラッパー。 */
   async function _fetchWithRetry(fn, maxRetries = 3) {
     let delay = 1000;
@@ -695,6 +712,10 @@ const Sheets = (() => {
     enableLineDrive,
     disableLineDrive,
     getLineLinks,
+    getTemplates,
+    createTemplate,
+    editTemplate,
+    deleteTemplate,
     readSetting,
     readAllSettings,
     writeSetting,

@@ -6,6 +6,7 @@
 const SettingsView = (() => {
 
   let _master = null;
+  let _templates = []; // 定期経費テンプレート（家賃・新聞代など口座振替の定額経費）
   let _lineLinkedSet = new Set(); // LINE連携済みの identity（メール/合成ID・小文字）
 
   function render() {
@@ -277,6 +278,20 @@ const SettingsView = (() => {
       </div>
       <p class="text-muted small mb-2">部門・プロジェクト等、申請時に自由に使えるタグを定義します。</p>
       <div id="customFlagList" class="mt-2">
+        <div class="text-muted small text-center py-2">読み込み中...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 定期経費テンプレート（管理者のみ・家賃/新聞代/通信費など口座振替の定額経費用） -->
+  <div class="card mb-3">
+    <div class="card-body">
+      <div class="settings-section-title d-flex justify-content-between align-items-center">
+        <span>定期経費テンプレート</span>
+        <button class="btn btn-outline-primary btn-sm" id="btnAddTemplate"><i class="bi bi-plus me-1"></i>追加</button>
+      </div>
+      <p class="text-muted small mb-2">家賃・新聞代・通信費など、毎月定額で口座振替される経費のひな形です。登録タブから1クリックで今月分を作成できます。</p>
+      <div id="templateList" class="mt-2">
         <div class="text-muted small text-center py-2">読み込み中...</div>
       </div>
     </div>
@@ -679,6 +694,7 @@ const SettingsView = (() => {
         _renderCategoryList(el);
         _renderSimpleList(el, 'paySourceList',  _master.paySources,        'paySource');
         _renderSimpleList(el, 'customFlagList', _master.customFlags || [], 'customFlag');
+        _loadTemplates(el);
       }
     } catch (err) {
       if (!opts.fromCache) App.showToast('マスタデータの読み込みに失敗しました', 'danger');
@@ -708,6 +724,13 @@ const SettingsView = (() => {
     el.querySelector('#btnAddCategory')?.addEventListener('click', () => _showInlineAdd(el, 'category'));
     el.querySelector('#btnAddPaySource')?.addEventListener('click', () => _showInlineAdd(el, 'paySource'));
     el.querySelector('#btnAddCustomFlag')?.addEventListener('click', () => _showInlineAdd(el, 'customFlag'));
+    el.querySelector('#btnAddTemplate')?.addEventListener('click', () => _showTemplateForm(el, null));
+    el.querySelector('#templateList')?.addEventListener('click', e => {
+      const editBtn = e.target.closest('.btn-edit-template');
+      const delBtn = e.target.closest('.btn-del-template');
+      if (editBtn) _showTemplateForm(el, _templates.find(t => t.id === editBtn.dataset.id));
+      if (delBtn) _deleteTemplateItem(el, delBtn.dataset.id);
+    });
 
     // 証票フォルダ：フォルダを開くリンクを生成（ssId設定済み・デモ以外のみ）
     // B4 は readAllSettings で取得済みのため追加のAPIコールはしない
@@ -1235,6 +1258,122 @@ const SettingsView = (() => {
     if (!ok) return;
     lists[type].splice(idx, 1);
     await _saveMasterToSheet(el);
+  }
+
+  /** 定期経費テンプレート一覧を取得して描画する。 */
+  async function _loadTemplates(el) {
+    const list = el.querySelector('#templateList');
+    if (!list) return;
+    if (typeof Demo !== 'undefined' && Demo.isActive()) {
+      _templates = [];
+      list.innerHTML = '<div class="text-muted small text-center py-2">デモモードでは利用できません</div>';
+      return;
+    }
+    try {
+      const resp = await Sheets.getTemplates();
+      _templates = resp.templates || [];
+      _renderTemplateList(el);
+    } catch (err) {
+      list.innerHTML = `<div class="text-danger small text-center py-2">${App.friendlyError(err)}</div>`;
+    }
+  }
+
+  function _renderTemplateList(el) {
+    const list = el.querySelector('#templateList');
+    if (!list) return;
+    if (_templates.length === 0) {
+      list.innerHTML = '<div class="text-muted small text-center py-2">登録がありません</div>';
+      return;
+    }
+    list.innerHTML = _templates.map(t => `
+      <div class="d-flex align-items-center justify-content-between py-2 border-bottom">
+        <div>
+          <div class="fw-semibold small">${_escape(t.payee)}</div>
+          <div class="text-muted small">¥${Number(t.amount).toLocaleString('ja-JP')}${t.category ? ' ・ ' + _escape(t.category) : ''}</div>
+        </div>
+        <div class="d-flex gap-1">
+          <button class="btn btn-outline-secondary btn-sm btn-edit-template" data-id="${_escape(t.id)}"><i class="bi bi-pencil"></i></button>
+          <button class="btn btn-outline-danger btn-sm btn-del-template" data-id="${_escape(t.id)}"><i class="bi bi-trash"></i></button>
+        </div>
+      </div>`).join('');
+  }
+
+  function _showTemplateForm(el, tpl) {
+    const isNew = !tpl;
+    const t = tpl || { id: '', payee: '', amount: '', category: '', note: '' };
+    const categoryOptions = (_master?.categories || [])
+      .map(c => `<option value="${_escape(c)}" ${c === t.category ? 'selected' : ''}>${_escape(c)}</option>`).join('');
+    const div = document.createElement('div');
+    div.innerHTML = `
+      <div class="modal fade" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h6 class="modal-title">${isNew ? '定期経費テンプレート追加' : 'テンプレート編集'}</h6>
+              <button class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <div class="mb-2"><label class="form-label small">支払先</label>
+                <input type="text" class="form-control form-control-sm" id="tPayee" value="${_escape(t.payee)}" placeholder="例）〇〇不動産（家賃）"></div>
+              <div class="mb-2"><label class="form-label small">金額</label>
+                <input type="number" class="form-control form-control-sm" id="tAmount" value="${t.amount || ''}" min="1"></div>
+              <div class="mb-2"><label class="form-label small">勘定科目</label>
+                <select class="form-select form-select-sm" id="tCategory">
+                  <option value="">未選択</option>${categoryOptions}
+                </select></div>
+              <div class="mb-2"><label class="form-label small">備考（任意）</label>
+                <input type="text" class="form-control form-control-sm" id="tNote" value="${_escape(t.note)}" placeholder="例）毎月27日引落"></div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">キャンセル</button>
+              <button class="btn btn-primary btn-sm" id="btnSaveTemplate">保存</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(div);
+    const modal = new bootstrap.Modal(div.querySelector('.modal'));
+    modal.show();
+    div.querySelector('.modal').addEventListener('hidden.bs.modal', () => div.remove());
+
+    let _saving = false;
+    div.querySelector('#btnSaveTemplate').addEventListener('click', async () => {
+      if (_saving) return;
+      const payee = div.querySelector('#tPayee').value.trim();
+      const amount = Number(div.querySelector('#tAmount').value);
+      if (!payee) return App.showToast('支払先は必須です', 'danger');
+      if (!amount || amount <= 0) return App.showToast('金額を正しく入力してください', 'danger');
+      const body = {
+        payee, amount,
+        category: div.querySelector('#tCategory').value,
+        note: div.querySelector('#tNote').value.trim(),
+      };
+      _saving = true;
+      try {
+        if (isNew) await Sheets.createTemplate(body);
+        else await Sheets.editTemplate(t.id, body);
+        modal.hide();
+        App.showToast('保存しました', 'success');
+        await _loadTemplates(el);
+      } catch (err) {
+        App.showToast('保存に失敗しました。' + App.friendlyError(err), 'danger');
+      } finally {
+        _saving = false;
+      }
+    });
+  }
+
+  async function _deleteTemplateItem(el, id) {
+    const t = _templates.find(x => x.id === id);
+    if (!t) return;
+    const ok = await App.confirm(`「${t.payee}」を削除しますか？`);
+    if (!ok) return;
+    try {
+      await Sheets.deleteTemplate(id);
+      await _loadTemplates(el);
+    } catch (err) {
+      App.showToast('削除に失敗しました。' + App.friendlyError(err), 'danger');
+    }
   }
 
   // カテゴリ専用の静かな保存（シート再読込・全体再描画なし）

@@ -18,6 +18,7 @@ const SubmitView = (() => {
   let _cats             = [];
   let _paySources       = [];
   let _customFlags      = [];
+  let _templates        = []; // 定期経費テンプレート（家賃・新聞代など口座振替の定額経費）
   let _pendingEdit   = null; // 一覧表からの編集キュー {id, expenses}
   let _returnAfterEdit = null; // 編集保存後の遷移先ビュー名
   let _discardReturn = null; // 編集を破棄（戻る/キャンセル）したときの復帰先（ビュー名 or 関数）
@@ -63,6 +64,9 @@ const SubmitView = (() => {
     <i class="bi bi-pencil-square me-1"></i>修正モード
     <button class="btn btn-link btn-sm text-muted p-0 ms-2" id="btnCancelEdit">キャンセル</button>
   </div>
+
+  <!-- 定期経費テンプレート（家賃・新聞代など、口座振替の定額経費を1クリックで今月分登録） -->
+  <div id="templateQuickList" class="mb-3 d-none"></div>
 
   <!-- ヒーローゾーン（証票撮影/選択） -->
   <div class="hero-zone mb-3" id="heroZone">
@@ -496,6 +500,9 @@ const SubmitView = (() => {
       _paySources  = master.paySources;
       _customFlags = master.customFlags || [];
     } catch (_) {}
+
+    // 定期経費テンプレート（編集中・スワイプキャッシュ再表示時はスキップ）
+    if (!opts.fromCache && !_editId) _loadTemplateQuickList(el);
 
     // fromCache=true のとき：キャッシュ済みHTMLに正しい選択肢・選択値が含まれるため再描画不要
     if (!opts.fromCache) _populateSelects(el);
@@ -1347,6 +1354,65 @@ function _bindSubtypePills(el) {
       ns.style.opacity = on ? '0.35' : '';
       ns.style.pointerEvents = on ? 'none' : '';
     }
+  }
+
+  /** 定期経費テンプレート一覧を取得し、クイック登録チップを描画する。 */
+  async function _loadTemplateQuickList(el) {
+    const wrap = el.querySelector('#templateQuickList');
+    if (!wrap) return;
+    if (typeof Demo !== 'undefined' && Demo.isActive()) { _templates = []; wrap.classList.add('d-none'); return; }
+    try {
+      const resp = await Sheets.getTemplates();
+      _templates = resp.templates || [];
+    } catch (_) { _templates = []; }
+    if (_templates.length === 0) { wrap.classList.add('d-none'); wrap.innerHTML = ''; return; }
+    wrap.classList.remove('d-none');
+    wrap.innerHTML = `
+      <div class="text-muted small mb-1"><i class="bi bi-arrow-repeat me-1"></i>定期経費から今月分を登録</div>
+      <div class="d-flex flex-wrap gap-2">
+        ${_templates.map(t => `
+          <button type="button" class="btn btn-outline-primary btn-sm rounded-pill template-quick-btn" data-id="${t.id}">
+            ${_escape(t.payee)}（¥${Number(t.amount).toLocaleString('ja-JP')}）
+          </button>`).join('')}
+      </div>`;
+    wrap.querySelectorAll('.template-quick-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tpl = _templates.find(t => t.id === btn.dataset.id);
+        if (tpl) _fillFromTemplate(el, tpl);
+      });
+    });
+  }
+
+  /** テンプレートの内容を「領収書なし」フォームに流し込み、今月分の申請として編集できる状態にする。 */
+  function _fillFromTemplate(el, tpl) {
+    const pill = el.querySelector('.subtype-pill[data-type="領収書なし"]');
+    if (pill && !pill.classList.contains('active')) pill.click();
+    const pnl = _activePanel(el);
+    if (!pnl) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    const dateInput = pnl.querySelector('#inputDate') || el.querySelector('#inputDate');
+    if (dateInput) dateInput.value = today;
+    const placeInput = pnl.querySelector('#inputPlace') || el.querySelector('#inputPlace');
+    if (placeInput) placeInput.value = tpl.payee;
+    const reasonInput = pnl.querySelector('#txtReason');
+    if (reasonInput) reasonInput.value = tpl.note || '口座振替・毎月定額';
+
+    const splitLines = pnl.querySelector('#splitLines');
+    if (splitLines) {
+      splitLines.innerHTML = '';
+      pnl.querySelector('#btnAddSplitRow')?.remove();
+      _addSplitRow(el);
+      const firstRow = splitLines.querySelector('.split-row');
+      if (firstRow) {
+        const amtInput = firstRow.querySelector('.split-amount');
+        if (amtInput) { amtInput.value = Number(tpl.amount || 0).toLocaleString('ja-JP'); amtInput.dispatchEvent(new Event('input')); }
+        const catSel = firstRow.querySelector('.split-cat');
+        if (catSel && tpl.category) [...catSel.options].forEach(o => o.selected = o.value === tpl.category);
+      }
+      _calcSplitTotal(el);
+    }
+    el.querySelector('#templateQuickList')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   function _showReceiptFields(el) {
