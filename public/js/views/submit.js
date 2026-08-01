@@ -65,9 +65,6 @@ const SubmitView = (() => {
     <button class="btn btn-link btn-sm text-muted p-0 ms-2" id="btnCancelEdit">キャンセル</button>
   </div>
 
-  <!-- 定期経費テンプレート（家賃・新聞代など、口座振替の定額経費を1クリックで今月分登録） -->
-  <div id="templateQuickList" class="mb-3 d-none"></div>
-
   <!-- ヒーローゾーン（証票撮影/選択） -->
   <div class="hero-zone mb-3" id="heroZone">
     <input type="file" class="d-none" id="camInput-領収書" accept="image/*" capture="environment">
@@ -124,6 +121,11 @@ const SubmitView = (() => {
         </button>
         <button class="subtype-pill" data-type="領収書なし">
           <i class="bi bi-pencil-square"></i>領収書なし
+        </button>
+      </div>
+      <div class="subtype-row mt-2 d-none" id="templateMenuRow">
+        <button type="button" class="subtype-pill" id="btnOpenTemplateMenu" style="width:100%;">
+          <i class="bi bi-arrow-repeat"></i>定期経費を登録（管理者のみのメニュー）
         </button>
       </div>
     </div>
@@ -516,6 +518,7 @@ const SubmitView = (() => {
     _bindSubtypePills(el);
     _bindFileInputs(el);
     _bindSplitToggle(el);
+    el.querySelector('#btnOpenTemplateMenu')?.addEventListener('click', () => _openTemplateMenu(el));
     // 領収書・領収書なしは常に分割モード → 初期1行を追加
     [el.querySelector('#receiptFields'), el.querySelector('#panel-領収書なし')].forEach(pnl => {
       if (!pnl) return;
@@ -1356,38 +1359,64 @@ function _bindSubtypePills(el) {
     }
   }
 
-  /** 定期経費テンプレート一覧を取得し、クイック登録チップを描画する。 */
+  /** 定期経費テンプレート一覧を取得し、「その他のタイプの申請」内のメニューボタンの表示可否を決める。 */
   async function _loadTemplateQuickList(el) {
-    const wrap = el.querySelector('#templateQuickList');
-    if (!wrap) return;
-    if (typeof Demo !== 'undefined' && Demo.isActive()) { _templates = []; wrap.classList.add('d-none'); return; }
+    const row = el.querySelector('#templateMenuRow');
+    if (!row) return;
+    if (typeof Demo !== 'undefined' && Demo.isActive()) { _templates = []; row.classList.add('d-none'); return; }
     try {
       const resp = await Sheets.getTemplates();
       _templates = resp.templates || [];
     } catch (_) { _templates = []; }
-    if (_templates.length === 0) { wrap.classList.add('d-none'); wrap.innerHTML = ''; return; }
-    wrap.classList.remove('d-none');
-    wrap.innerHTML = `
-      <div class="d-flex justify-content-between align-items-center mb-1">
-        <div class="text-muted small"><i class="bi bi-arrow-repeat me-1"></i>定期経費から今月分を登録</div>
-        ${_templates.length > 1 ? `<button type="button" class="btn btn-link btn-sm p-0" id="btnBulkTemplate">まとめて登録</button>` : ''}
-      </div>
-      <div class="template-quick-scroll">
-        ${_templates.map(t => `
-          <button type="button" class="btn btn-outline-primary btn-sm rounded-pill template-quick-btn" data-id="${t.id}">
-            ${_escape(t.payee)}（¥${Number(t.amount).toLocaleString('ja-JP')}）
-          </button>`).join('')}
-      </div>
-      <div class="text-muted small mt-1" style="font-size:0.72rem;line-height:1.6;">
-        <i class="bi bi-info-circle me-1"></i>ここから登録した経費は「領収書なし」として登録されます。カード明細・通帳等の証拠が必要な場合は登録後にご自身で証票を追加してください。同じ月に二重登録しないようご注意ください。
+    row.classList.remove('d-none'); // 管理者にはテンプレートが0件でも表示し、設定タブへの導線にする
+  }
+
+  /** 「定期経費を登録」ボタン押下 → 注意事項＋登録候補一覧をポップアップで表示する。 */
+  function _openTemplateMenu(el) {
+    const listHtml = _templates.length === 0
+      ? '<div class="text-muted small text-center py-3">テンプレートがまだ登録されていません。<br>設定タブの「定期経費テンプレート」から登録してください。</div>'
+      : `<div class="d-flex flex-column gap-2">
+          ${_templates.map(t => `
+            <button type="button" class="btn btn-outline-primary btn-sm text-start template-menu-btn" data-id="${t.id}">
+              ${_escape(t.payee)}（¥${Number(t.amount).toLocaleString('ja-JP')}）
+            </button>`).join('')}
+        </div>
+        ${_templates.length > 1 ? `<button type="button" class="btn btn-link btn-sm mt-2 p-0" id="btnBulkTemplateInModal">まとめて登録</button>` : ''}`;
+
+    const div = document.createElement('div');
+    div.innerHTML = `
+      <div class="modal fade" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h6 class="modal-title"><i class="bi bi-arrow-repeat me-1"></i>定期経費を登録</h6>
+              <button class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <div class="small mb-3 p-2 rounded" style="background:#fff8e6;border:1px solid #f0dfa8;">
+                <i class="bi bi-info-circle me-1 text-warning"></i>ここから登録した経費は<strong>「領収書なし」</strong>として登録されます。カード明細・通帳等の証拠が必要な場合は、登録後にご自身で証票を追加してください。<strong>同じ月に二重登録しないよう</strong>ご注意ください。
+              </div>
+              ${listHtml}
+            </div>
+          </div>
+        </div>
       </div>`;
-    wrap.querySelectorAll('.template-quick-btn').forEach(btn => {
+    document.body.appendChild(div);
+    const modal = new bootstrap.Modal(div.querySelector('.modal'));
+    modal.show();
+    div.querySelector('.modal').addEventListener('hidden.bs.modal', () => div.remove());
+
+    div.querySelectorAll('.template-menu-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const tpl = _templates.find(t => t.id === btn.dataset.id);
+        modal.hide();
         if (tpl) _fillFromTemplate(el, tpl);
       });
     });
-    wrap.querySelector('#btnBulkTemplate')?.addEventListener('click', () => _bulkRegisterTemplates(el));
+    div.querySelector('#btnBulkTemplateInModal')?.addEventListener('click', () => {
+      modal.hide();
+      _bulkRegisterTemplates(el);
+    });
   }
 
   /** 定期経費テンプレート全件を、本日の日付で「領収書なし」として一括登録する。 */
@@ -1511,7 +1540,7 @@ function _bindSubtypePills(el) {
       }
       _calcSplitTotal(el);
     }
-    el.querySelector('#templateQuickList')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    pnl.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   function _showReceiptFields(el) {
