@@ -764,9 +764,12 @@ async function templates(req, res) {
     const payee = String(body?.payee || '').trim();
     const amount = Number(body?.amount) || 0;
     if (!payee || amount <= 0) return res.status(400).json({ error: 'invalid_template' });
+    const corpPay = !!body?.corpPay;
+    const paySource = corpPay ? String(body?.paySource || '') : '';
+    if (corpPay && !paySource) return res.status(400).json({ error: 'paysource_required' });
     const id = _uuid();
     const row = [id, payee, amount, String(body?.category || ''), String(body?.type || '領収書なし'),
-      String(body?.note || ''), me.email];
+      String(body?.note || ''), me.email, corpPay, paySource];
     await prependRowViaSA(sheetId, '定期経費テンプレート', row);
     return res.status(200).json({ ok: true, id });
   }
@@ -782,9 +785,12 @@ async function templates(req, res) {
     const payee = String(body?.payee || '').trim();
     const amount = Number(body?.amount) || 0;
     if (!payee || amount <= 0) return res.status(400).json({ error: 'invalid_template' });
+    const corpPay = !!body?.corpPay;
+    const paySource = corpPay ? String(body?.paySource || '') : '';
+    if (corpPay && !paySource) return res.status(400).json({ error: 'paysource_required' });
     const row = [id, payee, amount, String(body?.category || ''), String(body?.type || '領収書なし'),
-      String(body?.note || ''), list[idx].email];
-    await updateRangeViaSA(sheetId, `定期経費テンプレート!A${idx + 2}:G${idx + 2}`, [row]);
+      String(body?.note || ''), list[idx].email, corpPay, paySource];
+    await updateRangeViaSA(sheetId, `定期経費テンプレート!A${idx + 2}:I${idx + 2}`, [row]);
     return res.status(200).json({ ok: true });
   }
 
@@ -802,33 +808,50 @@ async function templates(req, res) {
   return res.status(405).json({ error: 'method_not_allowed' });
 }
 
-/** 「定期経費テンプレート」シートが無ければヘッダー付きで作成する（既存チーム向けの遅延マイグレーション）。 */
+/** 「定期経費テンプレート」シートが無ければヘッダー付きで作成する（既存チーム向けの遅延マイグレーション）。
+ *  H/I列（支払い方法）追加前に作られたシートには、ヘッダーだけ追記する。 */
 async function _ensureTemplatesSheet(sheetId) {
   const sheets = sheetsClient();
   const gid = await _sheetGid(sheets, sheetId, '定期経費テンプレート');
-  if (gid !== null) return;
-  await sheets.spreadsheets.batchUpdate({
-    spreadsheetId: sheetId,
-    requestBody: { requests: [{ addSheet: { properties: { title: '定期経費テンプレート' } } }] },
+  const header = ['id', '支払先', '金額', '勘定科目', 'タイプ', '備考', '登録者Email', '会社払い', '支払元'];
+  if (gid === null) {
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId: sheetId,
+      requestBody: { requests: [{ addSheet: { properties: { title: '定期経費テンプレート' } } }] },
+    });
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: sheetId,
+      range: '定期経費テンプレート!A1:I1',
+      valueInputOption: 'RAW',
+      requestBody: { values: [header] },
+    });
+    return;
+  }
+  // 既存シートにH/I列ヘッダーが無ければ追記（支払い方法対応前のテンプレート向け遅延マイグレーション）
+  const existing = await sheets.spreadsheets.values.get({
+    spreadsheetId: sheetId, range: '定期経費テンプレート!H1:I1',
   });
-  await sheets.spreadsheets.values.update({
-    spreadsheetId: sheetId,
-    range: '定期経費テンプレート!A1:G1',
-    valueInputOption: 'RAW',
-    requestBody: { values: [['id', '支払先', '金額', '勘定科目', 'タイプ', '備考', '登録者Email']] },
-  });
+  if (!(existing.data.values || [])[0]?.[0]) {
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: sheetId,
+      range: '定期経費テンプレート!H1:I1',
+      valueInputOption: 'RAW',
+      requestBody: { values: [['会社払い', '支払元']] },
+    });
+  }
 }
 
-/** 定期経費テンプレート A2:G を SA で読み、オブジェクト配列に変換する。 */
+/** 定期経費テンプレート A2:I を SA で読み、オブジェクト配列に変換する。 */
 async function readTemplatesViaSA(sheetId) {
   const sheets = sheetsClient();
   const resp = await sheets.spreadsheets.values.get({
-    spreadsheetId: sheetId, range: '定期経費テンプレート!A2:G',
+    spreadsheetId: sheetId, range: '定期経費テンプレート!A2:I',
   });
   const rows = resp.data.values || [];
   return rows.filter(r => r[0]).map(r => ({
     id: r[0] || '', payee: r[1] || '', amount: Number(r[2]) || 0,
     category: r[3] || '', type: r[4] || '領収書なし', note: r[5] || '', email: r[6] || '',
+    corpPay: r[7] === true || r[7] === 'TRUE', paySource: r[8] || '',
   }));
 }
 

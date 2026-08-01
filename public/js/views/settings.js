@@ -1293,6 +1293,9 @@ const SettingsView = (() => {
         <div>
           <div class="fw-semibold small">${_escape(t.payee)}</div>
           <div class="text-muted small">¥${Number(t.amount).toLocaleString('ja-JP')}${t.category ? ' ・ ' + _escape(t.category) : ''}</div>
+          <div class="small">${t.corpPay
+            ? `<span class="badge bg-secondary-subtle text-secondary-emphasis"><i class="bi bi-building me-1"></i>会社払い（${_escape(t.paySource)}）</span>`
+            : `<span class="badge bg-primary-subtle text-primary-emphasis"><i class="bi bi-person-fill me-1"></i>自分が立替</span>`}</div>
         </div>
         <div class="d-flex gap-1">
           <button class="btn btn-outline-secondary btn-sm btn-edit-template" data-id="${_escape(t.id)}"><i class="bi bi-pencil"></i></button>
@@ -1303,9 +1306,11 @@ const SettingsView = (() => {
 
   function _showTemplateForm(el, tpl) {
     const isNew = !tpl;
-    const t = tpl || { id: '', payee: '', amount: '', category: '', note: '' };
+    const t = tpl || { id: '', payee: '', amount: '', category: '', note: '', corpPay: false, paySource: '' };
     const categoryOptions = (_master?.categories || [])
       .map(c => `<option value="${_escape(c)}" ${c === t.category ? 'selected' : ''}>${_escape(c)}</option>`).join('');
+    const paySourceOptions = (_master?.paySources || [])
+      .map(p => `<option value="${_escape(p)}" ${p === t.paySource ? 'selected' : ''}>${_escape(p)}</option>`).join('');
     const div = document.createElement('div');
     div.innerHTML = `
       <div class="modal fade" tabindex="-1">
@@ -1326,6 +1331,18 @@ const SettingsView = (() => {
                 </select></div>
               <div class="mb-2"><label class="form-label small">備考（任意）</label>
                 <input type="text" class="form-control form-control-sm" id="tNote" value="${_escape(t.note)}" placeholder="例）毎月27日引落"></div>
+              <div class="mb-2">
+                <label class="form-label small d-block mb-1">支払い方法</label>
+                <div class="pay-segment" id="tPaySeg">
+                  <button type="button" class="pay-seg-btn ${!t.corpPay ? 'active' : ''}" id="tPaySelf"><i class="bi bi-person-fill"></i>自分が立替（精算あり）</button>
+                  <button type="button" class="pay-seg-btn ${t.corpPay ? 'active' : ''}" id="tPayCorp"><i class="bi bi-building"></i>会社払い（精算なし）</button>
+                </div>
+                <div id="tPaySourceWrap" class="mt-2 ${t.corpPay ? '' : 'd-none'}">
+                  <select class="form-select form-select-sm" id="tPaySource">
+                    <option value="">支払元を選択</option>${paySourceOptions}
+                  </select>
+                </div>
+              </div>
             </div>
             <div class="modal-footer">
               <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">キャンセル</button>
@@ -1339,6 +1356,17 @@ const SettingsView = (() => {
     modal.show();
     div.querySelector('.modal').addEventListener('hidden.bs.modal', () => div.remove());
 
+    div.querySelector('#tPaySelf').addEventListener('click', () => {
+      div.querySelector('#tPaySelf').classList.add('active');
+      div.querySelector('#tPayCorp').classList.remove('active');
+      div.querySelector('#tPaySourceWrap').classList.add('d-none');
+    });
+    div.querySelector('#tPayCorp').addEventListener('click', () => {
+      div.querySelector('#tPayCorp').classList.add('active');
+      div.querySelector('#tPaySelf').classList.remove('active');
+      div.querySelector('#tPaySourceWrap').classList.remove('d-none');
+    });
+
     let _saving = false;
     div.querySelector('#btnSaveTemplate').addEventListener('click', async () => {
       if (_saving) return;
@@ -1346,10 +1374,14 @@ const SettingsView = (() => {
       const amount = Number(div.querySelector('#tAmount').value);
       if (!payee) return App.showToast('支払先は必須です', 'danger');
       if (!amount || amount <= 0) return App.showToast('金額を正しく入力してください', 'danger');
+      const corpPay = div.querySelector('#tPayCorp').classList.contains('active');
+      const paySource = corpPay ? div.querySelector('#tPaySource').value : '';
+      if (corpPay && !paySource) return App.showToast('会社払いの支払元を選択してください', 'danger');
       const body = {
         payee, amount,
         category: div.querySelector('#tCategory').value,
         note: div.querySelector('#tNote').value.trim(),
+        corpPay, paySource,
       };
       _saving = true;
       try {

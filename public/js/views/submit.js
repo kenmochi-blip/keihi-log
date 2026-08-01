@@ -1378,7 +1378,10 @@ function _bindSubtypePills(el) {
       : `<div class="d-flex flex-column gap-2">
           ${_templates.map(t => `
             <button type="button" class="btn btn-outline-primary btn-sm text-start template-menu-btn" data-id="${t.id}">
-              ${_escape(t.payee)}（¥${Number(t.amount).toLocaleString('ja-JP')}）
+              <div>${_escape(t.payee)}（¥${Number(t.amount).toLocaleString('ja-JP')}）</div>
+              <div class="small ${t.corpPay ? 'text-secondary' : 'text-primary'}">
+                <i class="bi ${t.corpPay ? 'bi-building' : 'bi-person-fill'} me-1"></i>${t.corpPay ? `会社払い（${_escape(t.paySource)}）` : '自分が立替'}
+              </div>
             </button>`).join('')}
         </div>
         ${_templates.length > 1 ? `<button type="button" class="btn btn-link btn-sm mt-2 p-0" id="btnBulkTemplateInModal">まとめて登録</button>` : ''}`;
@@ -1423,47 +1426,15 @@ function _bindSubtypePills(el) {
   async function _bulkRegisterTemplates(el) {
     if (_templates.length === 0) return;
     const today = new Date().toISOString().split('T')[0];
-    const paySourceOptions = (_paySources || []).map(p => `<option value="${_escape(p)}">${_escape(p)}</option>`).join('');
     const detailHtml = `
       <div class="text-start mb-2">
         <label class="form-label small fw-semibold">登録日</label>
         <input type="date" class="form-control form-control-sm" id="bulkTplDate" value="${today}" max="${today}">
-      </div>
-      <div class="text-start">
-        <label class="form-label small fw-semibold d-block mb-1">支払い方法</label>
-        <div class="pay-segment" id="bulkPaySeg">
-          <button type="button" class="pay-seg-btn active" id="bulkPaySelf"><i class="bi bi-person-fill"></i>自分が立替（精算あり）</button>
-          <button type="button" class="pay-seg-btn" id="bulkPayCorp"><i class="bi bi-building"></i>会社払い（精算なし）</button>
-        </div>
-        <div id="bulkPaySourceWrap" class="d-none mt-2">
-          <select class="form-select form-select-sm" id="bulkPaySource">
-            <option value="">支払元を選択</option>${paySourceOptions}
-          </select>
-        </div>
       </div>`;
-    const confirmPromise = App.confirm(`定期経費 ${_templates.length}件を一括登録します。よろしいですか？`, detailHtml);
-
-    let bulkCorpPay = false;
-    const btnSelf  = document.getElementById('bulkPaySelf');
-    const btnCorp  = document.getElementById('bulkPayCorp');
-    const srcWrap  = document.getElementById('bulkPaySourceWrap');
-    btnSelf?.addEventListener('click', () => {
-      bulkCorpPay = false;
-      btnSelf.classList.add('active'); btnCorp?.classList.remove('active');
-      srcWrap?.classList.add('d-none');
-    });
-    btnCorp?.addEventListener('click', () => {
-      bulkCorpPay = true;
-      btnCorp.classList.add('active'); btnSelf?.classList.remove('active');
-      srcWrap?.classList.remove('d-none');
-    });
-
-    const ok = await confirmPromise;
+    const ok = await App.confirm(`定期経費 ${_templates.length}件を一括登録します。よろしいですか？`, detailHtml);
     if (!ok) return;
 
     const dateVal = document.getElementById('bulkTplDate')?.value || today;
-    const paySource = document.getElementById('bulkPaySource')?.value || '';
-    if (bulkCorpPay && !paySource) return App.showToast('会社払いの支払元を選択してください', 'danger');
 
     App.showLoading('登録中...');
     try {
@@ -1479,11 +1450,11 @@ function _bindSubtypePills(el) {
       const master = await App.getMaster();
       const userName = master.members.find(m => m.email === Auth.getUserEmail())?.name
         || Auth.getUserInfo()?.name || Auth.getUserEmail();
-      const settlementDate = bulkCorpPay ? `会社払い（${paySource}）` : '';
 
       let okCount = 0, failCount = 0;
       for (const t of _templates) {
         try {
+          const settlementDate = t.corpPay ? `会社払い（${t.paySource}）` : '';
           const row = Sheets.expenseToRow({
             appliedAt, name: userName, type: '領収書なし', date: dateVal,
             place: t.payee, amount: t.amount, category: t.category || '',
@@ -1520,11 +1491,20 @@ function _bindSubtypePills(el) {
     const reasonInput = pnl.querySelector('#txtReason');
     if (reasonInput) reasonInput.value = tpl.note || '口座振替・毎月定額';
 
-    // 支払い方法（自分が立替/会社払い）は前回の状態を引きずらず、毎回「自分が立替」からユーザーに選び直してもらう
-    el.querySelector('#chkCorpPay') && (el.querySelector('#chkCorpPay').checked = false);
-    el.querySelector('#btnPaySelf')?.classList.add('active');
-    el.querySelector('#btnPayCorp')?.classList.remove('active');
-    el.querySelector('#corpPayDetails')?.classList.add('d-none');
+    // 支払い方法（自分が立替/会社払い）はテンプレートに登録された内容を初期値として反映する（変更は可能）
+    if (tpl.corpPay) {
+      el.querySelector('#chkCorpPay') && (el.querySelector('#chkCorpPay').checked = true);
+      el.querySelector('#btnPayCorp')?.classList.add('active');
+      el.querySelector('#btnPaySelf')?.classList.remove('active');
+      el.querySelector('#corpPayDetails')?.classList.remove('d-none');
+      const paySourceSel = el.querySelector('#selPaySource');
+      if (paySourceSel) [...paySourceSel.options].forEach(o => o.selected = o.value === tpl.paySource);
+    } else {
+      el.querySelector('#chkCorpPay') && (el.querySelector('#chkCorpPay').checked = false);
+      el.querySelector('#btnPaySelf')?.classList.add('active');
+      el.querySelector('#btnPayCorp')?.classList.remove('active');
+      el.querySelector('#corpPayDetails')?.classList.add('d-none');
+    }
 
     const splitLines = pnl.querySelector('#splitLines');
     if (splitLines) {
