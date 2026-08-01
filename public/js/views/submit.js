@@ -1368,12 +1368,18 @@ function _bindSubtypePills(el) {
     if (_templates.length === 0) { wrap.classList.add('d-none'); wrap.innerHTML = ''; return; }
     wrap.classList.remove('d-none');
     wrap.innerHTML = `
-      <div class="text-muted small mb-1"><i class="bi bi-arrow-repeat me-1"></i>定期経費から今月分を登録</div>
-      <div class="d-flex flex-wrap gap-2">
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <div class="text-muted small"><i class="bi bi-arrow-repeat me-1"></i>定期経費から今月分を登録</div>
+        ${_templates.length > 1 ? `<button type="button" class="btn btn-link btn-sm p-0" id="btnBulkTemplate">まとめて登録</button>` : ''}
+      </div>
+      <div class="template-quick-scroll">
         ${_templates.map(t => `
           <button type="button" class="btn btn-outline-primary btn-sm rounded-pill template-quick-btn" data-id="${t.id}">
             ${_escape(t.payee)}（¥${Number(t.amount).toLocaleString('ja-JP')}）
           </button>`).join('')}
+      </div>
+      <div class="text-muted small mt-1" style="font-size:0.72rem;line-height:1.6;">
+        <i class="bi bi-info-circle me-1"></i>ここから登録した経費は「領収書なし」として登録されます。カード明細・通帳等の証拠が必要な場合は登録後にご自身で証票を追加してください。同じ月に二重登録しないようご注意ください。
       </div>`;
     wrap.querySelectorAll('.template-quick-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -1381,6 +1387,54 @@ function _bindSubtypePills(el) {
         if (tpl) _fillFromTemplate(el, tpl);
       });
     });
+    wrap.querySelector('#btnBulkTemplate')?.addEventListener('click', () => _bulkRegisterTemplates(el));
+  }
+
+  /** 定期経費テンプレート全件を、本日の日付で「領収書なし」として一括登録する。 */
+  async function _bulkRegisterTemplates(el) {
+    if (_templates.length === 0) return;
+    const ok = await App.confirm(
+      `定期経費 ${_templates.length}件を、本日の日付で「領収書なし」として一括登録します。よろしいですか？`
+    );
+    if (!ok) return;
+    App.showLoading('登録中...');
+    try {
+      const licKey = localStorage.getItem('keihi_license_key') || '';
+      const timeResp = await fetch(`${window.APP_CONFIG?.apiBase || ''}/api/time`, {
+        method: licKey ? 'POST' : 'GET',
+        headers: licKey ? { 'Content-Type': 'application/json' } : {},
+        body: licKey ? JSON.stringify({ key: licKey }) : undefined,
+      });
+      const appliedAt = timeResp.ok
+        ? (await timeResp.json()).jst
+        : new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
+      const master = await App.getMaster();
+      const userName = master.members.find(m => m.email === Auth.getUserEmail())?.name
+        || Auth.getUserInfo()?.name || Auth.getUserEmail();
+      const today = new Date().toISOString().split('T')[0];
+
+      let okCount = 0, failCount = 0;
+      for (const t of _templates) {
+        try {
+          const row = Sheets.expenseToRow({
+            appliedAt, name: userName, type: '領収書なし', date: today,
+            place: t.payee, amount: t.amount, category: t.category || '',
+            note: [t.note, '（定期経費テンプレートより一括登録・証票は未添付）'].filter(Boolean).join('\n'),
+            imageLinks: '', confirmed: App.isAdmin(), aiAudit: '',
+            settlementDate: '', invoice: '', aiAmount: 0, imageHash: '',
+          });
+          await Sheets.prependExpense(row);
+          okCount++;
+        } catch (_) { failCount++; }
+      }
+      App.clearExpensesCache();
+      App.hideLoading();
+      App.showToast(`${okCount}件登録しました${failCount ? `（${failCount}件失敗）` : ''}`, failCount ? 'warning' : 'success');
+      _loadHistory(el, true);
+    } catch (err) {
+      App.hideLoading();
+      App.showToast('一括登録に失敗しました。' + App.friendlyError(err), 'danger');
+    }
   }
 
   /** テンプレートの内容を「領収書なし」フォームに流し込み、今月分の申請として編集できる状態にする。 */

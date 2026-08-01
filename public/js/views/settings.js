@@ -291,6 +291,9 @@ const SettingsView = (() => {
         <button class="btn btn-outline-primary btn-sm" id="btnAddTemplate"><i class="bi bi-plus me-1"></i>追加</button>
       </div>
       <p class="text-muted small mb-2">家賃・新聞代・通信費など、毎月定額で口座振替される経費のひな形です。登録タブから1クリックで今月分を作成できます。</p>
+      <div class="small mb-2 p-2 rounded" style="background:#fff8e6;border:1px solid #f0dfa8;">
+        <i class="bi bi-info-circle me-1 text-warning"></i>ここから登録した経費は<strong>「領収書なし」</strong>として登録されます。カード明細・通帳等の証拠が必要な場合は、登録後にご自身で証票を追加してください。<strong>同じ月に二重登録しないよう</strong>ご注意ください。
+      </div>
       <div id="templateList" class="mt-2">
         <div class="text-muted small text-center py-2">読み込み中...</div>
       </div>

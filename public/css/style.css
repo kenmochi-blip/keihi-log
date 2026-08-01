@@ -183,6 +183,19 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 
 /* バッジ（print用上書き不要 — 上の定義で統一） */
 
+/* 定期経費テンプレート：クイック登録チップ（件数が増えても縦に際限なく伸びないよう横スクロールにする） */
+.template-quick-scroll {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.2rem;
+  -webkit-overflow-scrolling: touch;
+}
+.template-quick-scroll .btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
 /* ファイルプレビュー */
 .file-preview-item {
   position: relative;
