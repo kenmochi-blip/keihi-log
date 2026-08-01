@@ -1363,7 +1363,6 @@ function _bindSubtypePills(el) {
   async function _loadTemplateQuickList(el) {
     const row = el.querySelector('#templateMenuRow');
     if (!row) return;
-    if (typeof Demo !== 'undefined' && Demo.isActive()) { _templates = []; row.classList.add('d-none'); return; }
     try {
       const resp = await Sheets.getTemplates();
       _templates = resp.templates || [];

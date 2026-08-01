@@ -28,11 +28,17 @@ const Demo = (() => {
       { name: '鈴木 花子',     email: 'suzuki@example.com', dept: '総務部', role: 'viewer' },
       { name: '佐藤 次郎',     email: 'sato@example.com',   dept: '開発部', role: '' },
     ],
-    categories: ['会議費', '旅費交通費', '消耗品費', '接待交際費', '外注費', '通信費', '研修費', '新聞図書費', '福利厚生費'],
+    categories: ['会議費', '旅費交通費', '消耗品費', '接待交際費', '外注費', '通信費', '研修費', '新聞図書費', '福利厚生費', '地代家賃'],
     paySources: ['法人カード（三井住友）', '法人カード（楽天）'],
     admins: ['demo@example.com'],
     viewers: [],
   };
+
+  const TEMPLATES = [
+    { id: 'tpl-demo-1', payee: '〇〇不動産（オフィス家賃）', amount: 120000, category: '地代家賃', note: '毎月27日引落', email: 'demo@example.com', corpPay: true, paySource: '法人カード（三井住友）' },
+    { id: 'tpl-demo-2', payee: '日本経済新聞社', amount: 4900, category: '新聞図書費', note: '毎月5日引落', email: 'demo@example.com', corpPay: false, paySource: '' },
+    { id: 'tpl-demo-3', payee: 'NTT東日本（インターネット回線）', amount: 6600, category: '通信費', note: '毎月20日引落', email: 'demo@example.com', corpPay: true, paySource: '法人カード（楽天）' },
+  ];
 
   // ── 日付スライド ───────────────────────────────────────────────
   // デモデータは「執筆時点 = 2026年6月」を基準に作成。実際の現在月との差分（月単位）
@@ -251,5 +257,5 @@ const Demo = (() => {
     return url;
   }
 
-  return { enable, disable, isActive, getRole, setRole, getUserEmail, MASTER, EXPENSES, SHEET_ID, COMPANY_NAME, REGULATION, shiftSvgDates, shiftedReceiptUrl };
+  return { enable, disable, isActive, getRole, setRole, getUserEmail, MASTER, EXPENSES, TEMPLATES, SHEET_ID, COMPANY_NAME, REGULATION, shiftSvgDates, shiftedReceiptUrl };
 })();

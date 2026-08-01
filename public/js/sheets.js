@@ -95,18 +95,34 @@ const Sheets = (() => {
 
   /** 定期経費テンプレート一覧を取得（家賃・新聞代など、口座振替の定額経費のひな形）。 */
   function getTemplates(ssId) {
+    if (typeof Demo !== 'undefined' && Demo.isActive()) return Promise.resolve({ templates: Demo.TEMPLATES });
     return _proxyGet('templates', ssId || _ssId());
   }
   /** 定期経費テンプレートを新規作成。 */
   function createTemplate(tpl, ssId) {
+    if (typeof Demo !== 'undefined' && Demo.isActive()) {
+      const id = 'tpl-demo-' + Date.now();
+      Demo.TEMPLATES.unshift({ id, email: Demo.getUserEmail(), ...tpl });
+      return Promise.resolve({ ok: true, id });
+    }
     return _proxyWrite('templates', ssId || _ssId(), 'POST', tpl);
   }
   /** 定期経費テンプレートを編集（admin または登録者本人）。 */
   function editTemplate(id, tpl, ssId) {
+    if (typeof Demo !== 'undefined' && Demo.isActive()) {
+      const idx = Demo.TEMPLATES.findIndex(t => t.id === id);
+      if (idx >= 0) Demo.TEMPLATES[idx] = { ...Demo.TEMPLATES[idx], ...tpl };
+      return Promise.resolve({ ok: true });
+    }
     return _proxyWrite('templates', ssId || _ssId(), 'PUT', { id, ...tpl });
   }
   /** 定期経費テンプレートを削除（admin または登録者本人）。 */
   function deleteTemplate(id, ssId) {
+    if (typeof Demo !== 'undefined' && Demo.isActive()) {
+      const idx = Demo.TEMPLATES.findIndex(t => t.id === id);
+      if (idx >= 0) Demo.TEMPLATES.splice(idx, 1);
+      return Promise.resolve({ ok: true });
+    }
     return _proxyWrite('templates', ssId || _ssId(), 'DELETE', undefined, `&id=${encodeURIComponent(id)}`);
   }
 

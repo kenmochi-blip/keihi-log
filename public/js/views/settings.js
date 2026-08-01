@@ -1267,11 +1267,6 @@ const SettingsView = (() => {
   async function _loadTemplates(el) {
     const list = el.querySelector('#templateList');
     if (!list) return;
-    if (typeof Demo !== 'undefined' && Demo.isActive()) {
-      _templates = [];
-      list.innerHTML = '<div class="text-muted small text-center py-2">デモモードでは利用できません</div>';
-      return;
-    }
     try {
       const resp = await Sheets.getTemplates();
       _templates = resp.templates || [];
