@@ -1813,6 +1813,27 @@ async function _lineReply(replyToken, messages) {
   }
 }
 
+/**
+ * ローディングアニメーション表示（画像解析・登録処理など、Replyまで数秒かかる処理の前に呼ぶ）。
+ * トーク画面に「...」の読み込み表示を出し、慣れないユーザーが「動いてない？」と誤解して
+ * 他のボタンを連打するのを防ぐ。Push/Reply枠を消費しない専用APIなので無料枠に影響しない。
+ * 1:1トークのみ対応（グループ・複数人トークには出せない仕様）。失敗しても本処理は止めない。
+ */
+async function _lineStartLoading(userId, seconds = 20) {
+  if (!userId || !_lineToken()) return;
+  try {
+    const resp = await fetch(`${LINE_API}/chat/loading/start`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${_lineToken()}` },
+      body: JSON.stringify({ chatId: userId, loadingSeconds: seconds }),
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!resp.ok) console.error('line loading start failed:', resp.status, await resp.text().catch(() => ''));
+  } catch (e) {
+    console.error('line loading start error:', e?.message || e);
+  }
+}
+
 /** テキスト＋クイックリプライ（postbackアクション）を1メッセージに組む。 */
 function _lineText(text, quickItems) {
   const msg = { type: 'text', text: String(text).slice(0, 4900) };
@@ -2243,6 +2264,10 @@ async function _processLineImage(userId, replyToken, messageId, link) {
   if (!(await _lineRateOk(userId))) {
     return _lineReply(replyToken, _lineText('短時間に送信が集中しています。少し時間をおいてからお試しください。'));
   }
+
+  // 画像ダウンロード→Gemini解析まで数秒かかるため、先に読み込み中アニメーションを出す
+  // （慣れないユーザーが「反応してない？」と誤解して他のボタンを押してしまうのを防ぐ）
+  await _lineStartLoading(userId, 20);
 
   try {
     // 画像取得 → ハッシュ
@@ -2941,6 +2966,7 @@ async function _handleLineTransitText(userId, replyToken, pending, text) {
 async function _lineTransitConfirm(userId, replyToken, pending, round) {
   const { sheetId, identity, from, to } = pending;
   if (!from || !to) return _lineReply(replyToken, _lineText('入力が途中で切れました。もう一度「電車」と送ってやり直してください。'));
+  await _lineStartLoading(userId, 10); // 運賃検索も数秒かかるため読み込み中アニメーションを出す
   const { fare, error, yahooUrl } = await _lineTransitFare(from, to);
   if (error || !fare) {
     return _lineReply(replyToken, _lineText(`運賃を取得できませんでした（${error || '該当なし'}）。\n駅名をご確認のうえ、もう一度「電車」と送ってお試しください。`));
@@ -3226,6 +3252,9 @@ async function _lineRegister(userId, replyToken, pending) {
     d.withholding || 0,                         // T: 源泉徴収
     '',                                         // U: カスタムフラグ
   ];
+
+  // シート書き込みは数秒かかることがあるため、先に読み込み中アニメーションを出す
+  await _lineStartLoading(userId, 10);
 
   try {
     await _withSheetWriteLock(sheetId, () => prependExpenseRowViaSA(sheetId, row));
