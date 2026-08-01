@@ -200,7 +200,7 @@ const Accountant = (() => {
 
     if (!(profile.clients || []).length) {
       document.getElementById('loadingClients').classList.add('d-none');
-      _showError('顧問先がまだ表示されていません。顧問先の管理者に「マスタ管理」で貴事務所のメールアドレスをメンバー登録するよう依頼してください。', false);
+      _showError('顧問先がまだ表示されていません。顧問先の管理者に、アプリの「設定」タブで貴事務所のメールアドレスを役割「閲覧者」としてメンバー登録するよう依頼してください。', false);
       return;
     }
     await _loadSummary();

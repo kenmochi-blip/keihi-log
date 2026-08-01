@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XCNC24BTGP"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-XCNC24BTGP');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>会計事務所の先生へ｜顧問先の領収書を催促しない仕組みに｜経費ログ</title>
+<meta name="description" content="顧問先の経費・証憑をリアルタイムで確認できる会計事務所向けダッシュボード。決算期の領収書催促と記帳代行のデータ整形をなくします。事務所のご利用は無料。公認会計士が設計した経費精算システム「経費ログ」。">
+<meta property="og:title" content="会計事務所の先生へ｜経費ログ">
+<meta property="og:description" content="顧問先の経費・証憑をリアルタイムで確認。決算期の領収書催促をなくす仕組みです。事務所のご利用は無料。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://keihi-log.com/for-accountants">
+<link rel="canonical" href="https://keihi-log.com/for-accountants">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand-h: 217;
+    --brand-s: 97%;
+    --brand-l: 52%;
+    --brand:   hsl(var(--brand-h), var(--brand-s), var(--brand-l));
+    --brand-d: hsl(var(--brand-h), var(--brand-s), 42%);
+    --ink:     #1b2733;
+  }
+  html { overflow-x: hidden; }
+  body {
+    font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    max-width: 100%;
+  }
+
+  /* ===== Hero ===== */
+  .hero {
+    background: linear-gradient(135deg, var(--brand) 0%, var(--brand-d) 100%);
+    color: #fff;
+    padding: 4.5rem 0 4rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: ''; position: absolute; top: -50%; right: -10%;
+    width: 600px; height: 600px; background: rgba(255,255,255,0.05); border-radius: 50%;
+  }
+  .hero::after {
+    content: ''; position: absolute; bottom: -30%; left: -10%;
+    width: 400px; height: 400px; background: rgba(255,255,255,0.05); border-radius: 50%;
+  }
+  .hero-content { position: relative; z-index: 1; }
+  .hero h1 {
+    font-weight: 900;
+    font-size: clamp(1.6rem, 4.6vw, 2.6rem);
+    line-height: 1.4;
+    margin-bottom: 1.25rem;
+  }
+  /* 語句の途中で改行させない（日本語の見出し崩れ防止） */
+  .nb { display: inline-block; }
+  .hero .lead { font-size: 1.08rem; opacity: 0.95; line-height: 1.9; }
+  .eyebrow {
+    display: inline-block; background: rgba(255,255,255,0.18);
+    border: 1px solid rgba(255,255,255,0.35);
+    padding: 0.3rem 0.9rem; border-radius: 50px;
+    font-size: 0.82rem; font-weight: 700; margin-bottom: 1.1rem;
+  }
+  .btn-cta {
+    background-color: #fff; color: var(--brand); font-weight: 700;
+    padding: 0.85rem 2rem; border-radius: 50px; border: none;
+    transition: all 0.3s ease; box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+  }
+  .btn-cta:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.2); color: var(--brand-d); }
+  .btn-cta-outline {
+    background: transparent; color: #fff; border: 2px solid #fff; font-weight: 700;
+    padding: 0.75rem 1.75rem; border-radius: 50px; transition: all 0.3s ease;
+  }
+  .btn-cta-outline:hover { background: #fff; color: var(--brand); }
+
+  /* ===== Sections ===== */
+  .section { padding: 4rem 0; }
+  .section-sub { background: #f6f8fb; }
+  .section-title {
+    font-weight: 900; text-align: center; margin-bottom: 0.75rem;
+    font-size: clamp(1.35rem, 3.6vw, 2rem); line-height: 1.5;
+  }
+  .section-lead { text-align: center; color: #5b6b7c; margin-bottom: 2.5rem; line-height: 1.9; }
+
+  .pain-card {
+    background: #fff; border: 1px solid #e6ecf2; border-radius: 14px;
+    padding: 1.4rem 1.3rem; height: 100%;
+  }
+  .pain-card .ic {
+    width: 42px; height: 42px; border-radius: 11px; background: #fff1f0; color: #d9534f;
+    display: flex; align-items: center; justify-content: center; font-size: 1.2rem; margin-bottom: 0.8rem;
+  }
+  .pain-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem; }
+  .pain-card p { font-size: 0.88rem; color: #5b6b7c; margin: 0; line-height: 1.85; }
+
+  .feat-card {
+    background: #fff; border: 1px solid #e6ecf2; border-radius: 14px;
+    padding: 1.5rem 1.4rem; height: 100%;
+    box-shadow: 0 2px 10px rgba(20,40,80,0.04);
+  }
+  .feat-card .ic {
+    width: 46px; height: 46px; border-radius: 12px;
+    background: linear-gradient(135deg, var(--brand), var(--brand-d)); color: #fff;
+    display: flex; align-items: center; justify-content: center; font-size: 1.3rem; margin-bottom: 0.9rem;
+  }
+  .feat-card h3 { font-size: 1.02rem; font-weight: 700; margin-bottom: 0.55rem; }
+  .feat-card p { font-size: 0.88rem; color: #5b6b7c; margin: 0; line-height: 1.85; }
+
+  /* Before / After */
+  .ba-col { border-radius: 14px; padding: 1.5rem 1.4rem; height: 100%; }
+  .ba-before { background: #f4f6f8; border: 1px solid #e2e8ee; }
+  .ba-after  { background: linear-gradient(135deg, #eef4ff, #e6f0ff); border: 1px solid #cddfff; }
+  .ba-col h3 { font-size: 1rem; font-weight: 800; margin-bottom: 1rem; }
+  .ba-col ul { list-style: none; padding: 0; margin: 0; }
+  .ba-col li { font-size: 0.9rem; line-height: 1.7; padding: 0.5rem 0 0.5rem 1.7rem; position: relative; }
+  .ba-before li::before {
+    content: '\f62a'; font-family: 'bootstrap-icons'; position: absolute; left: 0; color: #96a3b0;
+  }
+  .ba-after li::before {
+    content: '\f26e'; font-family: 'bootstrap-icons'; position: absolute; left: 0; color: var(--brand);
+  }
+
+  /* Steps */
+  .step { display: flex; gap: 1rem; padding: 1.1rem 0; border-bottom: 1px dashed #dde5ed; }
+  .step:last-child { border-bottom: none; }
+  .step-no {
+    flex-shrink: 0; width: 38px; height: 38px; border-radius: 50%;
+    background: var(--brand); color: #fff; font-weight: 800;
+    display: flex; align-items: center; justify-content: center; font-size: 0.95rem;
+  }
+  .step-body h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.35rem; }
+  .step-body p { font-size: 0.89rem; color: #5b6b7c; margin: 0; line-height: 1.85; }
+  .who-badge {
+    display: inline-block; font-size: 0.72rem; font-weight: 700; padding: 0.12rem 0.6rem;
+    border-radius: 50px; margin-left: 0.4rem; vertical-align: 0.12rem;
+  }
+  .who-acct { background: #e7f0ff; color: #0d55c6; }
+  .who-client { background: #eaf7ee; color: #23794a; }
+
+  /* Price */
+  .price-box {
+    background: #fff; border: 2px solid var(--brand); border-radius: 16px;
+    padding: 2rem 1.5rem; text-align: center;
+  }
+  .price-free { font-size: clamp(2rem, 6vw, 2.8rem); font-weight: 900; color: var(--brand); line-height: 1.2; }
+
+  /* FAQ */
+  .accordion-button { font-weight: 700; font-size: 0.95rem; }
+  .accordion-button:not(.collapsed) { background: #eef4ff; color: var(--brand-d); }
+  .accordion-button:focus { box-shadow: none; }
+  .accordion-body { font-size: 0.9rem; color: #5b6b7c; line-height: 1.9; }
+
+  /* Final CTA */
+  .cta-final {
+    background: linear-gradient(135deg, var(--brand) 0%, var(--brand-d) 100%);
+    color: #fff; padding: 4rem 0;
+  }
+
+  footer { background: #16202b; color: #9fb0c0; padding: 2.5rem 0 2rem; font-size: 0.86rem; }
+  footer a { color: #cfe0f0; text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+
+  .navbar-brand img { border-radius: 8px; }
+</style>
+</head>
+<body>
+
+<!-- ===== Nav ===== -->
+<nav class="navbar navbar-expand-lg bg-white border-bottom sticky-top">
+  <div class="container">
+    <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" href="/">
+      <img src="/icons/icon-192.png" width="30" height="30" alt="経費ログ">
+      <span>経費ログ</span>
+    </a>
+    <div class="ms-auto d-flex align-items-center gap-2">
+      <a href="/" class="btn btn-link btn-sm text-decoration-none d-none d-sm-inline">サービス概要</a>
+      <a href="#apply" class="btn btn-primary btn-sm rounded-pill px-3">利用申請</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ===== Hero ===== -->
+<section class="hero">
+  <div class="container hero-content">
+    <div class="row align-items-center">
+      <div class="col-lg-7">
+        <span class="eyebrow"><i class="bi bi-briefcase-fill me-1"></i>税理士・会計事務所の先生へ</span>
+        <h1><span class="nb">顧問先の領収書を、</span><br><span class="nb">「催促して集める」のを</span><span class="nb">やめませんか。</span></h1>
+        <p class="lead mb-4">
+          顧問先が撮影・LINE送信した領収書が、その場でデータになる。<br>
+          先生は<strong>顧問先の経費と証憑をリアルタイムで確認</strong>でき、<br>
+          決算期に領収書の山と格闘する必要がなくなります。
+        </p>
+        <div class="d-flex flex-wrap gap-3">
+          <a href="#apply" class="btn btn-cta btn-lg">
+            事務所の利用申請（無料）<i class="bi bi-arrow-right ms-2"></i>
+          </a>
+          <a href="#flow" class="btn btn-cta-outline">導入の流れを見る</a>
+        </div>
+        <div class="mt-4 small opacity-90" style="line-height:2;">
+          <i class="bi bi-check-circle me-1"></i>事務所側のご利用は<strong>無料</strong>・顧問先数の制限なし<br>
+          <i class="bi bi-check-circle me-1"></i>顧問先の費用は月<strong>825円</strong>（税込・人数無制限のチーム定額）<br>
+          <i class="bi bi-check-circle me-1"></i>公認会計士が設計・開発しています
+        </div>
+      </div>
+      <div class="col-lg-5 mt-5 mt-lg-0">
+        <div class="bg-white rounded-4 shadow-lg p-3 p-md-4 text-dark">
+          <div class="small fw-bold text-muted mb-2"><i class="bi bi-grid-3x3-gap-fill me-1 text-primary"></i>会計事務所ダッシュボード</div>
+          <table class="table table-sm mb-2" style="font-size:0.78rem;">
+            <thead class="table-light">
+              <tr><th>顧問先</th><th class="text-end">当月</th><th class="text-end">前月</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>A商事</td><td class="text-end fw-semibold">¥248,300</td><td class="text-end text-muted">¥231,900</td></tr>
+              <tr><td>B工務店</td><td class="text-end fw-semibold">¥86,140</td><td class="text-end text-muted">¥94,020</td></tr>
+              <tr><td>Cクリニック</td><td class="text-end fw-semibold">¥132,600</td><td class="text-end text-muted">¥128,450</td></tr>
+              <tr><td>D設計事務所</td><td class="text-end fw-semibold">¥41,980</td><td class="text-end text-muted">¥52,300</td></tr>
+            </tbody>
+          </table>
+          <div class="d-flex gap-2 flex-wrap">
+            <span class="badge bg-primary-subtle text-primary-emphasis">勘定科目別に展開</span>
+            <span class="badge bg-primary-subtle text-primary-emphasis">証憑画像を確認</span>
+            <span class="badge bg-primary-subtle text-primary-emphasis">CSV出力</span>
+          </div>
+          <div class="text-muted mt-2" style="font-size:0.7rem;">※ 画面イメージ（サンプルデータ）</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 課題 ===== -->
+<section class="section">
+  <div class="container">
+    <h2 class="section-title">記帳代行の手間、その多くは<br class="d-md-none">「証憑が集まらないこと」から生まれています</h2>
+    <p class="section-lead">先生方から実際に伺った、顧問先対応のボトルネックです。</p>
+    <div class="row g-3">
+      <div class="col-md-6 col-lg-3">
+        <div class="pain-card">
+          <div class="ic"><i class="bi bi-envelope-exclamation-fill"></i></div>
+          <h3>決算期の督促が終わらない</h3>
+          <p>「領収書をお送りください」のメールを何度も送り、返ってくるのは期限直前。督促そのものが仕事になっている。</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <div class="pain-card">
+          <div class="ic"><i class="bi bi-file-earmark-excel-fill"></i></div>
+          <h3>顧問先ごとに様式がバラバラ</h3>
+          <p>Excel・紙・写真がメールに添付…。顧問先ごとに整形方法が違い、記帳前のデータ加工に時間が溶ける。</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <div class="pain-card">
+          <div class="ic"><i class="bi bi-shield-exclamation"></i></div>
+          <h3>電帳法の状況が見えない</h3>
+          <p>顧問先が要件を満たした形で保存できているか、根拠を持って確認する手段がない。指導もしづらい。</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <div class="pain-card">
+          <div class="ic"><i class="bi bi-hourglass-split"></i></div>
+          <h3>進捗が月末までわからない</h3>
+          <p>顧問先の支出状況がリアルタイムで見えないため、異常や計上漏れに気づくのが常に後手になる。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Before/After ===== -->
+<section class="section section-sub">
+  <div class="container">
+    <h2 class="section-title">経費ログを顧問先に導入すると</h2>
+    <p class="section-lead">証憑が「集める物」から「勝手に溜まる物」に変わります。</p>
+    <div class="row g-3 align-items-stretch">
+      <div class="col-md-6">
+        <div class="ba-col ba-before">
+          <h3 class="text-muted"><i class="bi bi-dash-circle me-1"></i>これまで</h3>
+          <ul>
+            <li>決算期にまとめて領収書を回収し、督促を繰り返す</li>
+            <li>紙・Excel・写真が混在し、整形してから記帳</li>
+            <li>証憑の原本管理は顧問先任せ、状況は不明</li>
+            <li>顧問先の支出は締めてみるまでわからない</li>
+            <li>質問のたびに「あの領収書」を探してもらう</li>
+          </ul>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="ba-col ba-after">
+          <h3 class="text-primary"><i class="bi bi-plus-circle me-1"></i>経費ログ導入後</h3>
+          <ul>
+            <li>顧問先が撮影・LINE送信した時点でデータ化される</li>
+            <li>全顧問先が同一フォーマット。CSVでそのまま取込</li>
+            <li>サーバー時刻・ハッシュ・インボイス番号を自動記録</li>
+            <li>ダッシュボードで顧問先×月次の推移が常時見える</li>
+            <li>証憑画像は明細からその場で開ける</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== ダッシュボード機能 ===== -->
+<section class="section">
+  <div class="container">
+    <h2 class="section-title">会計事務所ダッシュボードでできること</h2>
+    <p class="section-lead">顧問先にログインし直す必要はありません。1つの画面にすべての顧問先が並びます。</p>
+    <div class="row g-3">
+      <div class="col-md-6 col-lg-4">
+        <div class="feat-card">
+          <div class="ic"><i class="bi bi-table"></i></div>
+          <h3>顧問先 × 月別ピボット</h3>
+          <p>担当するすべての顧問先の月次経費を1枚の表で俯瞰。直近3・6・12ヶ月を切り替えて推移を確認できます。</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <div class="feat-card">
+          <div class="ic"><i class="bi bi-list-nested"></i></div>
+          <h3>勘定科目別の内訳展開</h3>
+          <p>顧問先の行を開くと勘定科目別の内訳に展開。金額の大きい科目や前月比の異常をその場で把握できます。</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <div class="feat-card">
+          <div class="ic"><i class="bi bi-receipt"></i></div>
+          <h3>証憑画像をその場で確認</h3>
+          <p>明細をクリックすれば領収書画像を直接表示。「この支出の証憑を見せてください」の往復が不要になります。</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <div class="feat-card">
+          <div class="ic"><i class="bi bi-filetype-csv"></i></div>
+          <h3>CSVエクスポート</h3>
+          <p>日付・支払先・金額・勘定科目・税区分・インボイス番号を含む汎用CSV。freee・マネーフォワード・弥生等へ列対応で取込できます。</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <div class="feat-card">
+          <div class="ic"><i class="bi bi-funnel"></i></div>
+          <h3>申請者・科目・状態で絞り込み</h3>
+          <p>申請者別、勘定科目別、精算状態（申請済・登録済・精算済）でフィルタ。確認したい範囲だけを抽出できます。</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <div class="feat-card">
+          <div class="ic"><i class="bi bi-shield-check"></i></div>
+          <h3>閲覧専用・改変不可</h3>
+          <p>事務所アカウントは閲覧専用です。顧問先のデータを誤って書き換える心配はありません。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 顧問先メリット ===== -->
+<section class="section section-sub">
+  <div class="container">
+    <h2 class="section-title">顧問先にお勧めいただきやすい理由</h2>
+    <p class="section-lead">先生が勧めても、顧問先が使えなければ意味がありません。そこを設計の中心に置いています。</p>
+    <div class="row g-3">
+      <div class="col-md-6 col-lg-3">
+        <div class="feat-card">
+          <div class="ic"><i class="bi bi-chat-dots-fill"></i></div>
+          <h3>LINEで送るだけ</h3>
+          <p>専用アプリを開く必要も、操作を覚える必要もありません。領収書を公式アカウントに送るだけで登録されます。ITが苦手な方でも続きます。</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <div class="feat-card">
+          <div class="ic"><i class="bi bi-currency-yen"></i></div>
+          <h3>月825円・人数無制限</h3>
+          <p>1チーム定額で、従業員が何名でも同額。1人あたり課金の経費精算SaaSと比べ、小規模な顧問先でも導入判断が容易です。</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <div class="feat-card">
+          <div class="ic"><i class="bi bi-google"></i></div>
+          <h3>データは顧問先のGoogleへ</h3>
+          <p>明細は顧問先自身のスプレッドシート、証憑は同アカウントのドライブに保存。当社サーバーに顧客データは保管しません。</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <div class="feat-card">
+          <div class="ic"><i class="bi bi-clipboard-check"></i></div>
+          <h3>電帳法対応の運用が可能</h3>
+          <p>サーバー時刻の記録・画像ハッシュ管理・インボイス番号の自動抽出に対応。スキャナ保存用の社内規程も自動生成できます。</p>
+        </div>
+      </div>
+    </div>
+    <p class="text-center text-muted small mt-4 mb-0">
+      顧問先は<strong>2週間の無料トライアル</strong>から始められます（クレジットカード登録不要・自動課金なし）。
+    </p>
+  </div>
+</section>
+
+<!-- ===== 導入の流れ ===== -->
+<section class="section" id="flow">
+  <div class="container" style="max-width:760px;">
+    <h2 class="section-title">導入の流れ</h2>
+    <p class="section-lead">事務所のご登録は当社側で行います。まずはご連絡ください。</p>
+    <div class="bg-white border rounded-4 p-3 p-md-4">
+      <div class="step">
+        <div class="step-no">1</div>
+        <div class="step-body">
+          <h3>事務所の利用申請<span class="who-badge who-acct">先生</span></h3>
+          <p>本ページ下部のボタンからメールをお送りください。事務所のメールアドレスをダッシュボード利用者として登録します（無料・当社側で作業します）。</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-no">2</div>
+        <div class="step-body">
+          <h3>顧問先が経費ログを開始<span class="who-badge who-client">顧問先</span></h3>
+          <p>顧問先の管理者がGoogleアカウントで初期設定を行います（所要15分程度）。ご希望があれば、当社が画面共有で設定を代行します。</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-no">3</div>
+        <div class="step-body">
+          <h3>顧問先が先生を「閲覧者」として登録<span class="who-badge who-client">顧問先</span></h3>
+          <p>顧問先の管理者がアプリの<strong>設定タブ</strong>で、先生のメールアドレスを役割「閲覧者」で追加します。これが先生への閲覧許可になります。</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-no">4</div>
+        <div class="step-body">
+          <h3>ダッシュボードにログイン<span class="who-badge who-acct">先生</span></h3>
+          <p><code>keihi-log.com/accountant</code> をGoogleアカウントで開くと、許可された顧問先が自動的に一覧へ表示されます。顧問先が増えるたびに手続きは不要です。</p>
+        </div>
+      </div>
+    </div>
+    <div class="alert alert-primary mt-3 small mb-0">
+      <i class="bi bi-info-circle-fill me-1"></i>
+      ステップ3を顧問先が行うまで、先生の画面に顧問先は表示されません。データを見られるのは、顧問先が明示的に許可した先だけという設計です。
+    </div>
+  </div>
+</section>
+
+<!-- ===== 費用 ===== -->
+<section class="section section-sub">
+  <div class="container" style="max-width:620px;">
+    <h2 class="section-title">事務所の費用</h2>
+    <div class="price-box">
+      <div class="text-muted small fw-bold mb-1">会計事務所ダッシュボード</div>
+      <div class="price-free">無料</div>
+      <div class="text-muted small mt-2 mb-3">顧問先数の制限はありません</div>
+      <hr>
+      <p class="small text-muted mb-0" style="line-height:1.9;">
+        ご契約者は顧問先であり、先生の事務所に費用は発生しません。<br>
+        顧問先の料金は<strong>チームプラン 月825円（税込）</strong>／年8,250円（税込）。<br>
+        1名でご利用の顧問先には<strong>ソロプラン 月330円（税込）</strong>もございます。
+      </p>
+    </div>
+    <p class="text-center small text-muted mt-3 mb-0">
+      顧問先を多数ご紹介いただける事務所様には、別途ご相談させていただきます。
+    </p>
+  </div>
+</section>
+
+<!-- ===== FAQ ===== -->
+<section class="section">
+  <div class="container" style="max-width:760px;">
+    <h2 class="section-title">よくあるご質問</h2>
+    <div class="accordion" id="acctFaq">
+      <div class="accordion-item">
+        <h3 class="accordion-header"><button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#q1">顧問先のデータは誰が保有するのですか？</button></h3>
+        <div id="q1" class="accordion-collapse collapse" data-bs-parent="#acctFaq">
+          <div class="accordion-body">顧問先ご自身のGoogleアカウントです。経費明細はスプレッドシート、証憑画像は同アカウントのGoogleドライブに保存されます。当社サーバーに顧客データを保管しない設計のため、解約後もデータは顧問先の手元に残ります。ベンダーロックインはありません。</div>
+        </div>
+      </div>
+      <div class="accordion-item">
+        <h3 class="accordion-header"><button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#q2">先生の画面から顧問先のデータを編集できますか？</button></h3>
+        <div id="q2" class="accordion-collapse collapse" data-bs-parent="#acctFaq">
+          <div class="accordion-body">できません。事務所アカウントは<strong>閲覧専用</strong>です。金額の修正や削除は顧問先側でのみ行えるため、意図しない改変が起きない構造になっています。</div>
+        </div>
+      </div>
+      <div class="accordion-item">
+        <h3 class="accordion-header"><button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#q3">会計ソフトの置き換えになりますか？</button></h3>
+        <div id="q3" class="accordion-collapse collapse" data-bs-parent="#acctFaq">
+          <div class="accordion-body">なりません。経費ログは「顧問先が経費を記録し、証憑を保管する」までを担当するツールです。仕訳・申告は従来どおりfreee・マネーフォワード・弥生等をご利用ください。CSVエクスポートでこれらに取り込めます。銀行明細やカード明細の自動取得機能はありません。</div>
+        </div>
+      </div>
+      <div class="accordion-item">
+        <h3 class="accordion-header"><button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#q4">顧問先にGoogleアカウントがない場合は？</button></h3>
+        <div id="q4" class="accordion-collapse collapse" data-bs-parent="#acctFaq">
+          <div class="accordion-body">管理者の方（通常は経営者やご担当者）はGoogleアカウントが必要です。一方、<strong>領収書を出すだけの従業員の方はGoogleアカウント不要</strong>で、LINEの連携コードだけで参加できます。現場スタッフが多い顧問先ほど導入しやすい構成です。</div>
+        </div>
+      </div>
+      <div class="accordion-item">
+        <h3 class="accordion-header"><button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#q5">AI解析にAPIキーが必要と聞きました</button></h3>
+        <div id="q5" class="accordion-collapse collapse" data-bs-parent="#acctFaq">
+          <div class="accordion-body">はい。AI解析は顧問先ご自身のGoogle AI Studio APIキーで動作します（BYOK方式）。当社がAI利用料を負担しないため、月825円という価格を実現できています。キーの取得は無料で、無料枠は1日500リクエストです。取得手順が不安な場合は、当社が画面共有で設定を代行しますのでご相談ください。</div>
+        </div>
+      </div>
+      <div class="accordion-item">
+        <h3 class="accordion-header"><button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#q6">顧問先に提案するための資料はありますか？</button></h3>
+        <div id="q6" class="accordion-collapse collapse" data-bs-parent="#acctFaq">
+          <div class="accordion-body">ご用意しています。顧問先にそのままお渡しいただける操作マニュアル（PDF）と、LINE連携の設定手順書がございます。利用申請の際にお申し付けください。</div>
+        </div>
+      </div>
+      <div class="accordion-item">
+        <h3 class="accordion-header"><button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#q7">まず自分で試してみることはできますか？</button></h3>
+        <div id="q7" class="accordion-collapse collapse" data-bs-parent="#acctFaq">
+          <div class="accordion-body">はい。登録不要の<a href="/app?demo">デモ画面</a>で、実際の操作感とAI解析をその場でお試しいただけます。先生の事務所自身の経費管理にお使いいただくことも可能です。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 最終CTA ===== -->
+<section class="cta-final" id="apply">
+  <div class="container text-center" style="max-width:680px;">
+    <h2 class="fw-black mb-3" style="font-weight:900;font-size:clamp(1.35rem,3.6vw,2rem);">
+      まずは1社、試していただけませんか。
+    </h2>
+    <p class="mb-4" style="line-height:2;opacity:0.95;">
+      売り込みの前に、実務家の目で見ていただきたいと考えています。<br>
+      「ここが使えない」というご指摘こそ、いま最も必要としているものです。<br>
+      顧問先1社の初期設定は、当社が画面共有ですべて代行します。
+    </p>
+    <a href="mailto:support@keihi-log.com?subject=%E3%80%90%E4%BC%9A%E8%A8%88%E4%BA%8B%E5%8B%99%E6%89%80%E3%80%91%E7%B5%8C%E8%B2%BB%E3%83%AD%E3%82%B0%E3%81%AE%E5%88%A9%E7%94%A8%E7%94%B3%E8%AB%8B&body=%E7%B5%8C%E8%B2%BB%E3%83%AD%E3%82%B0%20%E3%81%94%E6%8B%85%E5%BD%93%E8%80%85%E6%A7%98%0A%0A%E4%BC%9A%E8%A8%88%E4%BA%8B%E5%8B%99%E6%89%80%E5%90%91%E3%81%91%E3%83%80%E3%83%83%E3%82%B7%E3%83%A5%E3%83%9C%E3%83%BC%E3%83%89%E3%81%AE%E5%88%A9%E7%94%A8%E3%82%92%E5%B8%8C%E6%9C%9B%E3%81%97%E3%81%BE%E3%81%99%E3%80%82%0A%0A%E2%96%A0%E4%BA%8B%E5%8B%99%E6%89%80%E5%90%8D%EF%BC%9A%0A%E2%96%A0%E3%81%94%E6%B0%8F%E5%90%8D%EF%BC%9A%0A%E2%96%A0%E3%83%A1%E3%83%BC%E3%83%AB%E3%82%A2%E3%83%89%E3%83%AC%E3%82%B9%EF%BC%88Google%E3%82%A2%E3%82%AB%E3%82%A6%E3%83%B3%E3%83%88%EF%BC%89%EF%BC%9A%0A%E2%96%A0%E9%9B%BB%E8%A9%B1%E7%95%AA%E5%8F%B7%EF%BC%9A%0A%E2%96%A0%E9%A1%A7%E5%95%8F%E5%85%88%E4%BB%B6%E6%95%B0%EF%BC%88%E3%81%8A%E3%82%88%E3%81%9D%EF%BC%89%EF%BC%9A%0A%E2%96%A0%E9%A1%A7%E5%95%8F%E5%85%88%E5%90%91%E3%81%91%E8%B3%87%E6%96%99%EF%BC%88PDF%EF%BC%89%E3%81%AE%E5%B8%8C%E6%9C%9B%EF%BC%9A%E6%9C%89%20%2F%20%E7%84%A1%0A%E2%96%A0%E3%81%94%E8%B3%AA%E5%95%8F%E3%83%BB%E3%81%94%E8%A6%81%E6%9C%9B%EF%BC%9A%0A%0A"
+       id="btnApply" class="btn btn-cta btn-lg">
+      <i class="bi bi-envelope-fill me-2"></i>事務所の利用申請をする（無料）
+    </a>
+    <div class="mt-4 small" style="opacity:0.9;line-height:2;">
+      メールが開かない場合は <strong>support@keihi-log.com</strong> 宛にご連絡ください。<br>
+      既にご登録済みの先生は <a href="/accountant" class="text-white text-decoration-underline">ダッシュボードにログイン</a>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Footer ===== -->
+<footer>
+  <div class="container">
+    <div class="row g-4">
+      <div class="col-md-5">
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <img src="/icons/icon-192.png" width="28" height="28" style="border-radius:7px;" alt="">
+          <span class="fw-bold text-white">経費ログ</span>
+        </div>
+        <p class="mb-1" style="line-height:1.9;">
+          公認会計士が設計した、中小企業・個人事業主向けの経費精算システムです。
+        </p>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="fw-bold text-white mb-2 small">サービス</div>
+        <div class="d-flex flex-column gap-1">
+          <a href="/">サービス概要</a>
+          <a href="/app?demo">デモ画面</a>
+          <a href="/faq">よくある質問</a>
+          <a href="/accountant">事務所ダッシュボード</a>
+        </div>
+      </div>
+      <div class="col-6 col-md-4">
+        <div class="fw-bold text-white mb-2 small">運営</div>
+        <div class="d-flex flex-column gap-1">
+          <a href="/terms">利用規約</a>
+          <a href="/privacy">プライバシーポリシー</a>
+          <a href="/tokusho">特定商取引法に基づく表記</a>
+          <a href="mailto:support@keihi-log.com">support@keihi-log.com</a>
+        </div>
+      </div>
+    </div>
+    <hr class="border-secondary my-4">
+    <div class="text-center" style="font-size:0.8rem;">&copy; 合同会社Smart&amp;Smooth</div>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // 申請ボタンのクリックを計測（このページの成果を測る唯一の指標）
+  document.getElementById('btnApply')?.addEventListener('click', () => {
+    gtag('event', 'accountant_apply_click', { page: 'for-accountants' });
+  });
+</script>
+</body>
+</html>
