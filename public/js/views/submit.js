@@ -1360,14 +1360,15 @@ function _bindSubtypePills(el) {
   }
 
   /** 定期経費テンプレート一覧を取得し、「その他のタイプの申請」内のメニューボタンの表示可否を決める。 */
-  async function _loadTemplateQuickList(el) {
+  function _loadTemplateQuickList(el) {
     const row = el.querySelector('#templateMenuRow');
     if (!row) return;
-    try {
-      const resp = await Sheets.getTemplates();
+    // 管理者にはテンプレートが0件でも表示し、設定タブへの導線にする → 一覧取得を待たず即表示し、
+    // 実データはバックグラウンドで取得する（ボタン表示までのラグをなくすため）
+    row.classList.remove('d-none');
+    Sheets.getTemplates().then(resp => {
       _templates = resp.templates || [];
-    } catch (_) { _templates = []; }
-    row.classList.remove('d-none'); // 管理者にはテンプレートが0件でも表示し、設定タブへの導線にする
+    }).catch(() => { _templates = []; });
   }
 
   /** 「定期経費を登録」ボタン押下 → 注意事項＋登録候補一覧をポップアップで表示する。 */
