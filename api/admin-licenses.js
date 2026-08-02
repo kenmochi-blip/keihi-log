@@ -372,19 +372,55 @@ export default async function handler(req, res) {
         if (/Paid|Cross-network/i.test(ch)) paidSessions += n;
       }
 
-      // trial_start イベント数（GA4にイベントが届いていれば）
-      let trialStarts = 0;
+      // 申込ファネルの各イベント数を1回のレポートでまとめて取得する。
+      // LP側の計測（index.html 末尾）と対応:
+      //   hero_cta_click → view_pricing → begin_checkout → trial_start
+      // begin_checkout は buy.stripe.com へ送り出した数。Stripeの決済ページには
+      // タグを置けないため、begin_checkout − trial_start がStripe画面での離脱数になる。
+      const funnelEvents = ['hero_cta_click', 'view_pricing', 'begin_checkout', 'trial_start'];
+      const events = {};
+      for (const name of funnelEvents) events[name] = 0;
       try {
         const ev = await runReport({
           dateRanges: [{ startDate, endDate: 'today' }],
           dimensions: [{ name: 'eventName' }],
           metrics: [{ name: 'eventCount' }],
-          dimensionFilter: { filter: { fieldName: 'eventName', stringFilter: { value: 'trial_start' } } },
+          dimensionFilter: {
+            filter: {
+              fieldName: 'eventName',
+              inListFilter: { values: funnelEvents },
+            },
+          },
         });
-        trialStarts = Number(ev.rows?.[0]?.metricValues?.[0]?.value || 0);
+        for (const row of (ev.rows || [])) {
+          const name = row.dimensionValues?.[0]?.value || '';
+          if (name in events) events[name] = Number(row.metricValues?.[0]?.value || 0);
+        }
       } catch (_) {}
 
-      return res.status(200).json({ propId, days, totalSessions, paidSessions, trialStarts });
+      // ファネルの入口となる実ユーザー数（セッションではなく人数）
+      let activeUsers = 0, newUsers = 0;
+      try {
+        const u = await runReport({
+          dateRanges: [{ startDate, endDate: 'today' }],
+          metrics: [{ name: 'activeUsers' }, { name: 'newUsers' }],
+        });
+        activeUsers = Number(u.rows?.[0]?.metricValues?.[0]?.value || 0);
+        newUsers    = Number(u.rows?.[0]?.metricValues?.[1]?.value || 0);
+      } catch (_) {}
+
+      return res.status(200).json({
+        propId, days, totalSessions, paidSessions,
+        activeUsers, newUsers,
+        trialStarts: events.trial_start,
+        funnel: {
+          users:          activeUsers,
+          heroCtaClick:   events.hero_cta_click,
+          viewPricing:    events.view_pricing,
+          beginCheckout:  events.begin_checkout,
+          trialStart:     events.trial_start,
+        },
+      });
     } catch (err) {
       await _logToKV('ga4', 'error', err.message);
       return res.status(502).json({ error: 'ga4_failed', message: err.message });

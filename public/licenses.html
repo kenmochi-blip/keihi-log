@@ -33,6 +33,32 @@
     .kpi.c-green  .value { color: #16a34a; }
     .kpi.c-amber  .value { color: #d97706; }
     .kpi.c-red    .value { color: #dc2626; }
+
+    /* ===== 申込ファネル（最重要指標） ===== */
+    .funnel-panel { border-color: var(--accent); }
+    .funnel-row { display: flex; align-items: stretch; gap: 0; flex-wrap: wrap; }
+    .funnel-loading { color: var(--text-mute); font-size: 0.8rem; padding: 0.75rem 0; }
+    .funnel-step { flex: 1 1 108px; min-width: 108px; text-align: center; padding: 0.6rem 0.35rem; position: relative; }
+    .funnel-step .fv { font-size: 1.75rem; font-weight: 700; line-height: 1.1; color: var(--accent); }
+    .funnel-step .fl { font-size: 0.7rem; color: var(--text-sub); margin-top: 0.2rem; line-height: 1.4; }
+    .funnel-step .fs { font-size: 0.64rem; color: var(--text-mute); margin-top: 0.15rem; }
+    /* 段と段のあいだの転換率 */
+    .funnel-arrow { display: flex; flex-direction: column; align-items: center; justify-content: center;
+                    padding: 0 0.15rem; min-width: 52px; }
+    .funnel-arrow .rate { font-size: 0.72rem; font-weight: 700; color: var(--text-sub); white-space: nowrap; }
+    .funnel-arrow .bar { font-size: 0.9rem; color: var(--border); line-height: 1; }
+    .funnel-arrow.drop .rate { color: #dc2626; }
+    .funnel-step.is-end .fv { color: #16a34a; }
+    .funnel-verdict { margin-top: 0.5rem; padding: 0.5rem 0.7rem; border-radius: 6px;
+                      font-size: 0.76rem; line-height: 1.75; }
+    .funnel-verdict.warn { background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; }
+    .funnel-verdict.info { background: var(--surface-sub); border: 1px solid var(--border); color: var(--text-sub); }
+    .funnel-verdict:empty { display: none; }
+    @media (max-width: 700px) {
+      .funnel-step { flex-basis: 30%; }
+      .funnel-arrow { min-width: 34px; }
+      .funnel-step .fv { font-size: 1.35rem; }
+    }
     .kpi.c-purple .value { color: #7c3aed; }
     .kpi.c-purple { border-color: #ddd6fe; background: linear-gradient(180deg,#faf5ff,#fff); }
     .data-table { width: 100%; border-collapse: collapse; }
@@ -163,6 +189,24 @@
     </div>
 
     <div id="summary" class="d-none">
+
+      <!-- ===== 最重要指標：申込ファネル ===== -->
+      <div class="panel funnel-panel" style="margin-bottom:1rem;">
+        <div class="panel-header" style="justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:0.5rem;">
+            <i class="bi bi-funnel-fill" style="color:var(--accent);"></i>
+            <span class="title">申込ファネル</span>
+            <span id="funnelRange" style="font-size:0.7rem;color:var(--text-mute);"></span>
+          </div>
+          <span id="funnelNote" style="font-size:0.7rem;color:var(--text-mute);"></span>
+        </div>
+        <div class="panel-body">
+          <div class="funnel-row" id="funnelRow">
+            <div class="funnel-loading">読み込み中...</div>
+          </div>
+          <div id="funnelVerdict" class="funnel-verdict"></div>
+        </div>
+      </div>
 
       <div class="kpi-grid mb-4">
         <div class="kpi c-purple"><div class="value" id="statPaidCumulative">—</div><div class="label">累計課金（解約含む）</div></div>
@@ -1132,6 +1176,79 @@
     let _funnelTargets = { regRate: 0.03, activation: 0.6, conversion: 0.2 };
     function _pct(v) { return v == null ? '—' : (v * 100).toFixed(1) + '%'; }
 
+    /**
+     * 最重要指標：LP訪問 → 申込完了までの通過人数を段ごとに表示する。
+     *
+     * Stripeの決済ページ（buy.stripe.com）には計測タグを設置できないため、
+     * 「決済ページへ」（begin_checkout）と「申込完了」（trial_start）の差が
+     * そのままStripe画面での離脱数になる。
+     */
+    function _renderTopFunnel(ga4, days) {
+      const row     = document.getElementById('funnelRow');
+      const verdict = document.getElementById('funnelVerdict');
+      const range   = document.getElementById('funnelRange');
+      const note    = document.getElementById('funnelNote');
+      range.textContent = `直近${days}日`;
+
+      if (!ga4 || !ga4.funnel) {
+        row.innerHTML = '<div class="funnel-loading">GA4を参照できませんでした（サービスアカウントの共有設定をご確認ください）</div>';
+        verdict.className = 'funnel-verdict'; verdict.textContent = '';
+        note.textContent = '';
+        return;
+      }
+
+      const f = ga4.funnel;
+      const steps = [
+        { key: 'users',         label: '訪問者',       sub: 'LPに来た人数' },
+        { key: 'viewPricing',   label: '料金プラン到達', sub: '料金までスクロール' },
+        { key: 'beginCheckout', label: '決済ページへ',   sub: 'Stripeに遷移' },
+        { key: 'trialStart',    label: '申込完了',      sub: 'ライセンス発行', end: true },
+      ];
+
+      // 各段の通過率。前段が0なら率は出さない（0除算・誤解を避ける）
+      let html = '';
+      steps.forEach((s, i) => {
+        const v = Number(f[s.key] || 0);
+        if (i > 0) {
+          const prev = Number(f[steps[i - 1].key] || 0);
+          const rate = prev > 0 ? v / prev : null;
+          const drop = rate != null && rate < 0.15;
+          html += `<div class="funnel-arrow${drop ? ' drop' : ''}">
+                     <div class="rate">${rate == null ? '—' : (rate * 100).toFixed(rate < 0.1 ? 1 : 0) + '%'}</div>
+                     <div class="bar">▶</div>
+                   </div>`;
+        }
+        html += `<div class="funnel-step${s.end ? ' is-end' : ''}">
+                   <div class="fv">${v.toLocaleString('ja-JP')}</div>
+                   <div class="fl">${s.label}</div>
+                   <div class="fs">${s.sub}</div>
+                 </div>`;
+      });
+      row.innerHTML = html;
+
+      note.textContent = f.heroCtaClick
+        ? `ヒーローCTA ${f.heroCtaClick.toLocaleString('ja-JP')}回`
+        : '';
+
+      // どこが一番の詰まりかを言葉で示す
+      const stripeDrop = Number(f.beginCheckout || 0) - Number(f.trialStart || 0);
+      const msgs = [];
+      if (Number(f.users || 0) < 500) {
+        msgs.push(`<strong>流入が不足しています</strong>（直近${days}日で${Number(f.users||0).toLocaleString('ja-JP')}人）。この規模では各段の率は誤差が大きく、改善の効果測定には使えません。まずは流入を増やすことが先決です。`);
+      }
+      if (Number(f.viewPricing || 0) > 0 && Number(f.beginCheckout || 0) === 0) {
+        msgs.push('料金プランまでは到達しているものの、<strong>決済ページに1件も進んでいません</strong>。価格・プラン説明・CTAの見せ方に原因がある可能性があります。');
+      } else if (stripeDrop > 0 && Number(f.beginCheckout || 0) > 0) {
+        const r = stripeDrop / Number(f.beginCheckout);
+        msgs.push(`Stripeの決済ページで <strong>${stripeDrop}人</strong>（${(r * 100).toFixed(0)}%）が離脱しています。`);
+      }
+      if (Number(f.users || 0) > 0 && Number(f.viewPricing || 0) / Number(f.users) < 0.1) {
+        msgs.push('訪問者の大半が<strong>料金プランまで到達していません</strong>。離脱はLPの上半分で起きています。');
+      }
+      verdict.className = 'funnel-verdict ' + (msgs.length ? 'warn' : 'info');
+      verdict.innerHTML = msgs.length ? msgs.join('<br>') : '各段の通過状況は上記のとおりです。';
+    }
+
     async function loadFunnel() {
       const body = document.getElementById('funnelBody');
       const days = document.getElementById('funnelDays').value;
@@ -1145,6 +1262,7 @@
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const d = await resp.json();
         const ga4 = ga4resp && ga4resp.ok ? await ga4resp.json().catch(() => null) : null;
+        _renderTopFunnel(ga4, days);
         _funnelTargets = d.targets || _funnelTargets;
         document.getElementById('funnelPeriod').textContent = `${d.period.from} 〜 ${d.period.to}`;
         // 目標入力欄に現在値を反映（フォーカス中は上書きしない）

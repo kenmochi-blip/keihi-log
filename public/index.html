@@ -171,6 +171,49 @@
     background: #fff;
     color: var(--brand);
   }
+
+  /* ===== セクション間の申込導線 =====
+     料金プランと最終CTAの2箇所しか申込ボタンが無く、
+     読み進めて納得した位置で申し込めなかったため、要所に配置する。 */
+  .inline-cta {
+    max-width: 620px;
+    margin: 0 auto;
+    padding: 1.5rem 1.25rem;
+    text-align: center;
+    background: linear-gradient(135deg, #eef4ff, #e6f0ff);
+    border: 1px solid #cddfff;
+    border-radius: 16px;
+  }
+  .inline-cta .ic-lead {
+    font-weight: 700;
+    font-size: clamp(1rem, 2.6vw, 1.15rem);
+    margin-bottom: 0.9rem;
+    line-height: 1.7;
+  }
+  .inline-cta .btn-try {
+    display: inline-block;
+    background: var(--brand);
+    color: #fff;
+    font-weight: 700;
+    padding: 0.8rem 2.2rem;
+    border-radius: 50px;
+    border: none;
+    text-decoration: none;
+    box-shadow: 0 4px 14px rgba(13,110,253,0.3);
+    transition: all 0.25s ease;
+  }
+  .inline-cta .btn-try:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(13,110,253,0.4);
+    color: #fff;
+  }
+  .inline-cta .ic-note {
+    font-size: 0.78rem;
+    color: #5b6b7c;
+    margin-top: 0.75rem;
+    line-height: 1.8;
+  }
+  .inline-cta-wrap { padding: 0 1rem 3.5rem; }
   .btn-cta-outline:focus, .btn-cta-outline:focus-visible,
   .btn-cta-outline:active {
     background: transparent;
@@ -1132,6 +1175,15 @@
     <p class="text-center text-muted small mt-4 mb-0">
       ※ LINE連携はチームプランでご利用いただけます。管理者が発行する連携コードを一度送信すれば利用開始できます。
     </p>
+
+    <div class="inline-cta mt-5">
+      <div class="ic-lead">まずは2週間、無料でお試しください。</div>
+      <a href="https://buy.stripe.com/5kQ28r1Ps7ut2kv4io9oc08" class="btn-try">無料で試してみる</a>
+      <div class="ic-note">
+        入力はメールアドレスのみ・カード登録不要<br>
+        トライアル終了後に自動課金されることはありません
+      </div>
+    </div>
   </div>
 </section>
 
@@ -1590,6 +1642,17 @@
   </div>
 </section>
 
+<div class="inline-cta-wrap">
+  <div class="inline-cta">
+    <div class="ic-lead">デモで気に入ったら、そのまま始められます。</div>
+    <a href="https://buy.stripe.com/5kQ28r1Ps7ut2kv4io9oc08" class="btn-try">無料で試してみる</a>
+    <div class="ic-note">
+      入力はメールアドレスのみ・カード登録不要<br>
+      チームプランの全機能を2週間お試しいただけます
+    </div>
+  </div>
+</div>
+
 <!-- ============================================ -->
 <!-- FAQ                                          -->
 <!-- ============================================ -->
@@ -1834,6 +1897,15 @@
       </div>
     </div>
 
+    <div class="inline-cta mt-5">
+      <div class="ic-lead">当てはまりそうでしたら、実際の使い心地をお確かめください。</div>
+      <a href="https://buy.stripe.com/5kQ28r1Ps7ut2kv4io9oc08" class="btn-try">無料で試してみる</a>
+      <div class="ic-note">
+        入力はメールアドレスのみ・カード登録不要<br>
+        合わなければ、そのまま放置いただいて構いません
+      </div>
+    </div>
+
   </div>
 </section>
 
@@ -1949,6 +2021,15 @@
         </div>
       </div>
     </div>
+
+    <div class="inline-cta mt-5">
+      <div class="ic-lead">この5ステップを、今日から始められます。</div>
+      <a href="https://buy.stripe.com/5kQ28r1Ps7ut2kv4io9oc08" class="btn-try">無料で試してみる</a>
+      <div class="ic-note">
+        入力はメールアドレスのみ・カード登録不要<br>
+        ご不明な点は設定画面のチャットからお気軽にご質問ください
+      </div>
+    </div>
   </div>
 </section>
 
@@ -2060,10 +2141,15 @@
   <div class="container">
     <img src="/icons/icon-192.png" width="80" height="80" class="mb-3" alt="" loading="lazy">
     <h2 class="fw-bold mb-3">今すぐ、経費精算をラクにしませんか？</h2>
-    <p class="text-muted mb-4 lead">まずはデモ画面で実際の操作を確認してみてください。</p>
-    <a href="https://keihi-log.com/app?demo" class="btn btn-primary btn-lg rounded-pill px-5 mb-3">
-      <i class="bi bi-play-circle me-2"></i>デモ画面を見る（無料・登録不要）
-    </a>
+    <p class="text-muted mb-4 lead">2週間の無料トライアルで、実際の業務にお使いいただけます。</p>
+    <div class="d-flex flex-column flex-sm-row gap-2 justify-content-center align-items-center mb-3">
+      <a href="https://buy.stripe.com/5kQ28r1Ps7ut2kv4io9oc08" class="btn btn-primary btn-lg rounded-pill px-5">
+        無料で試してみる
+      </a>
+      <a href="https://keihi-log.com/app?demo" class="btn btn-outline-primary btn-lg rounded-pill px-4">
+        <i class="bi bi-play-circle me-2"></i>デモ画面を見る
+      </a>
+    </div>
     <p class="text-muted small mt-1">
       <i class="bi bi-shield-check me-1 text-success"></i>2週間無料・クレジットカード不要
       <i class="bi bi-shield-check me-1 text-success ms-2"></i>同意なく自動課金されることは一切ありません
