@@ -408,6 +408,19 @@ async function _upgradeLicense(key, oldData, session, email, name, plan, interva
   }
 }
 
+/**
+ * メール本文の宛名を組み立てる。
+ *
+ * 申込画面（Stripe Payment Link）で氏名・屋号を収集しない設定にしているため、
+ * 各呼び出し元のフォールバック（customerName || businessName || company）は
+ * 最終的にメールアドレスへ行き着く。そのまま差し込むと「foo@example.com 様」と
+ * なってしまうので、氏名として使えない値のときは中立的な宛名に置き換える。
+ */
+function _greeting(name) {
+  const n = String(name || '').trim();
+  return (!n || n.includes('@')) ? 'ご担当者' : n;
+}
+
 async function _sendUpgradeEmail(to, name, licenseKey, expiresAt, plan = 'solo') {
   const appUrl = process.env.APP_URL || 'https://keihi-log.com/app';
   const planLabel = plan === 'team' ? 'チームプラン' : 'ソロプラン';
@@ -416,7 +429,7 @@ async function _sendUpgradeEmail(to, name, licenseKey, expiresAt, plan = 'solo')
     to,
     subject: `【経費ログ】有料プランへのお申し込みありがとうございます`,
     html: `
-<p>${name} 様</p>
+<p>${_greeting(name)} 様</p>
 <p>この度は経費ログ（${planLabel}）へのお申し込みありがとうございます。</p>
 <ul>
   <li>プラン：${planLabel}</li>
@@ -444,7 +457,7 @@ async function _sendReactivationEmail(to, name, licenseKey, expiresAt) {
     to,
     subject: `【経費ログ】ライセンスが再アクティブ化されました`,
     html: `
-<p>${name} 様</p>
+<p>${_greeting(name)} 様</p>
 <p>経費ログへの再申し込みありがとうございます。以前のライセンスキーが再アクティブ化されました。</p>
 <p style="font-size:1.2em;font-family:monospace;background:#f5f5f5;padding:12px 16px;border-radius:6px;letter-spacing:1px;">
   <strong>${licenseKey}</strong>
@@ -511,7 +524,7 @@ async function _sendLicenseEmail(to, name, licenseKey, expiresAt, plan = 'solo',
     to,
     subject: trial ? `【経費ログ】無料トライアル開始のご案内` : `【経費ログ】ご利用開始のご案内`,
     html: `
-<p>${name} 様</p>
+<p>${_greeting(name)} 様</p>
 
 <p>${intro}</p>
 <p>以下のリンクからアプリを開くと、ライセンスキーが自動的に入力された状態で設定を始められます。</p>
@@ -575,7 +588,7 @@ async function _sendDuplicateLicenseEmail(to, name, licenseKey, expiresAt) {
     to,
     subject: '【経費ログ】ライセンスキーのご案内（登録済み）',
     html: `
-<p>${name} 様</p>
+<p>${_greeting(name)} 様</p>
 <p>このメールアドレスにはすでにライセンスキーが発行されています。</p>
 <p>以下の既存キーをそのままお使いください。</p>
 <p style="font-size:1.2em;font-family:monospace;background:#f5f5f5;padding:12px 16px;border-radius:6px;letter-spacing:1px;">
@@ -630,7 +643,7 @@ async function _refundAndNotifyLimit(session, email, name) {
       to: email,
       subject: '【経費ログ】ライセンス発行上限のお知らせ',
       html: `
-<p>${name} 様</p>
+<p>${_greeting(name)} 様</p>
 <p>この度はお申し込みいただきありがとうございます。</p>
 <p>誠に恐れ入りますが、同一メールアドレスでご利用いただけるライセンスは<strong>最大3件</strong>までとなっております。すでに上限に達しているため、今回のライセンス発行ができませんでした。</p>
 ${refunded ? '<p>ご決済いただいた金額は自動的に全額返金いたします。返金の反映にはカード会社により数日かかる場合があります。</p>' : '<p>返金処理が自動で完了できませんでした。大変お手数ですが <a href="mailto:support@keihi-log.com">support@keihi-log.com</a> までご連絡ください。</p>'}
@@ -867,7 +880,7 @@ async function _sendPlanChangeEmail(to, name, newPlan, oldPlan) {
     to,
     subject: `【経費ログ】プランを${newLabel}に変更しました`,
     html: `
-<p>${name} 様</p>
+<p>${_greeting(name)} 様</p>
 <p>プランを<strong>${oldLabel}から${newLabel}</strong>へ変更しました。</p>
 <p>プランは即時変更され、日割りで精算されます。ライセンスキーはそのまま変わりません。</p>
 <p>ご不明な点は <a href="mailto:support@keihi-log.com">support@keihi-log.com</a> までお気軽にお問い合わせください。</p>
@@ -887,7 +900,7 @@ async function _sendCancellationEmail(to, name, endDate) {
     to,
     subject: `【経費ログ】解約手続きを受け付けました`,
     html: `
-<p>${name} 様</p>
+<p>${_greeting(name)} 様</p>
 <p>サブスクリプションの解約手続きを受け付けました。</p>
 <ul>
   ${endDate ? `<li>ご利用いただける期限：<strong>${endDate}</strong>（この日まで通常どおりご利用いただけます）</li>` : ''}
