@@ -68,6 +68,28 @@
   }
   /* 語句の途中で改行させない（日本語の見出し崩れ防止） */
   .nb { display: inline-block; }
+
+  /* ヒーローのダッシュボード見本（クリックでデモへ） */
+  .demo-card { transition: transform 0.25s ease; }
+  .demo-card:hover { transform: translateY(-4px); }
+
+  /* ダッシュボードのデモ訴求 */
+  .demo-band {
+    background: linear-gradient(135deg, var(--brand), var(--brand-d));
+    border-radius: 16px;
+    padding: 2rem 1.5rem;
+    text-align: center;
+    color: #fff;
+  }
+  .demo-band .db-title { font-weight: 800; font-size: clamp(1.05rem, 2.8vw, 1.35rem); margin-bottom: 0.6rem; }
+  .demo-band .db-lead { font-size: 0.9rem; opacity: 0.95; line-height: 1.9; margin-bottom: 1.2rem; }
+  .demo-band .btn-demo {
+    display: inline-block; background: #fff; color: var(--brand); font-weight: 700;
+    padding: 0.8rem 2.2rem; border-radius: 50px; text-decoration: none;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.18); transition: all 0.25s ease;
+  }
+  .demo-band .btn-demo:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.25); color: var(--brand-d); }
+  .demo-band .db-note { font-size: 0.76rem; opacity: 0.9; margin-top: 0.8rem; line-height: 1.8; }
   .hero .lead { font-size: 1.08rem; opacity: 0.95; line-height: 1.9; }
   .eyebrow {
     display: inline-block; background: rgba(255,255,255,0.18);
@@ -209,7 +231,9 @@
           <a href="#apply" class="btn btn-cta btn-lg">
             事務所の利用申請（無料）<i class="bi bi-arrow-right ms-2"></i>
           </a>
-          <a href="#flow" class="btn btn-cta-outline">導入の流れを見る</a>
+          <a href="/accountant?demo" class="btn btn-cta-outline" id="btnDemoHero">
+            <i class="bi bi-play-circle me-1"></i>ダッシュボードのデモを見る
+          </a>
         </div>
         <div class="mt-4 small opacity-90" style="line-height:2;">
           <i class="bi bi-check-circle me-1"></i>事務所側のご利用は<strong>無料</strong>・顧問先数の制限なし<br>
@@ -218,6 +242,7 @@
         </div>
       </div>
       <div class="col-lg-5 mt-5 mt-lg-0">
+        <a href="/accountant?demo" class="d-block text-decoration-none demo-card" id="btnDemoCard">
         <div class="bg-white rounded-4 shadow-lg p-3 p-md-4 text-dark">
           <div class="small fw-bold text-muted mb-2"><i class="bi bi-grid-3x3-gap-fill me-1 text-primary"></i>会計事務所ダッシュボード</div>
           <table class="table table-sm mb-2" style="font-size:0.78rem;">
@@ -236,8 +261,12 @@
             <span class="badge bg-primary-subtle text-primary-emphasis">証憑画像を確認</span>
             <span class="badge bg-primary-subtle text-primary-emphasis">CSV出力</span>
           </div>
-          <div class="text-muted mt-2" style="font-size:0.7rem;">※ 画面イメージ（サンプルデータ）</div>
+          <div class="mt-2 d-flex justify-content-between align-items-center" style="font-size:0.7rem;">
+            <span class="text-muted">※ 画面イメージ（サンプルデータ）</span>
+            <span class="fw-semibold" style="color:var(--brand);">実際の画面を見る <i class="bi bi-arrow-right"></i></span>
+          </div>
         </div>
+        </a>
       </div>
     </div>
   </div>
@@ -363,6 +392,16 @@
           <p>事務所アカウントは閲覧専用です。顧問先のデータを誤って書き換える心配はありません。</p>
         </div>
       </div>
+    </div>
+
+    <div class="demo-band mt-5">
+      <div class="db-title"><i class="bi bi-play-circle-fill me-2"></i>実際のダッシュボードをご覧ください</div>
+      <p class="db-lead">
+        サンプルの顧問先3社を使って、ピボット表・科目別内訳・経費一覧・CSV出力まで
+        実際の画面をそのまま操作できます。
+      </p>
+      <a href="/accountant?demo" class="btn-demo" id="btnDemoMain">ダッシュボードのデモを見る</a>
+      <div class="db-note">ログイン不要・登録不要／表示されるのはすべてサンプルデータです</div>
     </div>
   </div>
 </section>
@@ -515,7 +554,12 @@
       <div class="accordion-item">
         <h3 class="accordion-header"><button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#q7">まず自分で試してみることはできますか？</button></h3>
         <div id="q7" class="accordion-collapse collapse" data-bs-parent="#acctFaq">
-          <div class="accordion-body">はい。登録不要の<a href="/app?demo">デモ画面</a>で、実際の操作感とAI解析をその場でお試しいただけます。先生の事務所自身の経費管理にお使いいただくことも可能です。</div>
+          <div class="accordion-body">
+            はい。いずれも登録不要でご覧いただけます。<br>
+            ・<a href="/accountant?demo">会計事務所ダッシュボードのデモ</a>（先生がご覧になる画面）<br>
+            ・<a href="/app?demo">経費ログ本体のデモ</a>（顧問先が使う画面。AI解析もお試しいただけます）<br>
+            先生の事務所自身の経費管理にお使いいただくことも可能です。
+          </div>
         </div>
       </div>
     </div>
@@ -538,6 +582,8 @@
       <i class="bi bi-envelope-fill me-2"></i>事務所の利用申請をする（無料）
     </a>
     <div class="mt-4 small" style="opacity:0.9;line-height:2;">
+      その前にまず画面をご覧になりたい方は
+      <a href="/accountant?demo" class="text-white text-decoration-underline" id="btnDemoFinal">ダッシュボードのデモ</a>へ（登録不要）<br>
       メールが開かない場合は <strong>support@keihi-log.com</strong> 宛にご連絡ください。<br>
       既にご登録済みの先生は <a href="/accountant" class="text-white text-decoration-underline">ダッシュボードにログイン</a>
     </div>
@@ -561,7 +607,8 @@
         <div class="fw-bold text-white mb-2 small">サービス</div>
         <div class="d-flex flex-column gap-1">
           <a href="/">サービス概要</a>
-          <a href="/app?demo">デモ画面</a>
+          <a href="/accountant?demo">ダッシュボードのデモ</a>
+          <a href="/app?demo">経費ログ本体のデモ</a>
           <a href="/faq">よくある質問</a>
           <a href="/accountant">事務所ダッシュボード</a>
         </div>
@@ -583,9 +630,16 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  // 申請ボタンのクリックを計測（このページの成果を測る唯一の指標）
+  // 申請ボタンのクリックを計測（このページの成果を測る指標）
   document.getElementById('btnApply')?.addEventListener('click', () => {
     gtag('event', 'accountant_apply_click', { page: 'for-accountants' });
+  });
+
+  // ダッシュボードのデモへの遷移を計測。申請の手前の関心度を測る。
+  document.addEventListener('click', function (ev) {
+    var a = ev.target.closest && ev.target.closest('a[href^="/accountant?demo"]');
+    if (!a) return;
+    gtag('event', 'accountant_demo_click', { position: a.id || 'other' });
   });
 </script>
 </body>
