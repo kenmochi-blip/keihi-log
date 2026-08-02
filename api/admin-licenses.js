@@ -409,9 +409,41 @@ export default async function handler(req, res) {
         newUsers    = Number(u.rows?.[0]?.metricValues?.[1]?.value || 0);
       } catch (_) {}
 
+      // ブログ記事別のPV。/blog 配下のみを対象にし、PV降順で返す。
+      // どの記事が読まれているか＝どのテーマがSEOで効いているかの判断材料。
+      let blog = null;
+      try {
+        const bl = await runReport({
+          dateRanges: [{ startDate, endDate: 'today' }],
+          dimensions: [{ name: 'pagePath' }, { name: 'pageTitle' }],
+          metrics: [{ name: 'screenPageViews' }, { name: 'activeUsers' }],
+          dimensionFilter: {
+            filter: { fieldName: 'pagePath', stringFilter: { matchType: 'BEGINS_WITH', value: '/blog' } },
+          },
+          orderBys: [{ desc: true, metric: { metricName: 'screenPageViews' } }],
+          limit: 50,
+        });
+        const pages = (bl.rows || []).map(r => ({
+          path:  r.dimensionValues?.[0]?.value || '',
+          title: r.dimensionValues?.[1]?.value || '',
+          views: Number(r.metricValues?.[0]?.value || 0),
+          users: Number(r.metricValues?.[1]?.value || 0),
+        }));
+        // 一覧ページ（/blog, /blog/）と個別記事を分ける
+        const isIndex = p => p === '/blog' || p === '/blog/';
+        const articles = pages.filter(p => !isIndex(p.path));
+        blog = {
+          totalViews: pages.reduce((s, p) => s + p.views, 0),
+          totalUsers: pages.reduce((s, p) => Math.max(s, p.users), 0),
+          indexViews: pages.filter(p => isIndex(p.path)).reduce((s, p) => s + p.views, 0),
+          articleCount: articles.length,
+          articles,
+        };
+      } catch (_) {}
+
       return res.status(200).json({
         propId, days, totalSessions, paidSessions,
-        activeUsers, newUsers,
+        activeUsers, newUsers, blog,
         trialStarts: events.trial_start,
         funnel: {
           users:          activeUsers,
