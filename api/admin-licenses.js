@@ -411,10 +411,12 @@ export default async function handler(req, res) {
 
       // ブログ記事別のPV。/blog 配下のみを対象にし、PV降順で返す。
       // どの記事が読まれているか＝どのテーマがSEOで効いているかの判断材料。
+      // 記事は公開後にじわじわ読まれるストック型のため、期間指定ではなく常に累計で見る
+      // （GA4のデータ保持期間を超える分は返らないが、その範囲での全期間）。
       let blog = null;
       try {
         const bl = await runReport({
-          dateRanges: [{ startDate, endDate: 'today' }],
+          dateRanges: [{ startDate: '1095daysAgo', endDate: 'today' }],
           dimensions: [{ name: 'pagePath' }, { name: 'pageTitle' }],
           metrics: [{ name: 'screenPageViews' }, { name: 'activeUsers' }],
           dimensionFilter: {

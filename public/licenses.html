@@ -77,6 +77,11 @@
     .blog-bar { height: 4px; background: #ede9fe; border-radius: 2px; margin-top: 0.25rem; }
     .blog-bar > div { height: 100%; background: #7c3aed; border-radius: 2px; }
     .blog-empty { color: var(--text-mute); font-size: 0.8rem; padding: 0.75rem 0; }
+    .blog-header:hover { background: var(--surface-sub); }
+    .blog-chevron { transition: transform .15s; }
+    .blog-chevron.open { transform: rotate(90deg); }
+    /* 記事が増えても一覧性を保つため、開いたときはスクロール領域にする */
+    #blogBody { max-height: 340px; overflow-y: auto; }
     .kpi.c-purple .value { color: #7c3aed; }
     .kpi.c-purple { border-color: #ddd6fe; background: linear-gradient(180deg,#faf5ff,#fff); }
     .data-table { width: 100%; border-collapse: collapse; }
@@ -246,19 +251,24 @@
         </div>
       </div>
 
-      <!-- ===== ブログ（流入づくりの進捗） ===== -->
+      <!-- ===== ブログ（流入づくりの進捗・既定は折りたたみ） ===== -->
       <div class="panel" style="margin-bottom:1rem;">
-        <div class="panel-header" style="justify-content:space-between;">
+        <div class="panel-header blog-header" id="blogToggle" style="justify-content:space-between;cursor:pointer;">
           <div style="display:flex;align-items:center;gap:0.5rem;">
+            <i class="bi bi-chevron-right blog-chevron" id="blogChevron" style="color:var(--text-mute);font-size:0.75rem;"></i>
             <i class="bi bi-journal-text" style="color:#7c3aed;"></i>
             <span class="title">ブログ</span>
-            <span id="blogRange" style="font-size:0.7rem;color:var(--text-mute);"></span>
+            <span id="blogRange" style="font-size:0.7rem;color:var(--text-mute);">累計</span>
           </div>
-          <a href="/blog" target="_blank" rel="noopener" style="font-size:0.75rem;color:var(--accent);text-decoration:none;">
-            ブログを開く <i class="bi bi-box-arrow-up-right"></i>
-          </a>
+          <div style="display:flex;align-items:center;gap:0.75rem;">
+            <span id="blogHeadline" style="font-size:0.78rem;color:var(--text-sub);"></span>
+            <a href="/blog" target="_blank" rel="noopener" onclick="event.stopPropagation();"
+               style="font-size:0.75rem;color:var(--accent);text-decoration:none;">
+              開く <i class="bi bi-box-arrow-up-right"></i>
+            </a>
+          </div>
         </div>
-        <div class="panel-body">
+        <div class="panel-body d-none" id="blogPanelBody">
           <div id="blogSummary" class="blog-summary"></div>
           <div id="blogBody">
             <div class="funnel-loading">読み込み中...</div>
@@ -1228,6 +1238,7 @@
       if (_hasCfKey) loadCloudflare();
       if (_sentryToken) loadSentry();
       _initTopFunnelControls();
+      _initBlogToggle();
       loadTopFunnel();
       loadFunnel();
     }
@@ -1263,10 +1274,10 @@
         const r = await fetch(`/api/admin-licenses?ga4=1&days=${days}`);
         const j = r.ok ? await r.json().catch(() => null) : null;
         _renderTopFunnel(j, days);
-        _renderBlog(j, days);
+        _renderBlog(j);
       } catch (_) {
         _renderTopFunnel(null, days);
-        _renderBlog(null, days);
+        _renderBlog(null);
       }
     }
 
@@ -1274,21 +1285,25 @@
      * ブログの記事別PV。どのテーマが読まれているか＝どの方向に書き足すかの判断材料。
      * 期間は上部ファネルの選択に追従する（同じGA4レスポンスを使う）。
      */
-    function _renderBlog(ga4, days) {
+    function _renderBlog(ga4) {
       const sum  = document.getElementById('blogSummary');
       const body = document.getElementById('blogBody');
-      document.getElementById('blogRange').textContent = `直近${days}日`;
+      const head = document.getElementById('blogHeadline');
 
       const blog = ga4 && ga4.blog;
       if (!blog) {
         sum.innerHTML = '';
+        head.textContent = '';
         body.innerHTML = '<div class="blog-empty">GA4を参照できませんでした。</div>';
         return;
       }
 
       const n = v => Number(v || 0).toLocaleString('ja-JP');
+      // 折りたたんだままでも要点が分かるよう、見出しに累計PVを出す
+      head.innerHTML = `累計 <strong style="color:#7c3aed;">${n(blog.totalViews)}</strong> PV`
+                     + `<span style="color:var(--text-mute);"> ／ ${n(blog.articleCount)}記事</span>`;
       sum.innerHTML = `
-        <div class="bs-item"><div class="v">${n(blog.totalViews)}</div><div class="l">ブログ全体のPV</div></div>
+        <div class="bs-item"><div class="v">${n(blog.totalViews)}</div><div class="l">累計PV</div></div>
         <div class="bs-item"><div class="v">${n(blog.articleCount)}</div><div class="l">PVのあった記事数</div></div>
         <div class="bs-item"><div class="v">${n(blog.indexViews)}</div><div class="l">記事一覧ページ</div></div>`;
 
@@ -1314,6 +1329,25 @@
               </tr>`).join('')}
           </tbody>
         </table>`;
+    }
+
+    /** ブログパネルの開閉。記事数が増えると縦に長く一覧性を損なうため既定は閉。 */
+    const BLOG_OPEN_KEY = 'keihi_admin_blog_open';
+    function _initBlogToggle() {
+      const head = document.getElementById('blogToggle');
+      const body = document.getElementById('blogPanelBody');
+      const chev = document.getElementById('blogChevron');
+      if (!head) return;
+      const apply = open => {
+        body.classList.toggle('d-none', !open);
+        chev.classList.toggle('open', open);
+      };
+      apply(localStorage.getItem(BLOG_OPEN_KEY) === '1');
+      head.addEventListener('click', () => {
+        const open = body.classList.contains('d-none');
+        apply(open);
+        try { localStorage.setItem(BLOG_OPEN_KEY, open ? '1' : '0'); } catch (_) {}
+      });
     }
 
     function _initTopFunnelControls() {
