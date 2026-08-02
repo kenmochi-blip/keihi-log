@@ -220,9 +220,11 @@
     border-radius: 16px; padding: 2rem 1.25rem;
   }
 
-  footer { background: #16202b; color: #9fb0c0; padding: 2.5rem 0 2rem; font-size: 0.86rem; }
-  footer a { color: #cfe0f0; text-decoration: none; }
-  footer a:hover { text-decoration: underline; }
+  footer { background: #fff; color: #5b6b7c; padding: 2.5rem 0 2rem; font-size: 0.86rem; border-top: 1px solid #e6ecf2; }
+  footer a { color: #42526b; text-decoration: none; }
+  footer a:hover { color: var(--brand); text-decoration: underline; }
+  footer .f-head { font-weight: 700; color: var(--ink); }
+  footer hr { border-top: 1px solid #e6ecf2; opacity: 1; }
 
   .navbar-brand img { border-radius: 8px; }
 </style>
@@ -670,14 +672,14 @@
       <div class="col-md-5">
         <div class="d-flex align-items-center gap-2 mb-2">
           <img src="/icons/icon-192.png" width="28" height="28" style="border-radius:7px;" alt="">
-          <span class="fw-bold text-white">経費ログ</span>
+          <span class="f-head">経費ログ</span>
         </div>
         <p class="mb-1" style="line-height:1.9;">
           公認会計士が設計した、中小企業・個人事業主向けの経費精算システムです。
         </p>
       </div>
       <div class="col-6 col-md-3">
-        <div class="fw-bold text-white mb-2 small">サービス</div>
+        <div class="f-head mb-2 small">サービス</div>
         <div class="d-flex flex-column gap-1">
           <a href="/">サービス概要</a>
           <a href="/accountant?demo">ダッシュボードのデモ</a>
@@ -687,7 +689,7 @@
         </div>
       </div>
       <div class="col-6 col-md-4">
-        <div class="fw-bold text-white mb-2 small">運営</div>
+        <div class="f-head mb-2 small">運営</div>
         <div class="d-flex flex-column gap-1">
           <a href="/terms">利用規約</a>
           <a href="/privacy">プライバシーポリシー</a>
@@ -696,7 +698,7 @@
         </div>
       </div>
     </div>
-    <hr class="border-secondary my-4">
+    <hr class="my-4">
     <div class="text-center" style="font-size:0.8rem;">&copy; 合同会社Smart&amp;Smooth</div>
   </div>
 </footer>
