@@ -192,6 +192,34 @@
     color: #fff; padding: 4rem 0;
   }
 
+  /* 申請フォーム（cta-final の上に置くため白文字前提の配色） */
+  .apply-form {
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.28);
+    border-radius: 16px;
+    padding: 1.5rem 1.25rem;
+    text-align: left;
+  }
+  .apply-form .form-label { font-size: 0.8rem; font-weight: 600; margin-bottom: 0.25rem; color: #fff; }
+  .apply-form .req {
+    font-size: 0.66rem; background: #fff; color: var(--brand);
+    border-radius: 4px; padding: 0.05rem 0.3rem; margin-left: 0.25rem; font-weight: 700;
+  }
+  .apply-form .form-control {
+    border: 1px solid rgba(255,255,255,0.4); background: rgba(255,255,255,0.95);
+    font-size: 0.9rem; border-radius: 8px;
+  }
+  .apply-form .form-control:focus { box-shadow: 0 0 0 3px rgba(255,255,255,0.35); border-color: #fff; }
+  .apply-form .form-hint { font-size: 0.7rem; opacity: 0.85; margin-top: 0.2rem; line-height: 1.6; }
+  .apply-form .form-check-label { font-size: 0.82rem; }
+  .apply-form .form-check-input { border-color: rgba(255,255,255,0.6); }
+  .apply-msg { font-size: 0.85rem; margin-top: 0.75rem; text-align: center; min-height: 1.2rem; }
+  .apply-msg.err { color: #ffe08a; font-weight: 700; }
+  .apply-done {
+    background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.28);
+    border-radius: 16px; padding: 2rem 1.25rem;
+  }
+
   footer { background: #16202b; color: #9fb0c0; padding: 2.5rem 0 2rem; font-size: 0.86rem; }
   footer a { color: #cfe0f0; text-decoration: none; }
   footer a:hover { text-decoration: underline; }
@@ -577,14 +605,62 @@
       「ここが使えない」というご指摘こそ、いま最も必要としているものです。<br>
       顧問先1社の初期設定は、当社が画面共有ですべて代行します。
     </p>
-    <a href="mailto:support@keihi-log.com?subject=%E3%80%90%E4%BC%9A%E8%A8%88%E4%BA%8B%E5%8B%99%E6%89%80%E3%80%91%E7%B5%8C%E8%B2%BB%E3%83%AD%E3%82%B0%E3%81%AE%E5%88%A9%E7%94%A8%E7%94%B3%E8%AB%8B&body=%E7%B5%8C%E8%B2%BB%E3%83%AD%E3%82%B0%20%E3%81%94%E6%8B%85%E5%BD%93%E8%80%85%E6%A7%98%0A%0A%E4%BC%9A%E8%A8%88%E4%BA%8B%E5%8B%99%E6%89%80%E5%90%91%E3%81%91%E3%83%80%E3%83%83%E3%82%B7%E3%83%A5%E3%83%9C%E3%83%BC%E3%83%89%E3%81%AE%E5%88%A9%E7%94%A8%E3%82%92%E5%B8%8C%E6%9C%9B%E3%81%97%E3%81%BE%E3%81%99%E3%80%82%0A%0A%E2%96%A0%E4%BA%8B%E5%8B%99%E6%89%80%E5%90%8D%EF%BC%9A%0A%E2%96%A0%E3%81%94%E6%B0%8F%E5%90%8D%EF%BC%9A%0A%E2%96%A0%E3%83%A1%E3%83%BC%E3%83%AB%E3%82%A2%E3%83%89%E3%83%AC%E3%82%B9%EF%BC%88Google%E3%82%A2%E3%82%AB%E3%82%A6%E3%83%B3%E3%83%88%EF%BC%89%EF%BC%9A%0A%E2%96%A0%E9%9B%BB%E8%A9%B1%E7%95%AA%E5%8F%B7%EF%BC%9A%0A%E2%96%A0%E9%A1%A7%E5%95%8F%E5%85%88%E4%BB%B6%E6%95%B0%EF%BC%88%E3%81%8A%E3%82%88%E3%81%9D%EF%BC%89%EF%BC%9A%0A%E2%96%A0%E9%A1%A7%E5%95%8F%E5%85%88%E5%90%91%E3%81%91%E8%B3%87%E6%96%99%EF%BC%88PDF%EF%BC%89%E3%81%AE%E5%B8%8C%E6%9C%9B%EF%BC%9A%E6%9C%89%20%2F%20%E7%84%A1%0A%E2%96%A0%E3%81%94%E8%B3%AA%E5%95%8F%E3%83%BB%E3%81%94%E8%A6%81%E6%9C%9B%EF%BC%9A%0A%0A"
-       id="btnApply" class="btn btn-cta btn-lg">
-      <i class="bi bi-envelope-fill me-2"></i>事務所の利用申請をする（無料）
-    </a>
+    <form id="applyForm" class="apply-form text-start">
+      <div class="row g-2">
+        <div class="col-sm-6">
+          <label class="form-label" for="afOffice">事務所名 <span class="req">必須</span></label>
+          <input type="text" class="form-control" id="afOffice" required maxlength="100" placeholder="〇〇税理士事務所">
+        </div>
+        <div class="col-sm-6">
+          <label class="form-label" for="afName">ご氏名</label>
+          <input type="text" class="form-control" id="afName" maxlength="60" placeholder="山田 太郎">
+        </div>
+        <div class="col-sm-6">
+          <label class="form-label" for="afEmail">メールアドレス <span class="req">必須</span></label>
+          <input type="email" class="form-control" id="afEmail" required maxlength="160" placeholder="you@example.com">
+          <div class="form-hint">ダッシュボードにログインするGoogleアカウントをご記入ください</div>
+        </div>
+        <div class="col-sm-6">
+          <label class="form-label" for="afPhone">電話番号（任意）</label>
+          <input type="tel" class="form-control" id="afPhone" maxlength="40" placeholder="03-0000-0000">
+        </div>
+        <div class="col-sm-6">
+          <label class="form-label" for="afClients">顧問先件数（およそ）</label>
+          <input type="text" class="form-control" id="afClients" maxlength="20" placeholder="30社">
+        </div>
+        <div class="col-sm-6 d-flex align-items-end">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="afMaterial" checked>
+            <label class="form-check-label" for="afMaterial">顧問先向けの説明資料（PDF）を希望する</label>
+          </div>
+        </div>
+        <div class="col-12">
+          <label class="form-label" for="afMessage">ご質問・ご要望（任意）</label>
+          <textarea class="form-control" id="afMessage" rows="3" maxlength="1000" placeholder="ご不明な点があればご記入ください"></textarea>
+        </div>
+      </div>
+      <div class="text-center mt-3">
+        <button type="submit" class="btn btn-cta btn-lg" id="btnApply">
+          <i class="bi bi-send-fill me-2"></i>この内容で申請する（無料）
+        </button>
+      </div>
+      <div id="applyMsg" class="apply-msg"></div>
+    </form>
+
+    <div id="applyDone" class="apply-done d-none">
+      <div style="font-size:2.2rem;line-height:1;">✅</div>
+      <div class="fw-bold mt-2 mb-1" style="font-size:1.1rem;">申請を承りました</div>
+      <p class="mb-3" style="opacity:0.95;line-height:1.9;">
+        確認のメールをお送りしました。2営業日以内に担当者よりご連絡いたします。<br>
+        お待ちいただく間、ダッシュボードの画面をデモでご確認いただけます。
+      </p>
+      <a href="/accountant?demo" class="btn btn-cta">ダッシュボードのデモを見る</a>
+    </div>
+
     <div class="mt-4 small" style="opacity:0.9;line-height:2;">
-      その前にまず画面をご覧になりたい方は
+      まず画面をご覧になりたい方は
       <a href="/accountant?demo" class="text-white text-decoration-underline" id="btnDemoFinal">ダッシュボードのデモ</a>へ（登録不要）<br>
-      メールが開かない場合は <strong>support@keihi-log.com</strong> 宛にご連絡ください。<br>
+      メールでのご連絡をご希望の場合は <strong>support@keihi-log.com</strong> 宛でも承ります。<br>
       既にご登録済みの先生は <a href="/accountant" class="text-white text-decoration-underline">ダッシュボードにログイン</a>
     </div>
   </div>
@@ -630,9 +706,44 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  // 申請ボタンのクリックを計測（このページの成果を測る指標）
-  document.getElementById('btnApply')?.addEventListener('click', () => {
-    gtag('event', 'accountant_apply_click', { page: 'for-accountants' });
+  // 申請フォームの送信。
+  // 以前は mailto: リンクだったが、メールクライアント未設定の環境では
+  // クリックしても無反応になり問い合わせを取りこぼすため、サーバー送信に変更した。
+  var form = document.getElementById('applyForm');
+  if (form) form.addEventListener('submit', async function (ev) {
+    ev.preventDefault();
+    var btn = document.getElementById('btnApply');
+    var msg = document.getElementById('applyMsg');
+    var val = function (id) { return (document.getElementById(id).value || '').trim(); };
+
+    if (!val('afOffice')) { msg.className = 'apply-msg err'; msg.textContent = '事務所名をご入力ください'; return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val('afEmail'))) {
+      msg.className = 'apply-msg err'; msg.textContent = 'メールアドレスの形式をご確認ください'; return;
+    }
+
+    btn.disabled = true;
+    msg.className = 'apply-msg';
+    msg.textContent = '送信中...';
+    try {
+      var resp = await fetch('/api/data/acctapply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          office: val('afOffice'), name: val('afName'), email: val('afEmail'),
+          phone: val('afPhone'), clients: val('afClients'), message: val('afMessage'),
+          wantsMaterial: document.getElementById('afMaterial').checked,
+        }),
+      });
+      var data = await resp.json().catch(function () { return {}; });
+      if (!resp.ok) throw new Error(data.error || '送信に失敗しました');
+      gtag('event', 'accountant_apply_submit', { page: 'for-accountants' });
+      form.classList.add('d-none');
+      document.getElementById('applyDone').classList.remove('d-none');
+    } catch (e) {
+      msg.className = 'apply-msg err';
+      msg.textContent = (e.message || '送信に失敗しました') + '（support@keihi-log.com 宛のメールでも承ります）';
+      btn.disabled = false;
+    }
   });
 
   // ダッシュボードのデモへの遷移を計測。申請の手前の関心度を測る。

@@ -105,6 +105,8 @@ export default async function handler(req, res) {
         return await lineLinks(req, res);
       case 'setupdone':
         return await setupDoneEmail(req, res);
+      case 'acctapply':
+        return await accountantApply(req, res);
       default:
         return res.status(404).json({ error: 'not_found', resource });
     }
@@ -112,6 +114,100 @@ export default async function handler(req, res) {
     console.error('data router error:', e);
     return res.status(500).json({ error: 'server_error' });
   }
+}
+
+/**
+ * 会計事務所からの利用申請を受け付ける（POST /api/data/acctapply）。
+ *
+ * /for-accountants の申請ボタンは当初 mailto: だったが、メールクライアント未設定の
+ * 環境ではクリックしても何も起きず問い合わせを取りこぼすため、フォーム送信に変更した。
+ * 無認証で開放するエンドポイントなので、IP単位のレート制限と入力長の制限をかける。
+ *
+ * body: { office, name, email, phone, clients, wantsMaterial, message }
+ */
+async function accountantApply(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
+
+  const rl = await rateLimit(req, { prefix: 'acctapply', limit: 5, window: 3600 });
+  if (!rl.ok) return res.status(429).json({ error: 'リクエストが多すぎます。しばらくしてからお試しください。' });
+
+  let body = {};
+  try { body = (await _body(req)) || {}; } catch (_) {}
+
+  const s = (v, max) => String(v ?? '').trim().slice(0, max);
+  const office  = s(body.office, 100);
+  const name    = s(body.name, 60);
+  const email   = s(body.email, 160).toLowerCase();
+  const phone   = s(body.phone, 40);
+  const clients = s(body.clients, 20);
+  const message = s(body.message, 1000);
+  const wantsMaterial = !!body.wantsMaterial;
+
+  if (!office) return res.status(400).json({ error: '事務所名を入力してください' });
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'メールアドレスの形式をご確認ください' });
+
+  const record = {
+    office, name, email, phone, clients, wantsMaterial, message,
+    createdAt: new Date().toISOString(),
+  };
+  // 一覧できるようキー側に時刻を含める（メール送信に失敗しても申請は残す）
+  await kv.set(`acctapply:${Date.now()}:${email}`, record).catch(() => {});
+
+  const esc = v => String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const row = (k, v) => v
+    ? `<tr><td style="padding:4px 12px 4px 0;color:#666;white-space:nowrap;">${k}</td><td>${esc(v)}</td></tr>`
+    : '';
+
+  if (process.env.RESEND_API_KEY) {
+    const from = process.env.RESEND_FROM_EMAIL || 'support@keihi-log.com';
+    // 運営への通知
+    const admin = process.env.ADMIN_NOTIFY_EMAIL;
+    if (admin) {
+      await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from, to: [admin], reply_to: email,
+          subject: `【経費ログ】会計事務所の利用申請 — ${office}`,
+          html: `<div style="font-family:sans-serif;color:#333;">
+            <h2 style="font-size:1.1rem;">会計事務所からの利用申請</h2>
+            <table style="font-size:14px;line-height:1.9;border-collapse:collapse;">
+              ${row('事務所名', office)}${row('ご氏名', name)}${row('メール', email)}
+              ${row('電話番号', phone)}${row('顧問先件数', clients)}
+              ${row('顧問先向け資料', wantsMaterial ? '希望する' : '')}
+              ${row('ご質問・ご要望', message)}
+            </table>
+            <p style="font-size:13px;color:#666;margin-top:16px;">
+              ダッシュボードを使えるようにするには、/licenses の紹介者管理でこのメールアドレスを登録してください。
+            </p></div>`,
+        }),
+      }).catch(() => {});
+    }
+    // 申請者への受付確認
+    await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from, to: [email],
+        subject: '【経費ログ】利用申請を承りました',
+        html: `<div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#333;line-height:1.8;">
+          <p>${esc(name || office)} 様</p>
+          <p>会計事務所ダッシュボードの利用申請をいただき、ありがとうございます。<br>
+          内容を確認のうえ、2営業日以内に担当者よりご連絡いたします。</p>
+          <p>お待ちいただく間、ダッシュボードの画面はデモでご確認いただけます（登録不要）。</p>
+          <p style="text-align:center;margin:24px 0;">
+            <a href="https://keihi-log.com/accountant?demo"
+               style="background:#0d6efd;color:#fff;padding:12px 28px;border-radius:999px;text-decoration:none;font-weight:bold;display:inline-block;">
+              ダッシュボードのデモを見る</a>
+          </p>
+          <hr style="border:none;border-top:1px solid #eee;margin:24px 0;">
+          <p style="font-size:0.85rem;color:#888;">合同会社Smart&amp;Smooth／経費ログ<br>support@keihi-log.com</p>
+        </div>`,
+      }),
+    }).catch(() => {});
+  }
+
+  return res.status(200).json({ ok: true });
 }
 
 /**
