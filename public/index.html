@@ -215,6 +215,40 @@
   }
   /* 直前がセクション（背景色つき）のため、上下に余白を確保して切り離す */
   .inline-cta-wrap { padding: 3.5rem 1rem; }
+
+  /* ===== 会計事務所向けの導線（LP末尾） =====
+     主対象は事業者なので、最終CTAの後ろに控えめな帯として置く。 */
+  .acct-invite { background: #f6f8fb; padding: 3rem 0; border-top: 1px solid #e6ecf2; }
+  .acct-invite-box {
+    max-width: 900px; margin: 0 auto;
+    background: #fff; border: 1px solid #dbe6f5; border-radius: 16px;
+    padding: 1.75rem 1.75rem;
+    display: flex; align-items: center; gap: 1.75rem; flex-wrap: wrap;
+    box-shadow: 0 2px 12px rgba(20,40,80,0.05);
+  }
+  .acct-invite .ai-left { flex: 1 1 340px; min-width: 0; }
+  .acct-invite .ai-eyebrow {
+    display: inline-block; font-size: 0.74rem; font-weight: 700;
+    color: var(--brand); background: #eef4ff; border: 1px solid #cddfff;
+    border-radius: 50px; padding: 0.2rem 0.75rem; margin-bottom: 0.6rem;
+  }
+  .acct-invite .ai-title { font-size: 1.1rem; font-weight: 800; margin-bottom: 0.5rem; line-height: 1.6; }
+  .acct-invite .ai-lead { font-size: 0.87rem; color: #5b6b7c; line-height: 1.9; margin: 0; }
+  .acct-invite .ai-right { flex: 0 0 auto; text-align: center; }
+  .acct-invite .btn-acct {
+    display: inline-block; background: var(--brand); color: #fff; font-weight: 700;
+    padding: 0.75rem 1.75rem; border-radius: 50px; text-decoration: none;
+    box-shadow: 0 4px 14px rgba(13,110,253,0.28); transition: all 0.25s ease; white-space: nowrap;
+  }
+  .acct-invite .btn-acct:hover {
+    transform: translateY(-2px); box-shadow: 0 6px 20px rgba(13,110,253,0.38); color: #fff;
+  }
+  .acct-invite .ai-note { font-size: 0.72rem; color: #7d8b9a; margin-top: 0.6rem; line-height: 1.7; }
+  @media (max-width: 575px) {
+    .acct-invite-box { padding: 1.5rem 1.25rem; gap: 1.25rem; }
+    .acct-invite .ai-right { width: 100%; }
+    .acct-invite .btn-acct { display: block; }
+  }
   .btn-cta-outline:focus, .btn-cta-outline:focus-visible,
   .btn-cta-outline:active {
     background: transparent;
@@ -2150,6 +2184,32 @@
 </section>
 
 <!-- ============================================ -->
+<!-- 会計事務所の先生向けの導線                      -->
+<!-- （主対象は事業者のため、最終CTAの後ろに置く）    -->
+<!-- ============================================ -->
+<section class="acct-invite">
+  <div class="container">
+    <div class="acct-invite-box">
+      <div class="ai-left">
+        <div class="ai-eyebrow"><i class="bi bi-briefcase-fill me-1"></i>税理士・会計事務所の先生へ</div>
+        <h3 class="ai-title">顧問先の領収書を、催促せずに集めませんか。</h3>
+        <p class="ai-lead">
+          顧問先の経費・証憑をリアルタイムで確認できるダッシュボードを、
+          <strong>無料</strong>でご用意しています。決算期の領収書の督促や、
+          記帳代行前のデータ整形をなくすための仕組みです。
+        </p>
+      </div>
+      <div class="ai-right">
+        <a href="/for-accountants" class="btn-acct" id="btnAcctInvite">
+          会計事務所の方はこちら<i class="bi bi-arrow-right ms-2"></i>
+        </a>
+        <div class="ai-note">顧問先数の制限なし／事務所のご利用は無料</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================ -->
 <!-- Footer                                       -->
 <!-- ============================================ -->
 <footer class="footer">
@@ -2327,6 +2387,10 @@
   // ヒーローの「今すぐ使ってみる」（料金プランへのスクロール）
   var hero = document.getElementById('btnHeroSignup');
   if (hero) hero.addEventListener('click', function () { gtag('event', 'hero_cta_click'); });
+
+  // 会計事務所向けページへの遷移（紹介チャネルの入口が使われているかの確認用）
+  var acct = document.getElementById('btnAcctInvite');
+  if (acct) acct.addEventListener('click', function () { gtag('event', 'accountant_page_click'); });
 })();
 </script>
 </body>
