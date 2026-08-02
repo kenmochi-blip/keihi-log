@@ -123,7 +123,7 @@ export default async function handler(req, res) {
  * 環境ではクリックしても何も起きず問い合わせを取りこぼすため、フォーム送信に変更した。
  * 無認証で開放するエンドポイントなので、IP単位のレート制限と入力長の制限をかける。
  *
- * body: { office, name, email, phone, clients, wantsMaterial, message }
+ * body: { office, name, email, phone, clients, message }
  */
 async function accountantApply(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
@@ -141,13 +141,12 @@ async function accountantApply(req, res) {
   const phone   = s(body.phone, 40);
   const clients = s(body.clients, 20);
   const message = s(body.message, 1000);
-  const wantsMaterial = !!body.wantsMaterial;
 
   if (!office) return res.status(400).json({ error: '事務所名を入力してください' });
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'メールアドレスの形式をご確認ください' });
 
   const record = {
-    office, name, email, phone, clients, wantsMaterial, message,
+    office, name, email, phone, clients, message,
     createdAt: new Date().toISOString(),
   };
   // 一覧できるようキー側に時刻を含める（メール送信に失敗しても申請は残す）
@@ -174,7 +173,6 @@ async function accountantApply(req, res) {
             <table style="font-size:14px;line-height:1.9;border-collapse:collapse;">
               ${row('事務所名', office)}${row('ご氏名', name)}${row('メール', email)}
               ${row('電話番号', phone)}${row('顧問先件数', clients)}
-              ${row('顧問先向け資料', wantsMaterial ? '希望する' : '')}
               ${row('ご質問・ご要望', message)}
             </table>
             <p style="font-size:13px;color:#666;margin-top:16px;">

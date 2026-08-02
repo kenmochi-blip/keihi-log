@@ -574,9 +574,13 @@
         </div>
       </div>
       <div class="accordion-item">
-        <h3 class="accordion-header"><button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#q6">顧問先に提案するための資料はありますか？</button></h3>
+        <h3 class="accordion-header"><button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#q6">顧問先にはどう案内すればよいですか？</button></h3>
         <div id="q6" class="accordion-collapse collapse" data-bs-parent="#acctFaq">
-          <div class="accordion-body">ご用意しています。顧問先にそのままお渡しいただける操作マニュアル（PDF）と、LINE連携の設定手順書がございます。利用申請の際にお申し付けください。</div>
+          <div class="accordion-body">
+            サービス内容・料金・使い方は<a href="/">サービス紹介ページ</a>にまとめてありますので、まずはこちらのURLを顧問先にお送りください。
+            実際の画面は<a href="/app?demo">デモ</a>で登録不要でご確認いただけます。
+            導入をお決めいただいた顧問先については、初期設定を当社が画面共有で代行いたしますので、お気軽にご相談ください。
+          </div>
         </div>
       </div>
       <div class="accordion-item">
@@ -626,12 +630,6 @@
         <div class="col-sm-6">
           <label class="form-label" for="afClients">顧問先件数（およそ）</label>
           <input type="text" class="form-control" id="afClients" maxlength="20" placeholder="30社">
-        </div>
-        <div class="col-sm-6 d-flex align-items-end">
-          <div class="form-check">
-            <input class="form-check-input" type="checkbox" id="afMaterial" checked>
-            <label class="form-check-label" for="afMaterial">顧問先向けの説明資料（PDF）を希望する</label>
-          </div>
         </div>
         <div class="col-12">
           <label class="form-label" for="afMessage">ご質問・ご要望（任意）</label>
@@ -730,7 +728,6 @@
         body: JSON.stringify({
           office: val('afOffice'), name: val('afName'), email: val('afEmail'),
           phone: val('afPhone'), clients: val('afClients'), message: val('afMessage'),
-          wantsMaterial: document.getElementById('afMaterial').checked,
         }),
       });
       var data = await resp.json().catch(function () { return {}; });
