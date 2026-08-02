@@ -164,7 +164,7 @@ const Accountant = (() => {
     banner.innerHTML = '<i class="bi bi-eye me-1"></i>これはデモ表示です。実際のデータは表示されていません。';
     document.getElementById('mainContent').insertBefore(banner, document.getElementById('mainContent').firstChild.nextSibling);
 
-    document.getElementById('referrerLabel').textContent = 'サンプル会計事務所（紹介コード: sample）';
+    document.getElementById('referrerLabel').textContent = 'サンプル会計事務所（事務所コード: sample）';
     _summaries = DEMO_SUMMARIES;
     _months    = DEMO_MONTHS.slice(-_monthsCount);
     document.getElementById('loadingClients').classList.add('d-none');
@@ -196,7 +196,7 @@ const Accountant = (() => {
 
     const ref = profile.referrer;
     document.getElementById('referrerLabel').textContent =
-      ref?.name ? `${ref.name}（紹介コード: ${ref.code}）` : '';
+      ref?.name ? `${ref.name}（事務所コード: ${ref.code}）` : '';
 
     if (!(profile.clients || []).length) {
       document.getElementById('loadingClients').classList.add('d-none');
