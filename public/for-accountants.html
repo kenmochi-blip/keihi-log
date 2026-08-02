@@ -425,8 +425,8 @@
       <div class="col-md-6 col-lg-4">
         <div class="feat-card">
           <div class="ic"><i class="bi bi-shield-check"></i></div>
-          <h3>閲覧専用・改変不可</h3>
-          <p>事務所アカウントは閲覧専用です。顧問先のデータを誤って書き換える心配はありません。</p>
+          <h3>権限は顧問先が選べる</h3>
+          <p>顧問先が先生を「閲覧者」で登録すれば閲覧のみ、「管理者」で登録すれば金額の修正や承認まで行えます。顧問先に直していただくより先生が直したほうが早い場合に便利です。</p>
         </div>
       </div>
     </div>
@@ -507,8 +507,8 @@
       <div class="step">
         <div class="step-no">3</div>
         <div class="step-body">
-          <h3>顧問先が先生を「閲覧者」として登録<span class="who-badge who-client">顧問先</span></h3>
-          <p>顧問先の管理者がアプリの<strong>設定タブ</strong>で、先生のメールアドレスを役割「閲覧者」で追加します。これが先生への閲覧許可になります。</p>
+          <h3>顧問先が先生をメンバーとして登録<span class="who-badge who-client">顧問先</span></h3>
+          <p>顧問先の管理者がアプリの<strong>設定タブ</strong>で、先生のメールアドレスを追加します。これが先生への閲覧許可になります。役割は<strong>閲覧者</strong>（閲覧のみ）と<strong>管理者</strong>（修正・承認も可）から選べます。</p>
         </div>
       </div>
       <div class="step">
@@ -561,7 +561,14 @@
       <div class="accordion-item">
         <h3 class="accordion-header"><button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#q2">先生の画面から顧問先のデータを編集できますか？</button></h3>
         <div id="q2" class="accordion-collapse collapse" data-bs-parent="#acctFaq">
-          <div class="accordion-body">できません。事務所アカウントは<strong>閲覧専用</strong>です。金額の修正や削除は顧問先側でのみ行えるため、意図しない改変が起きない構造になっています。</div>
+          <div class="accordion-body">
+            顧問先が先生をどの権限で登録するかによって変わります。<br>
+            ・<strong>閲覧者</strong>として登録 … 顧問先の経費をすべて閲覧できますが、修正・削除はできません<br>
+            ・<strong>管理者</strong>として登録 … 金額の修正・削除に加えて、承認や精算の処理も行えます<br>
+            顧問先にご自身で直していただくより先生が直したほうが早い場合は、管理者としてご登録いただくのが便利です。
+            権限は顧問先側でいつでも変更できます。<br>
+            なお、この会計事務所ダッシュボード自体は、権限にかかわらず閲覧とCSV出力のみの画面です。修正は顧問先のアプリ画面から行っていただきます。
+          </div>
         </div>
       </div>
       <div class="accordion-item">
