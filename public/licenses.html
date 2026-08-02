@@ -198,7 +198,27 @@
             <span class="title">申込ファネル</span>
             <span id="funnelRange" style="font-size:0.7rem;color:var(--text-mute);"></span>
           </div>
-          <span id="funnelNote" style="font-size:0.7rem;color:var(--text-mute);"></span>
+          <div style="display:flex;align-items:center;gap:0.4rem;">
+            <span id="funnelNote" style="font-size:0.7rem;color:var(--text-mute);"></span>
+            <select id="topFunnelDays" class="filter-select" style="font-size:0.75rem;padding:0.2rem 0.5rem;">
+              <option value="7">7日間</option>
+              <option value="14">14日間</option>
+              <option value="30" selected>30日間</option>
+              <option value="60">60日間</option>
+              <option value="90">90日間</option>
+              <option value="180">180日間</option>
+              <option value="365">365日間</option>
+              <option value="custom">カスタム…</option>
+            </select>
+            <span id="topFunnelCustomWrap" style="display:none;align-items:center;gap:0.25rem;">
+              <input id="topFunnelCustom" type="number" min="1" max="365" step="1" value="30"
+                     class="filter-input" style="width:64px;font-size:0.75rem;padding:0.2rem 0.4rem;">
+              <span style="font-size:0.72rem;color:var(--text-mute);">日</span>
+              <button id="topFunnelApply" class="btn-accent" style="font-size:0.72rem;padding:0.2rem 0.6rem;">適用</button>
+            </span>
+            <button id="topFunnelRefresh" class="btn-accent" title="再読み込み"
+                    style="font-size:0.72rem;padding:0.2rem 0.5rem;"><i class="bi bi-arrow-clockwise"></i></button>
+          </div>
         </div>
         <div class="panel-body">
           <div class="funnel-row" id="funnelRow">
@@ -1169,6 +1189,8 @@
       loadFeedback();
       if (_hasCfKey) loadCloudflare();
       if (_sentryToken) loadSentry();
+      _initTopFunnelControls();
+      loadTopFunnel();
       loadFunnel();
     }
 
@@ -1183,6 +1205,54 @@
      * 「決済ページへ」（begin_checkout）と「申込完了」（trial_start）の差が
      * そのままStripe画面での離脱数になる。
      */
+    /** 上部ファネルの集計期間（日数）。下部の「ファネル分析」とは独立して切り替えられる。 */
+    const TOP_FUNNEL_KEY = 'keihi_admin_funnel_days';
+    function _topFunnelDays() {
+      const sel = document.getElementById('topFunnelDays');
+      if (sel && sel.value === 'custom') {
+        const n = parseInt(document.getElementById('topFunnelCustom').value, 10);
+        return Math.min(Math.max(Number.isFinite(n) ? n : 30, 1), 365);
+      }
+      return parseInt(sel?.value || '30', 10);
+    }
+
+    /** 上部ファネルだけを再取得して描画する（下部パネルには影響しない）。 */
+    async function loadTopFunnel() {
+      const days = _topFunnelDays();
+      try { localStorage.setItem(TOP_FUNNEL_KEY, String(document.getElementById('topFunnelDays').value === 'custom' ? days : days)); } catch (_) {}
+      document.getElementById('funnelRow').innerHTML = '<div class="funnel-loading">読み込み中...</div>';
+      try {
+        const r = await fetch(`/api/admin-licenses?ga4=1&days=${days}`);
+        _renderTopFunnel(r.ok ? await r.json().catch(() => null) : null, days);
+      } catch (_) {
+        _renderTopFunnel(null, days);
+      }
+    }
+
+    function _initTopFunnelControls() {
+      const sel    = document.getElementById('topFunnelDays');
+      const wrap   = document.getElementById('topFunnelCustomWrap');
+      const custom = document.getElementById('topFunnelCustom');
+      if (!sel) return;
+
+      // 前回選んだ期間を復元（プリセットに無ければカスタム扱い）
+      let saved = parseInt(localStorage.getItem(TOP_FUNNEL_KEY) || '', 10);
+      if (Number.isFinite(saved) && saved >= 1 && saved <= 365) {
+        const preset = [...sel.options].find(o => o.value === String(saved));
+        if (preset) { sel.value = String(saved); }
+        else { sel.value = 'custom'; custom.value = String(saved); wrap.style.display = 'inline-flex'; }
+      }
+
+      sel.addEventListener('change', () => {
+        const isCustom = sel.value === 'custom';
+        wrap.style.display = isCustom ? 'inline-flex' : 'none';
+        if (isCustom) custom.focus(); else loadTopFunnel();
+      });
+      document.getElementById('topFunnelApply').addEventListener('click', () => loadTopFunnel());
+      custom.addEventListener('keydown', e => { if (e.key === 'Enter') loadTopFunnel(); });
+      document.getElementById('topFunnelRefresh').addEventListener('click', () => loadTopFunnel());
+    }
+
     function _renderTopFunnel(ga4, days) {
       const row     = document.getElementById('funnelRow');
       const verdict = document.getElementById('funnelVerdict');
@@ -1233,8 +1303,12 @@
       // どこが一番の詰まりかを言葉で示す
       const stripeDrop = Number(f.beginCheckout || 0) - Number(f.trialStart || 0);
       const msgs = [];
-      if (Number(f.users || 0) < 500) {
-        msgs.push(`<strong>流入が不足しています</strong>（直近${days}日で${Number(f.users||0).toLocaleString('ja-JP')}人）。この規模では各段の率は誤差が大きく、改善の効果測定には使えません。まずは流入を増やすことが先決です。`);
+      // 期間が変わっても基準がぶれないよう月換算で判定する。
+      // 転換率2%前後の変化を有意に検出するには各条件1000件規模が要るため、
+      // 月1000人を下回るあいだは率を「傾向」としてしか読めない。
+      const perMonth = days > 0 ? Number(f.users || 0) / days * 30 : 0;
+      if (perMonth < 1000) {
+        msgs.push(`<strong>流入が不足しています</strong>（直近${days}日で${Number(f.users||0).toLocaleString('ja-JP')}人＝月換算 約${Math.round(perMonth).toLocaleString('ja-JP')}人）。この規模では各段の率は誤差が大きく、改善の効果測定には使えません。まずは流入を増やすことが先決です。`);
       }
       if (Number(f.viewPricing || 0) > 0 && Number(f.beginCheckout || 0) === 0) {
         msgs.push('料金プランまでは到達しているものの、<strong>決済ページに1件も進んでいません</strong>。価格・プラン説明・CTAの見せ方に原因がある可能性があります。');
@@ -1262,7 +1336,6 @@
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const d = await resp.json();
         const ga4 = ga4resp && ga4resp.ok ? await ga4resp.json().catch(() => null) : null;
-        _renderTopFunnel(ga4, days);
         _funnelTargets = d.targets || _funnelTargets;
         document.getElementById('funnelPeriod').textContent = `${d.period.from} 〜 ${d.period.to}`;
         // 目標入力欄に現在値を反映（フォーカス中は上書きしない）
