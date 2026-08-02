@@ -223,10 +223,17 @@
   footer { background: #fff; color: #5b6b7c; padding: 2.5rem 0 2rem; font-size: 0.86rem; border-top: 1px solid #e6ecf2; }
   footer a { color: #42526b; text-decoration: none; }
   footer a:hover { color: var(--brand); text-decoration: underline; }
-  footer .f-head { font-weight: 700; color: var(--ink); }
+  footer .f-head { font-weight: 700; color: var(--brand); }
   footer hr { border-top: 1px solid #e6ecf2; opacity: 1; }
 
-  .navbar-brand img { border-radius: 8px; }
+  /* ブランド表記はLP（index.html）の .navbar-custom .navbar-brand と同一にする */
+  .navbar-brand {
+    font-weight: 900;
+    color: var(--brand);
+    font-size: 1.35rem;
+  }
+  .navbar-brand:hover { color: var(--brand); }
+  .navbar-brand img { width: 32px; height: 32px; }
 </style>
 </head>
 <body>
@@ -234,8 +241,8 @@
 <!-- ===== Nav ===== -->
 <nav class="navbar navbar-expand-lg bg-white border-bottom sticky-top">
   <div class="container">
-    <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" href="/">
-      <img src="/icons/icon-192.png" width="30" height="30" alt="経費ログ">
+    <a class="navbar-brand d-flex align-items-center gap-2" href="/">
+      <img src="/icons/icon-192.png" width="32" height="32" alt="">
       <span>経費ログ</span>
     </a>
     <div class="ms-auto d-flex align-items-center gap-2">
