@@ -218,32 +218,35 @@
 
   /* ===== 会計事務所向けの導線（LP末尾） =====
      主対象は事業者なので、最終CTAの後ろに控えめな帯として置く。 */
-  .acct-invite { background: #f6f8fb; padding: 3rem 0; border-top: 1px solid #e6ecf2; }
+  .acct-invite {
+    background: linear-gradient(160deg, #0d2d5a 0%, #163866 100%);
+    padding: 3.5rem 0; color: #fff;
+  }
   .acct-invite-box {
     max-width: 900px; margin: 0 auto;
-    background: #fff; border: 1px solid #dbe6f5; border-radius: 16px;
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 16px;
     padding: 1.75rem 1.75rem;
     display: flex; align-items: center; gap: 1.75rem; flex-wrap: wrap;
-    box-shadow: 0 2px 12px rgba(20,40,80,0.05);
   }
   .acct-invite .ai-left { flex: 1 1 340px; min-width: 0; }
   .acct-invite .ai-eyebrow {
     display: inline-block; font-size: 0.74rem; font-weight: 700;
-    color: var(--brand); background: #eef4ff; border: 1px solid #cddfff;
+    color: #cfe0ff; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.3);
     border-radius: 50px; padding: 0.2rem 0.75rem; margin-bottom: 0.6rem;
   }
   .acct-invite .ai-title { font-size: 1.1rem; font-weight: 800; margin-bottom: 0.5rem; line-height: 1.6; }
-  .acct-invite .ai-lead { font-size: 0.87rem; color: #5b6b7c; line-height: 1.9; margin: 0; }
+  .acct-invite .ai-lead { font-size: 0.87rem; color: #c8d6e8; line-height: 1.9; margin: 0; }
   .acct-invite .ai-right { flex: 0 0 auto; text-align: center; }
   .acct-invite .btn-acct {
-    display: inline-block; background: var(--brand); color: #fff; font-weight: 700;
+    display: inline-block; background: #fff; color: #0d2d5a; font-weight: 700;
     padding: 0.75rem 1.75rem; border-radius: 50px; text-decoration: none;
-    box-shadow: 0 4px 14px rgba(13,110,253,0.28); transition: all 0.25s ease; white-space: nowrap;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.22); transition: all 0.25s ease; white-space: nowrap;
   }
   .acct-invite .btn-acct:hover {
-    transform: translateY(-2px); box-shadow: 0 6px 20px rgba(13,110,253,0.38); color: #fff;
+    transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.3); color: #0d2d5a;
   }
-  .acct-invite .ai-note { font-size: 0.72rem; color: #7d8b9a; margin-top: 0.6rem; line-height: 1.7; }
+  .acct-invite .ai-note { font-size: 0.72rem; color: #9fb4cd; margin-top: 0.6rem; line-height: 1.7; }
   @media (max-width: 575px) {
     .acct-invite-box { padding: 1.5rem 1.25rem; gap: 1.25rem; }
     .acct-invite .ai-right { width: 100%; }
@@ -730,22 +733,21 @@
 
   /* ===== Footer ===== */
   .footer {
-    background: #0d2d5a;
-    background: linear-gradient(160deg, #0d2d5a 0%, #163866 100%);
-    color: #adb5bd;
+    background: #fff;
+    color: #5b6b7c;
     padding: 3rem 0 1.5rem;
-    border-top: 3px solid rgba(110, 168, 254, 0.5);
+    border-top: 1px solid #e6ecf2;
   }
   .footer a {
-    color: #adb5bd;
+    color: #42526b;
     text-decoration: none;
     transition: color 0.2s;
   }
   .footer a:hover {
-    color: #6ea8fe;
+    color: var(--brand);
   }
   .footer h5 {
-    color: #6ea8fe;
+    color: var(--brand);
     font-size: 0.85rem;
     font-weight: 700;
     letter-spacing: 0.08em;
@@ -753,7 +755,7 @@
     margin-bottom: 1rem;
   }
   .footer-bottom {
-    border-top: 1px solid rgba(255,255,255,0.08);
+    border-top: 1px solid #e6ecf2;
     padding-top: 1.5rem;
     margin-top: 2rem;
     text-align: center;
