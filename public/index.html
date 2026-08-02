@@ -2210,5 +2210,46 @@
     }
   });
 </script>
+
+<!-- ===== 申込ファネルの計測 =====
+     Stripeの決済ページ（buy.stripe.com）にはタグを入れられないため、
+     「決済ページへ送り出した数」をこちら側で記録する。
+     success.html の trial_start（＝申込完了）との差が、Stripe画面での離脱数になる。
+
+       ページ閲覧      … GA4 の標準指標
+       view_pricing   … 料金プランまでスクロールした
+       begin_checkout … Stripeへ遷移した          ←ここが今まで欠けていた
+       trial_start    … 申込完了（success.html）
+-->
+<script>
+(function () {
+  if (typeof gtag !== 'function') return;
+
+  // 料金プランセクションの到達（1回だけ）
+  var pricing = document.getElementById('pricing');
+  if (pricing && 'IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (entries) {
+      if (entries.some(function (e) { return e.isIntersecting; })) {
+        gtag('event', 'view_pricing');
+        io.disconnect();
+      }
+    }, { threshold: 0.3 });
+    io.observe(pricing);
+  }
+
+  // Stripeの決済ページへの遷移（プラン別）
+  document.addEventListener('click', function (ev) {
+    var a = ev.target.closest && ev.target.closest('a[href*="buy.stripe.com"]');
+    if (!a) return;
+    gtag('event', 'begin_checkout', {
+      plan: /ソロ/.test(a.textContent || '') ? 'solo' : 'team',
+    });
+  });
+
+  // ヒーローの「今すぐ使ってみる」（料金プランへのスクロール）
+  var hero = document.getElementById('btnHeroSignup');
+  if (hero) hero.addEventListener('click', function () { gtag('event', 'hero_cta_click'); });
+})();
+</script>
 </body>
 </html>
