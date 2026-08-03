@@ -172,6 +172,25 @@
     color: var(--brand);
   }
 
+  /* ===== CM動画（ヒーロー直下） ===== */
+  .cm-section { background: #f6f8fb; padding: 3rem 0; }
+  .cm-lead {
+    text-align: center; font-weight: 700; color: #42506b;
+    font-size: clamp(0.95rem, 2.4vw, 1.1rem); margin-bottom: 1rem;
+  }
+  .cm-frame {
+    max-width: 460px; margin: 0 auto;
+    border-radius: 16px; overflow: hidden;
+    box-shadow: 0 6px 26px rgba(20,40,80,0.14);
+    background: #efe9e6;   /* 動画の地色。読み込み前のちらつきを抑える */
+    line-height: 0;
+  }
+  .cm-frame video { width: 100%; height: auto; display: block; }
+  .cm-note {
+    text-align: center; font-size: 0.76rem; color: #8593a4;
+    margin: 0.7rem 0 0; line-height: 1.7;
+  }
+
   /* ===== セクション間の申込導線 =====
      料金プランと最終CTAの2箇所しか申込ボタンが無く、
      読み進めて納得した位置で申し込めなかったため、要所に配置する。 */
@@ -1021,6 +1040,30 @@
     </div>
   </div>
 </header>
+
+<!-- ============================================ -->
+<!-- CM動画                                        -->
+<!-- 9MBあるため preload="none" + ポスター画像で、    -->
+<!-- 再生されるまで本体を読み込ませない              -->
+<!-- ============================================ -->
+<section class="cm-section">
+  <div class="container">
+    <p class="cm-lead">30秒でわかる「経費ログ」</p>
+    <div class="cm-frame">
+      <video
+        id="cmVideo"
+        controls
+        playsinline
+        preload="none"
+        poster="/img/keihilogpv-poster.jpg"
+        width="1080" height="1080">
+        <source src="/img/keihilogpv.mp4" type="video/mp4">
+        お使いのブラウザは動画の再生に対応していません。
+      </video>
+    </div>
+    <p class="cm-note">音声が流れます。音量にご注意ください。</p>
+  </div>
+</section>
 
 <!-- ============================================ -->
 <!-- Problem                                      -->
