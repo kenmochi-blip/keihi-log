@@ -408,6 +408,11 @@ async function _upgradeLicense(key, oldData, session, email, name, plan, interva
   }
 }
 
+// ライセンス発行メールに添付するマニュアル（public/docs 配下・公開URL）。
+// Resend は path 指定でこのURLを取得して添付するため、関数にファイル本体を含めない。
+const MANUAL_SETUP_URL = 'https://keihi-log.com/docs/keihi-log-setup-manual.pdf';
+const MANUAL_LINE_URL  = 'https://keihi-log.com/docs/keihi-log-line-manual.pdf';
+
 /**
  * メール本文の宛名を組み立てる。
  *
@@ -566,8 +571,25 @@ ${trialNotice}
   <a href="https://keihi-log.com/setup-guide" style="display:inline-block;background:#f0f4ff;color:#0d6efd;text-decoration:none;padding:10px 20px;border-radius:6px;font-size:0.92em;font-weight:600;border:1px solid #c2d4ff;">📱 スクリーンショット付きセットアップガイドを見る</a>
 </p>
 
+<div style="background:#f8f9fb;border:1px solid #e3e8ef;border-radius:8px;padding:14px 18px;margin:1.4rem 0;">
+  <p style="margin:0 0 8px;font-weight:600;">📎 マニュアルを2点添付しています</p>
+  <ul style="margin:0;padding-left:20px;font-size:0.92em;line-height:1.9;color:#42506a;">
+    <li><strong>初期設定マニュアル（PC版）</strong> … お申し込みから利用開始までを画面キャプチャ付きで解説しています</li>
+    <li><strong>LINE連携設定マニュアル</strong> … メンバーがLINEで領収書を送れるようにする手順です（チームプラン）</li>
+  </ul>
+  <p style="margin:8px 0 0;font-size:0.85em;color:#6c757d;">
+    添付が開けない場合はこちらからダウンロードいただけます：
+    <a href="${MANUAL_SETUP_URL}">初期設定</a> ／ <a href="${MANUAL_LINE_URL}">LINE連携</a>
+  </p>
+</div>
+
 <p style="color:#555;font-size:0.9em;">ご不明な点は <a href="mailto:support@keihi-log.com">support@keihi-log.com</a> までお気軽にお問い合わせください。</p>
     `.trim(),
+    // Resend は path 指定で公開URLのファイルを取得して添付する（関数側で本体を持たない）
+    attachments: [
+      { filename: '経費ログ_初期設定マニュアル.pdf',   path: MANUAL_SETUP_URL },
+      { filename: '経費ログ_LINE連携設定マニュアル.pdf', path: MANUAL_LINE_URL },
+    ],
   };
   const resp = await fetch('https://api.resend.com/emails', {
     method: 'POST',
