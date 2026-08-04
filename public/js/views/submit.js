@@ -1307,8 +1307,10 @@ function _bindSubtypePills(el) {
       }
 
       _updateEntertainHint(el);
-      // 解析完了後、登録ボタンが下端に来るようスクロール
-      el.querySelector('#submitUnit')?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      // 解析完了後、「登録する」ボタンまでスクロールする。
+      // 解析が終わったことに気づかず再度AI解析を押す／登録ボタンの存在に
+      // 気づかないケースがあるため、ボタン全体が見える位置で止める。
+      _scrollToSubmitUnit(el);
 
       if (filled === 0) {
         App.showToast('読み取れませんでした。内容を手動で入力してください', 'warning');
@@ -1324,6 +1326,42 @@ function _bindSubtypePills(el) {
       btn.disabled = false;
       btn.innerHTML = '<i class="bi bi-stars me-2"></i>AIで読み取る';
     }
+  }
+
+  /**
+   * 「登録する」セクションが画面内に収まる位置までスクロールする。
+   *
+   * scrollIntoView({block:'end'}) だと画面下端に合わせてしまい、固定表示の
+   * ボトムナビ（高さ約80px）の下に登録ボタンが潜り込んで見えなくなる。
+   * ナビの高さぶんを避けた位置を自前で計算する。
+   */
+  function _scrollToSubmitUnit(el) {
+    const su = el.querySelector('#submitUnit');
+    if (!su || su.classList.contains('d-none')) return;
+
+    const MARGIN = 12;
+    const need = () => {
+      const nav   = document.querySelector('.navbar.fixed-bottom');
+      const navH  = nav ? nav.getBoundingClientRect().height : 0;
+      const rect  = su.getBoundingClientRect();
+      const avail = window.innerHeight - navH - MARGIN * 2;
+      // 収まりきらない高さのときは上端を優先して見せる（ボタンだけ見えても文脈が分からないため）
+      return rect.height > avail
+        ? rect.top - MARGIN
+        : rect.bottom - (window.innerHeight - navH - MARGIN);
+    };
+
+    // スクロール中に重複警告バナーの差し込みや画像読み込みでレイアウトが動くため、
+    // 1回では目標位置に届かない。数回だけ測り直して補正する。
+    let pass = 0;
+    const step = () => {
+      const delta = need();
+      if (Math.abs(delta) < 4 || pass >= 3) return;
+      window.scrollBy({ top: delta, behavior: pass === 0 ? 'smooth' : 'auto' });
+      pass++;
+      setTimeout(step, pass === 1 ? 380 : 160);
+    };
+    requestAnimationFrame(step);
   }
 
   /** 「登録する」セクション（submitUnit）とカスタムフラグを連動して表示/非表示する。
