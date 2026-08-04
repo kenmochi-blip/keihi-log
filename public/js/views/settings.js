@@ -716,7 +716,9 @@ const SettingsView = (() => {
     ['#categoryList', '#paySourceList', '#customFlagList'].forEach(sel => {
       el.querySelector(sel)?.addEventListener('click', e => {
         const btn = e.target.closest('.btn-del-item');
-        if (btn) _deleteSimpleItem(el, btn.dataset.type, Number(btn.dataset.index));
+        if (btn) return _deleteSimpleItem(el, btn.dataset.type, Number(btn.dataset.index));
+        const edit = e.target.closest('.btn-edit-item');
+        if (edit) _renamePaySource(el, Number(edit.dataset.index));
       });
     });
     el.querySelector('#btnAddMember')?.addEventListener('click', () => _showMemberForm(el, null));
@@ -981,9 +983,14 @@ const SettingsView = (() => {
     const container = el.querySelector(`#${containerId}`);
     if (!container) return;
     if (!items?.length) { container.innerHTML = '<div class="text-muted small">登録がありません</div>'; return; }
+    // 支払元は銀行名の変更などで改名が起きるため、削除だけでなく編集も用意する
+    const canRename = type === 'paySource';
     container.innerHTML = items.map((item, i) => `
       <div class="d-flex align-items-center gap-2 py-1 border-bottom">
         <span class="flex-grow-1 master-item-name">${_escape(item)}</span>
+        ${canRename ? `<button class="btn btn-outline-secondary btn-sm btn-edit-item" data-type="${type}" data-index="${i}" title="名称を変更">
+          <i class="bi bi-pencil"></i>
+        </button>` : ''}
         <button class="btn btn-outline-danger btn-sm btn-del-item" data-type="${type}" data-index="${i}">
           <i class="bi bi-trash"></i>
         </button>
@@ -1250,6 +1257,95 @@ const SettingsView = (() => {
       _master.members.splice(idx, 0, member); // ロールバック
       _renderMembers(el);
     }
+  }
+
+  /**
+   * 会社払い支払元の名称を変更する（銀行名の変更などを想定）。
+   *
+   * 支払元は各経費のL列に「会社払い（名称）」という文字列で保存され、集計も
+   * その文字列でグループ化する。そのためマスタだけ変えると過去分が旧名称のまま
+   * 残り、集計表が新旧2行に割れる。既定では過去分もあわせて置き換える。
+   */
+  async function _renamePaySource(el, idx) {
+    const cur = _master.paySources?.[idx];
+    if (!cur) return;
+
+    const div = document.createElement('div');
+    div.innerHTML = `
+      <div class="modal fade" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h6 class="modal-title">支払元の名称を変更</h6>
+              <button class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <div class="mb-2">
+                <label class="form-label small">変更前</label>
+                <input type="text" class="form-control form-control-sm" value="${_escape(cur)}" disabled>
+              </div>
+              <div class="mb-3">
+                <label class="form-label small">変更後</label>
+                <input type="text" class="form-control form-control-sm" id="psNew" value="${_escape(cur)}" maxlength="50">
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="psPast" checked>
+                <label class="form-check-label small" for="psPast">
+                  過去に登録した経費の表記もあわせて変更する
+                </label>
+              </div>
+              <div class="small text-muted mt-2" style="line-height:1.8;">
+                変更しない場合、過去分は「${_escape(cur)}」のまま残り、集計表が新旧の2行に分かれます。<br>
+                同じ支払元の呼び名が変わった場合（銀行名の変更など）は、変更することをおすすめします。
+                金額・日付などその他の内容は一切変更されません。
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">キャンセル</button>
+              <button class="btn btn-primary btn-sm" id="btnSavePs">変更する</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(div);
+    const modal = new bootstrap.Modal(div.querySelector('.modal'));
+    modal.show();
+    div.querySelector('.modal').addEventListener('hidden.bs.modal', () => div.remove());
+
+    let saving = false;
+    div.querySelector('#btnSavePs').addEventListener('click', async () => {
+      if (saving) return;
+      const next = div.querySelector('#psNew').value.trim();
+      if (!next) return App.showToast('名称を入力してください', 'danger');
+      if (next === cur) { modal.hide(); return; }
+      if (_master.paySources.some((p, i) => i !== idx && p === next)) {
+        return App.showToast('同じ名称の支払元がすでにあります', 'danger');
+      }
+      const alsoPast = div.querySelector('#psPast').checked;
+
+      saving = true;
+      App.showLoading('変更中...');
+      try {
+        // 先に過去分を置き換える。マスタだけ先に変えると、失敗時に
+        // 新旧の名称が混在したまま参照先を失うため。
+        let updated = 0;
+        if (alsoPast) {
+          const r = await Sheets.renamePaySource(cur, next);
+          updated = r?.updated || 0;
+        }
+        _master.paySources[idx] = next;
+        await _saveMasterToSheet(el);
+        App.clearExpensesCache?.();
+        modal.hide();
+        App.hideLoading();
+        App.showToast(alsoPast ? `変更しました（過去の経費 ${updated}件も更新）` : '変更しました', 'success');
+      } catch (err) {
+        App.hideLoading();
+        App.showToast('変更に失敗しました。' + App.friendlyError(err), 'danger');
+      } finally {
+        saving = false;
+      }
+    });
   }
 
   async function _deleteSimpleItem(el, type, idx) {

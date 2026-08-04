@@ -107,6 +107,8 @@ export default async function handler(req, res) {
         return await setupDoneEmail(req, res);
       case 'acctapply':
         return await accountantApply(req, res);
+      case 'renamepaysource':
+        return await renamePaySource(req, res);
       default:
         return res.status(404).json({ error: 'not_found', resource });
     }
@@ -114,6 +116,68 @@ export default async function handler(req, res) {
     console.error('data router error:', e);
     return res.status(500).json({ error: 'server_error' });
   }
+}
+
+/**
+ * 会社払い支払元の名称変更を過去の経費にも反映する（POST /api/data/renamepaysource）。
+ *
+ * 支払元は経費一覧の L列に「会社払い（名称）」という文字列で保存されており、
+ * 集計もこの文字列でグループ化する。そのためマスタ側の名称を変えただけでは
+ * 過去分が旧名称のまま残り、集計表が新旧2行に割れてしまう。
+ * 銀行名の変更など「同じ支払元の呼び名が変わった」ケースを想定し、
+ * 該当する行の L列だけを一括で置き換える。金額・日付等には触れない。
+ *
+ * body: { from, to }
+ */
+async function renamePaySource(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
+  const authz = await _authorize(req, res);
+  if (!authz) return;
+  if (!authz.isAdmin) return res.status(403).json({ error: 'admin_only' });
+
+  const body = (await _body(req)) || {};
+  const from = String(body.from || '').trim();
+  const to   = String(body.to   || '').trim();
+  if (!from || !to) return res.status(400).json({ error: 'from_and_to_required' });
+  if (from === to)  return res.status(200).json({ ok: true, updated: 0 });
+
+  const sheetId = authz.sheetId;
+  const sheets  = sheetsClient();
+  const oldLabel = `会社払い（${from}）`;
+  const newLabel = `会社払い（${to}）`;
+
+  // L列のみ取得して該当行を特定する（全列を読まない）
+  const resp = await sheets.spreadsheets.values.get({
+    spreadsheetId: sheetId, range: '経費一覧!L2:L',
+  });
+  const col = resp.data.values || [];
+  const targets = [];
+  col.forEach((r, i) => { if ((r[0] || '') === oldLabel) targets.push(i + 2); }); // 2行目開始
+
+  if (!targets.length) return res.status(200).json({ ok: true, updated: 0 });
+
+  // 連続する行をまとめてレンジ数を減らす
+  const ranges = [];
+  let start = targets[0], prev = targets[0];
+  for (const rowNum of targets.slice(1)) {
+    if (rowNum === prev + 1) { prev = rowNum; continue; }
+    ranges.push([start, prev]); start = rowNum; prev = rowNum;
+  }
+  ranges.push([start, prev]);
+
+  await sheets.spreadsheets.values.batchUpdate({
+    spreadsheetId: sheetId,
+    requestBody: {
+      valueInputOption: 'RAW',
+      data: ranges.map(([s, e]) => ({
+        range: `経費一覧!L${s}:L${e}`,
+        values: Array.from({ length: e - s + 1 }, () => [newLabel]),
+      })),
+    },
+  });
+
+  _inProcDel(`data:exp:${sheetId}`); await kv.del(`data:exp:${sheetId}`).catch(() => {});
+  return res.status(200).json({ ok: true, updated: targets.length });
 }
 
 /**

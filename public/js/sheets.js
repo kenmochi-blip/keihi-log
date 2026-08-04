@@ -126,6 +126,15 @@ const Sheets = (() => {
     return _proxyWrite('templates', ssId || _ssId(), 'DELETE', undefined, `&id=${encodeURIComponent(id)}`);
   }
 
+  /**
+   * 会社払い支払元の名称変更を過去の経費にも反映する（admin専用）。
+   * 経費一覧のL列「会社払い（旧名称）」だけを置き換える。
+   */
+  function renamePaySource(from, to, ssId) {
+    if (typeof Demo !== 'undefined' && Demo.isActive()) return Promise.resolve({ ok: true, updated: 0 });
+    return _proxyWrite('renamepaysource', ssId || _ssId(), 'POST', { from, to });
+  }
+
   /** 一時的なサーバーエラー時に指数バックオフでリトライする fetch ラッパー。 */
   async function _fetchWithRetry(fn, maxRetries = 3) {
     let delay = 1000;
@@ -732,6 +741,7 @@ const Sheets = (() => {
     createTemplate,
     editTemplate,
     deleteTemplate,
+    renamePaySource,
     readSetting,
     readAllSettings,
     writeSetting,
