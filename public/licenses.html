@@ -604,6 +604,33 @@
         </div>
       </div>
 
+      <!-- 登録件数の再集計（/api/time の取りこぼし分をシートから復元する） -->
+      <div class="panel" style="margin-top:1rem;">
+        <div class="panel-header" style="justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:0.5rem;">
+            <i class="bi bi-arrow-repeat" style="color:#d97706;"></i>
+            <span class="title">登録件数の再集計</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:0.4rem;">
+            <select id="bfMonths" class="filter-select" style="font-size:0.75rem;padding:0.2rem 0.5rem;">
+              <option value="1">直近1ヶ月</option>
+              <option value="3" selected>直近3ヶ月</option>
+              <option value="6">直近6ヶ月</option>
+              <option value="12">直近12ヶ月</option>
+            </select>
+            <button class="btn-accent" id="btnBackfillCheck" style="font-size:0.75rem;padding:0.2rem 0.7rem;">差分を確認</button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <p style="font-size:0.76rem;color:var(--text-mute);margin:0 0 0.6rem;line-height:1.8;">
+            各チームの経費一覧A列（申請日時）から実際の登録件数を数え直し、KVの記録と比較します。
+            読み取るのは申請日時の列のみで、金額・支払先などは取得しません。<br>
+            サービスアカウントが共有されていないシートは読めないため「読み取り失敗」として除外されます（その分のKVは変更しません）。
+          </p>
+          <div id="bfResult" style="font-size:0.78rem;"></div>
+        </div>
+      </div>
+
       <div class="panel" style="margin-top:1rem;">
         <div class="panel-header">
           <i class="bi bi-plus-circle" style="color:#16a34a;"></i>
@@ -781,6 +808,7 @@
     document.getElementById('btnAppLogAnalyze').addEventListener('click', () => analyzeAppLogs());
     document.getElementById('btnAppLogClear').addEventListener('click', () => clearAppLogs());
     document.getElementById('btnIssue').addEventListener('click', issueLicense);
+    document.getElementById('btnBackfillCheck').addEventListener('click', () => runBackfill(false));
     document.getElementById('btnAddReferrer').addEventListener('click', addReferrer);
     document.getElementById('btnReferrerRefresh').addEventListener('click', loadReferrers);
     document.getElementById('btnFeedbackRefresh').addEventListener('click', () => loadFeedback());
@@ -1213,6 +1241,70 @@
     }
 
     // ── ライセンス機能 ──────────────────────────────────────
+    /**
+     * 登録件数の再集計。まず差分を確認（apply=false）し、内容に納得してから反映する。
+     * URLに ?secret= を付けると管理シークレットがアクセスログに残るため、
+     * Authorizationヘッダーを付与するこのページのfetch経由で叩く。
+     */
+    async function runBackfill(apply) {
+      const months = document.getElementById('bfMonths').value;
+      const out = document.getElementById('bfResult');
+      const btn = document.getElementById('btnBackfillCheck');
+      btn.disabled = true;
+      out.innerHTML = '<span style="color:var(--text-mute);">集計中...（シート数によっては数十秒かかります）</span>';
+      try {
+        const resp = await fetch(`/api/admin-licenses?usage_backfill=1&months=${months}${apply ? '&apply=1' : ''}`);
+        const d = await resp.json().catch(() => ({}));
+        if (!resp.ok) throw new Error(d.error || `HTTP ${resp.status}`);
+
+        const s = d.summary || {};
+        const diffRows = (d.results || []).filter(r => r.months && r.months.some(m => m.diff !== 0));
+        const failed   = (d.results || []).filter(r => r.skipped);
+
+        let html = `<div style="margin-bottom:0.5rem;">
+          <strong>${apply ? '反映しました' : '確認結果'}</strong>
+          （対象 ${esc(d.scope || '')}／集計できた ${s['集計できた'] ?? 0}件・差分あり ${s['差分あり'] ?? 0}件・読み取り失敗 ${s['読み取り失敗'] ?? 0}件）
+        </div>`;
+
+        if (diffRows.length) {
+          html += `<table class="data-table" style="width:100%;font-size:0.74rem;">
+            <thead><tr><th>組織</th>${(d.months||[]).map(m => `<th style="text-align:right;">${esc(m)}</th>`).join('')}</tr></thead>
+            <tbody>${diffRows.map(r => `<tr>
+              <td>${esc(r.org || r.licKey)}</td>
+              ${r.months.map(m => `<td style="text-align:right;${m.diff !== 0 ? 'color:#d97706;font-weight:700;' : ''}">
+                ${m.recorded} → ${m.actual}${m.diff !== 0 ? ` (${m.diff > 0 ? '+' : ''}${m.diff})` : ''}
+              </td>`).join('')}
+            </tr>`).join('')}</tbody></table>`;
+        } else {
+          html += '<div style="color:#16a34a;">差分はありませんでした。</div>';
+        }
+
+        if (failed.length) {
+          html += `<div style="margin-top:0.5rem;color:var(--text-mute);font-size:0.72rem;">
+            読み取れなかったライセンス：${failed.map(f => esc(f.org || f.licKey) + `（${esc(f.skipped)}）`).join('、')}
+          </div>`;
+        }
+
+        if (!apply && diffRows.length) {
+          html += `<div style="margin-top:0.7rem;">
+            <button class="btn-accent btn-success-solid" id="btnBackfillApply" style="font-size:0.75rem;padding:0.25rem 0.9rem;">
+              この内容でKVに反映する
+            </button>
+            <span style="font-size:0.72rem;color:var(--text-mute);margin-left:0.5rem;">実測が0件の月は据え置きます</span>
+          </div>`;
+        }
+        out.innerHTML = html;
+        document.getElementById('btnBackfillApply')?.addEventListener('click', () => {
+          if (confirm('KVの登録件数を実測値で上書きします。よろしいですか？')) runBackfill(true);
+        });
+        if (apply) load();   // 一覧の数字を最新化
+      } catch (e) {
+        out.innerHTML = `<span style="color:#dc2626;">失敗しました: ${esc(e.message)}</span>`;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
     async function load() {
       _secret = document.getElementById('inputSecret').value.trim();
       const resp = await fetch(`/api/admin-licenses`);
