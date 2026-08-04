@@ -3197,29 +3197,31 @@ async function _handleLinePostback(userId, replyToken, dataStr) {
       '管理者から届いた6桁の認証コードを、この下の入力欄に入力して送信してください。\n（入力欄が出ていない場合は、メニュー右上の「∨」やキーボードのアイコンをタップしてください）'
     ));
   }
-  // カメラ/アルバムはLINE仕様でクイックリプライ限定のため、メニュー→ワンタップで開かせる。
+  // カメラ/アルバムのボタンは、LINE仕様でクイックリプライにしか置けない
+  // （Flexメッセージの大きなボタンには camera / cameraRoll アクションを設定できない）。
+  // 小さく目立たないため、ボタンを使わずこの画面に直接送ってもよい旨を必ず添える。
   if (action === 'camera') {
     return _lineReply(replyToken, {
       type: 'text',
-      text: '領収書を撮影してください📷',
-      quickReply: { items: [{ type: 'action', action: { type: 'camera', label: 'カメラを開く' } }] },
+      text: '領収書を撮影してください📷\n\n下の「📷 カメラを開く」をタップするか、\nこの画面に直接写真を送っていただいてもOKです。',
+      quickReply: { items: [{ type: 'action', action: { type: 'camera', label: '📷 カメラを開く' } }] },
     });
   }
   if (action === 'upload') {
     return _lineReply(replyToken, {
       type: 'text',
-      text: '送りたい画像を選んでください🖼',
-      quickReply: { items: [{ type: 'action', action: { type: 'cameraRoll', label: 'アルバムを開く' } }] },
+      text: '送りたい画像を選んでください🖼\n\n下の「🖼 アルバムを開く」をタップするか、\nこの画面に直接写真を送っていただいてもOKです。',
+      quickReply: { items: [{ type: 'action', action: { type: 'cameraRoll', label: '🖼 アルバムを開く' } }] },
     });
   }
   // 旧メニュー（sendreceipt）互換：カメラ/アルバム両方を出す
   if (action === 'sendreceipt') {
     return _lineReply(replyToken, {
       type: 'text',
-      text: '領収書の写真を送ってください📷',
+      text: '領収書の写真を送ってください📷\n\n下の「📷 カメラで撮影」「🖼 アルバム/スクショ」をタップするか、\nこの画面に直接写真を送っていただいてもOKです。\nPDFファイルもそのまま送れます。',
       quickReply: { items: [
-        { type: 'action', action: { type: 'camera',     label: 'カメラで撮影' } },
-        { type: 'action', action: { type: 'cameraRoll', label: 'アルバム/スクショ' } },
+        { type: 'action', action: { type: 'camera',     label: '📷 カメラで撮影' } },
+        { type: 'action', action: { type: 'cameraRoll', label: '🖼 アルバム/スクショ' } },
       ] },
     });
   }
