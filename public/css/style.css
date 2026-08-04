@@ -561,6 +561,10 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 }
 .subtype-divider::before, .subtype-divider::after { content: ''; flex: 1; height: 1px; background: #ced4da; }
 .subtype-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+/* ピル群と定期経費ボタンの左右端を揃えるための箱。
+   幅はピル3つ分（max-content）に縮み、下段のボタンは width:100% でそれに一致する。
+   画面が狭い場合は max-width:100% 側が効いて折り返す。 */
+.subtype-group { width: max-content; max-width: 100%; margin: 0 auto; }
 .subtype-pill {
   display: inline-flex; align-items: center; gap: 5px;
   padding: 7px 15px; border-radius: 20px; border: 1.5px solid #adb5bd;
@@ -570,6 +574,16 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 }
 .subtype-pill i { font-size: 0.88rem; }
 .subtype-pill:hover, .subtype-pill.active { border-color: #0d6efd; background: #e8f0fe; color: #0d6efd; }
+/* 幅390px前後（iPhone 12〜15など）でピル3つが1行に収まらず折り返すため、
+   狭い画面でのみ余白を詰める。それ以上の幅では従来の見た目を保つ。 */
+@media (max-width: 405px) {
+  .subtype-row { gap: 6px; }
+  .subtype-pill { padding: 7px 12px; }
+}
+@media (max-width: 375px) {   /* iPhone SE など */
+  .subtype-row { gap: 5px; }
+  .subtype-pill { padding: 7px 9px; }
+}
 /* サブタイプ選択中：カードをアクティブ表示 */
 #subtypeCard { transition: opacity 0.15s, border-color 0.15s; }
 #subtypeCard:not(.subtype-active) { opacity: 0.85; }

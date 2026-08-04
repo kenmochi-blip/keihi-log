@@ -112,21 +112,24 @@ const SubmitView = (() => {
   <div class="card border shadow-sm mb-3" id="subtypeCard" style="border-color:#dee2e6 !important;">
     <div class="card-body py-3 px-3">
       <div class="subtype-divider mb-3">その他のタイプの申請</div>
-      <div class="subtype-row">
-        <button class="subtype-pill" data-type="電車/バス">
-          <i class="bi bi-train-front-fill"></i>電車/バス
-        </button>
-        <button class="subtype-pill" data-type="自家用車">
-          <i class="bi bi-car-front-fill"></i>自家用車
-        </button>
-        <button class="subtype-pill" data-type="領収書なし">
-          <i class="bi bi-pencil-square"></i>領収書なし
-        </button>
-      </div>
-      <div class="subtype-row mt-2 d-none" id="templateMenuRow">
-        <button type="button" class="subtype-pill" id="btnOpenTemplateMenu" style="width:100%;">
-          <i class="bi bi-arrow-repeat"></i>定期経費を登録（管理者のみのメニュー）
-        </button>
+      <!-- 2行をひとつの箱に入れ、下段のボタン幅を上段のピル群に揃える -->
+      <div class="subtype-group">
+        <div class="subtype-row">
+          <button class="subtype-pill" data-type="電車/バス">
+            <i class="bi bi-train-front-fill"></i>電車/バス
+          </button>
+          <button class="subtype-pill" data-type="自家用車">
+            <i class="bi bi-car-front-fill"></i>自家用車
+          </button>
+          <button class="subtype-pill" data-type="領収書なし">
+            <i class="bi bi-pencil-square"></i>領収書なし
+          </button>
+        </div>
+        <div class="subtype-row mt-2 d-none" id="templateMenuRow">
+          <button type="button" class="subtype-pill" id="btnOpenTemplateMenu" style="width:100%;">
+            <i class="bi bi-arrow-repeat"></i>定期経費を登録（管理者のみ）
+          </button>
+        </div>
       </div>
     </div>
   </div>
