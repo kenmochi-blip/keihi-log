@@ -19,9 +19,20 @@ export default async function handler(req, res) {
   if (key && key.startsWith('KL-')) {
     const ym = new Date().toISOString().slice(0, 7); // "YYYY-MM"
     const usageKey = `usage:${key}:${ym}`;
-    kv.incr(usageKey)
-      .then(n => { if (n === 1) return kv.expire(usageKey, USAGE_TTL_SEC); })
-      .catch(err => console.error('Usage increment failed:', err));
+    // ★await が必須。fire-and-forget にすると Vercel が 200 を返した時点で
+    //   関数を凍結するため incr が完了せず、カウントが取りこぼされる。
+    //   ただし KV の遅延で時刻発行そのものを止めないよう、2秒で打ち切る。
+    try {
+      await Promise.race([
+        (async () => {
+          const n = await kv.incr(usageKey);
+          if (n === 1) await kv.expire(usageKey, USAGE_TTL_SEC);
+        })(),
+        new Promise(resolve => setTimeout(resolve, 2000)),
+      ]);
+    } catch (err) {
+      console.error('Usage increment failed:', err);
+    }
   }
 
   res.setHeader('Cache-Control', 'no-store');
