@@ -344,12 +344,18 @@ export default async function handler(req, res) {
   // 影響で取りこぼしが発生していた（2026-05-18の機能追加以来）。
   // 実際の登録件数は各チームの経費一覧A列（申請日時）に残っているため、そこから数え直す。
   //
-  //   GET  ?usage_backfill=1&months=3        → 差分の確認のみ（書き込まない）
-  //   GET  ?usage_backfill=1&months=3&apply=1 → KVを実測値で上書き
+  //   GET  ?usage_backfill=1&months=3         → 全ライセンスの差分を確認（書き込まない）
+  //   GET  ?usage_backfill=1&key=KL-xxx       → 特定ライセンスのみ確認
+  //   GET  ?usage_backfill=1&key=KL-xxx&apply=1 → そのライセンスだけ補正
+  //   GET  ?usage_backfill=1&apply=1          → 全ライセンスを補正
+  //
+  // 対象は全ライセンスだが、SAが共有されていないシートは読めないため
+  // read_failed として結果に残す（そのライセンスのKVは変更しない）。
   if (req.query.usage_backfill != null) {
     if (!isSaConfigured()) return res.status(503).json({ error: 'sa_not_configured' });
     const months = Math.min(Math.max(parseInt(req.query.months || '3', 10), 1), 24);
     const apply  = req.query.apply != null;
+    const only   = String(req.query.key || '').trim();  // 指定時はこのライセンスのみ
 
     // 対象の年月（UTC基準。usage:* の採番と揃える）
     const yms = [];
@@ -368,12 +374,19 @@ export default async function handler(req, res) {
       return isNaN(utc) ? null : utc.toISOString().slice(0, 7);
     };
 
-    const keys = [];
-    let cursor = 0;
-    do {
-      const [next, batch] = await kv.scan(cursor, { match: 'license:*', count: 100 });
-      keys.push(...batch); cursor = Number(next);
-    } while (cursor !== 0);
+    let keys = [];
+    if (only) {
+      if (!(await kv.get(`license:${only}`).catch(() => null))) {
+        return res.status(404).json({ error: 'license_not_found', key: only });
+      }
+      keys = [`license:${only}`];
+    } else {
+      let cursor = 0;
+      do {
+        const [next, batch] = await kv.scan(cursor, { match: 'license:*', count: 100 });
+        keys.push(...batch); cursor = Number(next);
+      } while (cursor !== 0);
+    }
 
     const sheets = sheetsClient();
     const results = [];
@@ -415,7 +428,19 @@ export default async function handler(req, res) {
       results.push({ licKey, org, rows: rows.length, months: months_ });
     }
 
-    return res.status(200).json({ applied: apply, months: yms, results });
+    const ok = results.filter(r => r.months);
+    return res.status(200).json({
+      applied: apply,
+      scope: only ? `1件（${only}）` : `全${results.length}件`,
+      months: yms,
+      summary: {
+        集計できた: ok.length,
+        シート未解決: results.filter(r => r.skipped === 'no_sheet').length,
+        読み取り失敗: results.filter(r => r.skipped === 'read_failed').length,
+        差分あり: ok.filter(r => r.months.some(m => m.diff !== 0)).length,
+      },
+      results,
+    });
   }
 
   if (req.query.ga4 != null) {
