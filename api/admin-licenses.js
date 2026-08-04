@@ -338,6 +338,86 @@ export default async function handler(req, res) {
   // GA4 Data API（広告セッション・trial_startイベント・ブログPV）
   // SA を GA4 プロパティに「閲覧者」で共有し、analytics.readonly スコープで読み取る。
   // 未設定（SA未共有・プロパティID未設定）なら 503 を返し、UI 側は従来の「GA4参照」表示にフォールバック。
+  // 月次登録カウンター（usage:*）の再集計。
+  //
+  // /api/time のインクリメントが await されておらず、Vercel が応答後に関数を凍結する
+  // 影響で取りこぼしが発生していた（2026-05-18の機能追加以来）。
+  // 実際の登録件数は各チームの経費一覧A列（申請日時）に残っているため、そこから数え直す。
+  //
+  //   GET  ?usage_backfill=1&months=3        → 差分の確認のみ（書き込まない）
+  //   GET  ?usage_backfill=1&months=3&apply=1 → KVを実測値で上書き
+  if (req.query.usage_backfill != null) {
+    if (!isSaConfigured()) return res.status(503).json({ error: 'sa_not_configured' });
+    const months = Math.min(Math.max(parseInt(req.query.months || '3', 10), 1), 24);
+    const apply  = req.query.apply != null;
+
+    // 対象の年月（UTC基準。usage:* の採番と揃える）
+    const yms = [];
+    for (let i = 0; i < months; i++) {
+      const d = new Date(); d.setUTCMonth(d.getUTCMonth() - i);
+      yms.push(d.toISOString().slice(0, 7));
+    }
+
+    // 申請日時は "2026/8/4 17:54:15"（ja-JP・JST）形式。UTCの年月へ揃える。
+    const ymOf = (s) => {
+      const m = String(s || '').match(/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})[ T](\d{1,2}):(\d{2})/);
+      if (!m) return null;
+      const [, y, mo, d, h, mi] = m.map(Number);
+      // JSTの壁時計時刻 → UTC
+      const utc = new Date(Date.UTC(y, mo - 1, d, h, mi) - 9 * 60 * 60 * 1000);
+      return isNaN(utc) ? null : utc.toISOString().slice(0, 7);
+    };
+
+    const keys = [];
+    let cursor = 0;
+    do {
+      const [next, batch] = await kv.scan(cursor, { match: 'license:*', count: 100 });
+      keys.push(...batch); cursor = Number(next);
+    } while (cursor !== 0);
+
+    const sheets = sheetsClient();
+    const results = [];
+    for (const k of keys) {
+      const licKey = k.replace('license:', '');
+      const data   = await kv.get(k).catch(() => null);
+      const org    = data?.businessName || data?.company || data?.customerName || data?.email || '(不明)';
+      const code   = await kv.get(`license_alias:${licKey}`).catch(() => null);
+      const sheetId = code ? await kv.get(`alias:${code}`).catch(() => null) : null;
+      if (!sheetId) { results.push({ licKey, org, skipped: 'no_sheet' }); continue; }
+
+      let rows;
+      try {
+        const r = await sheets.spreadsheets.values.get({
+          spreadsheetId: sheetId, range: '経費一覧!A2:A',
+        });
+        rows = r.data.values || [];
+      } catch (e) {
+        results.push({ licKey, org, skipped: 'read_failed', message: e.message });
+        continue;
+      }
+
+      const counted = {};
+      for (const row of rows) {
+        const ym = ymOf(row[0]);
+        if (ym && yms.includes(ym)) counted[ym] = (counted[ym] || 0) + 1;
+      }
+
+      const months_ = [];
+      for (const ym of yms) {
+        const actual = counted[ym] || 0;
+        const recorded = Number(await kv.get(`usage:${licKey}:${ym}`).catch(() => 0)) || 0;
+        if (apply && actual !== recorded) {
+          // 実測が0の月は、行が消されただけの可能性があるのでキーを消さず据え置く
+          if (actual > 0) await kv.set(`usage:${licKey}:${ym}`, actual).catch(() => {});
+        }
+        months_.push({ ym, recorded, actual, diff: actual - recorded });
+      }
+      results.push({ licKey, org, rows: rows.length, months: months_ });
+    }
+
+    return res.status(200).json({ applied: apply, months: yms, results });
+  }
+
   if (req.query.ga4 != null) {
     if (!isSaConfigured()) return res.status(503).json({ error: 'sa_not_configured' });
     const propId = process.env.GA4_PROPERTY_ID || '540386365'; // /licenses のGA4リンク a372782440p540386365 由来
