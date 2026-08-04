@@ -565,15 +565,22 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
    幅はピル3つ分（max-content）に縮み、下段のボタンは width:100% でそれに一致する。
    画面が狭い場合は max-width:100% 側が効いて折り返す。 */
 .subtype-group { width: max-content; max-width: 100%; margin: 0 auto; }
+/* 押せることが伝わるよう「ファイルから証票を選択」ボタン（.hero-btn-file）と同じ配色にする。
+   選択中（.active）は既定色と紛れないよう塗りつぶしにして区別する。 */
 .subtype-pill {
   display: inline-flex; align-items: center; gap: 5px;
-  padding: 7px 15px; border-radius: 20px; border: 1.5px solid #adb5bd;
-  background: #fff; font-size: 0.78rem; font-weight: 600; color: #495057;
+  padding: 7px 15px; border-radius: 20px; border: 1.5px solid #c8d8f8;
+  background: #f4f7ff; font-size: 0.78rem; font-weight: 600; color: #3d71d4;
   cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
   transition: border-color 0.12s, background 0.12s, color 0.12s;
 }
 .subtype-pill i { font-size: 0.88rem; }
-.subtype-pill:hover, .subtype-pill.active { border-color: #0d6efd; background: #e8f0fe; color: #0d6efd; }
+.subtype-pill:hover { background: #e8f0fe; border-color: #90beff; color: #0d6efd; }
+.subtype-pill.active {
+  background: #0d6efd; border-color: #0d6efd; color: #fff;
+  box-shadow: 0 2px 6px rgba(13,110,253,0.3);
+}
+.subtype-pill.active:hover { background: #0b5ed7; border-color: #0b5ed7; color: #fff; }
 /* 幅390px前後（iPhone 12〜15など）でピル3つが1行に収まらず折り返すため、
    狭い画面でのみ余白を詰める。それ以上の幅では従来の見た目を保つ。 */
 @media (max-width: 405px) {
