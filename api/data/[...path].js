@@ -2072,15 +2072,16 @@ function _lineConfirmMessage(summaryText) {
  * 登録先の経費ログ選択メッセージ（Flex）。クイックリプライは小さく目立たないため、
  * メッセージ内に大きめの色付きボタンを組織ごとに出す（複数経費ログ連携時）。
  * choices: [{ sheetId, label }]
+ * action: 選択時のpostbackアクション名（画像は pickorg・電車代は pickorgtransit）
  */
-function _lineOrgPickerMessage(choices) {
+function _lineOrgPickerMessage(choices, action = 'pickorg') {
   const palette = ['#17a55b', '#0d6efd', '#8a4bd6', '#e0781a', '#0da5a5', '#c0392b'];
   const buttons = choices.slice(0, 10).map((o, i) => ({
     type: 'button', style: 'primary', color: palette[i % palette.length], height: 'md',
     action: {
       type: 'postback',
       label: String(o.label).slice(0, 20),
-      data: `action=pickorg&s=${encodeURIComponent(o.sheetId)}`,
+      data: `action=${action}&s=${encodeURIComponent(o.sheetId)}`,
       displayText: o.label,
     },
   }));
@@ -3121,8 +3122,8 @@ async function _beginLineTransit(userId, replyToken) {
   const choices = await Promise.all(links.map(async l => ({
     sheetId: l.sheetId, label: await _lineOrgLabel(l.sheetId).catch(() => '経費ログ'),
   })));
-  return _lineReply(replyToken, _lineText('どの経費ログに登録しますか？',
-    choices.map(o => _qpPostback(o.label, `action=pickorgtransit&s=${encodeURIComponent(o.sheetId)}`))));
+  // 画像送信時と同じ大きなボタンで選ばせる（クイックリプライは小さく見落とされやすい）
+  return _lineReply(replyToken, _lineOrgPickerMessage(choices, 'pickorgtransit'));
 }
 
 /** 電車代フロー開始：出発駅を尋ねる（対象の経費ログは選択済み link を pending に保持）。 */
