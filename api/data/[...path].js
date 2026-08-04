@@ -2170,6 +2170,15 @@ async function _handleLineEvent(ev) {
   // fire-and-forgetだとVercelが200返却後に凍結して割当POSTが完了しないため await する。
   await _lineEnsureUserMenu(userId).catch(() => {});
 
+  // 応答を返す操作すべてで「入力中」アニメーションを出す。
+  // 数秒でも無反応に見えると同じボタンを二度押しされるため、短い処理でも表示する。
+  // （画像解析など時間のかかる処理では、各ハンドラ側でさらに長い秒数を指定して上書きする）
+  // fire-and-forget にすると Vercel が応答後に凍結して送信が完了しないため await する。
+  // アニメーションは bot が返信した時点で自動的に消える。
+  if (ev.type === 'postback' || ev.type === 'message') {
+    await _lineStartLoading(userId, 5);
+  }
+
   if (ev.type === 'postback') {
     return _handleLinePostback(userId, replyToken, ev.postback?.data || '');
   }
