@@ -2698,7 +2698,7 @@ async function lineLinks(req, res) {
  * ※ 管理者のみ。LINE_CHANNEL_ACCESS_TOKEN を使用（無料操作・通数カウント外）。
  */
 // リッチメニューの画像/レイアウト/挙動を変えたら上げる（自動で再設定＆再割当される）
-const RICHMENU_VERSION = 'v16';
+const RICHMENU_VERSION = 'v17';
 let _richmenuEnsured = false; // ウォームインスタンス内キャッシュ
 
 /** 1つのリッチメニューを作成＋画像アップロードし richMenuId を返す（失敗で null）。 */
@@ -2751,7 +2751,11 @@ async function _setupRichMenuViaApi() {
   const linkId = await _createRichMenu(H, {
     size: { width: 2500, height: 843 }, selected: false, name: 'keihi-log-link', chatBarText: '認証コードを入力',
     areas: [
-      { bounds: { x: 0, y: 0, width: 2500, height: 843 }, action: { type: 'postback', data: 'action=entercode', displayText: '認証コードを入力' } },
+      // タップしても案内文が返るだけで入力欄に移動せず「何も起きない」ように見えていたため、
+      // inputOption でキーボードを開く。LINEに数字キーボードを指定する手段はないため通常のキーボード。
+      { bounds: { x: 0, y: 0, width: 2500, height: 843 },
+        action: { type: 'postback', data: 'action=entercode', displayText: '認証コードを入力',
+                  inputOption: 'openKeyboard' } },
     ],
   }, RICHMENU_LINK_PNG_BASE64);
   if (!linkId) return false;
@@ -3193,8 +3197,9 @@ async function _handleLinePostback(userId, replyToken, dataStr) {
   // ── リッチメニューのボタン（pending不要） ──
   // 未連携メニューの「認証コードを入力」
   if (action === 'entercode') {
+    // メニュー側の inputOption でキーボードが開くため、操作手順ではなく入力内容だけ伝える
     return _lineReply(replyToken, _lineText(
-      '管理者から届いた6桁の認証コードを、この下の入力欄に入力して送信してください。\n（入力欄が出ていない場合は、メニュー右上の「∨」やキーボードのアイコンをタップしてください）'
+      '管理者から届いた6桁の認証コード（数字）を入力して送信してください。\n例）123456'
     ));
   }
   // カメラ/アルバムのボタンは、LINE仕様でクイックリプライにしか置けない
