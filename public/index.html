@@ -821,6 +821,38 @@
   }
 
   /* ===== Hero Carousel ===== */
+  /* 使い方セクションの手順スライド（明るい背景に置くため、矢印・indicatorを暗色にする） */
+  .howto-carousel {
+    width: 100%;
+    max-width: 290px;
+    padding-bottom: 34px;
+    flex-shrink: 0;
+  }
+  .howto-slide-img {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 22px;
+    box-shadow: 0 14px 44px rgba(13,110,253,0.16);
+  }
+  .howto-carousel .carousel-indicators { bottom: 0; margin-bottom: 0; }
+  .howto-carousel .carousel-indicators button {
+    width: 8px !important; height: 8px !important; border-radius: 50% !important;
+    border: none !important; background-color: #0d6efd; opacity: 0.3;
+    padding: 0 !important; flex: none !important;
+  }
+  .howto-carousel .carousel-indicators button.active { opacity: 1; }
+  .howto-carousel .carousel-control-prev,
+  .howto-carousel .carousel-control-next { width: 42px; opacity: 0.85; }
+  .howto-carousel .carousel-control-prev-icon,
+  .howto-carousel .carousel-control-next-icon {
+    /* 既定は白アイコンで背景に埋もれるため、円形の下地を敷く */
+    background-color: rgba(13,110,253,0.75);
+    border-radius: 50%;
+    width: 30px; height: 30px;
+    background-size: 45% 45%;
+  }
+
   .hero-carousel {
     width: 240px;
     padding-bottom: 44px;
@@ -1152,9 +1184,50 @@
     <h2 class="section-title">使い方はかんたん</h2>
     <p class="section-subtitle">レシートを撮って、AIで読み取るだけ。面倒な手入力はほぼゼロです</p>
     <div class="d-flex flex-column flex-md-row align-items-center justify-content-center gap-4 gap-md-5 mt-4">
-      <img src="/img/howto.gif" alt="領収書を撮影して経費を登録するまでの操作デモ" loading="lazy"
-           width="675" height="1200"
-           style="width:100%;max-width:290px;height:auto;border-radius:22px;box-shadow:0 14px 44px rgba(13,110,253,0.16);">
+      <!-- 操作手順（ヒーローと同じスライド形式）。GIFだと閲覧者が速度を制御できず、
+           読み切る前に次のコマへ進んでしまうため、指定送りできるカルーセルにする -->
+      <div id="howtoCarousel" class="carousel slide howto-carousel" data-bs-ride="carousel" data-bs-interval="3500">
+        <div class="carousel-inner">
+          <div class="carousel-item active">
+            <img src="/img/howto/step1.jpg" class="howto-slide-img" width="675" height="1200"
+                 alt="手順1：取り込みたいレシートや領収書を用意する">
+          </div>
+          <div class="carousel-item">
+            <img src="/img/howto/step2.jpg" class="howto-slide-img" width="675" height="1200" loading="lazy"
+                 alt="手順2：経費ログを開いてカメラを起動する">
+          </div>
+          <div class="carousel-item">
+            <img src="/img/howto/step3.jpg" class="howto-slide-img" width="675" height="1200" loading="lazy"
+                 alt="手順3：写真を撮る">
+          </div>
+          <div class="carousel-item">
+            <img src="/img/howto/step4.jpg" class="howto-slide-img" width="675" height="1200" loading="lazy"
+                 alt="手順4：「AIで読み取る」ボタンを押す">
+          </div>
+          <div class="carousel-item">
+            <img src="/img/howto/step5.jpg" class="howto-slide-img" width="675" height="1200" loading="lazy"
+                 alt="手順5：自動的に日付や金額が入力される">
+          </div>
+          <div class="carousel-item">
+            <img src="/img/howto/step6.jpg" class="howto-slide-img" width="675" height="1200" loading="lazy"
+                 alt="手順6：「登録する」ボタンを押して完了">
+          </div>
+        </div>
+        <button class="carousel-control-prev" type="button" data-bs-target="#howtoCarousel" data-bs-slide="prev">
+          <span class="carousel-control-prev-icon"></span><span class="visually-hidden">前へ</span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#howtoCarousel" data-bs-slide="next">
+          <span class="carousel-control-next-icon"></span><span class="visually-hidden">次へ</span>
+        </button>
+        <div class="carousel-indicators">
+          <button type="button" data-bs-target="#howtoCarousel" data-bs-slide-to="0" class="active" aria-label="手順1"></button>
+          <button type="button" data-bs-target="#howtoCarousel" data-bs-slide-to="1" aria-label="手順2"></button>
+          <button type="button" data-bs-target="#howtoCarousel" data-bs-slide-to="2" aria-label="手順3"></button>
+          <button type="button" data-bs-target="#howtoCarousel" data-bs-slide-to="3" aria-label="手順4"></button>
+          <button type="button" data-bs-target="#howtoCarousel" data-bs-slide-to="4" aria-label="手順5"></button>
+          <button type="button" data-bs-target="#howtoCarousel" data-bs-slide-to="5" aria-label="手順6"></button>
+        </div>
+      </div>
       <div style="max-width:440px;width:100%;">
         <div class="d-flex align-items-start gap-3 mb-3">
           <span class="badge bg-primary flex-shrink-0" style="width:34px;height:34px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:1.05rem;">1</span>
