@@ -770,6 +770,47 @@ ${logText}
   if (req.method === 'PATCH') {
     const { key, action } = req.body || {};
 
+    // 手動発行ライセンス（Stripe未契約）の有効期限を一括で書き換える。
+    //
+    // 手動発行は自動更新の契機がなく、期限が来ると予告なく使えなくなる。
+    // 無償提供中の相手が突然止まるのを避けるため、遠い日付にまとめて延ばす。
+    // action=upgrade でも期限は変えられるが、upgradedAt とノートが付いて
+    // 「有料転換」として集計されてしまうため、期限だけを変える専用処理にする。
+    //
+    //   PATCH { action:'extend_manual', expiresAt:'2099-12-31' }            → 対象の確認のみ
+    //   PATCH { action:'extend_manual', expiresAt:'2099-12-31', apply:true } → 実行
+    if (action === 'extend_manual') {
+      const { expiresAt: newExpiry, apply } = req.body || {};
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(newExpiry || ''))) {
+        return res.status(400).json({ error: 'expiresAt must be YYYY-MM-DD' });
+      }
+      const keys = [];
+      let cursor = 0;
+      do {
+        const [next, batch] = await kv.scan(cursor, { match: 'license:*', count: 100 });
+        keys.push(...batch); cursor = Number(next);
+      } while (cursor !== 0);
+
+      const targets = [], skipped = [];
+      for (const k of keys) {
+        const licKey = k.replace('license:', '');
+        const d = await kv.get(k).catch(() => null);
+        if (!d) continue;
+        const org = d.businessName || d.company || d.customerName || d.email || '(不明)';
+        // Stripe契約があるものは自動更新されるため対象外
+        if (d.stripeSessionId || d.stripeSubscriptionId) { skipped.push({ licKey, org, reason: 'stripe' }); continue; }
+        if (d.suspended) { skipped.push({ licKey, org, reason: 'suspended' }); continue; }
+        if (d.expiresAt === newExpiry) { skipped.push({ licKey, org, reason: 'already' }); continue; }
+        targets.push({ licKey, org, email: d.email || '', before: d.expiresAt || null, after: newExpiry, note: d.note || '' });
+        if (apply) {
+          // 期限以外は一切変更しない（upgradedAt・note を付けると集計に混ざるため）
+          await kv.set(k, { ...d, expiresAt: newExpiry });
+        }
+      }
+      console.log(`[admin] extend_manual ${apply ? 'applied' : 'dry-run'}: ${targets.length} license(s) → ${newExpiry}`);
+      return res.status(200).json({ applied: !!apply, expiresAt: newExpiry, count: targets.length, targets, skipped });
+    }
+
     // キー不要のグローバル操作：統計の起点（リセット日時）の設定/解除
     if (action === 'set_stats_epoch') {
       const { epoch } = req.body;
