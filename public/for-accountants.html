@@ -666,6 +666,11 @@
           <textarea class="form-control" id="afMessage" rows="3" maxlength="1000" placeholder="ご不明な点があればご記入ください"></textarea>
         </div>
       </div>
+      <!-- 自動投稿よけ。画面に出さず、支援技術にも読ませない。
+           人は入力しようがないため、値が入っていればボットと判定する -->
+      <div aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;">
+        <label for="afWebsite">Website</label>
+        <input type="text" id="afWebsite" name="website" tabindex="-1" autocomplete="off"></div>
       <div class="text-center mt-3">
         <button type="submit" class="btn btn-cta btn-lg" id="btnApply">
           <i class="bi bi-send-fill me-2"></i>この内容で申請する（無料）
@@ -736,6 +741,9 @@
   // 申請フォームの送信。
   // 以前は mailto: リンクだったが、メールクライアント未設定の環境では
   // クリックしても無反応になり問い合わせを取りこぼすため、サーバー送信に変更した。
+  // ページ表示からの経過時間。数秒で送信されるものは機械的な投稿とみなす
+  var formShownAt = Date.now();
+
   var form = document.getElementById('applyForm');
   if (form) form.addEventListener('submit', async function (ev) {
     ev.preventDefault();
@@ -758,6 +766,8 @@
         body: JSON.stringify({
           office: val('afOffice'), name: val('afName'), email: val('afEmail'),
           phone: val('afPhone'), clients: val('afClients'), message: val('afMessage'),
+          website: val('afWebsite'),          // ハニーポット（人は空のまま）
+          elapsed: Date.now() - formShownAt,  // 表示から送信までのミリ秒
         }),
       });
       var data = await resp.json().catch(function () { return {}; });

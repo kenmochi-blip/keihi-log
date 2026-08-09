@@ -209,6 +209,30 @@ async function accountantApply(req, res) {
   if (!office) return res.status(400).json({ error: '事務所名を入力してください' });
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'メールアドレスの形式をご確認ください' });
 
+  // ── ボット判定 ─────────────────────────────────────────────────────
+  // 全項目がランダム文字列の自動投稿が届くため、機械的な送信を弾く。
+  // 判定に当たった場合もエラーを返さず正常応答する（弾かれたと気づかせて
+  // 手口を変えられるのを避けるため）。実在の申請者には影響しない。
+  // 誤検知が起きない条件だけで拒否する。
+  const spam = [];
+  // ① ハニーポット：画面に見えない項目。人は触れないのでボットのみ埋める
+  if (s(body.website, 200)) spam.push('honeypot');
+  // ② 送信までの経過時間。フォームが必ず送るため、値が無い＝フォームを
+  //    経由せずAPIへ直接POSTされたとみなす（実際に届いた自動投稿がこの経路）。
+  //    3秒未満は人が入力し終えられない時間。
+  const elapsed = Number(body.elapsed);
+  if (!Number.isFinite(elapsed) || elapsed < 0) spam.push('no_elapsed');
+  else if (elapsed < 3000) spam.push('too_fast');
+
+  if (spam.length) {
+    console.warn('[acctapply] rejected as spam:', spam.join(','), JSON.stringify({ office, email }).slice(0, 200));
+    return res.status(200).json({ ok: true });
+  }
+
+  // 日本語が1文字も無い申請は機械的な投稿の可能性が高いが、外資系事務所など
+  // 例外もあり得るため拒否はせず、運営への通知に印を付けて判断できるようにする。
+  const suspicious = !/[぀-ヿ一-龯]/.test(office + name + message + clients);
+
   const record = {
     office, name, email, phone, clients, message,
     createdAt: new Date().toISOString(),
@@ -231,9 +255,12 @@ async function accountantApply(req, res) {
         headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           from, to: [admin], reply_to: email,
-          subject: `【経費ログ】会計事務所の利用申請 — ${office}`,
+          subject: `${suspicious ? '【要確認】' : ''}【経費ログ】会計事務所の利用申請 — ${office}`,
           html: `<div style="font-family:sans-serif;color:#333;">
             <h2 style="font-size:1.1rem;">会計事務所からの利用申請</h2>
+            ${suspicious ? `<p style="background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:8px 12px;font-size:13px;">
+              日本語が1文字も含まれていません。自動投稿の可能性があります（受付確認メールは送っていません）。
+            </p>` : ''}
             <table style="font-size:14px;line-height:1.9;border-collapse:collapse;">
               ${row('事務所名', office)}${row('ご氏名', name)}${row('メール', email)}
               ${row('電話番号', phone)}${row('顧問先件数', clients)}
@@ -245,8 +272,10 @@ async function accountantApply(req, res) {
         }),
       }).catch(() => {});
     }
-    // 申請者への受付確認
-    await fetch('https://api.resend.com/emails', {
+    // 申請者への受付確認。
+    // 自動投稿はメールアドレスを詐称していることがあり、そのまま返信すると
+    // 無関係の相手に送りつけることになるため、疑わしい場合は送らない。
+    if (!suspicious) await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
