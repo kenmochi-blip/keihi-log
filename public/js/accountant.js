@@ -63,7 +63,7 @@ const Accountant = (() => {
         { date:`${M[7]}-18`, name:'佐藤 二郎', place:'ソフトバンク',   amount:8800,  category:'通信費',     type:'領収書',  confirmed:true,  settlementDate:'', note:'携帯電話代', id:'c2b', imageLinks:'' },
       ]),
       [M[8]]:  mkD([
-        { date:`${M[8]}-05`, name:'鈴木 一郎', place:'銀座レストラン', amount:32000, category:'接待交際費', type:'領収書',  confirmed:true,  settlementDate:'', note:'新規顧客接待', id:'c3a', imageLinks:'/api/data/receipt?fileId=demo&exp=0&sig=0' },
+        { date:`${M[8]}-05`, name:'鈴木 一郎', place:'銀座レストラン', amount:32000, category:'接待交際費', type:'領収書',  confirmed:true,  settlementDate:'', note:'新規顧客接待', id:'c3a', imageLinks:'/demo/receipts/receipt_restaurant.svg' },
         { date:`${M[8]}-22`, name:'田中 花子', place:'タクシー',       amount:3200,  category:'旅費交通費', type:'領収書',  confirmed:true,  settlementDate:'', note:'深夜帰宅', id:'c3b', imageLinks:'' },
       ]),
       [M[9]]:  mkD([
@@ -76,7 +76,7 @@ const Accountant = (() => {
       ]),
       [M[11]]: mkD([
         { date:`${M[11]}-03`, name:'田中 花子', place:'JR東日本',      amount:3240,  category:'旅費交通費', type:'電車バス', confirmed:true,  settlementDate:'', note:'東京→大阪 出張', id:'c6a', imageLinks:'' },
-        { date:`${M[11]}-01`, name:'鈴木 一郎', place:'銀座 ○○レストラン', amount:32000, category:'接待交際費', type:'領収書', confirmed:true, settlementDate:'', note:'既存顧客接待', id:'c6b', imageLinks:'/api/data/receipt?fileId=demo&exp=0&sig=0' },
+        { date:`${M[11]}-01`, name:'鈴木 一郎', place:'銀座 ○○レストラン', amount:32000, category:'接待交際費', type:'領収書', confirmed:true, settlementDate:'', note:'既存顧客接待', id:'c6b', imageLinks:'/demo/receipts/receipt_restaurant.svg' },
         { date:`${M[11]}-02`, name:'田中 花子', place:'Amazon',        amount:12800, category:'消耗品費',   type:'領収書',  confirmed:false, settlementDate:'', note:'プリンター用紙・インク', id:'c6c', imageLinks:'' },
         { date:`${M[11]}-01`, name:'佐藤 二郎', place:'ソフトバンク',   amount:8800,  category:'通信費',     type:'領収書',  confirmed:false, settlementDate:'', note:'携帯電話代今月分', id:'c6d', imageLinks:'' },
       ]),
