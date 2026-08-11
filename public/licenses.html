@@ -591,6 +591,7 @@
                 <th style="width:130px;">有効期限</th>
                 <th style="width:48px;text-align:right;">今月</th>
                 <th style="width:48px;text-align:right;">先月</th>
+                <th style="width:56px;text-align:right;" title="このチームにLINE連携しているユーザー数">LINE</th>
                 <th style="width:104px;text-align:center;">状態</th>
                 <th style="width:120px;">紹介者</th>
                 <th class="pe-last" style="width:56px;text-align:right;"></th>
@@ -1969,6 +1970,7 @@
         const st = getStatus(l);
         const plan = l.plan === 'team' ? 'team' : 'solo';
         const usageThis = l.usageThis ?? 0, usageLast = l.usageLast ?? 0;
+        const lineUsers = l.lineUsers ?? 0;
         const isStripe = !!l.stripeSessionId;
         const dateShort = l.createdAt ? l.createdAt.split('T')[0].replace(/^\d{4}-/, '').replace('-', '/') : '—';
         const expFmt = l.expiresAt ? l.expiresAt.replace(/-/g, '/') : '—';
@@ -1986,6 +1988,7 @@
           <td style="font-size:0.78rem;color:var(--text-sub);white-space:nowrap;">${expFmt}${intervalBadge}</td>
           <td class="usage-num ${usageThis > 0 ? 'active' : 'zero'}">${usageThis || '—'}</td>
           <td class="usage-num zero">${usageLast || '—'}</td>
+          <td class="usage-num ${lineUsers > 0 ? 'active' : 'zero'}">${lineUsers || '—'}</td>
           <td style="text-align:center;"><span class="status-dot ${st}">${statusLabel[st]}${st === 'canceling' && l.cancelAt ? `<span style="color:var(--text-mute);font-weight:400;">〜${l.cancelAt.slice(5).replace('-', '/')}</span>` : ''}</span></td>
           <td>${_referrerCell(l)}</td>
           <td class="pe-last" style="text-align:right;white-space:nowrap;">
@@ -2020,14 +2023,14 @@
     }
 
     function exportCsv() {
-      const header = ['発行日','氏名','ビジネス名','メール','ライセンスキー','チームURL','プラン','有効期限','今月申請数','先月申請数','ステータス'];
+      const header = ['発行日','氏名','ビジネス名','メール','ライセンスキー','チームURL','プラン','有効期限','今月申請数','先月申請数','LINE連携数','ステータス'];
       const statusLabel = { active: '有効', expired: '期限切れ', suspended: '停止中', canceling: '解約予定' };
       const planLabel   = { solo: 'ソロ', team: 'チーム' };
       const rows = _all.map(l => [
         l.createdAt?.split('T')[0]||'', l.customerName||l.company||'', l.businessName||'',
         l.email||'', l.key, l.alias ? `keihi-log.com/${l.alias}` : '',
         planLabel[l.plan === 'team' ? 'team' : 'solo'], l.expiresAt||'',
-        l.usageThis??'', l.usageLast??'', statusLabel[getStatus(l)]
+        l.usageThis??'', l.usageLast??'', l.lineUsers??'', statusLabel[getStatus(l)]
       ]);
       const csv = [header,...rows].map(r => r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
       const a = document.createElement('a');

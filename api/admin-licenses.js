@@ -1032,7 +1032,14 @@ ${logText}
           kv.get(`usage:${licKey}:${lastYM}`),
           kv.get(`license_alias:${licKey}`),
         ]);
-        return { key: licKey, ...data, usageThis: usageThis || 0, usageLast: usageLast || 0, alias: alias || '' };
+        // LINE連携人数。line:link_by_sheet:{sheetId} は連携済みユーザーIDのSetなので
+        // scard で件数だけ取る（中身は読まない）。alias → sheetId で解決する。
+        let lineUsers = 0;
+        if (alias) {
+          const sheetId = await kv.get(`alias:${alias}`).catch(() => null);
+          if (sheetId) lineUsers = await kv.scard(`line:link_by_sheet:${sheetId}`).catch(() => 0) || 0;
+        }
+        return { key: licKey, ...data, usageThis: usageThis || 0, usageLast: usageLast || 0, alias: alias || '', lineUsers };
       })
     );
 
