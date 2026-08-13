@@ -74,9 +74,7 @@ const ListView = (() => {
         <div class="col-6 col-md">
           <select class="form-select form-select-sm" id="filterStatus">
             <option value="">ステータス（全て）</option>
-            <option value="申請済">申請済</option>
-            <option value="登録済">登録済</option>
-            <option value="精算済">精算済</option>
+            ${App.statusChoices().map(c => `<option value="${c.value}">${c.label}</option>`).join('')}
           </select>
         </div>
         <div class="col-6 col-md" id="filterMemberWrap" style="display:none;">
@@ -711,10 +709,10 @@ const ListView = (() => {
       // 会社払いは実精算ではなく編集可能。紛らわしいので専用バッジで区別する。
       if (e && String(e.settlementDate || '').startsWith('会社払い'))
         return `<span class="badge bg-secondary" style="font-size:0.65rem;">会社払い</span>`;
-      return `<span class="badge badge-settled" style="font-size:0.65rem;">精算済</span>`;
+      return `<span class="badge badge-settled" style="font-size:0.65rem;">${App.statusLabel('精算済')}</span>`;
     }
-    if (status === '登録済') return `<span class="badge badge-confirmed" style="font-size:0.65rem;">登録済</span>`;
-    return `<span class="badge badge-pending" style="font-size:0.65rem;">申請済</span>`;
+    if (status === '登録済') return `<span class="badge badge-confirmed" style="font-size:0.65rem;">${App.statusLabel('登録済')}</span>`;
+    return `<span class="badge badge-pending" style="font-size:0.65rem;">${App.statusLabel('申請済')}</span>`;
   }
 
   function _exportCsv(el) {

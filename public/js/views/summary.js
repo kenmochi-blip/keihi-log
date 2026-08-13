@@ -503,10 +503,10 @@ const SummaryView = (() => {
           ${e.settlementDate
             ? (String(e.settlementDate).startsWith('会社払い')
                 ? '<span class="badge bg-secondary rounded-pill px-2">会社払い</span>'
-                : '<span class="badge badge-settled rounded-pill px-2">精算済</span>')
+                : `<span class="badge badge-settled rounded-pill px-2">${App.statusLabel('精算済')}</span>`)
             : e.confirmed
-              ? '<span class="badge badge-confirmed rounded-pill px-2">登録済</span>'
-              : '<span class="badge badge-pending rounded-pill px-2">申請済</span>'}
+              ? `<span class="badge badge-confirmed rounded-pill px-2">${App.statusLabel('登録済')}</span>`
+              : `<span class="badge badge-pending rounded-pill px-2">${App.statusLabel('申請済')}</span>`}
         </td>
       </tr>
       ${hasExtra ? `<tr class="drill-detail-row d-none" data-row="${i}">

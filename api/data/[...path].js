@@ -1441,7 +1441,11 @@ async function accountantSummary(req, res) {
       byMonth[month] = { total, count: expenses.length, byCategory, expenses: signedExpenses };
     }
 
-    return { sheetId: client.sheetId, name: client.name, byMonth };
+    // ステータス表記が顧問先ごとのプランで変わるため（ソロは2段階）プランも返す。
+    // _readPlanInfo はKVキャッシュ経由なので追加コストは小さい。
+    const planInfo = await _readPlanInfo(client.sheetId).catch(() => null);
+
+    return { sheetId: client.sheetId, name: client.name, byMonth, plan: planInfo?.plan || 'team' };
   }));
 
   const summaries = results.map((r, i) =>
@@ -3489,7 +3493,8 @@ async function _lineRegister(userId, replyToken, pending) {
     await kv.del(`data:exp:${sheetId}`).catch(() => {});
     await kv.del(`line:pending:${userId}`).catch(() => {});
     const teamUrl = await _lineTeamUrl(sheetId).catch(() => '');
-    const statusLabel = d.corpPay ? '会社払い' : (isAdmin ? '登録済' : '申請済');
+    // LINE連携はチームプラン限定のため、チームの表記（①申請済→②承認済→③精算済）に揃える
+    const statusLabel = d.corpPay ? '会社払い' : (isAdmin ? '② 承認済' : '① 申請済');
     return _lineReply(replyToken, _lineText(
       `登録しました（${statusLabel}）。\n${_fmtDateJa(d.date)} ${d.place} ¥${Number(d.amount).toLocaleString('ja-JP')}` +
       (d.corpPay ? `\n支払方法: 会社払い${d.paySource ? `（${d.paySource}）` : ''}（精算不要）` : '') +

@@ -112,6 +112,20 @@ const Accountant = (() => {
     ];
   })();
 
+  /**
+   * ステータスの表示ラベル。顧問先ごとにプランが異なるため、開いている
+   * 顧問先（_active）のプランで出し分ける。
+   * チーム: ① 申請済 → ② 承認済 → ③ 精算済 ／ ソロ: ① 記録済 → ② 精算済
+   */
+  const _STATUS_LABELS = {
+    team: { '申請済': '① 申請済', '登録済': '② 承認済', '精算済': '③ 精算済' },
+    solo: { '申請済': '① 記録済', '登録済': '① 記録済', '精算済': '② 精算済' },
+  };
+  function _statusLabel(status) {
+    const kind = _active && _active.plan === 'solo' ? 'solo' : 'team';
+    return _STATUS_LABELS[kind][status] || status;
+  }
+
   function _isDemoMode() { return new URLSearchParams(location.search).has('demo'); }
   function _activeMths()  { return _isDemoMode() ? DEMO_MONTHS.slice(-_monthsCount) : _months; }
 
@@ -439,7 +453,15 @@ const Accountant = (() => {
       cats.map(c => `<option value="${_esc(c)}">${_esc(c)}</option>`).join('');
     catEl.value = _filterState.cat;
 
-    document.getElementById('filterStatus').value = _filterState.status;
+    // 絞り込みの値（settled/confirmed/pending）は変えず、表示だけプランに合わせる。
+    // ソロは「申請済」が発生しないため選択肢から外す。
+    const stEl = document.getElementById('filterStatus');
+    const isSolo = _active && _active.plan === 'solo';
+    stEl.innerHTML = '<option value="">状態：全て</option>'
+      + `<option value="settled">${_statusLabel('精算済')}</option>`
+      + `<option value="confirmed">${_statusLabel('登録済')}</option>`
+      + (isSolo ? '' : `<option value="pending">${_statusLabel('申請済')}</option>`);
+    stEl.value = _filterState.status;
     document.getElementById('filterSort').value   = _filterState.sort;
   }
 
@@ -493,10 +515,10 @@ const Accountant = (() => {
     }
     tbody.innerHTML = expenses.map(e => {
       const badge = e.settlementDate
-        ? '<span class="badge badge-settled" style="font-size:.7rem;">精算済</span>'
+        ? `<span class="badge badge-settled" style="font-size:.7rem;">${_statusLabel('精算済')}</span>`
         : e.confirmed
-          ? '<span class="badge badge-confirmed" style="font-size:.7rem;">登録済</span>'
-          : '<span class="badge badge-pending" style="font-size:.7rem;">申請済</span>';
+          ? `<span class="badge badge-confirmed" style="font-size:.7rem;">${_statusLabel('登録済')}</span>`
+          : `<span class="badge badge-pending" style="font-size:.7rem;">${_statusLabel('申請済')}</span>`;
       const receipt = (e.imageLinks || '').split(',').filter(u => u.trim()).map((u, i) =>
         `<a href="${_esc(u.trim())}" target="_blank" rel="noopener" class="receipt-link me-1"><i class="bi bi-image"></i>${i > 0 ? i + 1 : ''}</a>`
       ).join('') || '<span class="text-muted">—</span>';

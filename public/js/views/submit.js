@@ -2134,9 +2134,9 @@ function _bindSubtypePills(el) {
     const statusClass = e.settlementDate ? 'badge-settled'
       : e.confirmed ? 'badge-confirmed'
       : e.aiAudit?.startsWith('⛔') ? 'badge-duplicate' : 'badge-pending';
-    const statusText = e.settlementDate ? '精算済'
-      : e.confirmed ? '登録済'
-      : e.aiAudit?.startsWith('⛔') ? '要確認' : '申請済';
+    const statusText = e.settlementDate ? App.statusLabel('精算済')
+      : e.confirmed ? App.statusLabel('登録済')
+      : e.aiAudit?.startsWith('⛔') ? '要確認' : App.statusLabel('申請済');
 
     const _imgUrls = e.imageLinks ? e.imageLinks.split(',').map(s => s.trim()).filter(Boolean) : [];
     const imageBtn = _imgUrls.length

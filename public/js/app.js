@@ -939,6 +939,39 @@ const App = (() => {
   }
 
   function isAdmin() { return _isAdmin; }
+
+  /**
+   * ステータスの表示ラベル。内部の値（申請済・登録済・精算済）は各所の判定に
+   * 使うためそのままにし、画面に出す文言だけをここで組み立てる。
+   *
+   * チーム : ① 申請済 → ② 承認済 → ③ 精算済
+   * ソロ   : ① 記録済 → ② 精算済
+   *   ソロは利用者＝管理者で、登録時に自動で承認済みになるため「申請済」が
+   *   発生しない。自分で自分を承認する段階に意味がないので2段階で表示する。
+   *   （チームでも管理者本人の登録は①を飛ばして②から始まる）
+   */
+  const _STATUS_LABELS = {
+    team: { '申請済': '① 申請済', '登録済': '② 承認済', '精算済': '③ 精算済' },
+    solo: { '申請済': '① 記録済', '登録済': '① 記録済', '精算済': '② 精算済' },
+  };
+  function _planKind() {
+    try {
+      if (typeof Demo !== 'undefined' && Demo.isActive()) return 'team';
+      const r = JSON.parse(localStorage.getItem('keihi_license_cache_v2') || 'null')?.result;
+      // トライアルは全機能解放のためチーム扱い。判定できないときもチーム表記に寄せる
+      return r && r.trial !== true && r.plan === 'solo' ? 'solo' : 'team';
+    } catch (_) { return 'team'; }
+  }
+  /** 番号付きの表示ラベルを返す。未知の値はそのまま返す。 */
+  function statusLabel(status) {
+    return _STATUS_LABELS[_planKind()][status] || status;
+  }
+  /** ソロは「申請済」が存在しないため、絞り込み等で選択肢を出し分ける。 */
+  function statusChoices() {
+    return _planKind() === 'solo'
+      ? [{ value: '登録済', label: '① 記録済' }, { value: '精算済', label: '② 精算済' }]
+      : [{ value: '申請済', label: '① 申請済' }, { value: '登録済', label: '② 承認済' }, { value: '精算済', label: '③ 精算済' }];
+  }
   function getUserRole() { return _userRole; }
 
   function _applyDemoNavVisibility(role) {
@@ -1223,6 +1256,8 @@ const App = (() => {
     clearExpensesCache,
     waitSheetReady,
     isAdmin,
+    statusLabel,
+    statusChoices,
     getUserRole,
     showLoading,
     hideLoading,
