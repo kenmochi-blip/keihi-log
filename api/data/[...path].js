@@ -2429,6 +2429,29 @@ async function _handleLineCode(userId, replyToken, code) {
   const merged = [...prev.filter(l => l.sheetId !== newLink.sheetId), newLink];
   await kv.set(`line:link:${userId}`, { links: merged }).catch(() => {});
   await kv.sadd(`line:link_by_sheet:${info.sheetId}`, userId).catch(() => {});
+
+  // 1メンバー = 1 LINEアカウント。
+  // 同じ identity に別の LINE アカウントが既に紐づいていれば、そちらを解除する。
+  // これをしないと、コードを他人に渡すだけで同一メンバーとして申請できてしまい、
+  // 申請者を偽装できる（誰が出した経費か特定できなくなる）。
+  // 機種変更などでの再連携は正当な操作なので、拒否ではなく付け替えにする。
+  let reassigned = false;
+  const sameSheetUsers = await kv.smembers(`line:link_by_sheet:${info.sheetId}`).catch(() => []) || [];
+  for (const otherId of sameSheetUsers) {
+    if (otherId === userId) continue;
+    const otherLinks = await _lineLinks(otherId);
+    if (!otherLinks.some(l => l.sheetId === info.sheetId && l.identity === info.identity)) continue;
+    const rest = otherLinks.filter(l => !(l.sheetId === info.sheetId && l.identity === info.identity));
+    if (rest.length) await kv.set(`line:link:${otherId}`, { links: rest }).catch(() => {});
+    else await kv.del(`line:link:${otherId}`).catch(() => {});
+    // この経費ログの連携が残っていない場合のみ逆引きから除く
+    if (!rest.some(l => l.sheetId === info.sheetId)) {
+      await kv.srem(`line:link_by_sheet:${info.sheetId}`, otherId).catch(() => {});
+    }
+    reassigned = true;
+    console.warn(`[line] identity reassigned: ${info.identity} ${otherId} → ${userId}`);
+  }
+
   await kv.del(`line:code:${code}`).catch(() => {});
   await kv.del(failKey).catch(() => {});
 
@@ -2439,8 +2462,11 @@ async function _handleLineCode(userId, replyToken, code) {
   const extra = others > 0
     ? `\n※あなたは複数の経費ログに連携中です。画像を送ると、どの経費ログに登録するか選べます。`
     : '';
+  const moved = reassigned
+    ? '\n※このメンバーは別のLINEアカウントと連携されていたため、そちらの連携は解除されました。'
+    : '';
   return _lineReply(replyToken, _lineText(
-    `連携しました。「${info.name || 'メンバー'}」として登録されます。\n下のメニューまたは画像送信で経費を登録できます。${extra}`
+    `連携しました。「${info.name || 'メンバー'}」として登録されます。\n下のメニューまたは画像送信で経費を登録できます。${moved}${extra}`
   ));
 }
 

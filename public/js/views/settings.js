@@ -1090,13 +1090,20 @@ const SettingsView = (() => {
         <div class="form-label small mb-1"><i class="bi bi-chat-dots me-1 text-success"></i>LINE連携</div>
         <div class="text-muted small">保存すると、このメンバーのLINE連携コードを発行できます。</div></div>`;
     } else {
+      // 連携済みかどうかで文言を変える。コードは「別のLINEアカウントへの付け替え」に
+      // なるため（1メンバー=1アカウント）、その旨を明示してから発行させる。
+      const _isLinked = _lineLinkedSet.has(String(m.email || '').toLowerCase());
       lineSectionHtml = `<div class="mt-3 pt-2 border-top">
-        <div class="form-label small mb-1"><i class="bi bi-chat-dots me-1 text-success"></i>LINE連携</div>
-        <div class="text-muted small mb-2">
-          ${isLineOnly ? 'LINEでコードを送信すると連携が完了します。' : 'このGoogleアカウントのメンバーは、LINEも併用できます（Web申請とLINE申請が同じ人に集約されます）。'}
+        <div class="form-label small mb-1"><i class="bi bi-chat-dots me-1 text-success"></i>LINE連携
+          ${_isLinked ? '<span class="badge ms-1" style="font-size:0.6rem;background:#06C755;"><i class="bi bi-check-circle-fill me-1"></i>連携済</span>' : ''}
         </div>
-        <button type="button" class="btn btn-outline-success btn-sm w-100" id="btnFormLineCode">
-          <i class="bi bi-chat-dots me-1"></i>LINE連携コードを発行
+        <div class="text-muted small mb-2">
+          ${_isLinked
+            ? '既にLINEと連携済みです。1人のメンバーに連携できるLINEアカウントは1つだけのため、<strong>新しいコードで連携すると現在の連携は解除されます</strong>（機種変更などの場合にご利用ください）。'
+            : (isLineOnly ? 'LINEでコードを送信すると連携が完了します。' : 'このGoogleアカウントのメンバーは、LINEも併用できます（Web申請とLINE申請が同じ人に集約されます）。')}
+        </div>
+        <button type="button" class="btn btn-outline-${_isLinked ? 'secondary' : 'success'} btn-sm w-100" id="btnFormLineCode">
+          <i class="bi bi-chat-dots me-1"></i>${_isLinked ? 'LINE連携コードを再発行（付け替え）' : 'LINE連携コードを発行'}
         </button></div>`;
     }
 
