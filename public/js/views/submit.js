@@ -195,10 +195,7 @@ const SubmitView = (() => {
     <div class="row g-2 mb-2">
       <div class="col-6">
         <label class="form-label small fw-semibold">片道運賃（円）</label>
-        <div class="input-group input-group-sm">
-          <button type="button" class="btn btn-outline-secondary px-2 btn-amount-sign" title="マイナス（返金・払戻）に切り替え">±</button>
-          <input type="text" inputmode="numeric" class="form-control form-control-sm amount-input" id="numTransitFare" placeholder="0">
-        </div>
+        <input type="text" inputmode="numeric" class="form-control form-control-sm amount-input" id="numTransitFare" placeholder="0">
       </div>
       <div class="col-6 d-flex align-items-end pb-1">
         <div class="form-check">
@@ -469,13 +466,10 @@ const SubmitView = (() => {
         </div>
       </div>
       <div id="singleLine" class="row g-2">
-        <div class="col-6">
-          <div class="input-group input-group-sm">
-            <button type="button" class="btn btn-outline-secondary px-2 btn-amount-sign" title="マイナス（返金・値引き）に切り替え">±</button>
-            <input type="text" inputmode="numeric" class="form-control form-control-sm amount-input" id="inputAmount" placeholder="金額（税込）">
-          </div>
+        <div class="col-5">
+          <input type="text" inputmode="numeric" class="form-control form-control-sm amount-input" id="inputAmount" placeholder="金額（税込）">
         </div>
-        <div class="col-6">
+        <div class="col-7">
           <select class="form-select form-select-sm" id="selCategory"></select>
         </div>
       </div>
@@ -649,22 +643,6 @@ const SubmitView = (() => {
     // 既存の入力欄にバインド（動的に追加される split-amount は _addSplitRowTo 内でバインド）
     el.querySelectorAll('.amount-input').forEach(inp => {
       inp.addEventListener('input', () => { inp.value = _formatAmount(inp.value); });
-    });
-    // スマホの数字キーパッドには「−」が無いため、符号反転ボタンを用意する。
-    el.querySelectorAll('.btn-amount-sign').forEach(_bindSignButton);
-  }
-
-  /** ±ボタン：同じ input-group 内の金額欄の符号を反転する */
-  function _bindSignButton(btn) {
-    btn.addEventListener('click', () => {
-      const inp = btn.parentElement?.querySelector('.amount-input');
-      if (!inp) return;
-      const d = _amountDigits(inp.value);
-      inp.value = (d === '' || d === '-')
-        ? (d === '-' ? '' : '-')
-        : _formatAmount(String(-Number(d)));
-      inp.dispatchEvent(new Event('input', { bubbles: true }));
-      inp.focus();
     });
   }
 
@@ -931,10 +909,7 @@ function _bindSubtypePills(el) {
     row.className = 'split-row py-2 border-bottom border-light-subtle';
     row.innerHTML = `
       <div class="row g-1 align-items-center">
-        <div class="col-4"><div class="input-group input-group-sm">
-          <button type="button" class="btn btn-outline-secondary px-1 btn-amount-sign" style="font-size:0.75rem;" title="マイナス（返金・値引き）に切り替え">±</button>
-          <input type="text" inputmode="numeric" class="form-control form-control-sm split-amount amount-input" placeholder="金額">
-        </div></div>
+        <div class="col-3"><input type="text" inputmode="numeric" class="form-control form-control-sm split-amount amount-input" placeholder="金額"></div>
         <div class="col"><select class="form-select form-select-sm split-cat">
           ${_cats.map(c => `<option value="${c}">${c}</option>`).join('')}
         </select></div>
@@ -952,7 +927,6 @@ function _bindSubtypePills(el) {
       amtInp.value = _formatAmount(amtInp.value);
       _calcSplitTotalIn(pnl);
     });
-    row.querySelectorAll('.btn-amount-sign').forEach(_bindSignButton);
     container.appendChild(row);
 
     if (!pnl.querySelector('#btnAddSplitRow')) {

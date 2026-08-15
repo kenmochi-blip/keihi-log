@@ -3438,7 +3438,7 @@ async function _applyLineEdit(userId, replyToken, pending, text) {
     const _half = _toHalfWidthDigits(text);
     const _sign = /^[\s]*[-−ー－–—]/.test(_half) ? -1 : 1;
     const n = _sign * Number(_half.replace(/[^\d]/g, ''));
-    if (!n) return _lineReply(replyToken, _lineText('金額を数字で送ってください（0円は登録できません）。返金・値引きは -500 のようにマイナスで送れます。'));
+    if (!n) return _lineReply(replyToken, _lineText('金額を数字で送ってください（0円は登録できません）。'));
     d.amount = n;
     // 単一科目なら分割表記も金額を追従
     if (d.category && !d.category.includes('/') && d.category.includes(':')) {
