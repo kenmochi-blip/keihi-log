@@ -75,6 +75,7 @@ const ListView = (() => {
           <select class="form-select form-select-sm" id="filterStatus">
             <option value="">ステータス（全て）</option>
             ${App.statusChoices().map(c => `<option value="${c.value}">${c.label}</option>`).join('')}
+            <option value="会社払い">会社払い</option>
           </select>
         </div>
         <div class="col-6 col-md" id="filterMemberWrap" style="display:none;">
@@ -429,7 +430,11 @@ const ListView = (() => {
         if (!inByDate && !inByApplied) return false;
       }
       if (type && e.type !== type) return false;
-      if (status && _getStatus(e) !== status) return false;
+      // 会社払いはバッジ上「精算済」と別扱いなので、絞り込みでも独立した選択肢にする。
+      // 「精算済」を選んだときに会社払い（実精算ではない）が混ざらないようにする。
+      const _isCorpPay = String(e.settlementDate || '').startsWith('会社払い');
+      if (status === '会社払い') { if (!_isCorpPay) return false; }
+      else if (status) { if (_isCorpPay || _getStatus(e) !== status) return false; }
       if (customFlag && e.customFlag !== customFlag) return false;
       if (keyword && ![e.place, e.note, App.categoryLabel(e.category)].join(' ').toLowerCase().includes(keyword)) return false;
       if (paySrc) {
@@ -497,7 +502,7 @@ const ListView = (() => {
       const canEdit = !isSettled && (_isAdmin || (status === '申請済' && e.email === email));
       // 承認ボタン（申請済→登録済）：管理者のみ
       const approveBtn = _isAdmin && status === '申請済'
-        ? `<button class="btn btn-outline-success btn-sm py-0 px-1 btn-approve" data-id="${e.id}" title="登録済にする"><i class="bi bi-check"></i></button>` : '';
+        ? `<button class="btn btn-outline-success btn-sm py-0 px-1 btn-approve" data-id="${e.id}" title="${App.statusName('登録済')}にする"><i class="bi bi-check"></i></button>` : '';
       const editBtn = canEdit
         ? `<button class="btn btn-outline-secondary btn-sm py-0 px-1 btn-edit-list" data-id="${e.id}"><i class="bi bi-pencil"></i></button>` : '';
       // 削除可否：精算済は不可
@@ -506,7 +511,7 @@ const ListView = (() => {
         ? `<button class="btn btn-outline-danger btn-sm py-0 px-1 btn-del-list" data-id="${e.id}" title="削除"><i class="bi bi-trash"></i></button>` : '';
       // 精算解除ボタン（精算済→登録済に戻す）：管理者のみ。誤精算の訂正用。
       const unsettleBtn = _isAdmin && isSettled
-        ? `<button class="btn btn-outline-warning btn-sm py-0 px-1 btn-unsettle" data-id="${e.id}" title="精算を解除して登録済に戻す"><i class="bi bi-arrow-counterclockwise"></i></button>` : '';
+        ? `<button class="btn btn-outline-warning btn-sm py-0 px-1 btn-unsettle" data-id="${e.id}" title="精算を解除して${App.statusName('登録済')}に戻す"><i class="bi bi-arrow-counterclockwise"></i></button>` : '';
       const ops = `<div class="d-flex gap-1">${approveBtn}${editBtn}${deleteBtn}${unsettleBtn}</div>`;
 
       // 証票リンク（複数対応）
@@ -653,7 +658,7 @@ const ListView = (() => {
            <i class="bi bi-stars me-1"></i><strong>AI監査：</strong>${_escape(aiAudit)}
          </div>`
       : '';
-    const ok = await App.confirm('この申請を登録済にしますか？', detailHtml);
+    const ok = await App.confirm(`この申請を${App.statusName('登録済')}にしますか？`, detailHtml);
     if (!ok) return;
     App.showLoading('承認中...');
     try {
@@ -669,9 +674,9 @@ const ListView = (() => {
       const e = _expenses.find(x => x.id === id);
       if (e) e.confirmed = true;
       _renderTable(el);
-      App.showToast('登録済にしました', 'success');
+      App.showToast(`${App.statusName('登録済')}にしました`, 'success');
     } catch (err) {
-      App.showToast('登録済への変更に失敗しました。' + App.friendlyError(err), 'danger');
+      App.showToast(`${App.statusName('登録済')}への変更に失敗しました。` + App.friendlyError(err), 'danger');
     } finally {
       App.hideLoading();
     }
@@ -681,9 +686,9 @@ const ListView = (() => {
     const e = _expenses.find(x => x.id === id);
     const detailHtml = `<div class="alert alert-warning py-2 mb-0 small">
         精算日：${_escape(_fmtSettlement(e?.settlementDate))}<br>
-        精算ステータスを解除し「登録済」に戻します。誤って精算した場合の訂正用です。
+        精算ステータスを解除し「${_escape(App.statusName('登録済'))}」に戻します。誤って精算した場合の訂正用です。
       </div>`;
-    const ok = await App.confirm('この申請の精算を解除して登録済に戻しますか？', detailHtml);
+    const ok = await App.confirm(`この申請の精算を解除して${App.statusName('登録済')}に戻しますか？`, detailHtml);
     if (!ok) return;
     App.showLoading('精算解除中...');
     try {

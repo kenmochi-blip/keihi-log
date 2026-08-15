@@ -2023,12 +2023,6 @@
   document.addEventListener('DOMContentLoaded', openFromHash);
   window.addEventListener('hashchange', openFromHash);
 
-  // referrerがなければ「← 経費ログ トップ」に変更
-  var backLink = document.getElementById('backLink');
-  if (!document.referrer || !document.referrer.includes(location.hostname)) {
-    backLink.href = '/';
-    backLink.textContent = '← 経費ログ トップに戻る';
-  }
 </script>
 
 </body>

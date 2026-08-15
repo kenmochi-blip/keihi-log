@@ -180,6 +180,7 @@ const Auth = (() => {
     await _storeTokens(tokens);
     // 再同意フローを抜けたのでフラグをクリア（成功時のみ）
     localStorage.removeItem('keihi_force_consent');
+    localStorage.removeItem('keihi_session_expired');
     localStorage.removeItem('keihi_pkce_verifier');
     localStorage.removeItem('keihi_oauth_state');
 
@@ -232,7 +233,11 @@ const Auth = (() => {
     _idToken     = null;
     _userInfo    = null;
     _tokenExpiry = 0;
+    // 「セッションが切れた」旨の案内は、実際にセッションがあった場合だけ出す。
+    // 未ログインの初回訪問者（LPから /setup に来た人など）にこの文言を見せない。
+    const _hadSession = !!localStorage.getItem(SESSION_KEY);
     localStorage.removeItem(SESSION_KEY);
+    if (_hadSession) localStorage.setItem('keihi_session_expired', '1');
     localStorage.setItem('keihi_force_consent', '1');
     // ログインページ上での呼び出しはリダイレクトループを引き起こすため早期リターン
     if (location.pathname === '/login' || location.pathname.endsWith('/login.html')) {
@@ -386,7 +391,6 @@ async function initLogin() {
     return '/app';
   })();
 
-  const forceConsent = localStorage.getItem('keihi_force_consent') === '1';
 
   const _showLoginBtn = (errMsg, overrideReturnUrl) => {
     document.getElementById('loadingArea').classList.add('d-none');
@@ -455,7 +459,10 @@ async function initLogin() {
   // keihi_force_consent が立っている場合は consent でリフレッシュトークンを強制取得。
   // フラグの解除は handleCallback の成功時に行う（onclick はクリック時に再読込するため、
   // ここで消すと再ログインが consent 無しになってしまう）。
-  if (forceConsent) {
+  // 文言は keihi_force_consent ではなく keihi_session_expired で出し分ける。
+  // 前者は未ログインの初回訪問（/setup 直行など）でも立つため、それだけを根拠に
+  // 「有効期限が切れました」と出すと初めて来た人に誤った説明をしてしまう。
+  if (localStorage.getItem('keihi_session_expired') === '1') {
     _showLoginBtn('セッションの有効期限が切れました。もう一度ログインしてください。');
   } else {
     _showLoginBtn(null);

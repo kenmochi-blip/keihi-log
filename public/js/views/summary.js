@@ -482,13 +482,13 @@ const SummaryView = (() => {
          </button>`
       ).join('');
       const approveBtn = isAdmin && status === '申請済'
-        ? `<button class="btn btn-outline-success btn-sm py-0 px-1 drill-approve-btn" data-id="${_escape(e.id)}" title="登録済にする"><i class="bi bi-check-lg"></i></button>` : '';
+        ? `<button class="btn btn-outline-success btn-sm py-0 px-1 drill-approve-btn" data-id="${_escape(e.id)}" title="${App.statusName('登録済')}にする"><i class="bi bi-check-lg"></i></button>` : '';
       const editBtn = canEdit
         ? `<button class="btn btn-outline-secondary btn-sm py-0 px-1 drill-edit-btn" data-id="${_escape(e.id)}" title="編集"><i class="bi bi-pencil"></i></button>` : '';
       const delBtn  = canEdit
         ? `<button class="btn btn-outline-danger btn-sm py-0 px-1 drill-del-btn" data-id="${_escape(e.id)}" title="削除"><i class="bi bi-trash"></i></button>` : '';
       const unsettleBtn = isAdmin && isSettled
-        ? `<button class="btn btn-outline-warning btn-sm py-0 px-1 drill-unsettle-btn" data-id="${_escape(e.id)}" title="精算を解除して登録済に戻す"><i class="bi bi-arrow-counterclockwise"></i></button>` : '';
+        ? `<button class="btn btn-outline-warning btn-sm py-0 px-1 drill-unsettle-btn" data-id="${_escape(e.id)}" title="精算を解除して${App.statusName('登録済')}に戻す"><i class="bi bi-arrow-counterclockwise"></i></button>` : '';
 
       return `<tr data-expense-id="${_escape(e.id)}">
         <td style="white-space:nowrap;">${shortDate}</td>
@@ -591,7 +591,7 @@ const SummaryView = (() => {
     // 承認ボタン（申請済→登録済）
     div.querySelectorAll('.drill-approve-btn').forEach(btn => {
       btn.addEventListener('click', async () => {
-        const ok = await App.confirm('この申請を登録済にしますか？');
+        const ok = await App.confirm(`この申請を${App.statusName('登録済')}にしますか？`);
         if (!ok) return;
         App.showLoading('承認中...');
         try {
@@ -602,12 +602,12 @@ const SummaryView = (() => {
           const tr = div.querySelector(`tr[data-expense-id="${btn.dataset.id}"]`);
           if (tr) {
             const badge = tr.querySelector('.badge-pending');
-            if (badge) { badge.className = 'badge badge-confirmed rounded-pill px-2'; badge.textContent = '登録済'; }
+            if (badge) { badge.className = 'badge badge-confirmed rounded-pill px-2'; badge.textContent = App.statusLabel('登録済'); }
           }
           btn.closest('.drill-detail-row')?.querySelector('.drill-approve-btn')?.remove();
-          App.showToast('登録済にしました', 'success');
+          App.showToast(`${App.statusName('登録済')}にしました`, 'success');
         } catch (err) {
-          App.showToast('登録済への変更に失敗しました。' + App.friendlyError(err), 'danger');
+          App.showToast(`${App.statusName('登録済')}への変更に失敗しました。` + App.friendlyError(err), 'danger');
         } finally {
           App.hideLoading();
         }
@@ -655,7 +655,7 @@ const SummaryView = (() => {
     // 精算解除ボタン（精算済→登録済に戻す）
     div.querySelectorAll('.drill-unsettle-btn').forEach(btn => {
       btn.addEventListener('click', async () => {
-        const ok = await App.confirm('この申請の精算を解除して登録済に戻しますか？');
+        const ok = await App.confirm(`この申請の精算を解除して${App.statusName('登録済')}に戻しますか？`);
         if (!ok) return;
         App.showLoading('精算解除中...');
         try {
@@ -665,7 +665,7 @@ const SummaryView = (() => {
           const tr = div.querySelector(`tr[data-expense-id="${btn.dataset.id}"]`);
           if (tr) {
             const badge = tr.querySelector('.badge-settled');
-            if (badge) { badge.className = 'badge badge-confirmed rounded-pill px-2'; badge.textContent = '登録済'; }
+            if (badge) { badge.className = 'badge badge-confirmed rounded-pill px-2'; badge.textContent = App.statusLabel('登録済'); }
           }
           btn.remove();
           App.showToast('精算を解除しました', 'success');

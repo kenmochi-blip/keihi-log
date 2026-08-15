@@ -559,7 +559,7 @@ const Accountant = (() => {
     const header = ['日付','申請者','支払先','金額','勘定科目','タイプ','備考','状態','ID'];
     const rows = (_baseExpenses || []).map(e => [
       e.date, e.name, e.place, e.amount, e.category, e.type, e.note,
-      e.settlementDate ? '精算済' : e.confirmed ? '登録済' : '申請済', e.id,
+      _statusLabel(e.settlementDate ? '精算済' : e.confirmed ? '登録済' : '申請済'), e.id,
     ]);
     const csv = [header, ...rows]
       .map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','))

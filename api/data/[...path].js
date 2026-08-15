@@ -3434,8 +3434,11 @@ async function _applyLineEdit(userId, replyToken, pending, text) {
   } else if (f === 'place') {
     d.place = text.slice(0, 100);
   } else if (f === 'amount') {
-    const n = Number(_toHalfWidthDigits(text).replace(/[^\d]/g, ''));
-    if (!n || n < 1) return _lineReply(replyToken, _lineText('金額は1以上の数字で送ってください。'));
+    // マイナスは返金・値引きの相殺登録として受け入れる（0のみ弾く）。
+    const _half = _toHalfWidthDigits(text);
+    const _sign = /^[\s]*[-−ー－–—]/.test(_half) ? -1 : 1;
+    const n = _sign * Number(_half.replace(/[^\d]/g, ''));
+    if (!n) return _lineReply(replyToken, _lineText('金額を数字で送ってください（0円は登録できません）。返金・値引きは -500 のようにマイナスで送れます。'));
     d.amount = n;
     // 単一科目なら分割表記も金額を追従
     if (d.category && !d.category.includes('/') && d.category.includes(':')) {

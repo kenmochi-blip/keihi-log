@@ -962,9 +962,13 @@ const App = (() => {
       return r && r.trial !== true && r.plan === 'solo' ? 'solo' : 'team';
     } catch (_) { return 'team'; }
   }
-  /** 番号付きの表示ラベルを返す。未知の値はそのまま返す。 */
+  /** 番号付きの表示ラベルを返す。未知の値はそのまま返す。（バッジ・絞り込み用） */
   function statusLabel(status) {
     return _STATUS_LABELS[_planKind()][status] || status;
+  }
+  /** 番号を外した名称だけを返す。確認ダイアログ等の文中で使う。 */
+  function statusName(status) {
+    return statusLabel(status).replace(/^[①②③]\s*/, '');
   }
   /** ソロは「申請済」が存在しないため、絞り込み等で選択肢を出し分ける。 */
   function statusChoices() {
@@ -1257,6 +1261,7 @@ const App = (() => {
     waitSheetReady,
     isAdmin,
     statusLabel,
+    statusName,
     statusChoices,
     getUserRole,
     showLoading,

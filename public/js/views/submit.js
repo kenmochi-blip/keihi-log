@@ -195,7 +195,10 @@ const SubmitView = (() => {
     <div class="row g-2 mb-2">
       <div class="col-6">
         <label class="form-label small fw-semibold">片道運賃（円）</label>
-        <input type="text" inputmode="numeric" class="form-control form-control-sm amount-input" id="numTransitFare" placeholder="0">
+        <div class="input-group input-group-sm">
+          <button type="button" class="btn btn-outline-secondary px-2 btn-amount-sign" title="マイナス（返金・払戻）に切り替え">±</button>
+          <input type="text" inputmode="numeric" class="form-control form-control-sm amount-input" id="numTransitFare" placeholder="0">
+        </div>
       </div>
       <div class="col-6 d-flex align-items-end pb-1">
         <div class="form-check">
@@ -466,10 +469,13 @@ const SubmitView = (() => {
         </div>
       </div>
       <div id="singleLine" class="row g-2">
-        <div class="col-5">
-          <input type="text" inputmode="numeric" class="form-control form-control-sm amount-input" id="inputAmount" placeholder="金額（税込）">
+        <div class="col-6">
+          <div class="input-group input-group-sm">
+            <button type="button" class="btn btn-outline-secondary px-2 btn-amount-sign" title="マイナス（返金・値引き）に切り替え">±</button>
+            <input type="text" inputmode="numeric" class="form-control form-control-sm amount-input" id="inputAmount" placeholder="金額（税込）">
+          </div>
         </div>
-        <div class="col-7">
+        <div class="col-6">
           <select class="form-select form-select-sm" id="selCategory"></select>
         </div>
       </div>
@@ -611,15 +617,54 @@ const SubmitView = (() => {
     });
   }
 
+  /* ── 金額パース（マイナス許容） ──────────────────────────
+     返金・値引き・過大計上の訂正を「マイナスの経費」としてそのまま登録できるようにする。
+     以前は数字以外を全て除去していたため -500 が 500 に化けていた。
+     全角マイナス・長音符（IMEで「−」が長音符になることがある）も符号として扱う。 */
+  const _MINUS_RE = /^[\s]*[-−ー－–—]/;
+
+  /** 金額文字列 → 符号付きの数字文字列（"", "-", "-500" 等）を返す */
+  function _amountDigits(v) {
+    const s = String(v == null ? '' : v);
+    const sign = _MINUS_RE.test(s) ? '-' : '';
+    const digits = s.replace(/[^\d]/g, '');
+    return digits ? sign + digits : sign;
+  }
+
+  /** 金額文字列 → 整数（空・符号のみは 0） */
+  function _parseAmount(v) {
+    const d = _amountDigits(v);
+    return d === '' || d === '-' ? 0 : Number(d);
+  }
+
+  /** 金額文字列 → カンマ整形済み表示値（入力途中の "-" は保持する） */
+  function _formatAmount(v) {
+    const d = _amountDigits(v);
+    if (d === '' || d === '-') return d;
+    return Number(d).toLocaleString('ja-JP');
+  }
+
   /** 金額入力欄を自動カンマ整形する */
   function _bindAmountInputs(el) {
-    const fmt = inp => {
-      const raw = inp.value.replace(/[^\d]/g, '');
-      inp.value = raw ? Number(raw).toLocaleString('ja-JP') : '';
-    };
     // 既存の入力欄にバインド（動的に追加される split-amount は _addSplitRowTo 内でバインド）
     el.querySelectorAll('.amount-input').forEach(inp => {
-      inp.addEventListener('input', () => fmt(inp));
+      inp.addEventListener('input', () => { inp.value = _formatAmount(inp.value); });
+    });
+    // スマホの数字キーパッドには「−」が無いため、符号反転ボタンを用意する。
+    el.querySelectorAll('.btn-amount-sign').forEach(_bindSignButton);
+  }
+
+  /** ±ボタン：同じ input-group 内の金額欄の符号を反転する */
+  function _bindSignButton(btn) {
+    btn.addEventListener('click', () => {
+      const inp = btn.parentElement?.querySelector('.amount-input');
+      if (!inp) return;
+      const d = _amountDigits(inp.value);
+      inp.value = (d === '' || d === '-')
+        ? (d === '-' ? '' : '-')
+        : _formatAmount(String(-Number(d)));
+      inp.dispatchEvent(new Event('input', { bubbles: true }));
+      inp.focus();
     });
   }
 
@@ -886,7 +931,10 @@ function _bindSubtypePills(el) {
     row.className = 'split-row py-2 border-bottom border-light-subtle';
     row.innerHTML = `
       <div class="row g-1 align-items-center">
-        <div class="col-3"><input type="text" inputmode="numeric" class="form-control form-control-sm split-amount amount-input" placeholder="金額"></div>
+        <div class="col-4"><div class="input-group input-group-sm">
+          <button type="button" class="btn btn-outline-secondary px-1 btn-amount-sign" style="font-size:0.75rem;" title="マイナス（返金・値引き）に切り替え">±</button>
+          <input type="text" inputmode="numeric" class="form-control form-control-sm split-amount amount-input" placeholder="金額">
+        </div></div>
         <div class="col"><select class="form-select form-select-sm split-cat">
           ${_cats.map(c => `<option value="${c}">${c}</option>`).join('')}
         </select></div>
@@ -900,11 +948,11 @@ function _bindSubtypePills(el) {
       _calcSplitTotalIn(pnl);
     });
     const amtInp = row.querySelector('.split-amount');
-    const fmtAmt = () => {
-      const raw = amtInp.value.replace(/[^\d]/g, '');
-      amtInp.value = raw ? Number(raw).toLocaleString('ja-JP') : '';
-    };
-    amtInp.addEventListener('input', () => { fmtAmt(); _calcSplitTotalIn(pnl); });
+    amtInp.addEventListener('input', () => {
+      amtInp.value = _formatAmount(amtInp.value);
+      _calcSplitTotalIn(pnl);
+    });
+    row.querySelectorAll('.btn-amount-sign').forEach(_bindSignButton);
     container.appendChild(row);
 
     if (!pnl.querySelector('#btnAddSplitRow')) {
@@ -923,7 +971,7 @@ function _bindSubtypePills(el) {
 
   function _calcSplitTotalIn(pnl) {
     const total = Array.from(pnl.querySelectorAll('.split-amount'))
-      .reduce((s, i) => s + (Number(i.value.replace(/[^\d]/g, '')) || 0), 0);
+      .reduce((s, i) => s + _parseAmount(i.value), 0);
     const lbl = pnl.querySelector('#lblSplitTotal');
     if (lbl) lbl.textContent = total.toLocaleString();
   }
@@ -947,8 +995,7 @@ function _bindSubtypePills(el) {
 
   function _bindTransitCalc(el) {
     const calcTotal = () => {
-      const raw  = (el.querySelector('#numTransitFare')?.value || '').replace(/[^\d]/g, '');
-      const fare = Number(raw) || 0;
+      const fare = _parseAmount(el.querySelector('#numTransitFare')?.value);
       const round = el.querySelector('#chkRoundTrip')?.checked ? 2 : 1;
       el.querySelector('#lblTransitTotal').textContent = (fare * round).toLocaleString() + '円';
     };
@@ -1867,8 +1914,7 @@ function _bindSubtypePills(el) {
     let amount = 0, category = '', note = '';
 
     if (_currentType === '電車/バス') {
-      const raw   = (el.querySelector('#numTransitFare')?.value || '').replace(/[^\d]/g, '');
-      const fare  = Number(raw) || 0;
+      const fare  = _parseAmount(el.querySelector('#numTransitFare')?.value);
       const round = el.querySelector('#chkRoundTrip')?.checked ? 2 : 1;
       amount   = fare * round;
       category = el.querySelector('#selCatTransit')?.value || '';
@@ -1888,9 +1934,8 @@ function _bindSubtypePills(el) {
       if (isSplit) {
         const rows = pnl.querySelectorAll('.split-row');
         const rowData = Array.from(rows).map(r => {
-          const raw = (r.querySelector('.split-amount')?.value || '').replace(/[^\d]/g, '');
           return {
-            amt: Number(raw) || 0,
+            amt: _parseAmount(r.querySelector('.split-amount')?.value),
             cat: r.querySelector('.split-cat')?.value || '',
             tax: r.querySelector('.split-tax')?.value || '課税10%',
           };
@@ -1899,12 +1944,12 @@ function _bindSubtypePills(el) {
         // "科目:金額:税区分" 形式で保存（edit時・CSV展開時に復元可能にする）
         category = rowData.map(r => r.amt ? `${r.cat}:${r.amt}:${r.tax}` : r.cat).join('/');
       } else {
-        const rawAmt = (pnl.querySelector('#inputAmount')?.value || '').replace(/[^\d]/g, '');
-        amount   = Number(rawAmt) || 0;
+        amount   = _parseAmount(pnl.querySelector('#inputAmount')?.value);
         category = pnl.querySelector('#selCategory')?.value || '';
       }
       note = pnl.querySelector('#inputNote')?.value?.trim() || '';
-      if (!Number.isInteger(amount) || amount < 1) { App.showToast('金額は1以上の整数を入力してください', 'danger'); return null; }
+      // マイナスは返金・値引きの相殺登録として受け入れる。0だけを弾く。
+      if (!Number.isInteger(amount) || amount === 0) { App.showToast('金額を入力してください（0円は登録できません）', 'danger'); return null; }
     }
 
     // 勘定科目は必須
@@ -2040,10 +2085,10 @@ function _bindSubtypePills(el) {
     const split = pnl.querySelector('#splitLines');
     if (split && !split.classList.contains('d-none')) {
       pnl.querySelectorAll('.split-row').forEach(r => {
-        amount += Number((r.querySelector('.split-amount')?.value || '').replace(/[^\d]/g, '')) || 0;
+        amount += _parseAmount(r.querySelector('.split-amount')?.value);
       });
     } else {
-      amount = Number((pnl.querySelector('#inputAmount')?.value || '').replace(/[^\d]/g, '')) || 0;
+      amount = _parseAmount(pnl.querySelector('#inputAmount')?.value);
     }
     return { date, place, amount, invoice, category: '', note: '' };
   }
