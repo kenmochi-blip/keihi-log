@@ -657,7 +657,7 @@ function _bindSubtypePills(el) {
         _selectedFiles = []; _compressedFiles = []; _compressPromise = null;
         _aiParsedAmount = 0;
         _aiAutoPromise = null; _prefetchedTime = null; ++_aiAutoVersion;
-        ++_preUploadVersion; _preUploadPromise = null; _preUploadResult = null;
+        _discardPreUpload();
         el.querySelectorAll('.subtype-pill').forEach(p => p.classList.remove('active'));
         ['領収書なし', '電車/バス', '自家用車'].forEach(t => {
           el.querySelector(`#panel-${_typeId(t)}`)?.classList.add('d-none');
@@ -671,7 +671,7 @@ function _bindSubtypePills(el) {
       _selectedFiles = []; _compressedFiles = []; _compressPromise = null;
       _aiParsedAmount = 0;
       _aiAutoPromise = null; _prefetchedTime = null; ++_aiAutoVersion;
-      ++_preUploadVersion; _preUploadPromise = null; _preUploadResult = null;
+      _discardPreUpload();
       el.querySelectorAll('.subtype-pill').forEach(p => p.classList.toggle('active', p === pill));
       ['領収書なし', '電車/バス', '自家用車'].forEach(t => {
         el.querySelector(`#panel-${_typeId(t)}`)?.classList.toggle('d-none', t !== type);
@@ -824,7 +824,7 @@ function _bindSubtypePills(el) {
     div.innerHTML += `<button class="remove-btn" data-file-idx="${idx}">✕</button>`;
     div.querySelector('.remove-btn').addEventListener('click', () => {
       _selectedFiles[idx] = null;
-      ++_preUploadVersion; _preUploadPromise = null; _preUploadResult = null;
+      _discardPreUpload();
       div.remove();
       if (type === '領収書') {
         const area2 = el.querySelector('#previewArea-領収書');
@@ -1592,6 +1592,31 @@ function _bindSubtypePills(el) {
     _setSubmitUnitVisible(el, true);
   }
 
+  /** 先行アップロード済みの PENDING_* を削除する（登録されなかった分の後始末） */
+  function _deletePreUploaded(results) {
+    if (!Array.isArray(results)) return;
+    if (typeof Demo !== 'undefined' && Demo.isActive()) return;
+    results.forEach(r => {
+      const id = r && r.id;
+      if (!id || id === 'demo') return;
+      // await しない：削除の完了を待つ必要が無く、次の撮影・入力を一切ブロックしない。
+      Drive.deleteFile(id).catch(() => {});
+    });
+  }
+
+  /**
+   * 登録せずに写真を取り消した／差し替えた場合の後始末。
+   * 先行アップロードは登録前にDriveへ書き込むため、これが無いと PENDING_* が残り続ける。
+   * 解決済みの分に加え、まだ飛んでいる途中のアップロードも _startPreUpload 側で
+   * 版番号の不一致を検知して削除する。
+   */
+  function _discardPreUpload() {
+    ++_preUploadVersion;
+    _deletePreUploaded(_preUploadResult);
+    _preUploadPromise = null;
+    _preUploadResult = null;
+  }
+
   /** 写真選択後すぐにDriveアップロードを開始し、保存時の待ちを削減する */
   function _startPreUpload() {
     const version = ++_preUploadVersion;
@@ -1604,7 +1629,11 @@ function _bindSubtypePills(el) {
       const ext = (f.mimeType || '').split('/')[1]?.replace('jpeg', 'jpg') || 'jpg';
       return Drive.uploadReceiptFile(f.base64, f.mimeType, `PENDING_${ts}_${i + 1}.${ext}`, { skipResolutionCheck: _currentType !== '領収書' });
     })).then(results => {
-      if (version !== _preUploadVersion) return null; // 差し替えられた場合は破棄
+      if (version !== _preUploadVersion) {
+        // 差し替え・取り消し後に完了した分。使われないのでDriveからも消す。
+        _deletePreUploaded(results);
+        return null;
+      }
       _preUploadResult = results;
       return results;
     }).catch(() => null);
@@ -2409,6 +2438,7 @@ function _bindSubtypePills(el) {
     _editId = null;
     _existingUrls = [];
     _existingHash = '';
+    _discardPreUpload(); // 編集中に添付した写真は登録されないので削除する
     _resetForm(el);
   }
 

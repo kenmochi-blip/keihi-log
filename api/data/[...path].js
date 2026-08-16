@@ -2477,6 +2477,10 @@ async function _handleLineImage(userId, replyToken, messageId) {
   if (!links.length) {
     return _lineReply(replyToken, _lineText('未連携です。まず管理者から受け取った6桁の連携コードを送信してください。'));
   }
+  // 確認カードに答えないまま次の画像を送った場合、前の画像は登録されずに捨てられる。
+  // その証票をDriveに残すと孤児ファイルになるため、ここで削除する。
+  const _prev = await kv.get(`line:pending:${userId}`).catch(() => null);
+  await _lineDiscardPendingReceipt(_prev);
   _lineEnsureUserMenu(userId).catch(() => {}); // 連携済みならメニュー割当（既存ユーザー救済・冪等）
 
   // ── 複数経費ログ対応 ──
@@ -2533,6 +2537,7 @@ async function _processLineImage(userId, replyToken, messageId, link) {
     //    （Service Accounts do not have storage quota）。共有ドライブ or オーナートークンが必要。
     //    オーナートークンでの保存（設定で有効化・①）が未認可の間は、証票なしで登録を続行する。
     let imageLink = '', driveFileId = '', imageStored = false;
+    const driveExt = mime.includes('png') ? 'png' : mime.includes('pdf') ? 'pdf' : 'jpg';
     try {
       const driveInfo = await _lineUploadReceipt(sheetId, buf, mime);
       imageLink = driveInfo.webViewLink || '';
@@ -2561,7 +2566,7 @@ async function _processLineImage(userId, replyToken, messageId, link) {
     // pending 保存（TTL10分）。sheetId/identity を保持し、修正・登録・再監査が
     // 選択済みの経費ログを対象にする（複数連携ユーザーで links[0] に流れないよう固定）。
     await kv.set(`line:pending:${userId}`, {
-      data, imageHash, driveFileId, imageLink, imageStored,
+      data, imageHash, driveFileId, driveExt, imageLink, imageStored,
       alerts, aiAmount: data.aiAmount, step: 'confirm',
       sheetId, identity,
     }, { ex: 600 }).catch(() => {});
@@ -2583,6 +2588,55 @@ async function _processLineImage(userId, replyToken, messageId, link) {
     }
     return _lineReply(replyToken, _lineText(hint));
   }
+}
+
+/**
+ * LINEで保存した証票をWeb版と同じ命名規則にリネームする（電帳法の検索性のため）。
+ * 例: 20260731_ドトールコーヒー_450円_剱持健_1.jpg
+ * 失敗しても登録自体は成功させたいので、呼び出し側で握りつぶす前提。
+ */
+async function _lineRenameReceipt(sheetId, fileId, newName) {
+  if (!fileId || !newName) return;
+  const accessToken = await _ownerAccessToken(sheetId);
+  if (!accessToken) return;
+  await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: newName }),
+    signal: AbortSignal.timeout(8000),
+  });
+}
+
+/**
+ * 登録されなかった証票（取り消し／別画像で上書き）をDriveから削除する。
+ * LINEは確認前に画像を保存するため、これが無いと孤児ファイルが溜まり続ける。
+ */
+async function _lineDeleteReceipt(sheetId, fileId) {
+  if (!fileId || !sheetId) return;
+  const accessToken = await _ownerAccessToken(sheetId);
+  if (!accessToken) return;
+  await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    signal: AbortSignal.timeout(8000),
+  });
+}
+
+/** 未登録のまま破棄される pending が証票を抱えていれば削除する（ベストエフォート）。 */
+async function _lineDiscardPendingReceipt(pending) {
+  if (!pending || !pending.driveFileId || !pending.sheetId) return;
+  try {
+    await _lineDeleteReceipt(pending.sheetId, pending.driveFileId);
+  } catch (e) {
+    console.error('line orphan receipt delete failed:', e?.message || e);
+  }
+}
+
+/** 証票ファイル名（Web版 submit.js と同じ規則）。Driveで使えない文字は除去する。 */
+function _receiptFileName(date, place, amount, userName, ext) {
+  const safe = s => String(s || '').replace(/[\\/:*?"<>|]/g, '').trim().slice(0, 40) || '不明';
+  const dateStr = String(date || '').replace(/-/g, '') || '00000000';
+  return `${dateStr}_${safe(place)}_${Number(amount) || 0}円_${safe(userName)}_1.${ext || 'jpg'}`;
 }
 
 const SA_EMAIL = 'keihi-log-proxy@keihi-log.iam.gserviceaccount.com';
@@ -3338,6 +3392,9 @@ async function _handleLinePostback(userId, replyToken, dataStr) {
     return _lineRegister(userId, replyToken, pending);
   }
   if (action === 'cancel') {
+    // 取り消した画像はどの経費からも参照されないので、Drive上の証票も消す。
+    // Vercelはレスポンス後に関数を凍結するため、必ず await してから返信する。
+    await _lineDiscardPendingReceipt(pending);
     await kv.del(`line:pending:${userId}`).catch(() => {});
     return _lineReply(replyToken, _lineText('取り消しました。'));
   }
@@ -3521,6 +3578,16 @@ async function _lineRegister(userId, replyToken, pending) {
     _inProcDel(`data:exp:${sheetId}`);
     await kv.del(`data:exp:${sheetId}`).catch(() => {});
     await kv.del(`line:pending:${userId}`).catch(() => {});
+    // 証票を「日付_支払先_金額_申請者」にリネーム（Web版と同じ規則・電帳法の検索性）。
+    // LINE_1783841531417.jpg のままだとファイル名から内容が分からないため。
+    if (pending.driveFileId) {
+      try {
+        await _lineRenameReceipt(sheetId, pending.driveFileId,
+          _receiptFileName(d.date, d.place, d.amount, name, pending.driveExt));
+      } catch (renameErr) {
+        console.error('line receipt rename failed:', renameErr?.message || renameErr);
+      }
+    }
     const teamUrl = await _lineTeamUrl(sheetId).catch(() => '');
     // LINE連携はチームプラン限定のため、チームの表記（①申請済→②承認済→③精算済）に揃える
     const statusLabel = d.corpPay ? '会社払い' : (isAdmin ? '② 承認済' : '① 申請済');

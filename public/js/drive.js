@@ -149,6 +149,15 @@ const Drive = (() => {
     );
   }
 
+  /**
+   * 先行アップロード済みだが登録されなかった証票（PENDING_*）を削除する。
+   * 呼び出し側は await しない想定（削除完了を待つ必要が無いため）。
+   */
+  async function deleteFile(fileId) {
+    if (!fileId || fileId === 'demo') return;
+    await Auth.authFetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, { method: 'DELETE' });
+  }
+
   /** 画像を長辺2000px・quality 0.85 に圧縮しつつEXIF回転を補正して返す */
   function _compressForUpload(base64, maxPx = 2000, quality = 0.85) {
     return new Promise(resolve => {
@@ -297,5 +306,5 @@ const Drive = (() => {
     );
   }
 
-  return { createSpreadsheetInFolder, createFolder, moveToFolder, uploadFile, uploadReceiptFile, renameFile, fileToBase64, pdfToImages, pdfBase64ToImages, grantEditorAccess, revokeAccess, sha256: _sha256 };
+  return { createSpreadsheetInFolder, createFolder, moveToFolder, uploadFile, uploadReceiptFile, renameFile, deleteFile, fileToBase64, pdfToImages, pdfBase64ToImages, grantEditorAccess, revokeAccess, sha256: _sha256 };
 })();
