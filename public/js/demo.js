@@ -264,10 +264,15 @@ const Demo = (() => {
    */
   let _auditApplied = false;
   function _applyAudit() {
-    if (_auditApplied || typeof App === 'undefined' || !App.invoiceMissing) return;
+    if (_auditApplied) return;
+    // App は const 宣言のため、評価前に触れると typeof でも TDZ で例外になる。
+    // 早すぎる参照でデモ全体が壊れないよう保護する（次回アクセス時に再挑戦する）。
+    let _app;
+    try { _app = App; } catch (_) { return; }
+    if (!_app || !_app.invoiceMissing) return;
     _auditApplied = true;
     EXPENSES.forEach(e => {
-      if (App.invoiceMissing(e)) e.aiAudit = '⛔ ' + App.INVOICE_MISSING_MSG;
+      if (_app.invoiceMissing(e)) e.aiAudit = '⛔ ' + _app.INVOICE_MISSING_MSG;
     });
   }
 
