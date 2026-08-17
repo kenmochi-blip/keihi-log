@@ -2066,10 +2066,28 @@ function _bindSubtypePills(el) {
       alerts.push(`AI解析額 ¥${Math.round(_aiParsedAmount).toLocaleString('ja-JP')} と申請額 ¥${Number(data.amount).toLocaleString('ja-JP')} が一致しません（金額を手修正した場合はご確認ください）`);
     }
 
+    // 1.7. インボイス番号なしの高額仕入れ（⚠️ サーバー側 _serverAuditChecks と同一ルール）
+    if (_invoiceMissingAlert(_currentType, data)) alerts.push(_INVOICE_MISSING_MSG);
+
     // 2〜4. 重複検知（共通ロジック）
     alerts.push(..._duplicateAlerts(expenses, data, newHashes));
 
     return alerts;
+  }
+
+  /* ── インボイス番号なしの高額仕入れ検知 ─────────────────────────
+     少額特例（税込1万円未満は帳簿保存のみで仕入税額控除可）の対象外になる
+     1万円以上の課税仕入れで登録番号が無い場合に確認を促す。
+     免税事業者からの仕入れなら控除が制限され、単にAIが読み取れなかっただけなら
+     手入力すれば控除できるため、どちらにせよ登録前に一度確認する価値がある。
+     非課税・不課税はそもそも仕入税額控除の対象外なので除外する。 */
+  const _INVOICE_MIN_AMOUNT = 10000;
+  const _INVOICE_MISSING_MSG = '1万円以上でインボイス番号が未入力です。領収書に登録番号（T＋13桁）の記載がないかご確認ください。';
+  function _invoiceMissingAlert(type, data) {
+    if (type !== '領収書') return false;                       // 領収書なし・電車/バス・自家用車は対象外
+    if (Number(data.amount) < _INVOICE_MIN_AMOUNT) return false; // 明細分割時は合計（税込）で判定
+    if (String(data.invoice || '').trim()) return false;
+    return !['非課税', '不課税'].includes(data.taxRate);        // 「混在」は課税分を含むため対象
   }
 
   /* ── 登録前の重複ヘッズアップ（AI読み取り直後に表示） ── */

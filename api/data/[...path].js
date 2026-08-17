@@ -3710,6 +3710,18 @@ function _serverAuditChecks(expenses, data, newHashes) {
     if (dup) alerts.push(`インボイス番号と金額が一致する申請済みデータがあります (${dup.date} ${dup.place} ¥${Number(dup.amount).toLocaleString('ja-JP')})`);
   }
 
+  // 2.5. インボイス番号なしの高額仕入れ
+  //   少額特例（税込1万円未満は帳簿保存のみで仕入税額控除可）の対象外になる
+  //   1万円以上の課税仕入れで登録番号が無い場合に確認を促す。
+  //   非課税・不課税は仕入税額控除の対象外なので除外。領収書タイプのみ対象。
+  //   ⚠️ クライアント側 submit.js の _invoiceMissingAlert と同一ルール。片方を変えたら両方直すこと。
+  if ((data.type || '領収書') === '領収書'
+      && amount >= 10000
+      && !String(data.invoice || '').trim()
+      && !['非課税', '不課税'].includes(data.taxRate)) {
+    alerts.push('1万円以上でインボイス番号が未入力です。領収書に登録番号（T＋13桁）の記載がないかご確認ください。');
+  }
+
   // 3. 画像ハッシュ重複
   if (newHashes && newHashes.length) {
     const dup = expenses.find(e => e.imageHash && newHashes.some(h => String(e.imageHash).split(',').includes(h)));
