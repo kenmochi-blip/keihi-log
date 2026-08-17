@@ -487,6 +487,7 @@ const SummaryView = (() => {
       // アコーディオンは備考・証票・各種ボタンのいずれかがある場合に表示
       const auditText = App.auditText(e);
       const hasExtra = !!(e.note || auditText || imgUrls.length > 0 || canEdit || (isAdmin && status === '申請済') || (isAdmin && isSettled));
+      const auditAcked = App.isAuditAcked(e);
 
       const _urlsJson = imgUrls.length ? _escape(JSON.stringify(imgUrls)) : '';
       const receiptBtns = imgUrls.map((url, j) =>
@@ -500,6 +501,10 @@ const SummaryView = (() => {
         ? `<button class="btn btn-outline-secondary btn-sm py-0 px-1 drill-edit-btn" data-id="${_escape(e.id)}" title="編集"><i class="bi bi-pencil"></i></button>` : '';
       const delBtn  = canEdit
         ? `<button class="btn btn-outline-danger btn-sm py-0 px-1 drill-del-btn" data-id="${_escape(e.id)}" title="削除"><i class="bi bi-trash"></i></button>` : '';
+      const ackBtn = isAdmin && App.hasAudit(e)
+        ? `<button class="btn btn-outline-danger btn-sm py-0 px-1 drill-ack-btn" data-id="${_escape(e.id)}" title="AI監査の指摘を確認済にする"><i class="bi bi-check2-circle"></i></button>`
+        : isAdmin && App.isAuditAcked(e)
+        ? `<button class="btn btn-outline-secondary btn-sm py-0 px-1 drill-unack-btn" data-id="${_escape(e.id)}" title="確認済を解除して要確認に戻す"><i class="bi bi-arrow-counterclockwise"></i></button>` : '';
       const unsettleBtn = isAdmin && isSettled
         ? `<button class="btn btn-outline-warning btn-sm py-0 px-1 drill-unsettle-btn" data-id="${_escape(e.id)}" title="精算を解除して${App.statusName('登録済')}に戻す"><i class="bi bi-arrow-counterclockwise"></i></button>` : '';
 
@@ -525,12 +530,15 @@ const SummaryView = (() => {
       </tr>
       ${hasExtra ? `<tr class="drill-detail-row d-none" data-row="${i}">
         <td colspan="${colCount}" style="background:#f8f9fa;border-top:none;padding:0.35rem 0.75rem 0.4rem;">
-          ${auditText ? `<div class="drill-audit-note"><i class="bi bi-exclamation-triangle-fill me-1"></i>${_escape(auditText)}</div>` : ''}
+          ${auditText ? `<div class="drill-audit-note${auditAcked ? ' acked' : ''}">
+            <i class="bi ${auditAcked ? 'bi-check2-circle' : 'bi-exclamation-triangle-fill'} me-1"></i>${_escape(auditText)}
+            ${auditAcked ? `<div class="audit-ack-info">確認済（${_escape(App.auditAckInfo(e))}）</div>` : ''}
+          </div>` : ''}
           <div style="display:flex;align-items:center;gap:0.5rem;">
             <div style="flex:1;font-size:0.78rem;color:#495057;white-space:pre-wrap;word-break:break-all;min-width:0;">
               ${e.note ? `<i class="bi bi-chat-text me-1 text-secondary"></i>${_escape(e.note)}` : ''}
             </div>
-            <div style="display:flex;gap:0.3rem;flex-shrink:0;">${receiptBtns}${approveBtn}${editBtn}${delBtn}${unsettleBtn}</div>
+            <div style="display:flex;gap:0.3rem;flex-shrink:0;">${receiptBtns}${ackBtn}${approveBtn}${editBtn}${delBtn}${unsettleBtn}</div>
           </div>
         </td>
       </tr>` : ''}`;
@@ -617,6 +625,38 @@ const SummaryView = (() => {
         settleCallback(() => modal.hide());
       });
     }
+
+    // AI監査の指摘を確認済にする／戻す（管理者のみ）
+    const _bindAck = (sel, undo) => div.querySelectorAll(sel).forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const e = _expenses.find(x => x.id === btn.dataset.id);
+        if (!e) return;
+        const text = App.auditText(e);
+        const ok = await App.confirm(
+          undo ? 'この指摘を「要確認」に戻しますか？' : 'この指摘を確認済にしますか？（指摘の内容は記録として残ります）',
+          `<div class="alert ${undo ? 'alert-secondary' : 'alert-warning'} py-2 mb-0 small text-start">${_escape(text)}</div>`);
+        if (!ok) return;
+        App.showLoading(undo ? '戻しています...' : '更新中...');
+        try {
+          await Sheets.ackAudit([btn.dataset.id], undo);
+          if (!(typeof Demo !== 'undefined' && Demo.isActive())) {
+            const by = App.getMemberName(Auth.getUserEmail()) || '管理者';
+            e.aiAudit = undo ? `⛔ ${text}`
+              : `✅ 確認済（${by}・${new Date().toISOString().slice(0, 10)}）／ ${text}`;
+          }
+          App.clearExpensesCache();
+          App.showToast(undo ? '要確認に戻しました' : '確認済にしました', 'success');
+          bootstrap.Modal.getInstance(div.querySelector('.modal'))?.hide();
+          _renderAll(document.getElementById('appMain') || document);
+        } catch (err) {
+          App.showToast('更新に失敗しました。' + App.friendlyError(err), 'danger');
+        } finally {
+          App.hideLoading();
+        }
+      });
+    });
+    _bindAck('.drill-ack-btn', false);
+    _bindAck('.drill-unack-btn', true);
 
     // 承認ボタン（申請済→登録済）
     div.querySelectorAll('.drill-approve-btn').forEach(btn => {

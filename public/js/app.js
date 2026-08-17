@@ -990,30 +990,50 @@ const App = (() => {
     return !['非課税', '不課税'].includes(e.taxRate);          // 「混在」は課税分を含むため対象
   }
 
-  /**
-   * AI監査（K列）で指摘があった経費かどうか。登録時に「⛔ 指摘1 / 指摘2」形式で書かれる。
-   * ステータスと違い精算しても消えないため、精算後も指摘は残る。
-   */
+  /* ── AI監査（K列）の状態 ────────────────────────────────────
+     登録時に「⛔ 指摘1 / 指摘2」形式で書かれる。管理者が内容を確認して問題なしと
+     判断したら、指摘文を残したまま接頭辞だけ「✅ 確認済（名前・日付）／ …」に変える。
+     消さずに残すのは、チェックが働き人が判断した履歴を証跡として保つため。
+     表示側はこの接頭辞だけを見るので、K列を書き換えれば全画面が追随する。 */
+  const _AUDIT_ACK_RE = /^✅\s*確認済（([^）]*)）／\s*/;
+
+  /** 未対応の指摘がある（赤バッジの対象） */
   function hasAudit(expense) {
     return String(expense?.aiAudit || '').trim().startsWith('⛔');
   }
-  /** 指摘本文（⛔ を除いたもの）。指摘が無ければ空文字。 */
+  /** 確認済にされた指摘がある（グレーバッジの対象） */
+  function isAuditAcked(expense) {
+    return _AUDIT_ACK_RE.test(String(expense?.aiAudit || '').trim());
+  }
+  /** 指摘本文（未対応・確認済のどちらでも原文を返す）。無ければ空文字。 */
   function auditText(expense) {
-    return hasAudit(expense) ? String(expense.aiAudit).trim().replace(/^⛔\s*/, '') : '';
+    const raw = String(expense?.aiAudit || '').trim();
+    if (raw.startsWith('⛔')) return raw.replace(/^⛔\s*/, '');
+    const m = raw.match(_AUDIT_ACK_RE);
+    return m ? raw.slice(m[0].length) : '';
+  }
+  /** 「名前・日付」部分。確認済でなければ空文字。 */
+  function auditAckInfo(expense) {
+    const m = String(expense?.aiAudit || '').trim().match(_AUDIT_ACK_RE);
+    return m ? m[1] : '';
   }
   /**
-   * 金額の横に出す「要確認」バッジ。指摘が無ければ空文字を返すのでそのまま埋め込める。
-   * 承認ダイアログを飛ばして精算した場合でも指摘が目に入るようにするためのもの。
+   * 状態バッジ。未対応は赤「要確認」、確認済はグレー「確認済」。指摘が無ければ空文字。
+   * スマホには hover が無く title が読めないため、タップで指摘文を開けるようにする
+   * （開閉自体は各ビュー側の詳細エリアに委ねる）。
    */
   function auditBadge(expense) {
     const detail = auditText(expense);
     if (!detail) return '';
     const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-    // スマホには hover が無く title が読めないため、タップで指摘文を開けるようにする。
-    // 開閉自体は各ビュー側（既存の詳細エリア）に委ねる。
-    return `<span class="badge badge-duplicate audit-badge" role="button" tabindex="0"
-      title="${esc(detail)}">要確認 <i class="bi bi-chevron-down audit-badge-chevron"></i></span>`;
+    const acked = isAuditAcked(expense);
+    const label = acked ? '確認済' : '要確認';
+    const cls   = acked ? 'bg-secondary audit-badge-acked' : 'badge-duplicate';
+    const tip   = acked ? `確認済（${auditAckInfo(expense)}）\n${detail}` : detail;
+    return `<span class="badge ${cls} audit-badge" role="button" tabindex="0"
+      title="${esc(tip)}">${label} <i class="bi bi-chevron-down audit-badge-chevron"></i></span>`;
   }
+
   /** ソロは「申請済」が存在しないため、絞り込み等で選択肢を出し分ける。 */
   function statusChoices() {
     return _planKind() === 'solo'
@@ -1308,7 +1328,9 @@ const App = (() => {
     statusName,
     statusChoices,
     hasAudit,
+    isAuditAcked,
     auditText,
+    auditAckInfo,
     auditBadge,
     invoiceMissing,
     INVOICE_MISSING_MSG,

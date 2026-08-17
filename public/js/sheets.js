@@ -630,6 +630,57 @@ const Sheets = (() => {
   }
 
   /**
+   * AI監査（K列）の指摘を確認済にする／戻す。admin専用・サーバー認可。
+   * 指摘文は消さず接頭辞だけを ⛔ ⇄ ✅ で切り替える（判断の履歴を残すため）。
+   * @param {string[]} ids
+   * @param {boolean}  undo  true なら確認済を解除して要確認に戻す
+   */
+  async function ackAudit(ids, undo = false, ssId) {
+    if (typeof Demo !== 'undefined' && Demo.isActive()) {
+      // デモは書き込まずメモリ上だけ切り替える（機能の動きを見せるため）
+      const today = new Date().toISOString().slice(0, 10);
+      ids.forEach(id => {
+        const e = Demo.EXPENSES.find(x => x.id === id);
+        if (!e) return;
+        const raw = String(e.aiAudit || '').trim();
+        const m = raw.match(/^✅\s*確認済（[^）]*）／\s*/);
+        if (undo) { if (m) e.aiAudit = '⛔ ' + raw.slice(m[0].length); }
+        else if (raw.startsWith('⛔')) {
+          e.aiAudit = `✅ 確認済（デモ ユーザー・${today}）／ ${raw.replace(/^⛔\s*/, '')}`;
+        }
+      });
+      return {};
+    }
+    if (!ids.length) return {};
+    ssId = ssId || _ssId();
+
+    // B' プロキシ経由。K列の原文を読んで組み立てる必要があるためサーバー側で行う。
+    if (_useProxy()) {
+      return _proxyWrite('ackaudit', ssId, 'POST', { ids, undo });
+    }
+
+    const [qRows, kRows] = await Promise.all([
+      read('経費一覧!Q2:Q', ssId),
+      read('経費一覧!K2:K', ssId),
+    ]);
+    const today = new Date().toISOString().slice(0, 10);
+    const name  = App.getMemberName(Auth.getUserEmail()) || Auth.getUserEmail() || '管理者';
+    const updates = [];
+    ids.forEach(id => {
+      const idx = qRows.findIndex(r => r[0] === id);
+      if (idx === -1) return;
+      const raw = String(kRows[idx]?.[0] || '').trim();
+      const m = raw.match(/^✅\s*確認済（[^）]*）／\s*/);
+      let next = null;
+      if (undo) { if (m) next = '⛔ ' + raw.slice(m[0].length); }
+      else if (raw.startsWith('⛔')) next = `✅ 確認済（${name}・${today}）／ ${raw.replace(/^⛔\s*/, '')}`;
+      if (next !== null) updates.push({ range: `経費一覧!K${idx + 2}`, values: [[next]] });
+    });
+    if (!updates.length) return {};
+    return batchUpdateValues(updates, ssId);
+  }
+
+  /**
    * 指定IDの経費の精算を解除して登録済に戻す（L列の精算日を空にする）。admin専用。
    * @param {string[]} ids  精算解除対象の expense ID 配列
    */
@@ -727,6 +778,7 @@ const Sheets = (() => {
     prependExpense,
     prependRow,
     batchSettle,
+    ackAudit,
     batchUnsettle,
     editExpense,
     deleteExpense,

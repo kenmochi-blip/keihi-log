@@ -500,6 +500,7 @@ async function expenses(req, res) {
   if (sub === 'approve')  return expensesApprove(req, res);
   if (sub === 'settle')   return expensesSettle(req, res);
   if (sub === 'unsettle') return expensesUnsettle(req, res);
+  if (sub === 'ackaudit') return expensesAckAudit(req, res);
   if (req.method === 'GET')    return expensesGet(req, res);
   if (req.method === 'POST')   return expensesCreate(req, res);
   if (req.method === 'PUT')    return expensesEdit(req, res);
@@ -717,6 +718,68 @@ async function expensesApprove(req, res) {
  * POST /api/data/expenses/settle  body: { ids: [...], date: 'YYYY-MM-DD' }
  *   申請を精算済にする（L列=精算日）。admin 専用。
  */
+/**
+ * POST /api/data/expenses/ackaudit   AI監査（K列）の指摘を確認済にする／戻す。admin専用。
+ *
+ * 指摘を消さずに接頭辞だけ切り替える（⛔ ⇄ ✅）。原文を残すのは
+ * 「チェックが働き、人が見て問題なしと判断した」履歴を証跡として保つため。
+ * 表示側は接頭辞だけを見ているので、ここを書き換えれば一覧・集計・精算前確認が
+ * すべて追随する。精算済の行も対象にする（K列は取引内容ではなく注釈のため）。
+ */
+const AUDIT_ACK_RE = /^✅\s*確認済（[^）]*）／\s*/;
+
+function _ackAuditValue(current, ackedBy, undo) {
+  const raw = String(current || '').trim();
+  if (undo) {
+    const m = raw.match(AUDIT_ACK_RE);
+    return m ? '⛔ ' + raw.slice(m[0].length) : null; // 確認済でなければ変更しない
+  }
+  if (!raw.startsWith('⛔')) return null;             // 指摘が無い／既に確認済なら変更しない
+  return `✅ 確認済（${ackedBy}・${_todayJst()}）／ ${raw.replace(/^⛔\s*/, '')}`;
+}
+
+async function expensesAckAudit(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
+  const authz = await _authorize(req, res);
+  if (!authz) return;
+  if (!authz.isAdmin) return res.status(403).json({ error: 'admin_only' });
+
+  const body = await _body(req);
+  const ids  = body?.ids;
+  const undo = body?.undo === true;
+  if (!Array.isArray(ids) || !ids.length) return res.status(400).json({ error: 'invalid_request' });
+
+  const me = authz.master.members.find(m => m.email === authz.me.email);
+  const ackedBy = (me?.name || authz.me.email || '管理者').slice(0, 40);
+
+  let updated = 0;
+  try {
+    const rowNums = await _rowNumsByIds(authz.sheetId, ids);
+    if (!rowNums.length) return res.status(200).json({ ok: true, updated: 0 });
+
+    // K列を一括で読み、対象行だけ書き換える（行ごとの読み取りを避ける）
+    const sheets = sheetsClient();
+    const cur = await sheets.spreadsheets.values.get({
+      spreadsheetId: authz.sheetId, range: '経費一覧!K2:K',
+    });
+    const col = cur.data.values || [];
+
+    const data = [];
+    rowNums.forEach(n => {
+      const next = _ackAuditValue(col[n - 2]?.[0], ackedBy, undo);
+      if (next !== null) data.push({ range: `経費一覧!K${n}`, values: [[next]] });
+    });
+    if (data.length) await batchUpdateValuesViaSA(authz.sheetId, data);
+    updated = data.length;
+  } catch (e) {
+    console.error('expensesAckAudit sheet error:', e.message, { sheetId: authz.sheetId, ids });
+    return res.status(500).json({ error: 'sheet_write_failed', message: e.message });
+  }
+  _inProcDel(`data:exp:${authz.sheetId}`); await kv.del(`data:exp:${authz.sheetId}`).catch(() => {});
+
+  return res.status(200).json({ ok: true, updated });
+}
+
 async function expensesSettle(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
   const authz = await _authorize(req, res);

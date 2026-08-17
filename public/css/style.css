@@ -187,6 +187,14 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
   white-space: pre-wrap;
   word-break: break-all;
 }
+/* 確認済：内容は残しつつ、未対応の指摘と見間違えないようトーンを落とす */
+.list-sp-extra-audit.acked, .drill-audit-note.acked {
+  color: #5c636a;
+  background: #f3f4f6;
+  border-left-color: #adb5bd;
+}
+.audit-ack-info { font-size: 0.7rem; opacity: 0.75; margin-top: 0.15rem; }
+.audit-badge-acked { font-weight: 500; opacity: 0.9; }
 .audit-row > td:first-child { box-shadow: inset 3px 0 0 #e74c3c; }
 .list-sp-card.audit-row { box-shadow: inset 3px 0 0 #e74c3c; }
 

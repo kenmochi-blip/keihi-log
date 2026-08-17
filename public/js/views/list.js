@@ -516,7 +516,12 @@ const ListView = (() => {
       // 精算解除ボタン（精算済→登録済に戻す）：管理者のみ。誤精算の訂正用。
       const unsettleBtn = _isAdmin && isSettled
         ? `<button class="btn btn-outline-warning btn-sm py-0 px-1 btn-unsettle" data-id="${e.id}" title="精算を解除して${App.statusName('登録済')}に戻す"><i class="bi bi-arrow-counterclockwise"></i></button>` : '';
-      const ops = `<div class="d-flex gap-1">${approveBtn}${editBtn}${deleteBtn}${unsettleBtn}</div>`;
+      // AI監査の指摘を確認済にする／戻す（管理者のみ）。精算済でも操作可（K列は注釈のため）。
+      const ackBtn = _isAdmin && App.hasAudit(e)
+        ? `<button class="btn btn-outline-danger btn-sm py-0 px-1 btn-ack-audit" data-id="${e.id}" title="AI監査の指摘を確認済にする"><i class="bi bi-check2-circle"></i></button>`
+        : _isAdmin && App.isAuditAcked(e)
+        ? `<button class="btn btn-outline-secondary btn-sm py-0 px-1 btn-unack-audit" data-id="${e.id}" title="確認済を解除して要確認に戻す"><i class="bi bi-arrow-counterclockwise"></i></button>` : '';
+      const ops = `<div class="d-flex gap-1">${approveBtn}${ackBtn}${editBtn}${deleteBtn}${unsettleBtn}</div>`;
 
       // 証票リンク（複数対応）
       const imgUrls = e.imageLinks ? e.imageLinks.split(',').map(s => s.trim()).filter(Boolean) : [];
@@ -528,7 +533,7 @@ const ListView = (() => {
       ).join('');
 
       // PC行（10列）
-      rowsPc.push(`<tr class="${auditBadge ? 'audit-row' : ''}">
+      rowsPc.push(`<tr class="${App.hasAudit(e) ? 'audit-row' : ''}">
         <td class="list-date">${_escape(e.date)}</td>
         <td class="list-member">${_escape(App.getMemberName(e.email, e.name))}</td>
         <td class="list-place">${e.settlementDate?.startsWith('会社払い') ? '🏢 ' : ''}${_escape(e.place)}</td>
@@ -545,7 +550,7 @@ const ListView = (() => {
       // SPカード
       const hasExtra = e.note || imgUrls.length > 0;
       cardHtmls.push(`
-        <div class="list-sp-card${auditBadge ? ' audit-row' : ''}" data-id="${e.id}">
+        <div class="list-sp-card${App.hasAudit(e) ? ' audit-row' : ''}" data-id="${e.id}">
           <div class="d-flex justify-content-between align-items-start gap-2">
             <div class="flex-grow-1" style="min-width:0;">
               <div class="d-flex align-items-baseline gap-1">
@@ -570,7 +575,10 @@ const ListView = (() => {
           </div>
           ${(e.note || auditText) ? `
           <div class="list-sp-extra d-none">
-            ${auditText ? `<div class="list-sp-extra-audit"><i class="bi bi-exclamation-triangle-fill me-1"></i>${_escape(auditText)}</div>` : ''}
+            ${auditText ? `<div class="list-sp-extra-audit${App.isAuditAcked(e) ? ' acked' : ''}">
+              <i class="bi ${App.isAuditAcked(e) ? 'bi-check2-circle' : 'bi-exclamation-triangle-fill'} me-1"></i>${_escape(auditText)}
+              ${App.isAuditAcked(e) ? `<div class="audit-ack-info">確認済（${_escape(App.auditAckInfo(e))}）</div>` : ''}
+            </div>` : ''}
             ${e.note ? `<div class="list-sp-extra-note"><i class="bi bi-chat-text me-1 text-secondary"></i>${_escape(e.note)}</div>` : ''}
           </div>` : ''}
         </div>`);
@@ -581,6 +589,12 @@ const ListView = (() => {
 
     // イベントをPC・SPの両方にバインド
     [tbodyPc, cardsSp].forEach(container => {
+      container.querySelectorAll('.btn-ack-audit').forEach(btn => {
+        btn.addEventListener('click', () => _ackAudit(btn.dataset.id, false, el));
+      });
+      container.querySelectorAll('.btn-unack-audit').forEach(btn => {
+        btn.addEventListener('click', () => _ackAudit(btn.dataset.id, true, el));
+      });
       container.querySelectorAll('.btn-approve').forEach(btn => {
         btn.addEventListener('click', () => _approveExpense(btn.dataset.id, el));
       });
@@ -665,6 +679,39 @@ const ListView = (() => {
       return `${y}-${m}-${day}`;
     }
     return s;
+  }
+
+  /** AI監査の指摘を確認済にする／戻す（管理者のみ） */
+  async function _ackAudit(id, undo, el) {
+    const e = _expenses.find(x => x.id === id);
+    if (!e) return;
+    const detailHtml = `<div class="alert ${undo ? 'alert-secondary' : 'alert-warning'} py-2 mb-0 small text-start">
+        ${_escape(App.auditText(e))}
+      </div>`;
+    const ok = await App.confirm(
+      undo ? 'この指摘を「要確認」に戻しますか？' : 'この指摘を確認済にしますか？（指摘の内容は記録として残ります）',
+      detailHtml);
+    if (!ok) return;
+    const isDemo = typeof Demo !== 'undefined' && Demo.isActive();
+    const text = App.auditText(e);
+    App.showLoading(undo ? '戻しています...' : '更新中...');
+    try {
+      await Sheets.ackAudit([id], undo);
+      // 画面上のK列も同じ規則で更新して即座に反映する（再読込を待たない）。
+      // デモは Sheets 側が同じオブジェクトを書き換え済みなので二重に触らない。
+      if (!isDemo) {
+        const by = App.getMemberName(Auth.getUserEmail()) || '管理者';
+        e.aiAudit = undo ? `⛔ ${text}`
+          : `✅ 確認済（${by}・${new Date().toISOString().slice(0, 10)}）／ ${text}`;
+      }
+      App.clearExpensesCache();
+      _renderTable(el);
+      App.showToast(undo ? '要確認に戻しました' : '確認済にしました', 'success');
+    } catch (err) {
+      App.showToast('更新に失敗しました。' + App.friendlyError(err), 'danger');
+    } finally {
+      App.hideLoading();
+    }
   }
 
   async function _approveExpense(id, el) {
