@@ -1009,7 +1009,10 @@ const App = (() => {
     const detail = auditText(expense);
     if (!detail) return '';
     const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-    return `<span class="badge badge-duplicate audit-badge" title="${esc(detail)}">要確認</span>`;
+    // スマホには hover が無く title が読めないため、タップで指摘文を開けるようにする。
+    // 開閉自体は各ビュー側（既存の詳細エリア）に委ねる。
+    return `<span class="badge badge-duplicate audit-badge" role="button" tabindex="0"
+      title="${esc(detail)}">要確認 <i class="bi bi-chevron-down audit-badge-chevron"></i></span>`;
   }
   /** ソロは「申請済」が存在しないため、絞り込み等で選択肢を出し分ける。 */
   function statusChoices() {

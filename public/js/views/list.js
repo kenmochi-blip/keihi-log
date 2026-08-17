@@ -499,6 +499,7 @@ const ListView = (() => {
       // AI監査の指摘は承認ダイアログでしか見えなかったため、金額の横にも出す。
       // ①申請済→③精算済 と直接精算した場合でも指摘が目に入るようにする。
       const auditBadge = App.auditBadge(e);
+      const auditText  = App.auditText(e);
       // 精算済み判定：サーバー側 _isRealSettled と同じロジック
       const isSettled = status === '精算済' && !String(e.settlementDate || '').startsWith('会社払い');
       // 編集可否：精算済は不可。管理者は全ステータス可、一般は申請済かつ本人のみ
@@ -567,9 +568,10 @@ const ListView = (() => {
             </div>
             <div class="no-print flex-shrink-0">${ops}</div>
           </div>
-          ${e.note ? `
+          ${(e.note || auditText) ? `
           <div class="list-sp-extra d-none">
-            <div class="list-sp-extra-note"><i class="bi bi-chat-text me-1 text-secondary"></i>${_escape(e.note)}</div>
+            ${auditText ? `<div class="list-sp-extra-audit"><i class="bi bi-exclamation-triangle-fill me-1"></i>${_escape(auditText)}</div>` : ''}
+            ${e.note ? `<div class="list-sp-extra-note"><i class="bi bi-chat-text me-1 text-secondary"></i>${_escape(e.note)}</div>` : ''}
           </div>` : ''}
         </div>`);
     });
@@ -618,6 +620,20 @@ const ListView = (() => {
         extra.classList.toggle('d-none', !opening);
         wrapEl.classList.toggle('open', opening);
       });
+    });
+
+    // 要確認バッジのタップで指摘文を開閉（スマホは hover が無く title が読めないため）
+    cardsSp.querySelectorAll('.audit-badge').forEach(badge => {
+      const toggle = (ev) => {
+        ev.preventDefault(); ev.stopPropagation();
+        const extra = badge.closest('.list-sp-card')?.querySelector('.list-sp-extra');
+        if (!extra) return;
+        const opening = extra.classList.contains('d-none');
+        extra.classList.toggle('d-none', !opening);
+        badge.classList.toggle('open', opening);
+      };
+      badge.addEventListener('click', toggle);
+      badge.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') toggle(ev); });
     });
 
     // PC：備考末尾のシェブロンクリックで全文展開トグル

@@ -485,7 +485,8 @@ const SummaryView = (() => {
       const isSettled = status === '精算済' && !String(e.settlementDate || '').startsWith('会社払い');
       const canEdit = !isSettled && (isAdmin || (status === '申請済' && e.email === myEmail));
       // アコーディオンは備考・証票・各種ボタンのいずれかがある場合に表示
-      const hasExtra = !!(e.note || imgUrls.length > 0 || canEdit || (isAdmin && status === '申請済') || (isAdmin && isSettled));
+      const auditText = App.auditText(e);
+      const hasExtra = !!(e.note || auditText || imgUrls.length > 0 || canEdit || (isAdmin && status === '申請済') || (isAdmin && isSettled));
 
       const _urlsJson = imgUrls.length ? _escape(JSON.stringify(imgUrls)) : '';
       const receiptBtns = imgUrls.map((url, j) =>
@@ -524,6 +525,7 @@ const SummaryView = (() => {
       </tr>
       ${hasExtra ? `<tr class="drill-detail-row d-none" data-row="${i}">
         <td colspan="${colCount}" style="background:#f8f9fa;border-top:none;padding:0.35rem 0.75rem 0.4rem;">
+          ${auditText ? `<div class="drill-audit-note"><i class="bi bi-exclamation-triangle-fill me-1"></i>${_escape(auditText)}</div>` : ''}
           <div style="display:flex;align-items:center;gap:0.5rem;">
             <div style="flex:1;font-size:0.78rem;color:#495057;white-space:pre-wrap;word-break:break-all;min-width:0;">
               ${e.note ? `<i class="bi bi-chat-text me-1 text-secondary"></i>${_escape(e.note)}` : ''}
@@ -588,6 +590,21 @@ const SummaryView = (() => {
         detail.classList.toggle('d-none', isOpen);
         const chevron = td.querySelector('.bi-chevron-down, .bi-chevron-up');
         if (chevron) chevron.className = `bi bi-chevron-${isOpen ? 'down' : 'up'}`;
+      });
+    });
+
+    // 要確認バッジのタップでも詳細行を開く（スマホは hover が無く title が読めないため）
+    div.querySelectorAll('.audit-badge').forEach(badge => {
+      badge.addEventListener('click', ev => {
+        ev.preventDefault(); ev.stopPropagation();
+        const tr = badge.closest('tr');
+        const row = tr?.querySelector('.drill-amount-toggle')?.dataset.row;
+        if (row == null) return;
+        const detail = div.querySelector(`.drill-detail-row[data-row="${row}"]`);
+        if (!detail) return;
+        const isOpen = !detail.classList.contains('d-none');
+        detail.classList.toggle('d-none', isOpen);
+        badge.classList.toggle('open', !isOpen);
       });
     });
 

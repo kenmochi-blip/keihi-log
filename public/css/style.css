@@ -172,7 +172,21 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 .badge-duplicate { background: #e74c3c; color: #fff; font-weight: 600; }
 /* AI監査の指摘バッジ。状態列に置き、行の左端にも目印を出して一覧で拾えるようにする。
    金額列に入れると数字と紛れて読みにくかったため、状態列へ集約している。 */
-.audit-badge { font-size: 0.65rem; font-weight: 600; cursor: help; white-space: nowrap; }
+.audit-badge { font-size: 0.65rem; font-weight: 600; cursor: pointer; white-space: nowrap; user-select: none; }
+.audit-badge-chevron { font-size: 0.55rem; opacity: 0.85; transition: transform 0.15s; }
+.audit-badge.open .audit-badge-chevron { transform: rotate(180deg); }
+/* 指摘文の本体。スマホは title が読めないため、タップで開くこの行が主な導線になる。 */
+.list-sp-extra-audit, .drill-audit-note {
+  font-size: 0.78rem;
+  color: #a4262c;
+  background: #fdecea;
+  border-left: 3px solid #e74c3c;
+  border-radius: 3px;
+  padding: 0.35rem 0.5rem;
+  margin-bottom: 0.35rem;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
 .audit-row > td:first-child { box-shadow: inset 3px 0 0 #e74c3c; }
 .list-sp-card.audit-row { box-shadow: inset 3px 0 0 #e74c3c; }
 
