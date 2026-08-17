@@ -195,6 +195,10 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 }
 .audit-ack-info { font-size: 0.7rem; opacity: 0.75; margin-top: 0.15rem; }
 .audit-badge-acked { font-weight: 500; opacity: 0.9; }
+/* 登録タブの履歴カード・PC一覧の詳細行でも同じ見た目にそろえる */
+.history-audit { margin-top: 0.4rem; }
+.history-card.audit-row { box-shadow: inset 3px 0 0 #e74c3c; }
+.list-audit-detail td { padding: 0.4rem 0.75rem; }
 .audit-row > td:first-child { box-shadow: inset 3px 0 0 #e74c3c; }
 .list-sp-card.audit-row { box-shadow: inset 3px 0 0 #e74c3c; }
 

@@ -2168,6 +2168,19 @@ function _bindSubtypePills(el) {
              <i class="bi bi-chevron-down me-1"></i>もっと見る
            </button>`
         : '');
+    // 要確認バッジのタップ／クリックで指摘文を開閉
+    list.querySelectorAll('.audit-badge').forEach(badge => {
+      const toggle = (ev) => {
+        ev.preventDefault(); ev.stopPropagation();
+        const box = badge.closest('.history-card')?.querySelector('.history-audit');
+        if (!box) return;
+        const opening = box.classList.contains('d-none');
+        box.classList.toggle('d-none', !opening);
+        badge.classList.toggle('open', opening);
+      };
+      badge.addEventListener('click', toggle);
+      badge.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') toggle(ev); });
+    });
     list.querySelectorAll('.btn-edit-history').forEach(btn => {
       btn.addEventListener('click', () => {
         // 直近履歴（submitホーム）からの編集 → 破棄/保存後とも submit に留まる
@@ -2182,12 +2195,14 @@ function _bindSubtypePills(el) {
   }
 
   function _renderHistoryCard(e) {
+    // ステータスと監査の指摘は別物なので、バッジも分けて両方出す。
+    // （従来は申請済のときだけ「要確認」に置き換えていたため、承認・精算後は指摘が消えていた）
     const statusClass = e.settlementDate ? 'badge-settled'
-      : e.confirmed ? 'badge-confirmed'
-      : e.aiAudit?.startsWith('⛔') ? 'badge-duplicate' : 'badge-pending';
+      : e.confirmed ? 'badge-confirmed' : 'badge-pending';
     const statusText = e.settlementDate ? App.statusLabel('精算済')
-      : e.confirmed ? App.statusLabel('登録済')
-      : e.aiAudit?.startsWith('⛔') ? '要確認' : App.statusLabel('申請済');
+      : e.confirmed ? App.statusLabel('登録済') : App.statusLabel('申請済');
+    const auditBadge = App.auditBadge(e);
+    const auditText  = App.auditText(e);
 
     const _imgUrls = e.imageLinks ? e.imageLinks.split(',').map(s => s.trim()).filter(Boolean) : [];
     const imageBtn = _imgUrls.length
@@ -2219,7 +2234,7 @@ function _bindSubtypePills(el) {
          </div>` : '';
 
     return `
-    <div class="history-card">
+    <div class="history-card${App.hasAudit(e) ? ' audit-row' : ''}">
       <div class="d-flex justify-content-between align-items-start">
         <span class="h-place">${e.settlementDate?.startsWith('会社払い') ? '🏢 ' : ''}${_escape(e.place)}</span>
         <span class="h-amount">¥${e.amount.toLocaleString()}</span>
@@ -2229,8 +2244,15 @@ function _bindSubtypePills(el) {
           <span class="h-meta">${e.date} / ${_escape(App.categoryLabel(e.category))} (${e.type})</span>
           ${noteToggle}
         </div>
-        <span class="badge ${statusClass} rounded-pill px-2">${statusText}</span>
+        <div class="d-flex align-items-center gap-1">
+          ${auditBadge}
+          <span class="badge ${statusClass} rounded-pill px-2">${statusText}</span>
+        </div>
       </div>
+      ${auditText ? `<div class="history-audit d-none list-sp-extra-audit${App.isAuditAcked(e) ? ' acked' : ''}">
+        <i class="bi ${App.isAuditAcked(e) ? 'bi-check2-circle' : 'bi-exclamation-triangle-fill'} me-1"></i>${_escape(auditText)}
+        ${App.isAuditAcked(e) ? `<div class="audit-ack-info">確認済（${_escape(App.auditAckInfo(e))}）</div>` : ''}
+      </div>` : ''}
       ${noteBody}
       <div class="d-flex gap-2 mt-2 align-items-center">
         ${imageBtn}

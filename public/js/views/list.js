@@ -545,7 +545,15 @@ const ListView = (() => {
         <td>${statusBadge}${auditBadge ? `<div class="mt-1">${auditBadge}</div>` : ''}</td>
         <td class="text-center" style="font-size:0.75rem;white-space:nowrap;">${_escape(_fmtSettlement(e.settlementDate))}</td>
         <td class="no-print">${ops}</td>
-      </tr>`);
+      </tr>
+      ${auditText ? `<tr class="list-detail-row list-audit-detail d-none">
+        <td colspan="11">
+          <div class="list-sp-extra-audit${App.isAuditAcked(e) ? ' acked' : ''} mb-0">
+            <i class="bi ${App.isAuditAcked(e) ? 'bi-check2-circle' : 'bi-exclamation-triangle-fill'} me-1"></i>${_escape(auditText)}
+            ${App.isAuditAcked(e) ? `<div class="audit-ack-info">確認済（${_escape(App.auditAckInfo(e))}）</div>` : ''}
+          </div>
+        </td>
+      </tr>` : ''}`);
 
       // SPカード
       const hasExtra = e.note || imgUrls.length > 0;
@@ -636,18 +644,24 @@ const ListView = (() => {
       });
     });
 
-    // 要確認バッジのタップで指摘文を開閉（スマホは hover が無く title が読めないため）
-    cardsSp.querySelectorAll('.audit-badge').forEach(badge => {
-      const toggle = (ev) => {
-        ev.preventDefault(); ev.stopPropagation();
-        const extra = badge.closest('.list-sp-card')?.querySelector('.list-sp-extra');
-        if (!extra) return;
-        const opening = extra.classList.contains('d-none');
-        extra.classList.toggle('d-none', !opening);
-        badge.classList.toggle('open', opening);
-      };
-      badge.addEventListener('click', toggle);
-      badge.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') toggle(ev); });
+    // 要確認バッジのクリック／タップで指摘文を開閉。
+    // スマホは hover が無く title が読めない。PCもクリックで反応しないと不自然なので両方に付ける。
+    [cardsSp, tbodyPc].forEach(container => {
+      container.querySelectorAll('.audit-badge').forEach(badge => {
+        const toggle = (ev) => {
+          ev.preventDefault(); ev.stopPropagation();
+          // SPはカード内の詳細エリア、PCは直後の詳細行
+          const target = badge.closest('.list-sp-card')?.querySelector('.list-sp-extra')
+            || (badge.closest('tr')?.nextElementSibling?.classList.contains('list-audit-detail')
+                ? badge.closest('tr').nextElementSibling : null);
+          if (!target) return;
+          const opening = target.classList.contains('d-none');
+          target.classList.toggle('d-none', !opening);
+          badge.classList.toggle('open', opening);
+        };
+        badge.addEventListener('click', toggle);
+        badge.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') toggle(ev); });
+      });
     });
 
     // PC：備考末尾のシェブロンクリックで全文展開トグル
