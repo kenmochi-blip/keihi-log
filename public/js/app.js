@@ -971,6 +971,25 @@ const App = (() => {
     return statusLabel(status).replace(/^[①②③]\s*/, '');
   }
 
+  /* ── インボイス番号なしの高額仕入れ判定 ───────────────────────
+     少額特例（税込1万円未満は帳簿保存のみで仕入税額控除可）の対象外になる
+     1万円以上の課税仕入れで登録番号が無い場合に確認を促す。
+     免税事業者からの仕入れなら控除が制限され、単にAIが読み取れなかっただけなら
+     手入力すれば控除できるため、どちらにせよ登録前に一度確認する価値がある。
+     非課税・不課税はそもそも仕入税額控除の対象外なので除外する。
+     ⚠️ サーバー側 api/data/[...path].js の _serverAuditChecks と同一ルール。
+        片方を変えたら必ず両方直すこと。 */
+  const INVOICE_MIN_AMOUNT = 10000;
+  const INVOICE_MISSING_MSG = '1万円以上でインボイス番号が未入力です。領収書に登録番号（T＋13桁）の記載がないかご確認ください。';
+  /** @param {{type?:string,amount:number,invoice?:string,taxRate?:string}} e */
+  function invoiceMissing(e) {
+    if (!e) return false;
+    if ((e.type || '領収書') !== '領収書') return false;      // 領収書なし・電車/バス・自家用車は対象外
+    if (Number(e.amount) < INVOICE_MIN_AMOUNT) return false;   // 明細分割時は合計（税込）で判定
+    if (String(e.invoice || '').trim()) return false;
+    return !['非課税', '不課税'].includes(e.taxRate);          // 「混在」は課税分を含むため対象
+  }
+
   /**
    * AI監査（K列）で指摘があった経費かどうか。登録時に「⛔ 指摘1 / 指摘2」形式で書かれる。
    * ステータスと違い精算しても消えないため、精算後も指摘は残る。
@@ -1288,6 +1307,8 @@ const App = (() => {
     hasAudit,
     auditText,
     auditBadge,
+    invoiceMissing,
+    INVOICE_MISSING_MSG,
     getUserRole,
     showLoading,
     hideLoading,

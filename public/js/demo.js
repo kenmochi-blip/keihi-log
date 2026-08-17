@@ -257,5 +257,23 @@ const Demo = (() => {
     return url;
   }
 
-  return { enable, disable, isActive, getRole, setRole, getUserEmail, MASTER, EXPENSES, TEMPLATES, SHEET_ID, COMPANY_NAME, REGULATION, shiftSvgDates, shiftedReceiptUrl };
+  /**
+   * デモデータにAI監査の指摘（K列相当）を付ける。
+   * 判定は本番と同じ App.invoiceMissing を使うので、デモの表示が実際の挙動とズレない。
+   * app.js は demo.js より後に読み込まれるため、参照時に一度だけ実行する。
+   */
+  let _auditApplied = false;
+  function _applyAudit() {
+    if (_auditApplied || typeof App === 'undefined' || !App.invoiceMissing) return;
+    _auditApplied = true;
+    EXPENSES.forEach(e => {
+      if (App.invoiceMissing(e)) e.aiAudit = '⛔ ' + App.INVOICE_MISSING_MSG;
+    });
+  }
+
+  return {
+    enable, disable, isActive, getRole, setRole, getUserEmail, MASTER, TEMPLATES,
+    SHEET_ID, COMPANY_NAME, REGULATION, shiftSvgDates, shiftedReceiptUrl,
+    get EXPENSES() { _applyAudit(); return EXPENSES; },
+  };
 })();
