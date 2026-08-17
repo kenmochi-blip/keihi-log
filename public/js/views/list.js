@@ -516,12 +516,19 @@ const ListView = (() => {
       // 精算解除ボタン（精算済→登録済に戻す）：管理者のみ。誤精算の訂正用。
       const unsettleBtn = _isAdmin && isSettled
         ? `<button class="btn btn-outline-warning btn-sm py-0 px-1 btn-unsettle" data-id="${e.id}" title="精算を解除して${App.statusName('登録済')}に戻す"><i class="bi bi-arrow-counterclockwise"></i></button>` : '';
-      // AI監査の指摘を確認済にする／戻す（管理者のみ）。精算済でも操作可（K列は注釈のため）。
+      // AI監査の操作ボタンは指摘文と離れないよう、指摘のボックス内に置く（下の auditBox）。
+      // 精算済でも操作可（K列は取引内容ではなく注釈のため）。
       const ackBtn = _isAdmin && App.hasAudit(e)
-        ? `<button class="btn btn-outline-danger btn-sm py-0 px-1 btn-ack-audit" data-id="${e.id}" title="AI監査の指摘を確認済にする"><i class="bi bi-check2-circle"></i></button>`
+        ? `<button class="btn btn-outline-danger btn-sm mt-2 btn-ack-audit" data-id="${e.id}"><i class="bi bi-check2-circle me-1"></i>確認済にする</button>`
         : _isAdmin && App.isAuditAcked(e)
-        ? `<button class="btn btn-outline-secondary btn-sm py-0 px-1 btn-unack-audit" data-id="${e.id}" title="確認済を解除して要確認に戻す"><i class="bi bi-arrow-counterclockwise"></i></button>` : '';
-      const ops = `<div class="d-flex gap-1">${approveBtn}${ackBtn}${editBtn}${deleteBtn}${unsettleBtn}</div>`;
+        ? `<button class="btn btn-outline-secondary btn-sm mt-2 btn-unack-audit" data-id="${e.id}"><i class="bi bi-arrow-counterclockwise me-1"></i>要確認に戻す</button>` : '';
+      // 指摘文＋操作ボタンをまとめたボックス（PC詳細行・SPカード詳細で共用）
+      const auditBox = auditText ? `<div class="list-sp-extra-audit${App.isAuditAcked(e) ? ' acked' : ''} mb-0">
+          <i class="bi ${App.isAuditAcked(e) ? 'bi-check2-circle' : 'bi-exclamation-triangle-fill'} me-1"></i>${_escape(auditText)}
+          ${App.isAuditAcked(e) ? `<div class="audit-ack-info">確認済（${_escape(App.auditAckInfo(e))}）</div>` : ''}
+          ${ackBtn}
+        </div>` : '';
+      const ops = `<div class="d-flex gap-1">${approveBtn}${editBtn}${deleteBtn}${unsettleBtn}</div>`;
 
       // 証票リンク（複数対応）
       const imgUrls = e.imageLinks ? e.imageLinks.split(',').map(s => s.trim()).filter(Boolean) : [];
@@ -546,13 +553,8 @@ const ListView = (() => {
         <td class="text-center" style="font-size:0.75rem;white-space:nowrap;">${_escape(_fmtSettlement(e.settlementDate))}</td>
         <td class="no-print">${ops}</td>
       </tr>
-      ${auditText ? `<tr class="list-detail-row list-audit-detail d-none">
-        <td colspan="11">
-          <div class="list-sp-extra-audit${App.isAuditAcked(e) ? ' acked' : ''} mb-0">
-            <i class="bi ${App.isAuditAcked(e) ? 'bi-check2-circle' : 'bi-exclamation-triangle-fill'} me-1"></i>${_escape(auditText)}
-            ${App.isAuditAcked(e) ? `<div class="audit-ack-info">確認済（${_escape(App.auditAckInfo(e))}）</div>` : ''}
-          </div>
-        </td>
+      ${auditBox ? `<tr class="list-detail-row list-audit-detail d-none">
+        <td colspan="11">${auditBox}</td>
       </tr>` : ''}`);
 
       // SPカード
@@ -583,10 +585,7 @@ const ListView = (() => {
           </div>
           ${(e.note || auditText) ? `
           <div class="list-sp-extra d-none">
-            ${auditText ? `<div class="list-sp-extra-audit${App.isAuditAcked(e) ? ' acked' : ''}">
-              <i class="bi ${App.isAuditAcked(e) ? 'bi-check2-circle' : 'bi-exclamation-triangle-fill'} me-1"></i>${_escape(auditText)}
-              ${App.isAuditAcked(e) ? `<div class="audit-ack-info">確認済（${_escape(App.auditAckInfo(e))}）</div>` : ''}
-            </div>` : ''}
+            ${auditBox}
             ${e.note ? `<div class="list-sp-extra-note"><i class="bi bi-chat-text me-1 text-secondary"></i>${_escape(e.note)}</div>` : ''}
           </div>` : ''}
         </div>`);

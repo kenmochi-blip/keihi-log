@@ -75,6 +75,8 @@ export default async function handler(req, res) {
         return await expensesSettle(req, res);
       case 'unsettle':
         return await expensesUnsettle(req, res);
+      case 'ackaudit':
+        return await expensesAckAudit(req, res);
       case 'masters':
         return await masters(req, res);
       case 'settings':
@@ -500,7 +502,6 @@ async function expenses(req, res) {
   if (sub === 'approve')  return expensesApprove(req, res);
   if (sub === 'settle')   return expensesSettle(req, res);
   if (sub === 'unsettle') return expensesUnsettle(req, res);
-  if (sub === 'ackaudit') return expensesAckAudit(req, res);
   if (req.method === 'GET')    return expensesGet(req, res);
   if (req.method === 'POST')   return expensesCreate(req, res);
   if (req.method === 'PUT')    return expensesEdit(req, res);
@@ -719,7 +720,7 @@ async function expensesApprove(req, res) {
  *   申請を精算済にする（L列=精算日）。admin 専用。
  */
 /**
- * POST /api/data/expenses/ackaudit   AI監査（K列）の指摘を確認済にする／戻す。admin専用。
+ * POST /api/data/ackaudit   AI監査（K列）の指摘を確認済にする／戻す。admin専用。
  *
  * 指摘を消さずに接頭辞だけ切り替える（⛔ ⇄ ✅）。原文を残すのは
  * 「チェックが働き、人が見て問題なしと判断した」履歴を証跡として保つため。

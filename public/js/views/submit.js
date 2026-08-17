@@ -2197,9 +2197,13 @@ function _bindSubtypePills(el) {
   function _renderHistoryCard(e) {
     // ステータスと監査の指摘は別物なので、バッジも分けて両方出す。
     // （従来は申請済のときだけ「要確認」に置き換えていたため、承認・精算後は指摘が消えていた）
-    const statusClass = e.settlementDate ? 'badge-settled'
+    // 会社払いは実精算ではないため、一覧タブと同じく専用バッジで区別する
+    const _isCorpPay = String(e.settlementDate || '').startsWith('会社払い');
+    const statusClass = _isCorpPay ? 'bg-secondary'
+      : e.settlementDate ? 'badge-settled'
       : e.confirmed ? 'badge-confirmed' : 'badge-pending';
-    const statusText = e.settlementDate ? App.statusLabel('精算済')
+    const statusText = _isCorpPay ? '会社払い'
+      : e.settlementDate ? App.statusLabel('精算済')
       : e.confirmed ? App.statusLabel('登録済') : App.statusLabel('申請済');
     const auditBadge = App.auditBadge(e);
     const auditText  = App.auditText(e);

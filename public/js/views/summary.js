@@ -501,10 +501,11 @@ const SummaryView = (() => {
         ? `<button class="btn btn-outline-secondary btn-sm py-0 px-1 drill-edit-btn" data-id="${_escape(e.id)}" title="編集"><i class="bi bi-pencil"></i></button>` : '';
       const delBtn  = canEdit
         ? `<button class="btn btn-outline-danger btn-sm py-0 px-1 drill-del-btn" data-id="${_escape(e.id)}" title="削除"><i class="bi bi-trash"></i></button>` : '';
+      // AI監査の操作ボタンは指摘文と離れないよう、指摘のボックス内に置く
       const ackBtn = isAdmin && App.hasAudit(e)
-        ? `<button class="btn btn-outline-danger btn-sm py-0 px-1 drill-ack-btn" data-id="${_escape(e.id)}" title="AI監査の指摘を確認済にする"><i class="bi bi-check2-circle"></i></button>`
+        ? `<button class="btn btn-outline-danger btn-sm mt-2 drill-ack-btn" data-id="${_escape(e.id)}"><i class="bi bi-check2-circle me-1"></i>確認済にする</button>`
         : isAdmin && App.isAuditAcked(e)
-        ? `<button class="btn btn-outline-secondary btn-sm py-0 px-1 drill-unack-btn" data-id="${_escape(e.id)}" title="確認済を解除して要確認に戻す"><i class="bi bi-arrow-counterclockwise"></i></button>` : '';
+        ? `<button class="btn btn-outline-secondary btn-sm mt-2 drill-unack-btn" data-id="${_escape(e.id)}"><i class="bi bi-arrow-counterclockwise me-1"></i>要確認に戻す</button>` : '';
       const unsettleBtn = isAdmin && isSettled
         ? `<button class="btn btn-outline-warning btn-sm py-0 px-1 drill-unsettle-btn" data-id="${_escape(e.id)}" title="精算を解除して${App.statusName('登録済')}に戻す"><i class="bi bi-arrow-counterclockwise"></i></button>` : '';
 
@@ -533,12 +534,13 @@ const SummaryView = (() => {
           ${auditText ? `<div class="drill-audit-note${auditAcked ? ' acked' : ''}">
             <i class="bi ${auditAcked ? 'bi-check2-circle' : 'bi-exclamation-triangle-fill'} me-1"></i>${_escape(auditText)}
             ${auditAcked ? `<div class="audit-ack-info">確認済（${_escape(App.auditAckInfo(e))}）</div>` : ''}
+            ${ackBtn}
           </div>` : ''}
           <div style="display:flex;align-items:center;gap:0.5rem;">
             <div style="flex:1;font-size:0.78rem;color:#495057;white-space:pre-wrap;word-break:break-all;min-width:0;">
               ${e.note ? `<i class="bi bi-chat-text me-1 text-secondary"></i>${_escape(e.note)}` : ''}
             </div>
-            <div style="display:flex;gap:0.3rem;flex-shrink:0;">${receiptBtns}${ackBtn}${approveBtn}${editBtn}${delBtn}${unsettleBtn}</div>
+            <div style="display:flex;gap:0.3rem;flex-shrink:0;">${receiptBtns}${approveBtn}${editBtn}${delBtn}${unsettleBtn}</div>
           </div>
         </td>
       </tr>` : ''}`;
