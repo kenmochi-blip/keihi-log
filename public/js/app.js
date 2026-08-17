@@ -970,6 +970,28 @@ const App = (() => {
   function statusName(status) {
     return statusLabel(status).replace(/^[①②③]\s*/, '');
   }
+
+  /**
+   * AI監査（K列）で指摘があった経費かどうか。登録時に「⛔ 指摘1 / 指摘2」形式で書かれる。
+   * ステータスと違い精算しても消えないため、精算後も指摘は残る。
+   */
+  function hasAudit(expense) {
+    return String(expense?.aiAudit || '').trim().startsWith('⛔');
+  }
+  /** 指摘本文（⛔ を除いたもの）。指摘が無ければ空文字。 */
+  function auditText(expense) {
+    return hasAudit(expense) ? String(expense.aiAudit).trim().replace(/^⛔\s*/, '') : '';
+  }
+  /**
+   * 金額の横に出す「要確認」バッジ。指摘が無ければ空文字を返すのでそのまま埋め込める。
+   * 承認ダイアログを飛ばして精算した場合でも指摘が目に入るようにするためのもの。
+   */
+  function auditBadge(expense) {
+    const detail = auditText(expense);
+    if (!detail) return '';
+    const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    return `<span class="badge badge-duplicate audit-badge" title="${esc(detail)}">要確認</span>`;
+  }
   /** ソロは「申請済」が存在しないため、絞り込み等で選択肢を出し分ける。 */
   function statusChoices() {
     return _planKind() === 'solo'
@@ -1263,6 +1285,9 @@ const App = (() => {
     statusLabel,
     statusName,
     statusChoices,
+    hasAudit,
+    auditText,
+    auditBadge,
     getUserRole,
     showLoading,
     hideLoading,

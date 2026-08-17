@@ -496,6 +496,9 @@ const ListView = (() => {
     visible.forEach(e => {
       const status = _getStatus(e);
       const statusBadge = _statusBadge(status, e);
+      // AI監査の指摘は承認ダイアログでしか見えなかったため、金額の横にも出す。
+      // ①申請済→③精算済 と直接精算した場合でも指摘が目に入るようにする。
+      const auditBadge = App.auditBadge(e);
       // 精算済み判定：サーバー側 _isRealSettled と同じロジック
       const isSettled = status === '精算済' && !String(e.settlementDate || '').startsWith('会社払い');
       // 編集可否：精算済は不可。管理者は全ステータス可、一般は申請済かつ本人のみ
@@ -529,7 +532,7 @@ const ListView = (() => {
         <td class="list-member">${_escape(App.getMemberName(e.email, e.name))}</td>
         <td class="list-place">${e.settlementDate?.startsWith('会社払い') ? '🏢 ' : ''}${_escape(e.place)}</td>
         <td class="list-type-cell">${_escape(e.type)}</td>
-        <td class="text-end list-amount">¥${e.amount.toLocaleString()}</td>
+        <td class="text-end list-amount">${auditBadge}${auditBadge ? ' ' : ''}¥${e.amount.toLocaleString()}</td>
         <td class="list-cat">${_escape(App.categoryLabel(e.category))}${_effectiveTaxRate(e) !== '課税10%' ? `<br><span class="badge text-bg-light border" style="font-size:0.65rem;font-weight:normal;">${_escape(_effectiveTaxRate(e))}</span>` : ''}</td>
         <td class="list-note-cell text-muted${e.note ? ' expandable' : ''}">${e.note ? `<span class="note-text">${_escape(e.note)}</span><i class="bi bi-chevron-down note-expand-chevron"></i>` : ''}</td>
         <td class="text-center"><div class="d-flex flex-wrap gap-1 justify-content-center">${receiptBtns}</div></td>
@@ -552,7 +555,7 @@ const ListView = (() => {
             </div>
             <div class="flex-shrink-0 text-end">
               <div class="list-sp-amount">
-                ¥${e.amount.toLocaleString()}
+                ${auditBadge}${auditBadge ? ' ' : ''}¥${e.amount.toLocaleString()}
               </div>
               ${receiptBtns ? `<div class="d-flex flex-wrap gap-1 justify-content-end mt-1">${receiptBtns}</div>` : ''}
             </div>

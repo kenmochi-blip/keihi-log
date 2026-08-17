@@ -297,7 +297,19 @@ const SummaryView = (() => {
     const ids = expenses.map(e => e.id).filter(Boolean);
     if (!ids.length) return;
     const today = new Date().toISOString().slice(0, 10);
-    const ok = await App.confirm(`${ids.length}件を精算済みにします（精算日: ${today}）。よろしいですか？`);
+
+    // AI監査の指摘は承認ダイアログでしか出ないため、①申請済→③精算済 と直接精算すると
+    // 指摘を一度も見ないまま確定してしまう。精算前にここで必ず提示する。
+    const flagged = expenses.filter(e => App.hasAudit(e));
+    const detailHtml = flagged.length
+      ? `<div class="alert alert-warning py-2 mb-0 small text-start">
+           <i class="bi bi-exclamation-triangle-fill me-1"></i><strong>AI監査の指摘が ${flagged.length}件 あります</strong>
+           <ul class="mb-0 mt-1 ps-3">${flagged.map(e =>
+             `<li>${_escape(e.date)} ${_escape(e.place)} ¥${Math.round(Number(e.amount) || 0).toLocaleString()}<br>
+                <span class="text-muted">${_escape(App.auditText(e))}</span></li>`).join('')}</ul>
+         </div>`
+      : '';
+    const ok = await App.confirm(`${ids.length}件を精算済みにします（精算日: ${today}）。よろしいですか？`, detailHtml);
     if (!ok) return;
     App.showLoading('精算処理中...');
     try {
@@ -495,7 +507,7 @@ const SummaryView = (() => {
         <td>${_escape(e.place)}</td>
         <td class="text-end${hasExtra ? ' drill-amount-toggle' : ''}" data-row="${i}"
             style="${hasExtra ? 'cursor:pointer;' : ''}">
-          ¥${Math.round(_amt(e)).toLocaleString()}
+          ${App.auditBadge(e)}${App.auditBadge(e) ? ' ' : ''}¥${Math.round(_amt(e)).toLocaleString()}
           ${hasExtra ? '<i class="bi bi-chevron-down" style="font-size:0.6rem;opacity:0.55;margin-left:2px;vertical-align:middle;"></i>' : ''}
         </td>
         ${showName ? `<td class="text-muted" style="font-size:0.8rem;white-space:nowrap;">${_escape(App.getMemberName(e.email, e.name))}</td>` : ''}

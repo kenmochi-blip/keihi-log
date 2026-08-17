@@ -170,6 +170,8 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 .badge-confirmed { background: #2980b9; color: #fff; font-weight: 600; }  /* 登録済：ブルー */
 .badge-settled   { background: #6c757d; color: #fff; font-weight: 600; }  /* 精算済：グレー */
 .badge-duplicate { background: #e74c3c; color: #fff; font-weight: 600; }
+/* 金額の横に出す「要確認」バッジ。数字の可読性を落とさないよう小さめに。 */
+.audit-badge { font-size: 0.65rem; font-weight: 600; vertical-align: middle; cursor: help; }
 
 /* カード */
 .expense-card {
