@@ -170,8 +170,11 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 .badge-confirmed { background: #2980b9; color: #fff; font-weight: 600; }  /* 登録済：ブルー */
 .badge-settled   { background: #6c757d; color: #fff; font-weight: 600; }  /* 精算済：グレー */
 .badge-duplicate { background: #e74c3c; color: #fff; font-weight: 600; }
-/* 金額の横に出す「要確認」バッジ。数字の可読性を落とさないよう小さめに。 */
-.audit-badge { font-size: 0.65rem; font-weight: 600; vertical-align: middle; cursor: help; }
+/* AI監査の指摘バッジ。状態列に置き、行の左端にも目印を出して一覧で拾えるようにする。
+   金額列に入れると数字と紛れて読みにくかったため、状態列へ集約している。 */
+.audit-badge { font-size: 0.65rem; font-weight: 600; cursor: help; white-space: nowrap; }
+.audit-row > td:first-child { box-shadow: inset 3px 0 0 #e74c3c; }
+.list-sp-card.audit-row { box-shadow: inset 3px 0 0 #e74c3c; }
 
 /* カード */
 .expense-card {

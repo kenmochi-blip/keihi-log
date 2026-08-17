@@ -87,6 +87,10 @@ const Demo = (() => {
        '領収書', '2026-06-01', 'ヨドバシカメラ', 4290, '消耗品費', 'SDカード・USBメモリ', false, 'T1000000000001'),
     _e('demo-j04', '2026-06-01T11:00:00Z', '鈴木 花子', 'suzuki@example.com',
        '領収書', '2026-06-01', 'アスクル', 2640, '消耗品費', '6月オフィス備品補充', false, ''),
+    // 同じ領収書を2回撮ってしまったケース（重複検知アラートのデモ用）。
+    // 同日・同額・同一取引先なので、実際の登録でも「重複の疑い」が付く組み合わせ。
+    _e('demo-j04b', '2026-06-01T11:05:00Z', '鈴木 花子', 'suzuki@example.com',
+       '領収書', '2026-06-01', 'アスクル', 2640, '消耗品費', '6月オフィス備品補充', false, ''),
     // ── 2026-05 ──
     _e('demo-001', '2026-05-09T09:15:00Z', 'デモ ユーザー', 'demo@example.com',
        '領収書', '2026-05-09', '大阪ビジネスホテル', 12000, '旅費交通費', '大阪出張 宿泊', false, 'T1234567890123',
@@ -275,6 +279,14 @@ const Demo = (() => {
     const e = EXPENSES.find(x => x.id === id);
     if (e) e.aiAudit = _AUDIT_INVOICE;
   });
+
+  // 重複検知。文面は本番の _duplicateAlerts と同じ形式で、参照先も実在の行から組み立てる
+  // （日付は _shiftYMD でスライド済みのものを使うので、時間が経ってもズレない）。
+  const _dupOrig = EXPENSES.find(x => x.id === 'demo-j04');
+  const _dupCopy = EXPENSES.find(x => x.id === 'demo-j04b');
+  if (_dupOrig && _dupCopy) {
+    _dupCopy.aiAudit = `⛔ 重複の疑い: ${_dupOrig.date} ${_dupOrig.place} ¥${_dupOrig.amount.toLocaleString('ja-JP')}`;
+  }
 
   return { enable, disable, isActive, getRole, setRole, getUserEmail, MASTER, EXPENSES, TEMPLATES, SHEET_ID, COMPANY_NAME, REGULATION, shiftSvgDates, shiftedReceiptUrl };
 })();

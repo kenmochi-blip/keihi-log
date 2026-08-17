@@ -527,16 +527,16 @@ const ListView = (() => {
       ).join('');
 
       // PC行（10列）
-      rowsPc.push(`<tr>
+      rowsPc.push(`<tr class="${auditBadge ? 'audit-row' : ''}">
         <td class="list-date">${_escape(e.date)}</td>
         <td class="list-member">${_escape(App.getMemberName(e.email, e.name))}</td>
         <td class="list-place">${e.settlementDate?.startsWith('会社払い') ? '🏢 ' : ''}${_escape(e.place)}</td>
         <td class="list-type-cell">${_escape(e.type)}</td>
-        <td class="text-end list-amount">${auditBadge}${auditBadge ? ' ' : ''}¥${e.amount.toLocaleString()}</td>
+        <td class="text-end list-amount">¥${e.amount.toLocaleString()}</td>
         <td class="list-cat">${_escape(App.categoryLabel(e.category))}${_effectiveTaxRate(e) !== '課税10%' ? `<br><span class="badge text-bg-light border" style="font-size:0.65rem;font-weight:normal;">${_escape(_effectiveTaxRate(e))}</span>` : ''}</td>
         <td class="list-note-cell text-muted${e.note ? ' expandable' : ''}">${e.note ? `<span class="note-text">${_escape(e.note)}</span><i class="bi bi-chevron-down note-expand-chevron"></i>` : ''}</td>
         <td class="text-center"><div class="d-flex flex-wrap gap-1 justify-content-center">${receiptBtns}</div></td>
-        <td>${statusBadge}</td>
+        <td>${statusBadge}${auditBadge ? `<div class="mt-1">${auditBadge}</div>` : ''}</td>
         <td class="text-center" style="font-size:0.75rem;white-space:nowrap;">${_escape(_fmtSettlement(e.settlementDate))}</td>
         <td class="no-print">${ops}</td>
       </tr>`);
@@ -544,7 +544,7 @@ const ListView = (() => {
       // SPカード
       const hasExtra = e.note || imgUrls.length > 0;
       cardHtmls.push(`
-        <div class="list-sp-card" data-id="${e.id}">
+        <div class="list-sp-card${auditBadge ? ' audit-row' : ''}" data-id="${e.id}">
           <div class="d-flex justify-content-between align-items-start gap-2">
             <div class="flex-grow-1" style="min-width:0;">
               <div class="d-flex align-items-baseline gap-1">
@@ -554,15 +554,13 @@ const ListView = (() => {
               <div class="list-sp-name">${_escape(App.getMemberName(e.email, e.name))}</div>
             </div>
             <div class="flex-shrink-0 text-end">
-              <div class="list-sp-amount">
-                ${auditBadge}${auditBadge ? ' ' : ''}¥${e.amount.toLocaleString()}
-              </div>
+              <div class="list-sp-amount">¥${e.amount.toLocaleString()}</div>
               ${receiptBtns ? `<div class="d-flex flex-wrap gap-1 justify-content-end mt-1">${receiptBtns}</div>` : ''}
             </div>
           </div>
           <div class="d-flex justify-content-between align-items-center mt-1 gap-2">
             <div class="d-flex align-items-center gap-1 flex-wrap" style="min-width:0;">
-              ${statusBadge}
+              ${statusBadge}${auditBadge}
               <span class="list-sp-cat">${_escape(App.categoryLabel(e.category))}</span>
               ${_effectiveTaxRate(e) !== '課税10%' ? `<span class="badge text-bg-light border" style="font-size:0.65rem;font-weight:normal;">${_escape(_effectiveTaxRate(e))}</span>` : ''}
               ${e.note ? `<span class="list-sp-note-wrap expandable"><span class="list-sp-note">${_escape(e.note)}</span><i class="bi bi-chevron-down chevron"></i></span>` : ''}

@@ -502,12 +502,12 @@ const SummaryView = (() => {
       const unsettleBtn = isAdmin && isSettled
         ? `<button class="btn btn-outline-warning btn-sm py-0 px-1 drill-unsettle-btn" data-id="${_escape(e.id)}" title="精算を解除して${App.statusName('登録済')}に戻す"><i class="bi bi-arrow-counterclockwise"></i></button>` : '';
 
-      return `<tr data-expense-id="${_escape(e.id)}">
+      return `<tr data-expense-id="${_escape(e.id)}" class="${App.hasAudit(e) ? 'audit-row' : ''}">
         <td style="white-space:nowrap;">${shortDate}</td>
         <td>${_escape(e.place)}</td>
         <td class="text-end${hasExtra ? ' drill-amount-toggle' : ''}" data-row="${i}"
             style="${hasExtra ? 'cursor:pointer;' : ''}">
-          ${App.auditBadge(e)}${App.auditBadge(e) ? ' ' : ''}¥${Math.round(_amt(e)).toLocaleString()}
+          ¥${Math.round(_amt(e)).toLocaleString()}
           ${hasExtra ? '<i class="bi bi-chevron-down" style="font-size:0.6rem;opacity:0.55;margin-left:2px;vertical-align:middle;"></i>' : ''}
         </td>
         ${showName ? `<td class="text-muted" style="font-size:0.8rem;white-space:nowrap;">${_escape(App.getMemberName(e.email, e.name))}</td>` : ''}
@@ -519,6 +519,7 @@ const SummaryView = (() => {
             : e.confirmed
               ? `<span class="badge badge-confirmed rounded-pill px-2">${App.statusLabel('登録済')}</span>`
               : `<span class="badge badge-pending rounded-pill px-2">${App.statusLabel('申請済')}</span>`}
+          ${App.auditBadge(e) ? `<div class="mt-1">${App.auditBadge(e)}</div>` : ''}
         </td>
       </tr>
       ${hasExtra ? `<tr class="drill-detail-row d-none" data-row="${i}">
