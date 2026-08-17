@@ -258,27 +258,23 @@ const Demo = (() => {
   }
 
   /**
-   * デモデータにAI監査の指摘（K列相当）を付ける。
-   * 判定は本番と同じ App.invoiceMissing を使うので、デモの表示が実際の挙動とズレない。
-   * app.js は demo.js より後に読み込まれるため、参照時に一度だけ実行する。
+   * AI監査の指摘（K列相当）。本番では登録時にK列へ書き込まれる値を、デモでも再現する。
+   * 他ファイルに依存せずここで確定させる（app.js の読み込み順に左右されないようにするため）。
+   *
+   * ⚠️ 対象の選定ルールは App.invoiceMissing / サーバー _serverAuditChecks と同じ
+   *    「領収書・税込1万円以上・インボイス番号なし・課税」。
+   *    下の EXPENSES を増減・改変したら、該当するIDを見直すこと。
    */
-  let _auditApplied = false;
-  function _applyAudit() {
-    if (_auditApplied) return;
-    // App は const 宣言のため、評価前に触れると typeof でも TDZ で例外になる。
-    // 早すぎる参照でデモ全体が壊れないよう保護する（次回アクセス時に再挑戦する）。
-    let _app;
-    try { _app = App; } catch (_) { return; }
-    if (!_app || !_app.invoiceMissing) return;
-    _auditApplied = true;
-    EXPENSES.forEach(e => {
-      if (_app.invoiceMissing(e)) e.aiAudit = '⛔ ' + _app.INVOICE_MISSING_MSG;
-    });
-  }
+  const _AUDIT_INVOICE = '⛔ 1万円以上でインボイス番号が未入力です。領収書に登録番号（T＋13桁）の記載がないかご確認ください。';
+  [
+    'demo-c01', // AWS（クラウド利用料）      ¥38,500 会社払い
+    'demo-c03', // リクナビNEXT 掲載費        ¥55,000 会社払い
+    'demo-019', // ビックカメラ 有楽町店      ¥18,500 精算済
+    'demo-030', // ホテルグランヴィア         ¥14,000 未精算（精算ダイアログの確認用）
+  ].forEach(id => {
+    const e = EXPENSES.find(x => x.id === id);
+    if (e) e.aiAudit = _AUDIT_INVOICE;
+  });
 
-  return {
-    enable, disable, isActive, getRole, setRole, getUserEmail, MASTER, TEMPLATES,
-    SHEET_ID, COMPANY_NAME, REGULATION, shiftSvgDates, shiftedReceiptUrl,
-    get EXPENSES() { _applyAudit(); return EXPENSES; },
-  };
+  return { enable, disable, isActive, getRole, setRole, getUserEmail, MASTER, EXPENSES, TEMPLATES, SHEET_ID, COMPANY_NAME, REGULATION, shiftSvgDates, shiftedReceiptUrl };
 })();
