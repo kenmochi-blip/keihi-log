@@ -3606,7 +3606,9 @@ async function _lineRegister(userId, replyToken, pending) {
   const isAdmin = !!master && ((master.admins || []).includes(idLower) || (!!ownerEmail && idLower === ownerEmail));
 
   const d = pending.data;
-  const aiAudit = (pending.alerts && pending.alerts.length) ? ('⛔ ' + pending.alerts.join(' / ')) : '';
+  // 確認カードには全ての指摘を出すが、K列に残すのは後から検証できるものだけ
+  const _persist = _persistableAlerts(pending.alerts);
+  const aiAudit = _persist.length ? ('⛔ ' + _persist.join(' / ')) : '';
   const imageLink = pending.imageLink || '';
   // 会社払いは L列（精算日）に「会社払い（支払元）」を記録（Web版と同じ扱い＝精算不要・未精算一覧に出ない）
   const settlement = d.corpPay ? `会社払い（${d.paySource || 'その他'}）` : '';
@@ -3809,7 +3811,7 @@ function _serverAuditChecks(expenses, data, newHashes) {
   // 5. 高額（10万円以上）
   if (amount >= 100000) alerts.push(`高額（¥${amount.toLocaleString('ja-JP')}）です。内容をご確認ください`);
 
-  // 6. 2ヶ月以上前の日付
+  // 6. 2ヶ月以上前の日付（入力時の注意喚起のみ。K列には残さない → _persistableAlerts）
   if (_validDateStr(data.date)) {
     const dt = new Date(data.date + 'T00:00:00+09:00');
     const twoMonthsAgo = new Date(Date.now() - 62 * 86400000);
@@ -3817,6 +3819,21 @@ function _serverAuditChecks(expenses, data, newHashes) {
   }
 
   return alerts;
+}
+
+/**
+ * 監査結果のうち K列（＝一覧の「要確認」バッジ）に残すものだけを抽出する。
+ *
+ * 「日付が2ヶ月以上前」は日付の誤認識を入力者に気づかせるための検査で、
+ * 登録後に他人が真偽を検証する手立てが無い（本当に古い領収書なのか、AIが
+ * 読み違えたのかは記録からは判別できない）。日付が古いこと自体は不備でもなく、
+ * 初期移行で過去分をまとめて登録すると全件が要確認になってバッジが形骸化する。
+ * よって確認カードには出すが記録には残さない。
+ * Web版 submit.js も同様に確認ダイアログのみで _runAuditChecks には含めていない。
+ */
+const AUDIT_INPUT_ONLY_PREFIXES = ['日付が2ヶ月以上前'];
+function _persistableAlerts(alerts) {
+  return (alerts || []).filter(a => !AUDIT_INPUT_ONLY_PREFIXES.some(p => String(a).startsWith(p)));
 }
 
 /* ── 管理者エンドポイント: 連携コード発行 / 解除 ── */
