@@ -84,6 +84,9 @@ const App = (() => {
       return;
     }
 
+    // Sentry にユーザー識別子を付ける（エラー発生時にどの環境かを追えるようにする）
+    _tagSentry();
+
     // ライセンス・シート未設定の場合
     let licKey = localStorage.getItem('keihi_license_key');
     const ssId = localStorage.getItem('keihi_sheet_id');
@@ -913,6 +916,27 @@ const App = (() => {
    * メンバー管理表に登録された名前を返す。
    * 未登録の場合は fallback（シートのB列名やGoogle表示名）を使用。
    */
+  /**
+   * Sentry にユーザー識別情報を付与する。
+   * メールはそのまま送らず SHA-256 の先頭12桁にする（LINE の合成IDと同じ方式）。
+   * 同一人物のエラーをまとめて追えるが、Sentry 側から個人は特定できない。
+   * 誰かを特定したい場合は経費ログのマスタ表のメールを同じ方式でハッシュ化して突き合わせる。
+   */
+  async function _tagSentry() {
+    if (typeof Sentry === 'undefined' || !Sentry.setUser) return;
+    try {
+      const email = (Auth.getUserEmail() || '').toLowerCase();
+      if (email && window.crypto?.subtle) {
+        const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(email));
+        const id = [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 12);
+        Sentry.setUser({ id });
+      }
+      // 組織（経費ログ）は alias で分かる。どのチームで起きているかの切り分け用。
+      const alias = localStorage.getItem('keihi_alias');
+      if (alias) Sentry.setTag('org', alias);
+    } catch (_) { /* 識別情報が付かなくてもアプリの動作には影響させない */ }
+  }
+
   function getMemberName(email, fallback) {
     if (!email || !_masterCache?.members?.length) return fallback || email || '';
     const member = _masterCache.members.find(m => m.email.toLowerCase() === email.toLowerCase());
