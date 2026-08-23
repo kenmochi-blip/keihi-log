@@ -1435,8 +1435,10 @@ function _bindSubtypePills(el) {
 
   /** 「定期経費を登録」ボタン押下 → 注意事項＋登録候補一覧をポップアップで表示する。 */
   function _openTemplateMenu(el) {
+    // 未登録・登録済のどちらでも設定タブへの導線を出す（追加を思い立ったときにすぐ行けるように）
+    const gotoLink = '<a href="#" class="lnk-goto-templates">コチラ</a>';
     const listHtml = _templates.length === 0
-      ? '<div class="text-muted small text-center py-3">テンプレートがまだ登録されていません。<br>設定タブの「定期経費テンプレート」から登録してください。</div>'
+      ? `<div class="text-muted small text-center py-3">テンプレートがまだ登録されていません。<br>${gotoLink}から登録してください。</div>`
       : `<div class="d-flex flex-column gap-2">
           ${_templates.map(t => `
             <button type="button" class="btn btn-outline-primary btn-sm text-start template-menu-btn" data-id="${t.id}">
@@ -1446,7 +1448,8 @@ function _bindSubtypePills(el) {
               </div>
             </button>`).join('')}
         </div>
-        ${_templates.length > 1 ? `<button type="button" class="btn btn-link btn-sm mt-2 p-0" id="btnBulkTemplateInModal">まとめて登録</button>` : ''}`;
+        ${_templates.length > 1 ? `<button type="button" class="btn btn-link btn-sm mt-2 p-0" id="btnBulkTemplateInModal">まとめて登録</button>` : ''}
+        <div class="text-center mt-3 small text-muted">追加登録は${gotoLink}から</div>`;
 
     const div = document.createElement('div');
     div.innerHTML = `
@@ -1482,6 +1485,27 @@ function _bindSubtypePills(el) {
       modal.hide();
       _bulkRegisterTemplates(el);
     });
+    div.querySelectorAll('.lnk-goto-templates').forEach(a => {
+      a.addEventListener('click', ev => { ev.preventDefault(); _gotoTemplateSettings(modal); });
+    });
+  }
+
+  /**
+   * 設定タブの「定期経費テンプレート」まで移動して、その場所を一瞬光らせる。
+   * 「設定タブの◯◯から登録してください」と文字で案内するより、実際に連れて行くほうが早い。
+   */
+  async function _gotoTemplateSettings(modal) {
+    modal?.hide();
+    if (typeof Router === 'undefined') return;
+    await Router.navigate('settings');
+    const sec = document.getElementById('sectionTemplates');
+    if (!sec) return;
+    // 上部ナビが固定表示のため、その分だけ手前で止める
+    const navH = document.querySelector('nav.navbar')?.getBoundingClientRect().height || 0;
+    const y = sec.getBoundingClientRect().top + window.scrollY - navH - 8;
+    window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+    sec.classList.add('section-flash');
+    setTimeout(() => sec.classList.remove('section-flash'), 1800);
   }
 
   /** 定期経費テンプレート全件を、本日の日付で「領収書なし」として一括登録する。 */

@@ -283,8 +283,9 @@ const SettingsView = (() => {
     </div>
   </div>
 
-  <!-- 定期経費テンプレート（管理者のみ・家賃/新聞代/通信費など口座振替の定額経費用） -->
-  <div class="card mb-3">
+  <!-- 定期経費テンプレート（管理者のみ・家賃/新聞代/通信費など口座振替の定額経費用）
+       id は登録タブの「定期経費を登録」ポップアップからの導線でスクロール先に使う -->
+  <div class="card mb-3" id="sectionTemplates">
     <div class="card-body">
       <div class="settings-section-title d-flex justify-content-between align-items-center">
         <span>定期経費テンプレート</span>

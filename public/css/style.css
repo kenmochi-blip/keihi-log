@@ -199,6 +199,14 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 .history-audit { margin-top: 0.4rem; }
 .history-card.audit-row { box-shadow: inset 3px 0 0 #e74c3c; }
 .list-audit-detail td { padding: 0.4rem 0.75rem; }
+
+/* 別タブへ飛ばしたあと「どこに来たか」を一瞬示すハイライト */
+.section-flash { animation: sectionFlash 1.8s ease-out; }
+@keyframes sectionFlash {
+  0%   { box-shadow: 0 0 0 3px rgba(13,110,253,0.55); }
+  70%  { box-shadow: 0 0 0 3px rgba(13,110,253,0.35); }
+  100% { box-shadow: 0 0 0 3px rgba(13,110,253,0); }
+}
 .audit-row > td:first-child { box-shadow: inset 3px 0 0 #e74c3c; }
 .list-sp-card.audit-row { box-shadow: inset 3px 0 0 #e74c3c; }
 
