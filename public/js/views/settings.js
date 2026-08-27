@@ -1644,6 +1644,16 @@ const SettingsView = (() => {
   /** 証票保存の状態に応じた案内HTML（連携コードモーダル内に表示・有効化ボタンは置かない）。 */
   function _lineDriveSectionHtml(s) {
     if (!s) return '';
+    // 保存されていても、トークンが失効していれば証票は保存されない。
+    // 「設定済み」と「実際に動く」は別物なので分けて表示する。
+    if (s.enabled && s.valid === false) {
+      return `<div class="alert alert-warning py-2 px-3 small text-start mt-3 mb-0" id="lineDriveBox">
+        <i class="bi bi-exclamation-triangle-fill me-1"></i><strong>証票保存の認証が切れています</strong><br>
+        いまのままではLINEから送った画像が保存されません。${s.isOwner
+          ? '下の「証票保存を有効化」を押し直してください。'
+          : `オーナー（${_escape(s.ownerEmail || 'ライセンス購入者')}）に有効化し直すようご依頼ください。`}
+        <a href="#" class="ms-2 text-danger" id="lineDriveDisableLink">無効化</a></div>`;
+    }
     if (s.enabled) {
       return `<div class="alert alert-success py-2 px-3 small text-start mt-3 mb-0" id="lineDriveBox">
         <i class="bi bi-check-circle-fill me-1"></i>証票画像も保存されます

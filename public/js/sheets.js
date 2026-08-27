@@ -84,6 +84,14 @@ const Sheets = (() => {
   function enableLineDrive(refreshToken, ssId) {
     return _proxyWrite('linedrivetoken', ssId || _ssId(), 'POST', { refreshToken });
   }
+  /**
+   * 保存済みリフレッシュトークンを、いまログイン中のもので静かに最新化する（オーナーのみ）。
+   * 再ログインを繰り返すとGoogleが古いトークンを無効化するため、放置すると証票保存が突然止まる。
+   * サーバー側で「既存が有効なら何もしない／新しい方も検証してから保存」を行う。
+   */
+  function refreshLineDriveToken(refreshToken, ssId) {
+    return _proxyWrite('linedrivetoken', ssId || _ssId(), 'POST', { refreshToken, silent: true });
+  }
   /** LINE証票保存を無効化（admin専用）。 */
   function disableLineDrive(ssId) {
     return _proxyWrite('linedrivetoken', ssId || _ssId(), 'DELETE', undefined);
@@ -787,6 +795,7 @@ const Sheets = (() => {
     unlinkLine,
     getLineDriveStatus,
     enableLineDrive,
+    refreshLineDriveToken,
     disableLineDrive,
     getLineLinks,
     getTemplates,

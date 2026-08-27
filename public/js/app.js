@@ -86,6 +86,8 @@ const App = (() => {
 
     // Sentry にユーザー識別子を付ける（エラー発生時にどの環境かを追えるようにする）
     _tagSentry();
+    // LINE証票保存のトークンを静かに最新化する（失効による保存停止を防ぐ）
+    _healLineDriveToken();
 
     // ライセンス・シート未設定の場合
     let licKey = localStorage.getItem('keihi_license_key');
@@ -916,6 +918,27 @@ const App = (() => {
    * メンバー管理表に登録された名前を返す。
    * 未登録の場合は fallback（シートのB列名やGoogle表示名）を使用。
    */
+  /**
+   * LINE証票保存に使うオーナーのリフレッシュトークンを、ログインのたびに静かに最新化する。
+   *
+   * 有効化した瞬間のトークンを保存しているだけだと、オーナーが再ログイン（consent付き）を
+   * 繰り返したときにGoogleが古いトークンを無効化し、ある日突然 invalid_grant で
+   * 証票が保存されなくなる。ログイン時に上書きしておけば常に生きたトークンが入る。
+   *
+   * サーバー側で「オーナー本人か」「既存が有効なら何もしない」「新しい方も検証してから保存」を
+   * 判定するため、ここでは投げるだけでよい。失敗しても本体の動作には影響させない。
+   */
+  async function _healLineDriveToken() {
+    try {
+      if (typeof Demo !== 'undefined' && Demo.isActive()) return;
+      if (sessionStorage.getItem('keihi_linedrive_healed') === '1') return; // 1セッション1回で十分
+      const rt = Auth.getRefreshToken && Auth.getRefreshToken();
+      if (!rt || !localStorage.getItem('keihi_sheet_id')) return;
+      sessionStorage.setItem('keihi_linedrive_healed', '1');
+      await Sheets.refreshLineDriveToken(rt);
+    } catch (_) { /* オーナー以外は403。想定内なので何もしない */ }
+  }
+
   /**
    * Sentry にユーザー識別情報を付与する。
    * メールはそのまま送らず SHA-256 の先頭12桁にする（LINE の合成IDと同じ方式）。

@@ -2600,7 +2600,7 @@ async function _processLineImage(userId, replyToken, messageId, link) {
     // ⚠️ SAは自分のドライブ容量を持たないためMy Driveフォルダには新規ファイルを作成できない
     //    （Service Accounts do not have storage quota）。共有ドライブ or オーナートークンが必要。
     //    オーナートークンでの保存（設定で有効化・①）が未認可の間は、証票なしで登録を続行する。
-    let imageLink = '', driveFileId = '', imageStored = false;
+    let imageLink = '', driveFileId = '', imageStored = false, uploadErr = null;
     const driveExt = mime.includes('png') ? 'png' : mime.includes('pdf') ? 'pdf' : 'jpg';
     try {
       const driveInfo = await _lineUploadReceipt(sheetId, buf, mime);
@@ -2608,6 +2608,7 @@ async function _processLineImage(userId, replyToken, messageId, link) {
       driveFileId = driveInfo.id || '';
       imageStored = true;
     } catch (upErr) {
+      uploadErr = upErr;
       console.error('line receipt upload skipped (fallback):', upErr?.message || upErr);
     }
 
@@ -2620,7 +2621,8 @@ async function _processLineImage(userId, replyToken, messageId, link) {
     const data = await _lineParsedToData(parsed, categories);
     data.imageLink = imageLink;
     if (!imageStored) {
-      data.note = [data.note, '※証票画像は未保存（LINE証票保存の有効化が必要）'].filter(Boolean).join('\n');
+      // 理由によって管理者がやるべきことが違うので、同じ文言にまとめない
+      data.note = [data.note, _receiptFailNote(uploadErr)].filter(Boolean).join('\n');
     }
 
     // 監査チェック（既存経費と突合）
@@ -2652,6 +2654,21 @@ async function _processLineImage(userId, replyToken, messageId, link) {
     }
     return _lineReply(replyToken, _lineText(hint));
   }
+}
+
+/** 証票を保存できなかったときの備考文。原因ごとに「誰が何をすればよいか」を書く。 */
+function _receiptFailNote(err) {
+  const msg = String(err?.message || err || '');
+  if (err?.code === 'no_owner_token' || msg.includes('no_owner_token')) {
+    return '※証票画像は未保存（オーナーが設定タブで「証票保存を有効化」し直してください）';
+  }
+  if (msg.includes('証票フォルダ')) {
+    return '※証票画像は未保存（設定タブで証票フォルダを指定してください）';
+  }
+  if (/storageQuota|quota/i.test(msg)) {
+    return '※証票画像は未保存（Googleドライブの空き容量が不足しています）';
+  }
+  return '※証票画像は未保存（保存時にエラーが発生しました）';
 }
 
 /**
@@ -2726,6 +2743,32 @@ function _decryptToken(b64) {
  * オーナーのリフレッシュトークン（KV保管）から有効なアクセストークンを得る。
  * 未設定・失効時は null。アクセストークンは in-proc に50分キャッシュ。
  */
+/** リフレッシュトークンを実際に交換してみる。使えなければ null。保存前の検証に使う。 */
+async function _exchangeRefreshToken(refreshToken) {
+  try {
+    const resp = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: process.env.GOOGLE_CLIENT_ID || '',
+        client_secret: process.env.GOOGLE_CLIENT_SECRET || '',
+        refresh_token: refreshToken,
+        grant_type: 'refresh_token',
+      }),
+      signal: AbortSignal.timeout(15000),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok || !data.access_token) {
+      console.error('refresh token verify failed:', data.error || resp.status);
+      return null;
+    }
+    return data.access_token;
+  } catch (e) {
+    console.error('refresh token verify error:', e?.message || e);
+    return null;
+  }
+}
+
 async function _ownerAccessToken(sheetId) {
   const cacheKey = `linedrive:at:${sheetId}`;
   const cached = _inProcGet(cacheKey);
@@ -2815,8 +2858,12 @@ async function lineDriveToken(req, res) {
 
   if (req.method === 'GET') {
     const stored = await kv.get(key).catch(() => null);
+    // 保存の有無だけでなく「そのトークンで実際にアクセストークンを取れるか」まで見る。
+    // 有無しか見ないと、失効しても「有効」と表示され続けて失敗に気づけない。
+    const valid = stored?.enc ? !!(await _ownerAccessToken(authz.sheetId)) : false;
     return res.status(200).json({
       enabled: !!stored?.enc,
+      valid,
       ownerEmail: authz.ownerEmail || '',
       byEmail: stored?.email || '',
       isOwner: !!authz.ownerEmail && authz.me.email === authz.ownerEmail,
@@ -2838,13 +2885,28 @@ async function lineDriveToken(req, res) {
     }
     const body = (await _body(req)) || {};
     const refreshToken = String(body.refreshToken || '').trim();
+    const silent = body.silent === true;   // オーナーのログイン時に自動で最新化する用
     if (!refreshToken) return res.status(400).json({ error: 'no_refresh_token', message: 'リフレッシュトークンがありません。一度サインアウトして再度ログインしてからお試しください。' });
+
+    // 保存する前に新しいトークンが本当に使えるかを確かめる。
+    // 検証せずに上書きすると、生きているトークンを死んだもので潰す事故が起きる。
+    const fresh = await _exchangeRefreshToken(refreshToken);
+    if (!fresh) {
+      if (silent) return res.status(200).json({ ok: false, reason: 'invalid_token', enabled: undefined });
+      return res.status(400).json({ error: 'invalid_token', message: 'このアカウントの認証情報が無効です。一度サインアウトして再度ログインしてからお試しください。' });
+    }
+
+    // silent（自動更新）は、既に有効なトークンが入っているなら何もしない
+    if (silent) {
+      const cur = await kv.get(key).catch(() => null);
+      if (!cur?.enc) return res.status(200).json({ ok: false, reason: 'not_enabled' });
+      if (await _ownerAccessToken(authz.sheetId)) return res.status(200).json({ ok: true, refreshed: false });
+    }
 
     await kv.set(key, { enc: _encryptToken(refreshToken), email: authz.me.email, at: _nowJst() }).catch(() => {});
     _inProcDel(`linedrive:at:${authz.sheetId}`);
-    // 動作確認: すぐアクセストークンを取得できるか
-    const ok = !!(await _ownerAccessToken(authz.sheetId));
-    return res.status(200).json({ ok: true, enabled: true, verified: ok });
+    if (silent) console.log(`[linedrive] token self-healed for ${authz.sheetId}`);
+    return res.status(200).json({ ok: true, enabled: true, verified: true, refreshed: !!silent });
   }
 
   return res.status(405).json({ error: 'method_not_allowed' });
