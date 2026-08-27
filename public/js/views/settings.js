@@ -52,6 +52,9 @@ const SettingsView = (() => {
     <div class="card-body">
       <div class="settings-section-title">証票保存フォルダ</div>
       <div id="folderOpenLinkWrap"></div>
+      <!-- LINE証票保存の状態。連携コード発行モーダルの中だけだと誰も見ないため、
+           普段見る設定タブ本体に出して、認証切れに気づけるようにする。 -->
+      <div id="lineDriveStatusWrap" class="mt-2"></div>
     </div>
   </div>` : ''}
 
@@ -754,6 +757,9 @@ const SettingsView = (() => {
         : '<span class="text-muted small">フォルダが設定されていません</span>';
     };
     _setFolderLink(currentFolderId);
+
+    // LINE証票保存の状態を設定タブ本体に表示（認証切れを普段の画面で気づけるように）
+    _loadLineDriveStatus(el);
 
     // チームURLリアルタイム重複チェック
     let _aliasCheckTimer = null;
@@ -1639,6 +1645,57 @@ const SettingsView = (() => {
     }
     // LINE連携もチームプラン限定（ソロは行のLINEボタンを無効化）
     el.querySelectorAll('.btn-line-code').forEach(b => { b.disabled = isSolo; });
+  }
+
+  /**
+   * 設定タブ本体に LINE証票保存の状態を出す。
+   * 連携コード発行モーダルの中だけだと、既に運用中の組織は誰も開かないため
+   * 認証切れに気づけない（実際に本番で気づかないまま止まっていた）。
+   * 失効時のみオーナー向けに再有効化ボタンも並べる。
+   */
+  async function _loadLineDriveStatus(el) {
+    const wrap = el.querySelector('#lineDriveStatusWrap');
+    if (!wrap) return;
+    if (typeof Demo !== 'undefined' && Demo.isActive()) {
+      wrap.innerHTML = _lineDriveStatusRow({ enabled: true, valid: true, isOwner: true });
+      return;
+    }
+    let s = null;
+    try { s = await Sheets.getLineDriveStatus(); } catch (_) { return; }
+    wrap.innerHTML = _lineDriveStatusRow(s);
+    wrap.querySelector('#btnDriveReenable')?.addEventListener('click', async (ev) => {
+      const b = ev.currentTarget;
+      b.disabled = true; b.textContent = '有効化しています…';
+      try {
+        const rt = Auth.getRefreshToken && Auth.getRefreshToken();
+        if (!rt) { App.showToast('一度サインアウトして再度ログインしてからお試しください', 'warning'); return; }
+        const r = await Sheets.enableLineDrive(rt);
+        App.showToast(r.verified ? '証票保存を有効化しました' : '有効化に失敗しました', r.verified ? 'success' : 'danger');
+        await _loadLineDriveStatus(el);
+      } catch (err) {
+        App.showToast('有効化に失敗しました：' + (err.message || ''), 'danger');
+      } finally {
+        b.disabled = false;
+      }
+    });
+  }
+
+  /** 設定タブ用の1行表示。3状態（有効／認証切れ／未設定）を出し分ける。 */
+  function _lineDriveStatusRow(s) {
+    if (!s) return '';
+    if (s.enabled && s.valid === false) {
+      return `<div class="alert alert-warning py-2 px-3 small mb-0">
+        <i class="bi bi-exclamation-triangle-fill me-1"></i><strong>LINE証票保存の認証が切れています</strong><br>
+        いまのままではLINEから送られた画像が保存されません。${s.isOwner
+          ? '<button type="button" class="btn btn-warning btn-sm mt-2" id="btnDriveReenable">証票保存を有効化し直す</button>'
+          : `オーナー（${_escape(s.ownerEmail || 'ライセンス購入者')}）に有効化し直すようご依頼ください。`}
+      </div>`;
+    }
+    if (s.enabled) {
+      return `<div class="text-success small mt-1"><i class="bi bi-check-circle-fill me-1"></i>LINEから送られた証票画像も保存されます</div>`;
+    }
+    return `<div class="text-muted small mt-1"><i class="bi bi-info-circle me-1"></i>LINEから送られた証票画像は保存されません${
+      s.isOwner ? '（メンバーの連携コード発行時に有効化できます）' : ''}</div>`;
   }
 
   /** 証票保存の状態に応じた案内HTML（連携コードモーダル内に表示・有効化ボタンは置かない）。 */
