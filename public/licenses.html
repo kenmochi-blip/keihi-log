@@ -116,6 +116,7 @@
     .action-btn { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 5px; border: 1px solid var(--border); background: transparent; color: var(--text-mute); cursor: pointer; transition: all 0.15s; font-size: 0.8rem; }
     .action-btn:hover.upgrade { background: #fef3c7; border-color: #fbbf24; color: #92400e; }
     .action-btn:hover.delete  { background: #fee2e2; border-color: #fca5a5; color: #991b1b; }
+    .action-btn:hover.extend  { background: #dcfce7; border-color: #86efac; color: #166534; }
     .mini-stat { background: var(--surface-sub); border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem 0.75rem; text-align: center; }
     .mini-stat .v { font-size: 1.3rem; font-weight: 700; line-height: 1; }
     .mini-stat .l { font-size: 0.68rem; color: var(--text-mute); margin-top: 3px; }
@@ -1993,12 +1994,14 @@
           <td>${_referrerCell(l)}</td>
           <td class="pe-last" style="text-align:right;white-space:nowrap;">
             ${!isStripe && !l.upgradedAt ? `<button class="action-btn upgrade btn-upgrade me-1" data-key="${esc(l.key)}" title="有料転換"><i class="bi bi-arrow-up-circle"></i></button>` : ''}
+            ${!isStripe && l.expiresAt !== EXTEND_TO ? `<button class="action-btn extend btn-extend me-1" data-key="${esc(l.key)}" title="有効期限を ${EXTEND_TO} まで延長（集計には影響しません）"><i class="bi bi-calendar-plus"></i></button>` : ''}
             <button class="action-btn btn-plan-change me-1" data-key="${esc(l.key)}" data-plan="${plan}" title="プラン変更" style="font-size:0.7rem;width:auto;padding:0 6px;gap:2px;"><i class="bi bi-arrow-left-right"></i>${plan === 'team' ? 'ソロへ' : 'チームへ'}</button>
             <button class="action-btn delete btn-delete" data-key="${esc(l.key)}" title="削除"><i class="bi bi-trash"></i></button>
           </td>
         </tr>`;
       }).join('');
       tbody.querySelectorAll('.btn-upgrade').forEach(btn => btn.addEventListener('click', () => upgradeLicense(btn.dataset.key)));
+      tbody.querySelectorAll('.btn-extend').forEach(btn => btn.addEventListener('click', () => extendLicense(btn.dataset.key)));
       tbody.querySelectorAll('.btn-plan-change').forEach(btn => btn.addEventListener('click', () => changePlan(btn.dataset.key, btn.dataset.plan)));
       tbody.querySelectorAll('.btn-delete').forEach(btn => btn.addEventListener('click', () => deleteLicense(btn.dataset.key)));
       tbody.querySelectorAll('.referrer-select').forEach(sel => sel.addEventListener('change', () => setReferrer(sel.dataset.key, sel.value)));
@@ -2037,6 +2040,26 @@
       a.href = URL.createObjectURL(new Blob(['﻿'+csv], { type: 'text/csv;charset=utf-8;' }));
       a.download = `licenses_${new Date().toISOString().split('T')[0]}.csv`;
       a.click();
+    }
+
+    // 手動発行ライセンスの実質無期限化。有効期限だけを書き換え、upgradedAt は付けない
+    // （付けると「有料転換」として集計され、実際には課金していないのにKPIが動いてしまう）。
+    const EXTEND_TO = '2099-12-31';
+
+    async function extendLicense(key) {
+      const lic = _all.find(l => l.key === key);
+      const org = lic ? (lic.businessName || lic.company || lic.customerName || lic.email || '') : '';
+      if (!confirm(`有効期限を ${EXTEND_TO} まで延長しますか？\n${org}\n${key}\n\n現在: ${lic?.expiresAt || '—'}\n\n期限だけを変更します（有料転換としては集計されません）。`)) return;
+      const resp = await fetch('/api/admin-licenses', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        // trial:false を必ず送る。省略すると trial:true になりトライアル中として集計される
+        body: JSON.stringify({ key, action: 'mark_trial', trial: false, expiresAt: EXTEND_TO }),
+      });
+      if (!resp.ok) { alert('処理に失敗しました'); return; }
+      const data = await resp.json();
+      const idx = _all.findIndex(l => l.key === key);
+      if (idx !== -1) _all[idx] = { ..._all[idx], ...data };
+      updateStats(); updateMonthly(); render();
     }
 
     async function upgradeLicense(key) {
