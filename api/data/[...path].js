@@ -2404,6 +2404,18 @@ async function _isTeamPlanActive(sheetId) {
   return active && plan === 'team';
 }
 
+/**
+ * 連携リストのうちチームプランが有効な経費ログだけを残す。
+ * 連携レコードはプラン変更（チーム→ソロ）では消えないため、
+ * 読み取り系（履歴・未精算）でも都度プランを確認する必要がある。
+ */
+async function _teamPlanLinks(links) {
+  const flags = await Promise.all((links || []).map(l => _isTeamPlanActive(l.sheetId).catch(() => false)));
+  return (links || []).filter((_, i) => flags[i]);
+}
+
+const LINE_TEAM_ONLY_MSG = 'LINE連携はチームプランでご利用いただけます。管理者にプランをご確認ください。';
+
 /** identity（メール or 合成ID）が現在もマスタ表のメンバーか再検証し、名前を返す。 */
 async function _lineMemberName(sheetId, identity) {
   const master = await readMasterCached(sheetId).catch(() => null);
@@ -2920,6 +2932,9 @@ async function lineLinks(req, res) {
   const authz = await _authorize(req, res);
   if (!authz) return;
   if (!authz.isAdmin) return res.status(403).json({ error: 'admin_only' });
+  // ソロプランではLINE連携そのものが使えない。過去（トライアル中など）の連携レコードは
+  // 残るため、プランを見ずに返すと「LINE接続済」バッジだけが出続けてしまう。
+  if (!(await _isTeamPlanActive(authz.sheetId))) return res.status(200).json({ identities: [], teamPlan: false });
   const ids = await kv.smembers(`line:link_by_sheet:${authz.sheetId}`).catch(() => []);
   const identities = [];
   for (const uid of (ids || [])) {
@@ -3734,8 +3749,10 @@ async function _lineRegister(userId, replyToken, pending) {
 /* ── 未精算一覧 ── */
 
 async function _handleLineUnsettled(userId, replyToken) {
-  const links = await _lineLinks(userId);
-  if (!links.length) return _lineReply(replyToken, _lineText('未連携です。連携コードを送信してください。'));
+  const all = await _lineLinks(userId);
+  if (!all.length) return _lineReply(replyToken, _lineText('未連携です。連携コードを送信してください。'));
+  const links = await _teamPlanLinks(all);
+  if (!links.length) return _lineReply(replyToken, _lineText(LINE_TEAM_ONLY_MSG));
   _lineEnsureUserMenu(userId).catch(() => {});
   const multi = links.length > 1;
 
@@ -3782,8 +3799,10 @@ function _expStatusLabel(e) {
 
 /** 自分の直近の申請（全ステータス）を返す。リッチメニュー「自分の申請」。 */
 async function _handleLineHistory(userId, replyToken) {
-  const links = await _lineLinks(userId);
-  if (!links.length) return _lineReply(replyToken, _lineText('未連携です。連携コードを送信してください。'));
+  const all = await _lineLinks(userId);
+  if (!all.length) return _lineReply(replyToken, _lineText('未連携です。連携コードを送信してください。'));
+  const links = await _teamPlanLinks(all);
+  if (!links.length) return _lineReply(replyToken, _lineText(LINE_TEAM_ONLY_MSG));
   _lineEnsureUserMenu(userId).catch(() => {});
   const multi = links.length > 1;
 

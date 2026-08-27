@@ -549,8 +549,8 @@ const App = (() => {
         if (lic) {
           _updateTrialBanner(lic);
           // 設定タブの trialUpgradeBox も更新（設定タブ表示中なら反映）
-          if (typeof Settings !== 'undefined' && Settings.refreshLicenseUI) {
-            Settings.refreshLicenseUI(lic);
+          if (typeof SettingsView !== 'undefined' && SettingsView.refreshLicenseUI) {
+            SettingsView.refreshLicenseUI(lic);
           }
           // 有料へ切り替わった → 完了。アップグレード待ちフラグを解除
           if (lic.valid && !lic.trial) {

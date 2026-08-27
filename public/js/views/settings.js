@@ -1643,7 +1643,17 @@ const SettingsView = (() => {
       hint?.classList.add('d-none');
       warn?.classList.add('d-none');
     }
-    // LINE連携もチームプラン限定（ソロは行のLINEボタンを無効化）
+    // LINE連携はチームプラン限定。ソロではLINE関連の表示を丸ごと消す。
+    // 連携レコードはチーム→ソロに変えても消えないため、放置すると
+    // 使えないのに「LINE接続済」バッジや証票保存の案内だけが残る。
+    const driveWrap = el.querySelector('#lineDriveStatusWrap');
+    if (isSolo) {
+      if (driveWrap) driveWrap.innerHTML = '';
+      if (_lineLinkedSet.size) { _lineLinkedSet = new Set(); _renderMembers(el); }
+    } else if (driveWrap && !driveWrap.innerHTML) {
+      _loadLineDriveStatus(el);
+    }
+    // 再描画後のボタンにも効かせるため最後に適用する
     el.querySelectorAll('.btn-line-code').forEach(b => { b.disabled = isSolo; });
   }
 
@@ -1660,6 +1670,8 @@ const SettingsView = (() => {
       wrap.innerHTML = _lineDriveStatusRow({ enabled: true, valid: true, isOwner: true });
       return;
     }
+    // ソロプランはLINE連携そのものが使えないので何も出さない
+    if (_getCachedLicenseResult()?.plan === 'solo') { wrap.innerHTML = ''; return; }
     let s = null;
     try { s = await Sheets.getLineDriveStatus(); } catch (_) { return; }
     wrap.innerHTML = _lineDriveStatusRow(s);
