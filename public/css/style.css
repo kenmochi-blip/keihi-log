@@ -773,3 +773,9 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
   font-size: 0.85rem; cursor: pointer; flex-shrink: 0;
 }
 .chat-send-btn:disabled { background: #adb5bd; cursor: default; }
+
+/* ソロプランのLINEボタン：押せる状態のまま「まだ使えない」ことを示す。
+   disabled にすると理由を伝える機会がなくなるため、彩度だけ落として
+   クリックは受け付ける（押すとチームプランの案内が出る）。 */
+.btn-line-code.line-btn-locked img { filter: grayscale(0.7); opacity: 0.85; }
+.btn-line-code.line-btn-locked:hover img { filter: none; opacity: 1; }

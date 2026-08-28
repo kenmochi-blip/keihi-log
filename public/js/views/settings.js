@@ -715,7 +715,12 @@ const SettingsView = (() => {
       const line = e.target.closest('.btn-line-code');
       if (edit) _showMemberForm(el, Number(edit.dataset.index));
       if (del)  _deleteMember(el, Number(del.dataset.index));
-      if (line) _issueLineCode(el, Number(line.dataset.index));
+      // ソロプランではLINEボタンを「押せる広告」にしてある（無効化すると
+      // 灰色のアイコンが並ぶだけで、機能の存在が誰にも伝わらないため）。
+      if (line) {
+        if (line.dataset.upsell === '1') _showLineUpsell();
+        else _issueLineCode(el, Number(line.dataset.index));
+      }
     });
     ['#categoryList', '#paySourceList', '#customFlagList'].forEach(sel => {
       el.querySelector(sel)?.addEventListener('click', e => {
@@ -1653,8 +1658,58 @@ const SettingsView = (() => {
     } else if (driveWrap && !driveWrap.innerHTML) {
       _loadLineDriveStatus(el);
     }
-    // 再描画後のボタンにも効かせるため最後に適用する
-    el.querySelectorAll('.btn-line-code').forEach(b => { b.disabled = isSolo; });
+    // 再描画後のボタンにも効かせるため最後に適用する。
+    // ソロでも disabled にはしない：押せて理由が出るほうがアップグレードの動機になる。
+    el.querySelectorAll('.btn-line-code').forEach(b => {
+      b.dataset.upsell = isSolo ? '1' : '';
+      b.classList.toggle('line-btn-locked', isSolo);
+      b.title = isSolo ? 'LINE連携はチームプランの機能です' : 'このメンバーのLINE連携を設定';
+    });
+  }
+
+  /** ソロプランでLINEボタンを押したときの案内（チームプランへの導線）。 */
+  function _showLineUpsell() {
+    const div = document.createElement('div');
+    div.innerHTML = `
+      <div class="modal fade" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title"><i class="bi bi-chat-dots-fill me-2" style="color:#06C755;"></i>LINEで領収書を送るだけ</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <p class="small mb-3">経費ログの公式LINEに<strong>領収書の写真を送るだけ</strong>で、AIが日付・金額・支払先を読み取って
+              経費として登録します。アプリを開く必要はありません。</p>
+              <ul class="small mb-3 ps-3">
+                <li>撮って送るだけ。入力はAIにおまかせ</li>
+                <li>「未精算」「履歴」と送れば、その場で確認できる</li>
+                <li>証票画像もGoogleドライブに自動保存</li>
+                <li>Googleアカウントを持たないメンバーもLINEだけで参加できる</li>
+              </ul>
+              <div class="alert alert-light border py-2 px-3 small mb-0">
+                <i class="bi bi-info-circle me-1"></i>LINE連携は<strong>チームプラン（月額825円・税込）</strong>の機能です。
+                メンバーが何人でも定額でご利用いただけます。
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">閉じる</button>
+              <button type="button" class="btn btn-primary btn-sm" id="btnLineUpsellUpgrade">
+                <i class="bi bi-arrow-up-circle me-1"></i>プランを切り替える
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(div);
+    const modalEl = div.querySelector('.modal');
+    const modal = new bootstrap.Modal(modalEl);
+    modalEl.querySelector('#btnLineUpsellUpgrade').addEventListener('click', () => {
+      modal.hide();
+      _openStripePortal('update');
+    });
+    modalEl.addEventListener('hidden.bs.modal', () => div.remove());
+    modal.show();
   }
 
   /**
