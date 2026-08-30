@@ -3583,13 +3583,25 @@ async function _handleLinePostback(userId, replyToken, dataStr) {
     await kv.set(`line:pending:${userId}`, pending, { ex: 600 }).catch(() => {});
     return _lineReply(replyToken, _lineConfirmMessage(_lineSummary(pending.data, pending.alerts)));
   }
-  // 支払方法: 自分の立替 / 会社払い（→支払元選択）
+  // 支払方法。既定が「自分の立替」なので、この操作をする人はほぼ会社払いにしたい。
+  // 「自分の立替／会社払い」の二択を挟まず、いきなり支払元（会社カード・銀行名）を出す。
+  // 立替に戻したい場合のために「自分の立替」を末尾に置く。
   if (action === 'paymethod') {
     if (!pending) return _lineReply(replyToken, _lineText('時間切れです。もう一度画像を送ってください。'));
-    return _lineReply(replyToken, _lineText('支払方法を選んでください:', [
-      _qpPostback('自分の立替', 'action=setpay&corp=0'),
-      _qpPostback('会社払い',   'action=setpay&corp=1'),
-    ]));
+    const link = await _pendingLink(userId, pending);
+    const master = link ? await readMasterCached(link.sheetId).catch(() => null) : null;
+    // クイックリプライは最大13件。支払元12件＋「自分の立替」で収める。
+    const sources = (master?.paySources || []).slice(0, 12);
+    if (!sources.length) {
+      // 支払元が未設定のチームは支払元を選べないので従来どおりの二択にする
+      return _lineReply(replyToken, _lineText('支払方法を選んでください:', [
+        _qpPostback('自分の立替', 'action=setpay&corp=0'),
+        _qpPostback('会社払い',   'action=setpay&corp=1'),
+      ]));
+    }
+    const items = sources.map(s => _qpPostback(s, `action=setpaysrc&s=${encodeURIComponent(s)}`));
+    items.push(_qpPostback('自分の立替', 'action=setpay&corp=0'));
+    return _lineReply(replyToken, _lineText('会社払いの支払元を選んでください:', items));
   }
   if (action === 'setpay') {
     if (!pending) return _lineReply(replyToken, _lineText('時間切れです。もう一度画像を送ってください。'));
