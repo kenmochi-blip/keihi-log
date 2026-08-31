@@ -799,8 +799,13 @@ const ListView = (() => {
 
   function _exportCsv(el) {
     const filtered = _getFiltered(el);
+    // 証票URLは列に含めない。閲覧経路が署名付きプロキシURL（相対パス・7日で失効）に
+    // 変わってからCSV上では開けなくなっており、恒久Drive URLに戻しても証票ファイルは
+    // SAにしか共有していないため受け取った側では開けない（drive.js の uploadFile 参照）。
+    // 証票の確認は経費ログの一覧、または証票フォルダのファイル名検索
+    // （日付_支払先_金額_申請者）で行う運用とする。
     const header = ['申請日時','申請者名','タイプ','日付','支払先','金額','勘定科目',
-      '備考','証票URL','ステータス','インボイス番号','申請者Email','ID','精算日','税区分','支払元','源泉徴収','カスタムフラグ'];
+      '備考','ステータス','インボイス番号','申請者Email','ID','精算日','税区分','支払元','源泉徴収','カスタムフラグ'];
     const _isoToSlash = s => s ? String(s).replace(/^(\d{4})-(\d{2})-(\d{2}).*/, '$1/$2/$3') : '';
     // 申請日時：Sheetsのシリアル値（例 46184.75）を YYYY/MM/DD HH:mm:ss へ整形。
     // 文字列日付はスラッシュ整形にフォールバック。
@@ -819,7 +824,6 @@ const ListView = (() => {
       const corpSrc = _corpPaySource(e);
       const paySource = corpSrc ? corpSrc : `個人（${App.getMemberName(e.email, e.name)}）`;
       const name = App.getMemberName(e.email, e.name);
-      const img = e.imageLinks.split(',')[0]?.trim() || '';
       const status = _getStatus(e);
       const wh = Number(e.withholding) || 0;
       // 複数科目（split）は勘定科目・税率ごとに1行ずつ出力。税率が混ざっても各行で表示（「混在」を出さない）。
@@ -832,7 +836,7 @@ const ListView = (() => {
         rows.push([
           _fmtAppliedAt(e.appliedAt), name, e.type, _isoToSlash(e.date), e.place, ln.amount,
           ln.cat,
-          e.note, img,
+          e.note,
           status, e.invoice, e.email, e.id,
           e.settlementDate || '', ln.tax, paySource,
           i === 0 ? wh : 0, e.customFlag || ''  // 源泉徴収は二重計上を避け先頭行のみ
