@@ -967,6 +967,11 @@ async function settingsWrite(req, res) {
   // 設定キャッシュを即削除（書き込み後に古い値が返され続けるのを防ぐ）
   _inProcDel(`cfg:settings:${authz.sheetId}`);
   kv.del(`cfg:settings:${authz.sheetId}`).catch(() => {});
+  // B3/B4から導出したキャッシュも同時に破棄（フォルダ変更・キー変更の即時反映）
+  _inProcDel(`cfg:folder:${authz.sheetId}`);
+  kv.del(`cfg:folder:${authz.sheetId}`).catch(() => {});
+  _inProcDel(`cfg:lickey:${authz.sheetId}`);
+  kv.del(`cfg:lickey:${authz.sheetId}`).catch(() => {});
   // Geminiキー（B5）更新時はキーキャッシュも即削除
   if (cell === 'B5') {
     _inProcDel(`gemini:key:${authz.sheetId}`);
@@ -1135,12 +1140,8 @@ async function receiptUpload(req, res) {
   if (!base64) return res.status(400).json({ error: 'no_file' });
 
   try {
-    // 証票フォルダID（設定!B4）を SA で取得
-    const sheets = sheetsClient();
-    const cfg = await sheets.spreadsheets.values.get({
-      spreadsheetId: authz.sheetId, range: '設定!B4',
-    });
-    const folderId = cfg.data.values?.[0]?.[0] || '';
+    // 証票フォルダID（設定!B4・5分キャッシュ）
+    const folderId = await getReceiptFolderId(authz.sheetId);
     if (!folderId) return res.status(500).json({ error: 'no_folder_id', message: '設定シートB4にフォルダIDが設定されていません' });
 
     const clean = base64.replace(/^data:[^;]+;base64,/, '');
@@ -2383,10 +2384,20 @@ async function _readPlanInfo(sheetId) {
   const settKey = `cfg:settings:${sheetId}`;
   let licKey = (_inProcGet(settKey) || await kv.get(settKey).catch(() => null))?.settings?.B3 || '';
   if (!licKey) {
+    // B4と同様の5分キャッシュ（ライセンスキーはセットアップ後ほぼ変わらない）
+    const lkKey = `cfg:lickey:${sheetId}`;
+    licKey = _inProcGet(lkKey) || await kv.get(lkKey).catch(() => null) || '';
+    if (licKey) _inProcSet(lkKey, licKey, 290_000);
+  }
+  if (!licKey) {
     try {
       const sheets = sheetsClient();
       const r = await sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range: '設定!B3' });
       licKey = r.data.values?.[0]?.[0] || '';
+      if (licKey) {
+        _inProcSet(`cfg:lickey:${sheetId}`, licKey, 290_000);
+        kv.set(`cfg:lickey:${sheetId}`, licKey, { ex: 300 }).catch(() => {});
+      }
     } catch (_) {}
   }
   if (!licKey) return { active: false, isTrial: false, plan: 'solo' };
@@ -2640,7 +2651,7 @@ async function _processLineImage(userId, replyToken, messageId, link) {
     }
 
     // 監査チェック（既存経費と突合）
-    const expenses = await readExpensesViaSA(sheetId).catch(() => []);
+    const expenses = await readExpensesCached(sheetId).catch(() => []);
     const alerts = _serverAuditChecks(expenses, data, [imageHash]);
 
     // pending 保存（TTL10分）。sheetId/identity を保持し、修正・登録・再監査が
@@ -2826,9 +2837,7 @@ async function _lineUploadReceipt(sheetId, buf, mime) {
   const accessToken = await _ownerAccessToken(sheetId);
   if (!accessToken) { const e = new Error('no_owner_token'); e.code = 'no_owner_token'; throw e; }
 
-  const sheets = sheetsClient();
-  const cfg = await sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range: '設定!B4' });
-  const folderId = cfg.data.values?.[0]?.[0] || '';
+  const folderId = await getReceiptFolderId(sheetId);
   if (!folderId) throw new Error('証票フォルダ(設定B4)未設定');
 
   const ext = mime.includes('png') ? 'png' : mime.includes('pdf') ? 'pdf' : 'jpg';
@@ -3433,7 +3442,7 @@ async function _lineTransitConfirm(userId, replyToken, pending, round) {
     amount, category, taxRate: '課税10%',
     note: '', corpPay: false, paySource: '', invoice: '', withholding: 0, imageLink: '',
   };
-  const expenses = await readExpensesViaSA(sheetId).catch(() => []);
+  const expenses = await readExpensesCached(sheetId).catch(() => []);
   const alerts = _serverAuditChecks(expenses, data, []);
   await kv.set(`line:pending:${userId}`, {
     data, sheetId, identity, alerts, aiAmount: amount, imageHash: '', imageLink: '', imageStored: false, step: 'confirm',
@@ -3672,7 +3681,7 @@ async function _reauditPending(userId, pending) {
   try {
     const link = await _pendingLink(userId, pending);
     if (!link) return pending.alerts || [];
-    const expenses = await readExpensesViaSA(link.sheetId).catch(() => []);
+    const expenses = await readExpensesCached(link.sheetId).catch(() => []);
     return _serverAuditChecks(expenses, { ...pending.data, aiAmount: pending.aiAmount }, [pending.imageHash]);
   } catch (_) { return pending.alerts || []; }
 }
@@ -3777,7 +3786,7 @@ async function _handleLineUnsettled(userId, replyToken) {
     const name = await _lineMemberName(sheetId, identity);
     if (name === null) continue; // このログでは既にメンバー外
     const idLower = String(identity).toLowerCase();
-    const expenses = await readExpensesViaSA(sheetId).catch(() => []);
+    const expenses = await readExpensesCached(sheetId).catch(() => []);
     // 自分の・未精算（L列空）のみ
     const mine = expenses.filter(e =>
       String(e.email).toLowerCase() === idLower &&
@@ -3826,7 +3835,7 @@ async function _handleLineHistory(userId, replyToken) {
     const name = await _lineMemberName(sheetId, identity);
     if (name === null) continue;
     const idLower = String(identity).toLowerCase();
-    const expenses = await readExpensesViaSA(sheetId).catch(() => []);
+    const expenses = await readExpensesCached(sheetId).catch(() => []);
     const mine = expenses.filter(e => String(e.email).toLowerCase() === idLower);
     if (!mine.length) continue;
     // 申請日時→日付の新しい順
@@ -3873,15 +3882,55 @@ async function expensesAudit(req, res) {
     ? body.imageHashes.map(String).filter(Boolean).slice(0, 10) : [];
   const excludeId = String(body.excludeId || '');
 
-  // 60秒キャッシュがあればSheets読み取りを増やさない（expenses GET と同じキー）
-  let expenses = await kv.get(`data:exp:${authz.sheetId}`).catch(() => null);
-  if (!Array.isArray(expenses)) {
-    expenses = await readExpensesViaSA(authz.sheetId).catch(() => null);
-  }
+  let expenses = await readExpensesCached(authz.sheetId).catch(() => null);
   if (!Array.isArray(expenses)) return res.status(503).json({ error: 'sheet_unavailable' });
   if (excludeId) expenses = expenses.filter(e => e.id !== excludeId);
 
   return res.status(200).json({ alerts: _serverAuditChecks(expenses, data, hashes) });
+}
+
+/**
+ * 経費一覧の全件読み（in-process → KV 60秒キャッシュ → Sheets）。
+ * expenses GET と同じキーを共有する。登録・編集・削除・精算などの書き込み系
+ * ハンドラが data:exp:{sheetId} を即時削除するため、書き込み直後の読みは
+ * 必ず最新になる（＝二重申請の検知はキャッシュ経由でも取りこぼさない）。
+ * LINEの監査・履歴・未精算が毎回Sheetsを直読みしてバーストを作っていたため導入。
+ */
+async function readExpensesCached(sheetId) {
+  const cacheKey = `data:exp:${sheetId}`;
+  let all = _inProcGet(cacheKey);
+  if (!all) {
+    all = await kv.get(cacheKey).catch(() => null);
+    if (all) _inProcSet(cacheKey, all, 55_000);
+  }
+  if (!Array.isArray(all)) {
+    all = await readExpensesViaSA(sheetId);
+    _inProcSet(cacheKey, all, 55_000);
+    kv.set(cacheKey, all, { ex: 60 }).catch(() => {});
+  }
+  return all;
+}
+
+/**
+ * 証票フォルダID（設定!B4）を取得する（設定キャッシュ → 専用5分キャッシュ → Sheets）。
+ * これまでアップロードのたびにB4を読んでいた。設定PUTでキャッシュは即時破棄されるため、
+ * 設定画面からのフォルダ変更は即時反映。シートを直接編集した場合のみ最大5分遅れる。
+ */
+async function getReceiptFolderId(sheetId) {
+  const settKey = `cfg:settings:${sheetId}`;
+  const fromSettings = (_inProcGet(settKey) || await kv.get(settKey).catch(() => null))?.settings?.B4;
+  if (fromSettings) return fromSettings;
+  const key = `cfg:folder:${sheetId}`;
+  let folderId = _inProcGet(key) || await kv.get(key).catch(() => null);
+  if (folderId) { _inProcSet(key, folderId, 290_000); return folderId; }
+  const sheets = sheetsClient();
+  const cfg = await sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range: '設定!B4' });
+  folderId = cfg.data.values?.[0]?.[0] || '';
+  if (folderId) {
+    _inProcSet(key, folderId, 290_000);
+    kv.set(key, folderId, { ex: 300 }).catch(() => {});
+  }
+  return folderId;
 }
 
 /* ── 監査ロジックのサーバー移植（submit.js _runAuditChecks と同期） ──
