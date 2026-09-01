@@ -721,6 +721,8 @@ const SettingsView = (() => {
         if (line.dataset.upsell === '1') _showLineUpsell();
         else _issueLineCode(el, Number(line.dataset.index));
       }
+      const unlink = e.target.closest('.badge-line-unlink');
+      if (unlink) _unlinkLineMember(el, Number(unlink.dataset.index));
     });
     ['#categoryList', '#paySourceList', '#customFlagList'].forEach(sel => {
       el.querySelector(sel)?.addEventListener('click', e => {
@@ -939,13 +941,19 @@ const SettingsView = (() => {
       const isLineOnly = String(m.email || '').startsWith('line:');
       const isConnected = _lineLinkedSet.has(String(m.email || '').toLowerCase());
       // ① Googleのみ・未接続 → LINEボタン表示 / ② Google+接続済 → 「LINE接続済」バッジ / ③ LINE専用 → 接続済/未接続でバッジを出し分け
+      // 接続済バッジはタップで連携解除の確認を出す（ボタンを増やして画面を busy に
+      // しないための設計。誤タップは必ず確認ダイアログで止める）。
+      const _unlinkBadge = (label) =>
+        `<span class="badge ms-1 badge-line-unlink" role="button" tabindex="0" data-index="${i}"
+           style="font-size:0.6rem;background:#06C755;cursor:pointer;"
+           title="タップでLINE連携を解除">${label} <i class="bi bi-x" style="opacity:.75;"></i></span>`;
       const idLabel = isLineOnly
         ? (isConnected
-            ? '<span class="badge ms-1" style="font-size:0.6rem;background:#06C755;"><i class="bi bi-check-circle-fill me-1"></i>LINE専用・接続済</span>'
+            ? _unlinkBadge('<i class="bi bi-check-circle-fill me-1"></i>LINE専用・接続済')
             : '<span class="badge ms-1" style="font-size:0.6rem;background:#adb5bd;"><i class="bi bi-hourglass-split me-1"></i>LINE専用・未接続</span>')
         : _escape(m.email);
       const connectedBadge = (!isLineOnly && isConnected)
-        ? '<span class="badge ms-1" style="font-size:0.6rem;background:#06C755;">LINE接続済</span>'
+        ? _unlinkBadge('LINE接続済')
         : '';
       const lineBtn = (!isLineOnly && !isConnected)
         ? `<button class="btn btn-sm btn-line-code flex-shrink-0 p-0 border-0 d-inline-flex align-items-center" data-index="${i}" title="このメンバーのLINE連携を設定"><img src="/img/LINE_Brand_icon.png" width="31" height="31" alt="LINE" style="display:block;"></button>`
@@ -978,6 +986,31 @@ const SettingsView = (() => {
         _hideTimer = setTimeout(() => tooltip.hide(), 2000);
       }, { passive: false });
     });
+  }
+
+  /** LINE連携を解除（接続済バッジのタップから）。誤操作防止のため必ず確認を挟む。 */
+  async function _unlinkLineMember(el, idx) {
+    const m = _master?.members?.[idx];
+    if (!m) return;
+    if (typeof Demo !== 'undefined' && Demo.isActive()) {
+      App.showToast('デモモードでは解除できません', 'info');
+      return;
+    }
+    const isLineOnly = String(m.email || '').startsWith('line:');
+    const ok = await App.confirm(
+      `${m.name} さんのLINE連携を解除しますか？\n\n` +
+      `解除するとLINEからの申請ができなくなります。` +
+      (isLineOnly ? '\n（LINE専用メンバーのため、解除すると申請手段がなくなります）' : '') +
+      `\n連携コードを再発行すれば、いつでも再連携できます。`
+    );
+    if (!ok) return;
+    try {
+      await Sheets.unlinkLine({ identity: m.email || '' });
+      App.showToast(`${m.name} さんのLINE連携を解除しました`, 'success');
+      _loadLineLinks(el);   // バッジ表示を更新（未接続に戻る）
+    } catch (err) {
+      App.showToast('解除に失敗しました。' + App.friendlyError(err), 'danger');
+    }
   }
 
   /** LINE連携済みの identity 一覧を取得し、メンバー表示（接続済み判定）を更新する。 */

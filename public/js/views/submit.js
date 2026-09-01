@@ -1782,7 +1782,7 @@ function _bindSubtypePills(el) {
       }
 
       // 3. AI監査チェック（重複・2ヶ月超・同一画像）
-      const alerts = _runAuditChecks(expenses, data, hashes);
+      const alerts = await _runAuditChecks(expenses, data, hashes);
       if (alerts.length > 0) {
         App.hideLoading();
         const ok = await App.confirm(
@@ -2073,7 +2073,27 @@ function _bindSubtypePills(el) {
     return alerts;
   }
 
-  function _runAuditChecks(expenses, data, newHashes) {
+  async function _runAuditChecks(expenses, data, newHashes) {
+    // B'プロキシ有効時はサーバーで全メンバーの申請と照合する。
+    // 一般メンバーのクライアントには自分の行しか渡らないため、他メンバーとの重複
+    // （同一レシートの二重申請など）はサーバーでしか検知できない。
+    // 判定ロジックもLINE経由と同じ _serverAuditChecks に1本化される。
+    // 失敗時・プロキシOFF時は従来のローカル監査（自分の行のみ照合）にフォールバック。
+    const _isDemo = typeof Demo !== 'undefined' && Demo.isActive();
+    if (!_isDemo && Sheets.useProxy && Sheets.useProxy()) {
+      try {
+        const r = await Sheets.auditExpense({
+          data: { ...data, type: _currentType, aiAmount: _aiParsedAmount || 0 },
+          imageHashes: newHashes || [],
+          excludeId: _editId || '',   // 編集時に自分自身との重複を誤検知しない
+        });
+        if (r && Array.isArray(r.alerts)) {
+          // 2ヶ月以上前は _handleSubmit で確認ダイアログ済み・K列にも書かないため除外
+          return r.alerts.filter(a => !String(a).startsWith('日付が2ヶ月以上前'));
+        }
+      } catch (_) { /* フォールバックへ */ }
+    }
+
     const alerts = [];
 
     // 0. 交際費：参加者名の記載推奨（備考・理由欄が空のときのみ）

@@ -76,6 +76,10 @@ const Sheets = (() => {
   function unlinkLine(payload, ssId) {
     return _proxyWrite('lineunlink', ssId || _ssId(), 'POST', payload);
   }
+  /** サーバー監査（全メンバーの申請と照合）。payload: { data, imageHashes, excludeId }。 */
+  function auditExpense(payload, ssId) {
+    return _proxyWrite('audit', ssId || _ssId(), 'POST', payload);
+  }
   /** LINE証票保存の状態を取得（有効/無効・オーナー判定）。 */
   function getLineDriveStatus(ssId) {
     return _proxyGet('linedrivetoken', ssId || _ssId());
@@ -793,6 +797,7 @@ const Sheets = (() => {
     approveExpense,
     issueLineCode,
     unlinkLine,
+    auditExpense,
     getLineDriveStatus,
     enableLineDrive,
     refreshLineDriveToken,

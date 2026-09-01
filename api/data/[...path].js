@@ -77,6 +77,8 @@ export default async function handler(req, res) {
         return await expensesUnsettle(req, res);
       case 'ackaudit':
         return await expensesAckAudit(req, res);
+      case 'audit':
+        return await expensesAudit(req, res);
       case 'masters':
         return await masters(req, res);
       case 'settings':
@@ -3843,8 +3845,49 @@ async function _handleLineHistory(userId, replyToken) {
   return _lineReply(replyToken, _lineText(blocks.join('\n\n')));
 }
 
+/**
+ * POST /api/data/audit   Web版の登録・編集時にサーバー側で監査を実行する。
+ *   一般メンバーのクライアントには自分の行しか渡らないため、他メンバーとの重複
+ *   （同一画像・同一インボイス番号・同日同額）はサーバーでしか検知できない。
+ *   LINE経由と同じ _serverAuditChecks を使い、判定を1本化する。
+ *   編集時は excludeId で自分自身の行を照合対象から外す（自己重複の誤検知防止）。
+ */
+async function expensesAudit(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
+  const authz = await _authorize(req, res);
+  if (!authz) return;
+  const body = (await _body(req)) || {};
+  const d = body.data || {};
+  const data = {
+    type:     String(d.type || '領収書'),
+    date:     String(d.date || ''),
+    place:    String(d.place || ''),
+    amount:   Number(d.amount) || 0,
+    category: String(d.category || ''),
+    note:     String(d.note || ''),
+    invoice:  String(d.invoice || ''),
+    taxRate:  String(d.taxRate || ''),
+    aiAmount: Number(d.aiAmount) || 0,
+  };
+  const hashes = Array.isArray(body.imageHashes)
+    ? body.imageHashes.map(String).filter(Boolean).slice(0, 10) : [];
+  const excludeId = String(body.excludeId || '');
+
+  // 60秒キャッシュがあればSheets読み取りを増やさない（expenses GET と同じキー）
+  let expenses = await kv.get(`data:exp:${authz.sheetId}`).catch(() => null);
+  if (!Array.isArray(expenses)) {
+    expenses = await readExpensesViaSA(authz.sheetId).catch(() => null);
+  }
+  if (!Array.isArray(expenses)) return res.status(503).json({ error: 'sheet_unavailable' });
+  if (excludeId) expenses = expenses.filter(e => e.id !== excludeId);
+
+  return res.status(200).json({ alerts: _serverAuditChecks(expenses, data, hashes) });
+}
+
 /* ── 監査ロジックのサーバー移植（submit.js _runAuditChecks と同期） ──
- * ⚠️ クライアント submit.js の監査ルールを変更した場合はこちらも追従すること。 */
+ * ⚠️ クライアント submit.js の監査ルールを変更した場合はこちらも追従すること。
+ *    Web版は原則 POST /api/data/audit（上記）経由でこちらを使う。クライアント側の
+ *    ローカル監査はプロキシOFF・サーバー障害時のフォールバックとして残っている。 */
 function _serverAuditChecks(expenses, data, newHashes) {
   const alerts = [];
   const amount = Number(data.amount) || 0;
