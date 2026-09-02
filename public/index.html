@@ -181,6 +181,20 @@
 
   /* ===== CM動画（ヒーロー直下） ===== */
   .cm-section { background: #f6f8fb; padding: 3rem 0; }
+  /* パンフレットダウンロード帯 */
+  .pamphlet-band { background: #eef4fd; padding: 2.6rem 0; }
+  .pamphlet-band .pb-title { font-weight: 900; font-size: 1.25rem; text-align: center; margin-bottom: 0.4rem; }
+  .pamphlet-band .pb-sub { text-align: center; color: #5b6b7c; font-size: 0.92rem; margin-bottom: 1.4rem; }
+  .pamphlet-band .pb-btns { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+  .pamphlet-band .pb-btn {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 0.15rem;
+    background: #fff; border: 2px solid var(--brand); border-radius: 14px;
+    padding: 0.9rem 1.5rem; text-decoration: none; min-width: 300px;
+    transition: transform .15s, box-shadow .15s;
+  }
+  .pamphlet-band .pb-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(13,110,253,.18); }
+  .pamphlet-band .pb-btn .pb-main { font-weight: 700; color: var(--brand); font-size: 1.02rem; }
+  .pamphlet-band .pb-btn .pb-note { font-size: 0.8rem; color: #5b6b7c; }
   .cm-lead {
     text-align: center; font-weight: 700; color: #42506b;
     font-size: clamp(0.95rem, 2.4vw, 1.1rem); margin-bottom: 1rem;
@@ -1120,6 +1134,29 @@
 </section>
 
 <!-- ============================================ -->
+<!-- パンフレットダウンロード                        -->
+<!-- ============================================ -->
+<section class="pamphlet-band">
+  <div class="container">
+    <p class="pb-title"><i class="bi bi-file-earmark-pdf me-1"></i>パンフレット（A4・PDF）</p>
+    <p class="pb-sub">社内での検討・顧問先へのご紹介に、そのまま印刷してお使いいただけます</p>
+    <div class="pb-btns">
+      <a class="pb-btn" href="/docs/pamphlet-user.pdf" download="ユーザー様向け経費ログパンフレット.pdf"
+         onclick="typeof gtag==='function'&&gtag('event','download_pamphlet',{type:'user'})">
+        <span class="pb-main"><i class="bi bi-download me-2"></i>ユーザー様向けパンフレット</span>
+        <span class="pb-note">導入をご検討中の経営者・個人事業主の方に</span>
+      </a>
+      <a class="pb-btn" href="/docs/pamphlet-accountant.pdf" download="会計事務所様向け経費ログパンフレット.pdf"
+         onclick="typeof gtag==='function'&&gtag('event','download_pamphlet',{type:'accountant'})">
+        <span class="pb-main"><i class="bi bi-download me-2"></i>会計事務所様向けパンフレット</span>
+        <span class="pb-note">顧問先へのご提案・所内でのご検討に</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============================================ -->
 <!-- Problem                                      -->
 <!-- ============================================ -->
 <section class="problem-section">
@@ -1831,6 +1868,29 @@
 <!-- ============================================ -->
 <!-- FAQ                                          -->
 <!-- ============================================ -->
+
+<!-- ============================================ -->
+<!-- パンフレットダウンロード                        -->
+<!-- ============================================ -->
+<section class="pamphlet-band">
+  <div class="container">
+    <p class="pb-title"><i class="bi bi-file-earmark-pdf me-1"></i>パンフレット（A4・PDF）</p>
+    <p class="pb-sub">社内での検討・顧問先へのご紹介に、そのまま印刷してお使いいただけます</p>
+    <div class="pb-btns">
+      <a class="pb-btn" href="/docs/pamphlet-user.pdf" download="ユーザー様向け経費ログパンフレット.pdf"
+         onclick="typeof gtag==='function'&&gtag('event','download_pamphlet',{type:'user'})">
+        <span class="pb-main"><i class="bi bi-download me-2"></i>ユーザー様向けパンフレット</span>
+        <span class="pb-note">導入をご検討中の経営者・個人事業主の方に</span>
+      </a>
+      <a class="pb-btn" href="/docs/pamphlet-accountant.pdf" download="会計事務所様向け経費ログパンフレット.pdf"
+         onclick="typeof gtag==='function'&&gtag('event','download_pamphlet',{type:'accountant'})">
+        <span class="pb-main"><i class="bi bi-download me-2"></i>会計事務所様向けパンフレット</span>
+        <span class="pb-note">顧問先へのご提案・所内でのご検討に</span>
+      </a>
+    </div>
+  </div>
+</section>
+
 <section id="faq">
   <div class="container">
     <h2 class="section-title">よくあるご質問</h2>
