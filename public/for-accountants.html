@@ -631,6 +631,15 @@
           <div class="accordion-body">freeeのLINE連携は、freeeをお使いの方が証憑をfreee（ファイルボックス）へ送るための入口で、読み取り内容の確認や仕訳化はfreeeの画面で行います（2024年からは税理士とのグループチャットにも対応しており、freeeをご利用中の顧問先にはそちらが便利です）。経費ログは、<strong>LINEの中で読み取り結果の確認・修正・登録・未精算の照会まで完結</strong>し、メンバー側にfreeeの契約もGoogleアカウントも必要ありません。freeeをお使いでない顧問先はもちろん、<strong>freeeご利用中でも「経費を出すだけのメンバー」の分までアカウントを増やしている場合は、現場の入口を経費ログ（何人でも月825円の定額）に置き換え、freeeへは経理担当がCSVで取り込む構成</strong>にすることで、アカウント費用を抑えられます。会計ソフトはそのまま、前工程だけを差し替える使い方です。</div>
         </div>
       </div>
+
+      <div class="accordion-item">
+        <h3 class="accordion-header"><button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#q10">会計ソフトへ取り込むCSVの仕様は公開されていますか？</button></h3>
+        <div id="q10" class="accordion-collapse collapse" data-bs-parent="#acctFaq">
+          <div class="accordion-body">はい。一覧画面から出力されるCSV（17列・UTF-8）の<strong>列定義書</strong>をご用意しています。勘定科目・消費税区分は<strong>コードではなく名称のテキスト</strong>で出力し、コードへの読み替えは取込側の変換定義で行っていただく前提です。ACELINK NX-Pro／会計大将の「汎用データ交換」をはじめ、freee・弥生・マネーフォワード等の汎用取込機能でお使いいただけます。<br>
+          <a href="/docs/csv-spec.pdf" download="経費ログCSV列定義書.pdf" class="btn btn-outline-primary btn-sm rounded-pill px-3 mt-2"
+             onclick="typeof gtag==='function'&&gtag('event','download_pamphlet',{type:'csv_spec'})"><i class="bi bi-download me-1"></i>CSV列定義書（PDF）をダウンロード</a></div>
+        </div>
+      </div>
     </div>
   </div>
 </section>
