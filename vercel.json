@@ -39,11 +39,12 @@
     { "source": "/app", "destination": "/app.html" },
     { "source": "/", "destination": "/index.html" },
     { "source": "/accountant", "destination": "/accountant.html" },
+    { "source": "/check", "destination": "/check.html" },
     { "source": "/lp-b", "destination": "/lp-b.html" },
     { "source": "/lp-test", "destination": "/lp-test.html" },
     { "source": "/setup-guide", "destination": "/setup-guide.html" },
     { "source": "/for-accountants", "destination": "/for-accountants.html" },
-    { "source": "/((?!blog/|js/|css/|img/|docs/|icons/|api/|app\\.html|login\\.html|setup\\.html|setup-guide\\.html|setup-guide$|tokusho\\.html|privacy\\.html|terms\\.html|success\\.html|licenses\\.html|faq\\.html|demo\\.html|index\\.html|manifest\\.json|sw\\.js|robots\\.txt|sitemap\\.xml|favicon|accountant\\.html|for-accountants\\.html|for-accountants$|lp-b\\.html|lp-b$|lp-test\\.html|lp-test$).+)", "destination": "/app.html" }
+    { "source": "/((?!blog/|js/|css/|img/|docs/|icons/|api/|app\\.html|login\\.html|setup\\.html|setup-guide\\.html|setup-guide$|tokusho\\.html|privacy\\.html|terms\\.html|success\\.html|licenses\\.html|faq\\.html|demo\\.html|index\\.html|manifest\\.json|sw\\.js|robots\\.txt|sitemap\\.xml|favicon|accountant\\.html|for-accountants\\.html|for-accountants$|check\\.html|check$|lp-b\\.html|lp-b$|lp-test\\.html|lp-test$).+)", "destination": "/app.html" }
   ],
   "headers": [
     {
