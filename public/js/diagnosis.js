@@ -60,11 +60,13 @@ const Diagnosis = (() => {
 
   /* 判定ロジック
      - 領収書がほぼ無い（月5枚以下）→ 立替の有無に関わらず不要かも（正直判定）
+     - 従業員31名以上 → 「合うとは言い切れない」判定（割り切り設計が通用しない規模のことが多い）
      - 立替が自分だけ → ソロプラン／2人以上 → チームプラン
      - 立替ほぼ無し（会社払い中心）は従業員1人ならソロ・複数ならチーム
-     - 31名以上／売上5億超 は結果を変えず注意書きだけ添える */
+     - 売上5億超 は結果を変えず注意書きだけ添える */
   function judge(a) {
     if (a.receipts === 'few') return 'no-need';
+    if (a.size === 's31') return 'large';
     if (a.members === 'solo') return 'solo';
     if (a.members === 'team') return 'team';
     return (a.size === 's1') ? 'solo' : 'team';
@@ -164,9 +166,6 @@ const Diagnosis = (() => {
       if (a.accounting === 'self-own') {
         caveats.push('CSVの取り込み（会計ソフト側での列の対応づけ）は<strong>ご自身で行っていただく形</strong>になります。CSV操作に不安がある場合は活かしきれない可能性があるため、まず無料トライアルで実際のCSVをお試しください。');
       }
-      if (a.size === 's31') {
-        caveats.push('従業員31名以上とのこと。経費ログは1チーム定額でそのまま使えますが、<strong>多段階承認や事前申請などの複雑なワークフローが必須</strong>の場合は、大手の経費精算SaaSとの比較もおすすめします（経費ログは意図的にそれらを搭載していません）。');
-      }
       if (a.revenue === 'r5plus') {
         caveats.push('売上5億円超の場合、消費税の仕入税額控除で個別対応（いわゆる95%ルールの適用外）が必要になることがあります。経費ログは税区分つきでデータを出せますが、<strong>運用は顧問税理士に一度ご相談ください</strong>。');
       }
@@ -189,6 +188,31 @@ const Diagnosis = (() => {
             <a href="/app?demo" class="btn btn-outline-primary rounded-pill px-4 mt-3">
               <i class="bi bi-play-circle me-1"></i>いちおうデモをさわってみる
             </a>
+          </div>`;
+      } else if (verdict === 'large') {
+        html = `
+          <div class="dg-card">
+            <div class="text-center">
+              <span class="dg-badge" style="background:#eef2f7;color:#5a6b7f;">診断結果</span>
+              <div class="dg-result-title mb-2">合うとは言い切れません</div>
+              <p class="dg-muted" style="font-size:0.92rem;line-height:1.9;">
+                経費ログは「承認は1段階だけ・事前申請なし」という<br class="d-none d-sm-block">
+                割り切った設計です。従業員31名以上の組織では、<br class="d-none d-sm-block">
+                多段階承認や部門統制が必要になることが多く、<br class="d-none d-sm-block">
+                その場合は大手の経費精算SaaSのほうが向いています。
+              </p>
+            </div>
+            <div class="dg-note">
+              それでも「シンプルな運用で回せる」「紙とExcelから抜け出したい」という組織であれば、
+              <strong>月825円・人数無制限の定額</strong>なので試す価値はあります。
+              まずはデモと無料トライアルで、自社の運用に耐えるかをご確認ください。
+            </div>
+            ${caveats.map(c => `<div class="dg-caveat"><i class="bi bi-info-circle me-1"></i>${c}</div>`).join('')}
+            <div class="d-grid gap-2 mt-4">
+              <a href="/app?demo" class="btn btn-outline-primary rounded-pill py-2">
+                <i class="bi bi-play-circle me-1"></i>デモをさわって確かめる
+              </a>
+            </div>
           </div>`;
       } else {
         const isSolo = verdict === 'solo';
