@@ -73,7 +73,11 @@
   <style>
     .nav-item-btn { background: none; border: none; color: #6c757d !important; opacity: 0.8; transition: color 0.15s, opacity 0.15s; }
     .nav-item-btn.active { color: #0d6efd !important; opacity: 1; }
-    .nav-item-btn:hover { color: #0d6efd !important; opacity: 0.8; }
+    /* タッチ端末では:hoverがタップ後に張り付き、スワイプ遷移後もタブが色付きのまま残るため、
+       ホバー装飾はマウス等のホバー可能な環境に限定する */
+    @media (hover: hover) {
+      .nav-item-btn:hover { color: #0d6efd !important; opacity: 0.8; }
+    }
     .type-card { color: #6c757d !important; border-color: #dee2e6 !important; opacity: 0.8; }
     .type-card i { color: #6c757d !important; }
     .type-card.active { background: #0d6efd !important; border-color: #0d6efd !important; color: #fff !important; opacity: 1; }
