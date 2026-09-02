@@ -33,7 +33,8 @@ const Diagnosis = (() => {
       title: '経理・会計処理は、いまどうしていますか？',
       opts: [
         { v: 'outsource', icon: 'bi-briefcase', label: '税理士・会計事務所に任せている', sub: '領収書を渡して記帳はお任せ' },
-        { v: 'self',      icon: 'bi-laptop',    label: '自分（自社）で会計ソフトに入力している' },
+        { v: 'self-own',  icon: 'bi-laptop',    label: '自分で会計ソフトに入力し、申告も自分でやる' },
+        { v: 'self-tax',  icon: 'bi-laptop',    label: '自分で会計ソフトに入力し、申告は税理士に依頼' },
         { v: 'piled',     icon: 'bi-inboxes',   label: '正直、レシートが溜まりがち…' },
       ],
     },
@@ -153,11 +154,18 @@ const Diagnosis = (() => {
 
       const acctNote = {
         outsource: '税理士・会計事務所には、<strong>CSVやスプレッドシートの共有で渡すだけ</strong>になります。領収書の原本を封筒で送る作業から卒業できます。',
-        self: '会計ソフトには<strong>CSVで取り込めます</strong>（勘定科目・税区分つき）。手入力の二度打ちがなくなります。',
+        'self-own': '会計ソフトには<strong>CSVで取り込めます</strong>（勘定科目・税区分つき）。手入力の二度打ちがなくなります。',
+        'self-tax': '会計ソフトには<strong>CSVで取り込めます</strong>（勘定科目・税区分つき）。申告を依頼している税理士にも、CSVやスプレッドシートの共有でそのまま渡せます。',
         piled: '経費ログは<strong>「撮って送るだけ」</strong>なので、その場で記録が終わり、レシートが溜まりません。溜まりがちな方にこそ向いています。',
       }[a.accounting] || '';
 
       const caveats = [];
+      if (a.accounting === 'outsource') {
+        caveats.push('記帳をお任せしている場合、事務所へのデータの渡し方が変わります。<strong>導入の前に、顧問税理士にも一言ご相談のうえお決めください。</strong>税理士さんに見せられる<a href="/for-accountants">会計事務所向けのご案内ページ</a>もあります。');
+      }
+      if (a.accounting === 'self-own') {
+        caveats.push('CSVの取り込み（会計ソフト側での列の対応づけ）は<strong>ご自身で行っていただく形</strong>になります。CSV操作に不安がある場合は活かしきれない可能性があるため、まず無料トライアルで実際のCSVをお試しください。');
+      }
       if (a.size === 's31') {
         caveats.push('従業員31名以上とのこと。経費ログは1チーム定額でそのまま使えますが、<strong>多段階承認や事前申請などの複雑なワークフローが必須</strong>の場合は、大手の経費精算SaaSとの比較もおすすめします（経費ログは意図的にそれらを搭載していません）。');
       }
