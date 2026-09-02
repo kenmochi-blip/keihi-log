@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="480" viewBox="0 0 360 480">
+  <rect width="360" height="480" fill="#fff" stroke="#ccc" stroke-width="1"/>
+  <!-- ヘッダー -->
+  <rect width="360" height="60" fill="#232f3e"/>
+  <text x="180" y="28" font-family="sans-serif" font-size="18" font-weight="bold" fill="#ff9900" text-anchor="middle">AWS</text>
+  <text x="180" y="48" font-family="sans-serif" font-size="11" fill="#d5dbdb" text-anchor="middle">Amazon Web Services Japan</text>
+  <!-- タイトル -->
+  <text x="180" y="90" font-family="sans-serif" font-size="16" font-weight="bold" fill="#2c3e50" text-anchor="middle">ご利用明細書</text>
+  <line x1="20" y1="100" x2="340" y2="100" stroke="#ff9900" stroke-width="2"/>
+  <!-- 宛先 -->
+  <text x="30" y="125" font-family="sans-serif" font-size="13" fill="#333">デモCo.　御中</text>
+  <!-- 明細 -->
+  <rect x="20" y="135" width="320" height="25" fill="#ecf0f1"/>
+  <text x="30" y="152" font-family="sans-serif" font-size="11" fill="#666">サービス</text>
+  <text x="340" y="152" font-family="sans-serif" font-size="11" fill="#666" text-anchor="end">金額</text>
+  <line x1="20" y1="162" x2="340" y2="162" stroke="#ddd" stroke-width="0.5"/>
+  <text x="30" y="180" font-family="sans-serif" font-size="12" fill="#333">Amazon EC2</text>
+  <text x="340" y="180" font-family="sans-serif" font-size="12" fill="#333" text-anchor="end">¥21,300</text>
+  <line x1="20" y1="190" x2="340" y2="190" stroke="#f0f0f0" stroke-width="0.5"/>
+  <text x="30" y="208" font-family="sans-serif" font-size="12" fill="#333">Amazon S3</text>
+  <text x="340" y="208" font-family="sans-serif" font-size="12" fill="#333" text-anchor="end">¥6,850</text>
+  <line x1="20" y1="218" x2="340" y2="218" stroke="#f0f0f0" stroke-width="0.5"/>
+  <text x="30" y="236" font-family="sans-serif" font-size="12" fill="#333">Amazon RDS</text>
+  <text x="340" y="236" font-family="sans-serif" font-size="12" fill="#333" text-anchor="end">¥6,850</text>
+  <line x1="20" y1="246" x2="340" y2="246" stroke="#ff9900" stroke-width="1.5"/>
+  <!-- 小計・消費税・合計 -->
+  <text x="200" y="266" font-family="sans-serif" font-size="12" fill="#555">小計</text>
+  <text x="340" y="266" font-family="sans-serif" font-size="12" fill="#333" text-anchor="end">¥35,000</text>
+  <text x="200" y="286" font-family="sans-serif" font-size="12" fill="#555">消費税（10%）</text>
+  <text x="340" y="286" font-family="sans-serif" font-size="12" fill="#333" text-anchor="end">¥3,500</text>
+  <rect x="20" y="296" width="320" height="38" fill="#fef5e7" rx="3"/>
+  <text x="200" y="311" font-family="sans-serif" font-size="12" fill="#b9770e">ご請求額</text>
+  <text x="340" y="321" font-family="sans-serif" font-size="22" font-weight="bold" fill="#232f3e" text-anchor="end">¥38,500</text>
+  <!-- 日付・支払 -->
+  <line x1="20" y1="355" x2="340" y2="355" stroke="#ddd" stroke-width="0.5"/>
+  <text x="30" y="378" font-family="sans-serif" font-size="11" fill="#555">請求日：2026年5月10日</text>
+  <text x="30" y="396" font-family="sans-serif" font-size="11" fill="#555">対象期間：5月分ご利用料金</text>
+  <text x="30" y="414" font-family="sans-serif" font-size="11" fill="#555">お支払：クレジットカード（法人カード）</text>
+  <!-- フッター -->
+  <rect y="448" width="360" height="32" fill="#232f3e"/>
+  <text x="180" y="462" font-family="sans-serif" font-size="10" fill="#d5dbdb" text-anchor="middle">〒141-0021 東京都品川区上大崎3-1-1</text>
+  <text x="180" y="475" font-family="sans-serif" font-size="10" fill="#d5dbdb" text-anchor="middle">aws.amazon.com</text>
+</svg>

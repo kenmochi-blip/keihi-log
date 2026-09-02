@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="480" viewBox="0 0 360 480">
+  <rect width="360" height="480" fill="#fff" stroke="#ccc" stroke-width="1"/>
+  <!-- ヘッダー -->
+  <rect width="360" height="60" fill="#e74c3c"/>
+  <text x="180" y="28" font-family="sans-serif" font-size="18" font-weight="bold" fill="white" text-anchor="middle">アスクル</text>
+  <text x="180" y="48" font-family="sans-serif" font-size="11" fill="#fadbd8" text-anchor="middle">ASKUL Corporation</text>
+  <!-- レシートタイトル -->
+  <text x="180" y="90" font-family="sans-serif" font-size="16" font-weight="bold" fill="#2c3e50" text-anchor="middle">領　収　書</text>
+  <line x1="20" y1="100" x2="340" y2="100" stroke="#e74c3c" stroke-width="2"/>
+  <!-- 宛先 -->
+  <text x="30" y="125" font-family="sans-serif" font-size="13" fill="#333">鈴木 花子　様</text>
+  <!-- 明細 -->
+  <rect x="20" y="135" width="320" height="25" fill="#ecf0f1"/>
+  <text x="30" y="152" font-family="sans-serif" font-size="11" fill="#666">商品名</text>
+  <text x="260" y="152" font-family="sans-serif" font-size="11" fill="#666">数量</text>
+  <text x="340" y="152" font-family="sans-serif" font-size="11" fill="#666" text-anchor="end">金額</text>
+  <line x1="20" y1="162" x2="340" y2="162" stroke="#ddd" stroke-width="0.5"/>
+  <text x="30" y="180" font-family="sans-serif" font-size="12" fill="#333">コピー用紙 A4 2500枚</text>
+  <text x="260" y="180" font-family="sans-serif" font-size="12" fill="#333">1</text>
+  <text x="340" y="180" font-family="sans-serif" font-size="12" fill="#333" text-anchor="end">¥1,480</text>
+  <line x1="20" y1="190" x2="340" y2="190" stroke="#f0f0f0" stroke-width="0.5"/>
+  <text x="30" y="208" font-family="sans-serif" font-size="12" fill="#333">蛍光ペン 5色セット</text>
+  <text x="260" y="208" font-family="sans-serif" font-size="12" fill="#333">2</text>
+  <text x="340" y="208" font-family="sans-serif" font-size="12" fill="#333" text-anchor="end">¥560</text>
+  <line x1="20" y1="218" x2="340" y2="218" stroke="#f0f0f0" stroke-width="0.5"/>
+  <text x="30" y="236" font-family="sans-serif" font-size="12" fill="#333">ダブルクリップ 中 10個</text>
+  <text x="260" y="236" font-family="sans-serif" font-size="12" fill="#333">1</text>
+  <text x="340" y="236" font-family="sans-serif" font-size="12" fill="#333" text-anchor="end">¥360</text>
+  <line x1="20" y1="246" x2="340" y2="246" stroke="#e74c3c" stroke-width="1.5"/>
+  <!-- 小計・消費税・合計 -->
+  <text x="200" y="266" font-family="sans-serif" font-size="12" fill="#555">小計</text>
+  <text x="340" y="266" font-family="sans-serif" font-size="12" fill="#333" text-anchor="end">¥2,400</text>
+  <text x="200" y="286" font-family="sans-serif" font-size="12" fill="#555">消費税（10%）</text>
+  <text x="340" y="286" font-family="sans-serif" font-size="12" fill="#333" text-anchor="end">¥240</text>
+  <rect x="20" y="296" width="320" height="38" fill="#fdedec" rx="3"/>
+  <text x="200" y="311" font-family="sans-serif" font-size="12" fill="#c0392b">合　計</text>
+  <text x="340" y="321" font-family="sans-serif" font-size="22" font-weight="bold" fill="#e74c3c" text-anchor="end">¥2,640</text>
+  <!-- スタンプ -->
+  <circle cx="80" cy="360" r="35" fill="none" stroke="#c0392b" stroke-width="2" opacity="0.6"/>
+  <text x="80" y="355" font-family="sans-serif" font-size="11" font-weight="bold" fill="#c0392b" text-anchor="middle" opacity="0.6">領　収</text>
+  <text x="80" y="372" font-family="sans-serif" font-size="10" fill="#c0392b" text-anchor="middle" opacity="0.6">済　み</text>
+  <!-- 日付・支払 -->
+  <line x1="20" y1="375" x2="340" y2="375" stroke="#ddd" stroke-width="0.5"/>
+  <text x="160" y="395" font-family="sans-serif" font-size="11" fill="#555">日付：2026年6月1日</text>
+  <text x="160" y="413" font-family="sans-serif" font-size="11" fill="#555">お支払：クレジットカード</text>
+  <!-- フッター -->
+  <rect y="448" width="360" height="32" fill="#e74c3c"/>
+  <text x="180" y="462" font-family="sans-serif" font-size="10" fill="white" text-anchor="middle">〒135-0061 東京都江東区豊洲3-2-3</text>
+  <text x="180" y="475" font-family="sans-serif" font-size="10" fill="white" text-anchor="middle">TEL: 0120-345-678</text>
+</svg>
