@@ -1048,11 +1048,6 @@
           AIが読み取り、申請・承認・精算まで一気通貫<br>
           データはあなたのGoogleドライブに安全保管
         </p>
-        <div class="mb-3">
-          <a href="#pricing" id="btnHeroSignup" class="btn btn-cta btn-lg px-5">
-            今すぐ使ってみる <i class="bi bi-arrow-right ms-1"></i>
-          </a>
-        </div>
         <div class="d-flex gap-3 justify-content-center justify-content-lg-start">
           <a href="https://keihi-log.com/app?demo" class="btn btn-cta-outline">
             <i class="bi bi-play-circle me-1"></i>デモをさわる
@@ -2587,10 +2582,6 @@
       plan: /ソロ/.test(a.textContent || '') ? 'solo' : 'team',
     });
   });
-
-  // ヒーローの「今すぐ使ってみる」（料金プランへのスクロール）
-  var hero = document.getElementById('btnHeroSignup');
-  if (hero) hero.addEventListener('click', function () { gtag('event', 'hero_cta_click'); });
 
   // 会計事務所向けページへの遷移（紹介チャネルの入口が使われているかの確認用）
   var acct = document.getElementById('btnAcctInvite');
