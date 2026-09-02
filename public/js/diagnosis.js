@@ -156,7 +156,7 @@ const Diagnosis = (() => {
       const acctNote = {
         outsource: '税理士・会計事務所には、<strong>CSVやスプレッドシートの共有で渡すだけ</strong>になります。領収書の原本を封筒で送る作業から卒業できます。',
         'self-own': '会計ソフトには<strong>CSVで取り込めます</strong>（勘定科目・税区分つき）。手入力の二度打ちがなくなります。',
-        'self-tax': '会計ソフトには<strong>CSVで取り込めます</strong>（勘定科目・税区分つき）。申告を依頼している税理士にも、CSVやスプレッドシートの共有でそのまま渡せます。',
+        'self-tax': '会計ソフトには<strong>CSVで取り込めます</strong>（勘定科目・税区分つき）。取込方法は顧問税理士に<a href="/docs/csv-spec.pdf" target="_blank" rel="noopener">CSV列定義書（PDF）</a>を共有してご相談いただくとスムーズです。',
       }[a.accounting] || '';
 
       const caveats = [];
@@ -164,7 +164,7 @@ const Diagnosis = (() => {
         caveats.push('記帳をお任せしている場合、事務所へのデータの渡し方が変わります。<strong>導入の前に、顧問税理士にも一言ご相談のうえお決めください。</strong>税理士さんに見せられる<a href="/for-accountants">会計事務所向けのご案内ページ</a>もあります。');
       }
       if (a.accounting === 'self-own') {
-        caveats.push('CSVの取り込み（会計ソフト側での列の対応づけ）は<strong>ご自身で行っていただく形</strong>になります。CSV操作に不安がある場合は活かしきれない可能性があるため、まず無料トライアルで実際のCSVをお試しください。');
+        caveats.push('CSVの取り込み（会計ソフト側での列の対応づけ）は<strong>ご自身で行っていただく形</strong>になります。CSV操作に不安がある場合は活かしきれない可能性があるため、まず無料トライアルで実際のCSVをお試しください。列の仕様は<a href="/docs/csv-spec.pdf" target="_blank" rel="noopener">CSV列定義書（PDF）</a>で確認できます（税理士への共有にも使えます）。');
       }
       if (a.revenue === 'r5plus') {
         caveats.push('売上5億円超の場合、消費税の仕入税額控除で個別対応（いわゆる95%ルールの適用外）が必要になることがあります。経費ログは税区分つきでデータを出せますが、<strong>運用は顧問税理士に一度ご相談ください</strong>。');

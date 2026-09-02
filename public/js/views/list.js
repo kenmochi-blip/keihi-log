@@ -34,9 +34,18 @@ const ListView = (() => {
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h5 class="fw-bold mb-0"><i class="bi bi-list-ul me-2 text-primary"></i>一覧表</h5>
     <div class="d-flex gap-2">
-      <button class="btn btn-outline-secondary btn-sm no-print" id="btnExportCsv">
-        <i class="bi bi-download me-1"></i>CSV
-      </button>
+      <div class="btn-group no-print">
+        <button class="btn btn-outline-secondary btn-sm" id="btnExportCsv">
+          <i class="bi bi-download me-1"></i>CSV
+        </button>
+        <button class="btn btn-outline-secondary btn-sm dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-label="CSVメニュー"></button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><a class="dropdown-item" href="/docs/csv-spec.pdf" target="_blank" rel="noopener" style="font-size:0.85rem;line-height:1.5;">
+            <i class="bi bi-file-earmark-pdf me-1 text-danger"></i>CSV列定義書（PDF）<br>
+            <span class="text-muted" style="font-size:0.72rem;">会計ソフトへの取込方法を税理士に<br>相談するとき、この仕様書を共有できます</span>
+          </a></li>
+        </ul>
+      </div>
       <button class="btn btn-outline-secondary btn-sm no-print" id="btnRefreshList">
         <i class="bi bi-arrow-clockwise"></i>
       </button>
