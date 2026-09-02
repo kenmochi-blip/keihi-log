@@ -59,12 +59,12 @@ const Diagnosis = (() => {
   ];
 
   /* 判定ロジック
-     - 領収書がほぼ無い かつ 立替もほぼ無い → 不要かも（正直判定）
+     - 領収書がほぼ無い（月5枚以下）→ 立替の有無に関わらず不要かも（正直判定）
      - 立替が自分だけ → ソロプラン／2人以上 → チームプラン
      - 立替ほぼ無し（会社払い中心）は従業員1人ならソロ・複数ならチーム
      - 31名以上／売上5億超 は結果を変えず注意書きだけ添える */
   function judge(a) {
-    if (a.receipts === 'few' && a.members === 'none') return 'no-need';
+    if (a.receipts === 'few') return 'no-need';
     if (a.members === 'solo') return 'solo';
     if (a.members === 'team') return 'team';
     return (a.size === 's1') ? 'solo' : 'team';
@@ -172,7 +172,7 @@ const Diagnosis = (() => {
             <span class="dg-badge" style="background:#eef2f7;color:#5a6b7f;">診断結果</span>
             <div class="dg-result-title mb-2">いまは、まだ必要ないかもしれません</div>
             <p class="dg-muted" style="font-size:0.92rem;line-height:1.9;">
-              領収書が月5枚以下で立替もほぼ無いなら、<br class="d-none d-sm-block">
+              領収書が月5枚以下なら、<br class="d-none d-sm-block">
               現状のやり方で十分回っている可能性が高いです。<br>
               無理に導入をおすすめしません。
             </p>
