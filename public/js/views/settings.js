@@ -23,7 +23,12 @@ const SettingsView = (() => {
 
     return `
 <div class="pt-3">
-  <h5 class="fw-bold mb-3"><i class="bi bi-gear-fill me-2 text-primary"></i>設定</h5>
+  <h5 class="fw-bold mb-1"><i class="bi bi-gear-fill me-2 text-primary"></i>設定</h5>
+  <div class="mb-3">
+    <a href="/docs/admin-guide.pdf" download="経費ログ管理者ガイド.pdf" class="text-decoration-none" style="font-size:0.82rem;">
+      <i class="bi bi-file-earmark-pdf me-1"></i>管理者ガイド（PDF）をダウンロード
+    </a>
+  </div>
 
   <!-- トライアル中のアップグレードボックス（app.jsが制御） -->
   <div id="trialUpgradeBox" class="mb-3" style="display:none;"></div>

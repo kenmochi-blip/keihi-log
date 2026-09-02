@@ -335,7 +335,8 @@ async function setupDoneEmail(req, res) {
     <div style="font-size:22px;font-weight:800;margin-top:10px;">セットアップが完了しました 🎉</div>
   </td></tr>
   <tr><td style="padding:28px 32px;">
-    <p style="margin:0 0 16px;font-size:15px;line-height:1.7;"><strong>${teamName}</strong> の初期設定が完了しました。<br>このメールは管理者ご自身用の控えです。下記URLをブックマークし、メンバーへ共有してください。</p>
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.7;">セットアップ完了、おめでとうございます！<br><strong>${teamName}</strong> は今日から使えます。まずは領収書を1枚、撮って送ってみてください——ここから先は、それだけです。</p>
+    <p style="margin:0 0 16px;font-size:14px;line-height:1.7;color:#42506a;">このメールは管理者ご自身用の控えです。下記URLをブックマークし、メンバーへ共有してください。</p>
 
     <p style="margin:0 0 8px;font-size:13px;color:#6c757d;">▼ チーム専用URL（このURLからログインします）</p>
     <p style="margin:0 0 20px;"><a href="${safeUrl}" style="font-size:16px;font-weight:700;color:#0d6efd;word-break:break-all;">${safeUrl}</a></p>
@@ -355,6 +356,7 @@ async function setupDoneEmail(req, res) {
       <p style="margin:0 0 20px;font-size:14px;line-height:1.8;color:#42506a;">アプリの <strong>設定タブ → メンバー管理</strong> から、メンバーのメールアドレスを登録します（管理者・閲覧者・一般の3段階で権限を設定できます）。LINE専用メンバーはメール欄を空欄にして追加できます。</p>
 
       <p style="margin:0 0 8px;font-size:14px;line-height:1.8;">
+        📕 <a href="https://keihi-log.com/docs/admin-guide.pdf" style="color:#0d6efd;font-weight:700;">管理者ガイド（PDF）</a> — このメールにも添付しています。リンク先は常に最新版です<br>
         📘 <a href="https://keihi-log.com/faq" style="color:#0d6efd;">よくある質問（FAQ）</a><br>
         📗 <a href="https://keihi-log.com/guide" style="color:#0d6efd;">メンバー向け 使い方ガイド</a>
       </p>
@@ -372,8 +374,11 @@ async function setupDoneEmail(req, res) {
       body: JSON.stringify({
         from: process.env.RESEND_FROM_EMAIL || 'support@keihi-log.com',
         to: [me.email],
-        subject: '【経費ログ】セットアップが完了しました',
+        subject: '【経費ログ】セットアップ完了おめでとうございます🎉',
         html,
+        // 管理者ガイドを添付（Resendが送信時にURLから取得。サイト上のPDFを差し替えれば
+        // 以後のメールも自動的に最新版になる）
+        attachments: [{ filename: '経費ログ管理者ガイド.pdf', path: 'https://keihi-log.com/docs/admin-guide.pdf' }],
       }),
     });
     if (!r.ok) {
