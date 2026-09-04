@@ -224,10 +224,22 @@ git push origin claude/rebuild-receipt-app-Ft3lE
     失敗時は従来の直接アクセスにフォールバック。
 - SA を使うには各チームのスプレッドシート（および証票フォルダ）に SA をエディタ共有する必要がある。
 
-### Vercel プラン注意
-- 現在 Hobby（無料）。**Serverless Functions はデプロイあたり12個まで**。
-  新エンドポイントは極力 `api/data/[...path].js` 内に足し、関数ファイルを増やさないこと。
-- 商用利用は本来 Pro が必要（ToS）。切り替えは収益本格化のタイミングで（技術的には無料枠のまま拡張可能）。
+### Vercel プラン注意（2026-09 に Pro へ移行済み）
+- **Pro プラン**。関数12個の制限は外れたが、既存コードは `api/data/[...path].js`（1.6万行）に
+  集約されたまま。**大規模リファクタは行わない**方針（本番稼働中のため）。
+  その領域を触るときに、ついでに切り出していく。
+- `maxDuration` は 180 秒（Gemini呼び出しのクライアント側タイムアウト55秒に対する余裕を確保）。
+  Hobby時代は60秒上限に対し55秒で余裕5秒しかなく、Geminiが遅いと関数ごと殺される状態だった。
+- **Spend Management**: On-Demand Budget $20・通知ON・**Pause Projects は OFF**
+  （ONにするとチーム内の全プロジェクトの本番が停止し、経費ログが落ちるため）。
+- **Preview Deployment Protection（Vercel Authentication）を有効化**。
+  対象は Preview のみ（**Standard Protection**。"All Deployments" にすると本番も保護され
+  keihi-log.com が誰も見られなくなる）。
+  - 理由: プレビューURLが漏れると `api/gemini-proxy`（無認証・IPレート制限のみ）を
+    第三者に叩かれ、当方のGeminiキーと請求が巻き添えになる。
+  - ⚠️ **LINEのWebhookをプレビューに向けた検証は、保護が有効だと弾かれる**
+    （LINE側はVercelにログインできないため）。検証するときは
+    Settings → Deployment Protection を一時的にOFF→検証→戻す。
 
 ### スケール設計メモ（2026-08 検討・1,000→1万チームを見据えた整理）
 

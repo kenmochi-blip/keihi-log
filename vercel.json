@@ -2,8 +2,8 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "functions": {
-    "api/data/[...path].js": { "maxDuration": 60 },
-    "api/gemini-proxy.js":   { "maxDuration": 60 }
+    "api/data/[...path].js": { "maxDuration": 180 },
+    "api/gemini-proxy.js":   { "maxDuration": 180 }
   },
   "redirects": [
     { "source": "/x",  "destination": "/?utm_source=x&utm_medium=social&utm_campaign=release",        "permanent": false },
