@@ -3,6 +3,7 @@
  * APIキーはVercel環境変数で管理し、ソースコードには含まない
  */
 import { rateLimit } from './_rateLimit.js';
+import { recordAiUsage } from './_aiUsage.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
@@ -30,6 +31,8 @@ export default async function handler(req, res) {
     });
 
     const data = await resp.json();
+    // デモは当方キーで動いており、当方負担へ切り替えた場合の実コストの参考値になる
+    await recordAiUsage({ source: 'demo', sheetId: 'demo', data, ok: resp.ok });
     res.status(resp.status).json(data);
   } catch (err) {
     if (err.name === 'TimeoutError') return res.status(504).json({ error: 'Gemini APIがタイムアウトしました' });

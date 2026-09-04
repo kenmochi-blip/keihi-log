@@ -25,6 +25,7 @@ import { verifyIdToken } from '../_verifyToken.js';
 import { rateLimit } from '../_rateLimit.js';
 import { FAQ_TEXT } from '../_faq-data.js';
 import { RICHMENU_PNG_BASE64, RICHMENU_LINK_PNG_BASE64 } from '../_richmenuImage.js';
+import { recordAiUsage, jstDay, usageKey, teamKey } from '../_aiUsage.js';
 
 // bodyParser を無効化し、ボディは手動で読む（_readRaw）。
 // 理由: LINE Webhook の署名検証(HMAC-SHA256)には「生ボディの厳密なバイト列」が必要で、
@@ -113,6 +114,8 @@ export default async function handler(req, res) {
         return await accountantApply(req, res);
       case 'renamepaysource':
         return await renamePaySource(req, res);
+      case 'aistats':
+        return await aiStats(req, res);
       default:
         return res.status(404).json({ error: 'not_found', resource });
     }
@@ -120,6 +123,155 @@ export default async function handler(req, res) {
     console.error('data router error:', e);
     return res.status(500).json({ error: 'server_error' });
   }
+}
+
+/**
+ * AI利用量ダッシュボード（GET /api/data/aistats?secret=ADMIN_SECRET）
+ *
+ * 「APIキーをBYOKから当方負担へ切り替えるか」を実測で判断するための管理画面。
+ * 1枚あたりの実トークン数と、そこから逆算した1枚あたり単価・月額を表示する。
+ * 単価は環境変数で差し替えられる（実際のGemini価格が変わってもコード変更不要）:
+ *   AI_PRICE_IN  … 入力100万トークンあたりUSD（既定 0.10）
+ *   AI_PRICE_OUT … 出力100万トークンあたりUSD（既定 0.40）
+ *   AI_JPY_PER_USD … 円換算レート（既定 155）
+ *
+ * クエリ: days=30（既定14・最大90） / format=json でJSON
+ */
+async function aiStats(req, res) {
+  const q = _query(req);
+  if (!process.env.ADMIN_SECRET || q.get('secret') !== process.env.ADMIN_SECRET) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  const days = Math.min(Math.max(parseInt(q.get('days'), 10) || 14, 1), 90);
+
+  const dates = [];
+  for (let i = 0; i < days; i++) {
+    dates.push(jstDay(new Date(Date.now() - i * 24 * 3600 * 1000)));
+  }
+
+  const [usageRows, teamRows] = await Promise.all([
+    Promise.all(dates.map(d => kv.hgetall(usageKey(d)).catch(() => null))),
+    Promise.all(dates.map(d => kv.hgetall(teamKey(d)).catch(() => null))),
+  ]);
+
+  const PRICE_IN  = Number(process.env.AI_PRICE_IN)  || 0.10;
+  const PRICE_OUT = Number(process.env.AI_PRICE_OUT) || 0.40;
+  const JPY       = Number(process.env.AI_JPY_PER_USD) || 155;
+  const n = v => Number(v) || 0;
+  const jpyOf = (ptok, ctok) => ((ptok / 1e6) * PRICE_IN + (ctok / 1e6) * PRICE_OUT) * JPY;
+
+  const daily = dates.map((date, i) => {
+    const h = usageRows[i] || {};
+    const bySource = {};
+    for (const k of Object.keys(h)) {
+      const m = k.match(/^src:(.+):req$/);
+      if (m) bySource[m[1]] = n(h[k]);
+    }
+    const req_ = n(h.req), ptok = n(h.ptok), ctok = n(h.ctok), ttok = n(h.ttok);
+    return { date, req: req_, err: n(h.err), ptok, ctok, ttok, bySource,
+             avgTtok: req_ ? Math.round(ttok / req_) : 0, jpy: jpyOf(ptok, ctok) };
+  });
+
+  // 全期間の合計とバケット（テール把握用）
+  const total = daily.reduce((a, d) => ({
+    req: a.req + d.req, err: a.err + d.err, ptok: a.ptok + d.ptok,
+    ctok: a.ctok + d.ctok, ttok: a.ttok + d.ttok,
+  }), { req: 0, err: 0, ptok: 0, ctok: 0, ttok: 0 });
+  total.jpy = jpyOf(total.ptok, total.ctok);
+  total.avgTtok = total.req ? Math.round(total.ttok / total.req) : 0;
+  total.jpyPerReq = total.req ? total.jpy / total.req : 0;
+
+  const buckets = {};
+  for (const h of usageRows) {
+    for (const k of Object.keys(h || {})) {
+      const m = k.match(/^bkt:(\d+)$/);
+      if (m) buckets[m[1]] = (buckets[m[1]] || 0) + n(h[k]);
+    }
+  }
+
+  // チーム別（期間合計・多い順）。無料枠を月何枚にするかの判断材料
+  const teams = {};
+  for (const h of teamRows) {
+    for (const [sid, v] of Object.entries(h || {})) teams[sid] = (teams[sid] || 0) + n(v);
+  }
+  const teamList = Object.entries(teams).sort((a, b) => b[1] - a[1]).slice(0, 30);
+  const activeTeams = Object.keys(teams).filter(t => t !== 'demo').length;
+
+  const payload = {
+    days, rates: { PRICE_IN, PRICE_OUT, JPY }, total, daily, buckets,
+    teams: teamList.map(([sheetId, req]) => ({ sheetId, req })),
+    activeTeams,
+    recording: total.req > 0 || total.err > 0,
+  };
+  if (q.get('format') === 'json') return res.status(200).json(payload);
+
+  // ── 管理用HTML（新しい静的ページや関数を増やさずに済ませる） ──
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const yen = v => v.toLocaleString('ja-JP', { maximumFractionDigits: 3 });
+  const maxReq = Math.max(1, ...daily.map(d => d.req));
+  const perTeamMonthly = activeTeams ? (total.req / activeTeams) * (30 / days) : 0;
+
+  const html = `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>AI利用量ダッシュボード</title>
+<meta name="robots" content="noindex,nofollow">
+<style>
+ body{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif;background:#f5f8fc;margin:0;padding:1.2rem;color:#2c3e50;}
+ .wrap{max-width:900px;margin:0 auto;}
+ h1{font-size:1.2rem;margin:0 0 .2rem;} .sub{color:#8593a4;font-size:.8rem;margin-bottom:1.2rem;}
+ .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.8rem;margin-bottom:1.2rem;}
+ .card{background:#fff;border:1px solid #e3e8ef;border-radius:14px;padding:1rem;}
+ .card .k{font-size:.72rem;color:#8593a4;} .card .v{font-size:1.5rem;font-weight:800;color:#0d6efd;}
+ .card .u{font-size:.75rem;color:#8593a4;font-weight:400;margin-left:.2rem;}
+ table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #e3e8ef;border-radius:14px;overflow:hidden;font-size:.82rem;}
+ th,td{padding:.45rem .6rem;text-align:right;border-bottom:1px solid #eef2f7;} th{background:#f8fafd;color:#5a6b7f;font-size:.75rem;}
+ td:first-child,th:first-child{text-align:left;} tr:last-child td{border-bottom:none;}
+ .bar{height:8px;background:#0d6efd;border-radius:4px;display:inline-block;vertical-align:middle;}
+ h2{font-size:.95rem;margin:1.6rem 0 .5rem;} .note{background:#fff8ec;border-left:3px solid #f0a832;padding:.7rem .9rem;border-radius:0 8px 8px 0;font-size:.8rem;line-height:1.8;color:#6b5417;}
+ code{background:#eef2f7;padding:.1rem .3rem;border-radius:4px;font-size:.9em;}
+</style></head><body><div class="wrap">
+<h1>AI利用量ダッシュボード</h1>
+<div class="sub">直近${days}日（JST）／単価: 入力 $${PRICE_IN}・出力 $${PRICE_OUT} / 100万トークン、$1=${JPY}円</div>
+
+${payload.recording ? '' : '<div class="note">まだ記録がありません。デモで領収書を1枚解析すると計測が始まります。1週間ほど貯めてから判断してください。</div>'}
+
+<div class="cards">
+  <div class="card"><div class="k">解析回数</div><div class="v">${total.req.toLocaleString()}<span class="u">回</span></div></div>
+  <div class="card"><div class="k">1回あたり平均トークン</div><div class="v">${total.avgTtok.toLocaleString()}</div></div>
+  <div class="card"><div class="k">1回あたり実コスト</div><div class="v">${yen(total.jpyPerReq)}<span class="u">円</span></div></div>
+  <div class="card"><div class="k">期間合計コスト</div><div class="v">${yen(total.jpy)}<span class="u">円</span></div></div>
+  <div class="card"><div class="k">実測チーム数</div><div class="v">${activeTeams}</div></div>
+  <div class="card"><div class="k">1チーム月間換算</div><div class="v">${Math.round(perTeamMonthly)}<span class="u">枚</span></div></div>
+</div>
+
+<div class="note">
+  <b>当方キーへ切り替えた場合の月額試算</b>：1回 ${yen(total.jpyPerReq)}円 なので、
+  1,000チーム × ${Math.round(perTeamMonthly) || 100}枚/月 = 約 <b>${Math.round(total.jpyPerReq * 1000 * (Math.round(perTeamMonthly) || 100)).toLocaleString('ja-JP')}円/月</b>。
+  売上（825円 × 1,000）に対して <b>${total.req ? ((total.jpyPerReq * 1000 * (Math.round(perTeamMonthly) || 100)) / 825000 * 100).toFixed(2) : '—'}%</b>。
+  ※単価は環境変数 <code>AI_PRICE_IN</code>/<code>AI_PRICE_OUT</code>/<code>AI_JPY_PER_USD</code> で実際のGemini価格に合わせて更新すること。
+</div>
+
+<h2>日次</h2>
+<table><tr><th>日付</th><th>回数</th><th>失敗</th><th>平均トークン</th><th>コスト(円)</th><th>内訳</th><th></th></tr>
+${daily.map(d => `<tr><td>${d.date}</td><td>${d.req || ''}</td><td>${d.err || ''}</td><td>${d.avgTtok || ''}</td><td>${d.req ? yen(d.jpy) : ''}</td>
+<td>${esc(Object.entries(d.bySource).map(([k, v]) => `${k}:${v}`).join(' ')) || ''}</td>
+<td style="width:120px;"><span class="bar" style="width:${Math.round(d.req / maxReq * 110)}px"></span></td></tr>`).join('')}
+</table>
+
+<h2>1回あたりトークン分布（テール確認）</h2>
+<table><tr><th>トークン帯</th><th>回数</th></tr>
+${Object.keys(buckets).sort((a, b) => a - b).map(b => `<tr><td>${b}k〜${Number(b) + 1}k${Number(b) >= 30 ? '以上' : ''}</td><td>${buckets[b]}</td></tr>`).join('') || '<tr><td colspan="2">データなし</td></tr>'}
+</table>
+
+<h2>チーム別（期間合計・上位30）</h2>
+<table><tr><th>シートID</th><th>解析回数</th><th>月間換算</th></tr>
+${teamList.map(([sid, r]) => `<tr><td style="font-family:monospace;font-size:.72rem;">${esc(sid).slice(0, 24)}…</td><td>${r}</td><td>${Math.round(r * 30 / days)}</td></tr>`).join('') || '<tr><td colspan="3">データなし</td></tr>'}
+</table>
+
+<p class="sub" style="margin-top:1.5rem;">JSONで取得: <code>?format=json</code> ／ 期間変更: <code>?days=30</code></p>
+</div></body></html>`;
+
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  return res.status(200).send(html);
 }
 
 /**
@@ -1286,8 +1438,10 @@ async function gemini(req, res) {
   const data = await upstream.json().catch(() => ({}));
   // 鍵が含まれ得るエラー詳細はそのまま返さず、ステータスのみ透過
   if (!upstream.ok) {
+    await recordAiUsage({ source: 'web', sheetId: authz.sheetId, ok: false });
     return res.status(upstream.status).json({ error: 'gemini_error', message: data?.error?.message || '' });
   }
+  await recordAiUsage({ source: 'web', sheetId: authz.sheetId, data });
   return res.status(200).json(data);
 }
 
@@ -3190,9 +3344,11 @@ async function _lineAnalyze(sheetId, buf, mime, categories) {
   });
   if (!resp.ok) {
     const d = await resp.json().catch(() => ({}));
+    await recordAiUsage({ source: 'line', sheetId, ok: false });
     throw new Error('gemini ' + resp.status + ' ' + (d?.error?.message || ''));
   }
   const d = await resp.json();
+  await recordAiUsage({ source: 'line', sheetId, data: d });
   const text = d.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
   try { return JSON.parse(text); }
   catch (_) {
