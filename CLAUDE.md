@@ -343,6 +343,44 @@ git push origin claude/rebuild-receipt-app-Ft3lE
 最終的に「シート=唯一の原本」→「DBが正・シートは常時同期ミラー」のハイブリッド化判断が来る可能性はあるが、
 「顧客が自分のDriveでデータを持てる」という思想はミラー方式でも守れる。
 
+## 姉妹プロダクト「医療費ログ」との共有ファイル（重要）
+
+`kenmochi-blip/iryouhi-log`（Private・別リポジトリ／別Vercel／別GCP／別KV）は、
+経費ログの一部ファイルを**コピーして**使っている。モノレポ化も共通ライブラリ化もしない方針
+（真に共通なのは数十行だけで、本番稼働中のこのリポジトリを構造変更する理由がないため）。
+
+### ⚠️ 以下を変更したら、コミットハッシュを医療費ログ側へ伝えること
+
+```
+api/_sa.js  api/_verifyToken.js  api/_rateLimit.js  api/_aiUsage.js  api/token.js
+public/js/auth.js  public/js/router.js  public/js/drive.js
+public/js/gemini.js  public/js/setup.js  public/js/sheets.js
+```
+
+伝え方は**コミットのURLを渡すだけでよい**（このリポジトリは Public なので、
+医療費ログ側が直接差分を読んで取り込める）。ファイルを送り直す必要はない。
+
+```
+https://github.com/kenmochi-blip/keihi-log/commit/<ハッシュ>
+```
+
+対応表と同期履歴は **医療費ログ側の `SHARED_FILES.md`** が正。
+未取り込みの差分は `https://github.com/kenmochi-blip/keihi-log/compare/<前回のハッシュ>...main` で一覧できる。
+
+### 同期の基準点
+
+| 出来事 | ハッシュ | 備考 |
+|---|---|---|
+| copy-kit.zip 作成（初回移植） | **`4b09bee`** | 2026-09-04。上記11ファイルを抽出して引き渡し |
+| 和暦の日付誤読対策 | `d5ce9ac` | `public/js/gemini.js`。医療費ログ側は取り込み済み |
+
+### 医療費ログ側の意図的な差異（同期時に戻さないこと）
+
+- `api/_sa.js` … `analytics.readonly` スコープを削除（GA4は経費ログの `/licenses` 専用）
+- `public/js/gemini.js` … プロンプト本文は医療費用に新規。**古い日付の閾値は1年→2年**
+  （去年分をまとめて撮るのが医療費の正常な使い方で、初年度は2026年分を2027年に撮るため）
+- 日付の読み直しは**サーバー側**で実施（クライアントから再呼び出しすると読取上限を二重消費するため）
+
 ## Git 運用ルール（重要）
 - 本番URL（keihi-log.com）は `main` ブランチからデプロイされる
 - **開発は `claude/rebuild-receipt-app-Ft3lE` で行い、デプロイ可能になったら `main` を
