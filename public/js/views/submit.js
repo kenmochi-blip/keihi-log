@@ -1723,13 +1723,17 @@ function _bindSubtypePills(el) {
       }
     }
 
-    // 2ヶ月以上前の日付チェック（電帳法対応）
+    // 古い日付チェック。閾値は1年。
+    //   2ヶ月だと過去分をまとめて登録する場面で毎回出てノイズになるため広げた。
+    //   狙いは電帳法の期限管理ではなく「年が大きくずれた読み取り」の検出で、
+    //   和暦の換算ミス（令和8年→1996年）や年の桁の誤読を拾う。
+    //   規程ひな型の「受領後おおむね2ヶ月以内」は社内ルールとして別に残る。
     const dateVal = new Date(data.date);
-    const twoMonthsAgo = new Date();
-    twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
-    if (dateVal < twoMonthsAgo) {
+    const oneYearAgo = new Date();
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+    if (dateVal < oneYearAgo) {
       const ok = await App.confirm(
-        `日付が2ヶ月以上前（${data.date}）です。\n電子帳簿保存法では受領後速やかな保存が求められます。\nこのまま申請しますか？`
+        `日付が1年以上前（${data.date}）です。\n読み取りの誤りでなければ、このまま申請できます。\n申請しますか？`
       );
       if (!ok) return;
     }
@@ -2116,8 +2120,8 @@ function _bindSubtypePills(el) {
           excludeId: _editId || '',   // 編集時に自分自身との重複を誤検知しない
         });
         if (r && Array.isArray(r.alerts)) {
-          // 2ヶ月以上前は _handleSubmit で確認ダイアログ済み・K列にも書かないため除外
-          return r.alerts.filter(a => !String(a).startsWith('日付が2ヶ月以上前'));
+          // 1年以上前は _handleSubmit で確認ダイアログ済み・K列にも書かないため除外
+          return r.alerts.filter(a => !String(a).startsWith('日付が1年以上前'));
         }
       } catch (_) { /* フォールバックへ */ }
     }

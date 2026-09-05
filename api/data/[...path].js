@@ -4162,11 +4162,13 @@ function _serverAuditChecks(expenses, data, newHashes) {
   // 5. 高額（10万円以上）
   if (amount >= 100000) alerts.push(`高額（¥${amount.toLocaleString('ja-JP')}）です。内容をご確認ください`);
 
-  // 6. 2ヶ月以上前の日付（入力時の注意喚起のみ。K列には残さない → _persistableAlerts）
+  // 6. 1年以上前の日付（入力時の注意喚起のみ。K列には残さない → _persistableAlerts）
+  //    閾値が2ヶ月だと過去分のまとめ登録で毎回出てノイズになるため1年に広げた。
+  //    狙いは期限管理ではなく「年が大きくずれた読み取り」の検出（和暦の換算ミス等）。
   if (_validDateStr(data.date)) {
     const dt = new Date(data.date + 'T00:00:00+09:00');
-    const twoMonthsAgo = new Date(Date.now() - 62 * 86400000);
-    if (dt < twoMonthsAgo) alerts.push(`日付が2ヶ月以上前（${data.date}）です`);
+    const oneYearAgo = new Date(Date.now() - 365 * 86400000);
+    if (dt < oneYearAgo) alerts.push(`日付が1年以上前（${data.date}）です`);
   }
 
   return alerts;
@@ -4175,14 +4177,14 @@ function _serverAuditChecks(expenses, data, newHashes) {
 /**
  * 監査結果のうち K列（＝一覧の「要確認」バッジ）に残すものだけを抽出する。
  *
- * 「日付が2ヶ月以上前」は日付の誤認識を入力者に気づかせるための検査で、
+ * 「日付が1年以上前」は日付の誤認識を入力者に気づかせるための検査で、
  * 登録後に他人が真偽を検証する手立てが無い（本当に古い領収書なのか、AIが
  * 読み違えたのかは記録からは判別できない）。日付が古いこと自体は不備でもなく、
  * 初期移行で過去分をまとめて登録すると全件が要確認になってバッジが形骸化する。
  * よって確認カードには出すが記録には残さない。
  * Web版 submit.js も同様に確認ダイアログのみで _runAuditChecks には含めていない。
  */
-const AUDIT_INPUT_ONLY_PREFIXES = ['日付が2ヶ月以上前'];
+const AUDIT_INPUT_ONLY_PREFIXES = ['日付が1年以上前'];
 function _persistableAlerts(alerts) {
   return (alerts || []).filter(a => !AUDIT_INPUT_ONLY_PREFIXES.some(p => String(a).startsWith(p)));
 }
