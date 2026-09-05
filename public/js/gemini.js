@@ -176,6 +176,11 @@ const Gemini = (() => {
 }
 
 注意：
+- date は必ず西暦の YYYY-MM-DD で返すこと
+  - 和暦（令和・平成・昭和、R/H/S の略記）で書かれていれば西暦に換算する
+    令和N年 = 2018+N（令和1年=2019年）／平成N年 = 1988+N（平成1年=1989年）／昭和N年 = 1925+N
+  - 元号の記載がなく年が2桁以下（例「8.3.15」）の場合は、直近の過去の日付になるよう解釈する（未来日にしない）
+  - どうしても判断できない場合は date を null にすること（推測で埋めない）
 - 金額が日本円なら total_amount に数値を入れ fx_* は null
 - 外貨なら total_amount は null にして fx_currency と fx_amount を埋める
 - total_amount は「税込み費用計上額（源泉徴収控除前）」を入れること
@@ -201,14 +206,73 @@ const Gemini = (() => {
     const data = await resp.json();
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
 
+    let parsed;
     try {
-      return JSON.parse(text);
+      parsed = JSON.parse(text);
     } catch (_) {
       // JSONパース失敗時は正規表現で抽出を試みる
       const match = text.match(/\{[\s\S]*\}/);
-      if (match) return JSON.parse(match[0]);
-      throw new Error('AI解析結果のパースに失敗しました');
+      if (!match) throw new Error('AI解析結果のパースに失敗しました');
+      parsed = JSON.parse(match[0]);
     }
+
+    // 和暦の誤読対策：1年以上前と読まれた日付は読み直して突き合わせる
+    if (parsed && parsed.date) {
+      const v = await _verifyOldDate(imageParts, parsed.date);
+      parsed.date = v.date;
+      if (v.uncertain) parsed.date_uncertain = true;
+    }
+    return parsed;
+  }
+
+  /** その日付が「1年以上前」か */
+  function _isOverAYearAgo(ymd) {
+    const d = new Date(ymd);
+    if (Number.isNaN(d.getTime())) return false;
+    const limit = new Date();
+    limit.setFullYear(limit.getFullYear() - 1);
+    return d < limit;
+  }
+
+  /** 日付だけを読み直す（失敗時は null）。和暦の誤読を疑ったときにのみ呼ぶ。 */
+  async function _readDateOnly(imageParts) {
+    const prompt = `この画像に印字されている「日付」だけを読み取ってください。
+- 必ず西暦の YYYY-MM-DD で返すこと
+- 和暦（令和・平成・昭和、R/H/S の略記）は西暦に換算する
+  令和N年 = 2018+N（令和1年=2019年）／平成N年 = 1988+N（平成1年=1989年）／昭和N年 = 1925+N
+- 元号の記載がなく年が2桁以下（例「8.3.15」）の場合は、直近の過去の日付になるよう解釈する（未来日にしない）
+- 読み取れない場合は null
+
+{"date": "YYYY-MM-DD" または null}`;
+    try {
+      const resp = await _doApiFetch(JSON.stringify({
+        contents: [{ parts: [...imageParts, { text: prompt }] }],
+        generationConfig: { temperature: 0, responseMimeType: 'application/json' },
+      }));
+      if (!resp.ok) return null;
+      const d = await resp.json();
+      const t = d.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+      const m = t.match(/\{[\s\S]*\}/);
+      const o = JSON.parse(m ? m[0] : t);
+      return /^\d{4}-\d{2}-\d{2}$/.test(o?.date || '') ? o.date : null;
+    } catch (_) {
+      return null;   // 再確認の失敗が本処理を止めないよう握り潰す
+    }
+  }
+
+  /**
+   * 1年以上前と読まれた日付を検証する。日常の経費で1年以上前の領収書は稀で、
+   * 和暦（令和8年→2026年）の換算ミスが最も疑わしいため、日付だけを読み直して突き合わせる。
+   * 追加の呼び出しはこのケースに限られるので、コスト・待ち時間への影響は小さい。
+   */
+  async function _verifyOldDate(imageParts, first) {
+    if (!_isOverAYearAgo(first)) return { date: first, uncertain: false };
+
+    const second = await _readDateOnly(imageParts);
+    if (!second)                     return { date: first,  uncertain: true };  // 読み直せず → 疑わしいまま
+    if (!_isOverAYearAgo(second))    return { date: second, uncertain: false }; // 誤読が訂正された
+    if (second === first)            return { date: first,  uncertain: true };  // 2回一致 → 本当に古い可能性
+    return { date: '', uncertain: true };                                       // 不一致 → どちらも信用しない
   }
 
   /** キャッシュをクリアする（APIキーが変更された場合など） */

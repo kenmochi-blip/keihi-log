@@ -3317,6 +3317,11 @@ async function _lineAnalyze(sheetId, buf, mime, categories) {
 }
 
 注意：
+- date は必ず西暦の YYYY-MM-DD で返すこと
+  - 和暦（令和・平成・昭和、R/H/S の略記）で書かれていれば西暦に換算する
+    令和N年 = 2018+N（令和1年=2019年）／平成N年 = 1988+N（平成1年=1989年）／昭和N年 = 1925+N
+  - 元号の記載がなく年が2桁以下（例「8.3.15」）の場合は、直近の過去の日付になるよう解釈する（未来日にしない）
+  - どうしても判断できない場合は date を null にすること（推測で埋めない）
 - ★最優先で通貨を判定する：金額に付く記号や表記（¥・円→JPY、$・US$・USD→USD、€・EUR→EUR、£・GBP→GBP など）や店舗の所在地から判断し currency に入れる。$表記は米ドル(USD)。判定できないときだけ JPY とする。
 - currency が JPY のとき：total_amount に円の税込み合計を入れ、fx_* は null。
 - currency が JPY 以外（外貨）のとき：total_amount と fx_amount の両方に「その外貨の合計金額」を入れ、fx_currency に通貨コードを入れる。

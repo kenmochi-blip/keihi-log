@@ -891,6 +891,32 @@ function _bindSubtypePills(el) {
     });
   }
 
+  /**
+   * 日付の読み取りが疑わしいときに入力欄を強調する。
+   * 和暦（令和8年→2026年）の換算ミスは日付が大きく過去へずれるため、
+   * 1年以上前と読まれたものは gemini.js 側で読み直したうえでここに来る。
+   */
+  function _markDateUncertain(el, uncertain, date) {
+    const input = el.querySelector('#inputDate');
+    if (!input) return;
+    const OLD = el.querySelector('#dateUncertainMsg');
+    if (OLD) OLD.remove();
+    input.classList.toggle('border-warning', uncertain);
+    if (!uncertain) return;
+
+    const msg = document.createElement('div');
+    msg.id = 'dateUncertainMsg';
+    msg.className = 'text-warning small mt-1';
+    msg.style.lineHeight = '1.6';
+    msg.innerHTML = date
+      ? '<i class="bi bi-exclamation-triangle me-1"></i>日付が1年以上前と読み取られました。'
+        + '<br>和暦の読み間違いの可能性があります。ご確認ください。'
+      : '<i class="bi bi-exclamation-triangle me-1"></i>日付を読み取れませんでした。'
+        + '<br>お手数ですが手入力してください。';
+    input.closest('.input-group')?.insertAdjacentElement('afterend', msg)
+      || input.insertAdjacentElement('afterend', msg);
+  }
+
   function _addSplitRow(el) {
     const pnl = _activePanel(el);
     _addSplitRowTo(pnl.querySelector('#splitLines'), pnl);
@@ -1228,6 +1254,8 @@ function _bindSubtypePills(el) {
         el.querySelector('#inputDate').value = result.date;
         filled++;
       }
+      // 和暦の誤読が疑われる日付は、目立たせて利用者に確認を促す（gemini.js _verifyOldDate）
+      _markDateUncertain(el, !!result.date_uncertain, result.date);
       if (result.shop) {
         el.querySelector('#inputPlace').value = result.shop;
         filled++;
