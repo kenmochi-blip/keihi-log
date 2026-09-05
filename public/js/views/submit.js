@@ -422,7 +422,7 @@ const SubmitView = (() => {
       if (t && t.classList && t.classList.contains('js-date-native') && t.value) {
         const grp = t.closest('.input-group');
         const text = grp && grp.querySelector('.js-date-text');
-        if (text) text.value = t.value;
+        if (text) { text.value = t.value; _updateDateHint(text); }
       }
     });
     document.addEventListener('blur', e => {
@@ -430,6 +430,8 @@ const SubmitView = (() => {
       if (t && t.classList && t.classList.contains('js-date-text')) {
         const n = _normalizeDateStr(t.value);
         if (n) t.value = n;
+        // 手入力・カレンダー選択でも古い日付の注意表示を更新する
+        _updateDateHint(t);
       }
     }, true);
   }
@@ -892,29 +894,54 @@ function _bindSubtypePills(el) {
   }
 
   /**
-   * 日付の読み取りが疑わしいときに入力欄を強調する。
-   * 和暦（令和8年→2026年）の換算ミスは日付が大きく過去へずれるため、
-   * 1年以上前と読まれたものは gemini.js 側で読み直したうえでここに来る。
+   * 日付欄の注意表示を更新する。**ポップアップは出さず**、欄の強調と一言だけ。
+   * 手入力でも効くよう、AI解析後だけでなく日付の変更時にも呼ぶ。
+   *
+   *  - 1年以上前   : 読み取りの誤りを疑う（和暦の換算ミス・年の桁の誤読）。
+   *                  登録時には確認ダイアログも出す（_handleSubmit）
+   *  - 2ヶ月以上前 : 電帳法のスキャナ保存はおおむね2ヶ月以内。**気づきのための表示のみ**で、
+   *                  登録は妨げない（過去分のまとめ登録でダイアログが出ると煩わしいため）
+   *  - AI が読めなかった場合も同じ枠で知らせる
+   *
+   * @param {Element} elOrInput パネル要素、または日付入力欄そのもの
+   *   （#inputDate はパネルごとに重複するため、入力欄を直接渡せるようにしている）
+   * @param {object} [opts] { aiUncertain: AI解析が疑わしい, aiNoDate: AIが読めなかった }
    */
-  function _markDateUncertain(el, uncertain, date) {
-    const input = el.querySelector('#inputDate');
+  function _updateDateHint(elOrInput, opts = {}) {
+    const input = elOrInput?.classList?.contains('js-date-text')
+      ? elOrInput
+      : elOrInput?.querySelector?.('#inputDate');
     if (!input) return;
-    const OLD = el.querySelector('#dateUncertainMsg');
-    if (OLD) OLD.remove();
-    input.classList.toggle('border-warning', uncertain);
-    if (!uncertain) return;
+    const grp = input.closest('.input-group') || input;
+    grp.parentElement?.querySelector('#dateUncertainMsg')?.remove();
+
+    let text = '';
+    if (opts.aiNoDate) {
+      text = '日付を読み取れませんでした。<br>お手数ですが手入力してください。';
+    } else {
+      const d = new Date(_normalizeDateStr(input.value) || input.value);
+      if (!Number.isNaN(d.getTime())) {
+        const yearAgo = new Date();  yearAgo.setFullYear(yearAgo.getFullYear() - 1);
+        const twoMonthsAgo = new Date(); twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+        if (d < yearAgo) {
+          text = '日付が1年以上前です。'
+               + (opts.aiUncertain ? '<br>読み取りを誤っている可能性があります。ご確認ください。'
+                                   : '<br>ご確認ください。');
+        } else if (d < twoMonthsAgo) {
+          text = '日付が2ヶ月以上前です。';
+        }
+      }
+    }
+
+    input.classList.toggle('border-warning', !!text);
+    if (!text) return;
 
     const msg = document.createElement('div');
     msg.id = 'dateUncertainMsg';
     msg.className = 'text-warning small mt-1';
     msg.style.lineHeight = '1.6';
-    msg.innerHTML = date
-      ? '<i class="bi bi-exclamation-triangle me-1"></i>日付が1年以上前と読み取られました。'
-        + '<br>和暦の読み間違いの可能性があります。ご確認ください。'
-      : '<i class="bi bi-exclamation-triangle me-1"></i>日付を読み取れませんでした。'
-        + '<br>お手数ですが手入力してください。';
-    input.closest('.input-group')?.insertAdjacentElement('afterend', msg)
-      || input.insertAdjacentElement('afterend', msg);
+    msg.innerHTML = `<i class="bi bi-exclamation-triangle me-1"></i>${text}`;
+    grp.insertAdjacentElement('afterend', msg);
   }
 
   function _addSplitRow(el) {
@@ -1254,8 +1281,8 @@ function _bindSubtypePills(el) {
         el.querySelector('#inputDate').value = result.date;
         filled++;
       }
-      // 和暦の誤読が疑われる日付は、目立たせて利用者に確認を促す（gemini.js _verifyOldDate）
-      _markDateUncertain(el, !!result.date_uncertain, result.date);
+      // 読み取りが疑わしい日付・古い日付は欄を強調して知らせる（gemini.js _verifyOldDate）
+      _updateDateHint(el, { aiUncertain: !!result.date_uncertain, aiNoDate: !result.date && !!result.date_uncertain });
       if (result.shop) {
         el.querySelector('#inputPlace').value = result.shop;
         filled++;
